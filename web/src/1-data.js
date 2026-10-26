@@ -1,0 +1,174 @@
+// ================================================================ 1. catalogue, patches, state
+const GATES = ["NOTE", "GRID", "1/16", "1/8", "1/4", "BAR"];
+const n = (l, def = 0.5, o = {}) => ({ l, t: "num", def, ...o });          // 0..1
+const b = (l, def = 0) => ({ l, t: "bip", def });                           // -1..1
+const L = (l, opts, def = 0) => ({ l, t: "list", opts, def, mod: false });
+const I = (l, min, max, def) => ({ l, t: "int", min, max, def, mod: false });
+const PLAITS_MODELS = ["VA VCF", "PHASE D", "6OP FM 1", "6OP FM 2", "6OP FM 3", "TERRAIN", "STR MACH", "CHIPTUNE", "PAIR VA", "WAVESHP", "2OP FM", "FORMANT", "ADDITIVE", "WAVETBL", "CHORDS", "SPEECH", "SWARM", "NOISE", "PARTICLE", "STRING", "MODAL", "BASS DR", "SNARE", "HI-HAT"];
+const BRAIDS_MODELS = ["CSAW", "/\\-_", "//-_", "FOLD", "UUUU", "SUB-", "SUB/", "SYN-", "SYN/", "//x3", "-_x3", "/\\x3", "SIx3", "RING", "////", "//uu", "TOY*", "ZLPF", "ZPKF", "ZBPF", "ZHPF", "VOSM", "VOWL", "VFOF", "HARM", "FM", "FBFM", "WTFM", "PLUK", "BOWD", "BLOW", "FLUT", "BELL", "DRUM", "KICK", "CYMB", "SNAR", "WTBL", "WMAP", "WLIN", "WTx4", "NOIS", "TWLN", "CLKN", "CLOU", "PRTC", "QPSK"];
+
+// cpu: est. units of an 80-unit budget (per voice when poly); ram: est. KB
+const MODULES = {
+  PLAITS:   { kind: "src", poly: true, cpu: 9, ram: 8, blurb: "MACRO OSC · 24 MODELS", pages: [[L("MODEL", PLAITS_MODELS, 8), n("HARMO", .42), n("TIMBRE", .6), n("MORPH", .31)], [L("LPG", ["OFF", "ON"]), n("DECAY", .5), n("COLOUR", .5), n("LEVEL", .8)]] },
+  BRAIDS:   { kind: "src", poly: true, cpu: 4, ram: 2, blurb: "47 SHAPES · BIT CRUSH", pages: [[L("MODEL", BRAIDS_MODELS), n("TIMBRE", .5), n("COLOR", .5), n("DRIFT", .1)], [L("BITS", ["2", "3", "4", "6", "8", "12", "16"], 6), L("RATE", ["4K", "8K", "16K", "22K", "32K", "48K"], 5), n("SIGN", 0), n("LEVEL", .8)]] },
+  ELEMENTS: { kind: "src", poly: true, cpu: 40, ram: 64, blurb: "BOW BLOW STRIKE VOICE", pages: [[n("BOW", .3), n("BLOW", 0), n("STRIKE", .6), n("CONTOUR", .5)], [n("GEOMETRY", .4), n("BRIGHT", .6), n("DAMPING", .4), n("POSITION", .3)], [n("FLOW", .5), n("MALLET", .5), n("BOW TMB", .5), n("SPACE", .4)]] },
+  RINGS:    { kind: "shp", poly: true, cpu: 14, ram: 40, blurb: "RESONATOR · 6 MODELS", pages: [[L("MODEL", ["MODAL", "SYMPATH", "STRING", "FM VOICE", "SYM QNT", "STR+VERB"]), n("STRUCT", .5), n("BRIGHT", .7), n("DAMPING", .4)], [n("POSITION", .3), n("EXCITE", .6), n("MIX", .7), n("SPREAD", .3)]] },
+  WARPS:    { kind: "shp", poly: true, cpu: 10, ram: 8, blurb: "CROSS-MOD · VOCODER", pages: [[n("ALGO", .3), n("TIMBRE", .5), L("CARRIER", ["SINE", "TRI", "SAW"], 2), L("MOD IN", ["OSC", "USB IN", "NOISE"])], [n("CAR LVL", .7), n("MOD LVL", .7), n("MIX", 1)]] },
+  FILTER:   { kind: "shp", poly: true, cpu: 2, ram: 1, blurb: "SVF · LP BP HP", pages: [[L("TYPE", ["LP", "BP", "HP"]), n("CUTOFF", .55), n("RESO", .3), n("DRIVE", .2)], [b("ENV AMT", .3), n("KEY TRK", .5)]] },
+  PEAKS:    { kind: "mod", poly: false, cpu: 1, ram: 1, blurb: "ENVELOPE · LFO · TAP", outs: ["PEAKS"], pages: [[L("FUNC", ["ENV", "LFO", "TAP"]), n("K1", 0), n("K2", .7), L("GATE", GATES)]] },
+  TIDES:    { kind: "mod", poly: false, cpu: 1, ram: 1, blurb: "SLOPE GENERATOR", outs: ["TIDES", "TIDE+"], pages: [[L("MODE", ["AD", "LOOP", "AR"], 1), n("FREQ", .3), n("SHAPE", .5), b("SLOPE", -.3)], [b("SMOOTH", .3), L("RANGE", ["LO", "MID"]), L("GATE", GATES, 4)]] },
+  MARBLES:  { kind: "mod", poly: false, cpu: 3, ram: 4, blurb: "RANDOM NOTES · GATES", outs: ["MARB X", "MARB T"], pages: [[n("RATE", .5), n("SPREAD", .4), n("BIAS", .5), n("STEPS", .7)], [n("DEJA VU", .5), L("LENGTH", ["1", "2", "3", "4", "5", "6", "8", "16"], 6), n("JITTER", .1), L("CLOCK", ["FREE", "1/16", "1/8", "1/4"], 2)]] },
+  GRIDS:    { kind: "mod", poly: false, cpu: 1, ram: 2, blurb: "TOPOGRAPHIC DRUM MAP", outs: ["GRID", "ACCENT"], pages: [[n("X", .4), n("Y", .8), n("FILL", .8), L("OUT", ["BD", "SD", "HH", "KIT"], 3)], [n("CHAOS", 0)]] },
+  CLOUDS:   { kind: "fx", poly: false, cpu: 22, ram: 118, blurb: "GRANULAR TEXTURES", pages: [[n("POSITION", .2), n("SIZE", .6), b("PITCH"), n("DENSITY", .5)], [n("TEXTURE", .4), n("BLEND", .3), n("SPREAD", .5), n("FEEDBACK", .2)], [n("REVERB", .3), L("MODE", ["GRANULR", "STRETCH", "LOOPDLY", "SPECTRL"]), L("FREEZE", ["OFF", "ON"])]] },
+  DELAY:    { kind: "fx", poly: false, cpu: 3, ram: 64, blurb: "TEMPO PING-PONG", pages: [[L("TIME", ["1/16", "1/8", "1/8D", "1/4", "1/2"], 2), n("FEEDBACK", .4), n("TONE", .5), n("MIX", .3)]] },
+  REVERB:   { kind: "fx", poly: false, cpu: 6, ram: 32, blurb: "PLATE · CLOUDS VERB", pages: [[n("SIZE", .6), n("DAMP", .5), n("DIFFUSE", .55), n("MIX", .3)]] },
+  CHORUS:   { kind: "fx", poly: false, cpu: 2, ram: 4, blurb: "STEREO CHORUS", pages: [[n("RATE", .3), n("DEPTH", .5), n("WIDTH", .7), n("MIX", .4)]] },
+};
+const AMP = { kind: "amp", poly: true, cpu: 1, ram: 0, pages: [[n("ATTACK", .02), n("DECAY", .4), n("SUSTAIN", .7), n("RELEASE", .35)], [n("VEL AMT", .6), n("GLIDE", 0), n("SPREAD", .3), n("LEVEL", .8)], [n("M ATTACK", .05), n("M DECAY", .4), L("M LOOP", ["OFF", "ON"])]] };
+const LFO_SHAPES = ["SINE", "TRI", "SAW", "SQUARE", "S&H", "DRIFT"], LFO_SYNC = ["FREE", "1/16", "1/8", "1/4", "1/2", "1 BAR", "2 BARS"];
+const lfoPage = (i, shape, rate, sync) => [L(`SHAPE ${i}`, LFO_SHAPES, shape), n(`RATE ${i}`, rate), L(`SYNC ${i}`, LFO_SYNC, sync), L(`RETRIG ${i}`, ["OFF", "ON"])];
+const LFOS = { kind: "lfo", pages: [lfoPage(1, 0, .35, 0), lfoPage(2, 1, .2, 5), lfoPage(3, 5, .5, 0)] };
+const ANIM_MODES = ["FULL", "CALM", "STILL"];
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)]] };
+const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6;
+const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10] };
+const KEYS12 = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const SCALE = { kind: "scl", pages: [[L("LOCK", ["OFF", "ON"]), L("KEY", KEYS12), L("SCALE", Object.keys(SCALES))]] };
+const POOL = 256, BUDGET = 80, MAXV = 6;
+
+const SLOTS = [
+  { id: "SRC", kind: "src", name: "SRC", choices: ["PLAITS", "BRAIDS", "ELEMENTS"] },
+  { id: "SHP", kind: "shp", name: "SHP", choices: ["RINGS", "WARPS", "FILTER", null] },
+  { id: "MODA", kind: "mod", name: "MOD A", choices: ["PEAKS", "TIDES", "MARBLES", "GRIDS", null] },
+  { id: "MODB", kind: "mod", name: "MOD B", choices: ["PEAKS", "TIDES", "MARBLES", "GRIDS", null] },
+  { id: "FX1", kind: "fx", name: "FX 1", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
+  { id: "FX2", kind: "fx", name: "FX 2", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
+];
+const KC = { src: "#ffb347", shp: "#4fd1c5", mod: "#b48cff", fx: "#6aa9ff", amp: "#ff7a6b", glo: "#d8d7d3", lfo: "#c9a7ff", scl: "#9be37a", mx: "#ffd27a" };
+
+// ---------------------------------------------------------------- state
+const blankParams = (mod) => mod ? mod.pages.flat().map((p) => p.def) : [];
+const rack = {};                    // slot id -> { mod: name|null, p: [] }
+const amp = { p: blankParams(AMP) };
+const glo = { p: blankParams(GLOBAL) };
+const scl = { p: blankParams(SCALE) };
+const lfo = { p: blankParams(LFOS) };
+const BUILT_SRC = ["—", "M1", "M2", "M3", "M4", "VELO", "KEY TRK", "RANDOM", "AMP ENV"];
+const EXTRA_SRC = ["LFO 1", "LFO 2", "LFO 3", "MOD ENV"];
+let matrix = [];
+let macros = [0.5, 0.5, 0.5, 0.5];
+try { const sg = JSON.parse(localStorage.getItem("fm1rack.global.v1") || "null"); if (sg && sg.length === glo.p.length) glo.p = sg; } catch { /* defaults */ }
+function storeGlobal() { try { localStorage.setItem("fm1rack.global.v1", JSON.stringify(glo.p)); } catch { /* this visit only */ } }
+
+const PRESETS = /*PRESETS*/[];
+let presetIx = 0, patchName = PRESETS[0].name;
+const USER_SLOTS = 16, STORE_KEY = "fm1rack.user.v1";
+let userPatches = (() => { try { const v = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); return Array.from({ length: USER_SLOTS }, (_, i) => v[i] || null); } catch { return Array(USER_SLOTS).fill(null); } })();
+function storeUser() { try { localStorage.setItem(STORE_KEY, JSON.stringify(userPatches)); return true; } catch { return false; } }
+// the PRESETS encoder walks the factory patches, then the user slots that hold something
+function patchList() { return [...PRESETS.map((p, i) => ({ f: i, name: p.name })), ...userPatches.map((p, i) => p && { u: i, name: `U${String(i + 1).padStart(2, "0")} ${p.name}` }).filter(Boolean)]; }
+function fitParams(def, arr) { const d = blankParams(def); return d.map((v, i) => (arr && arr[i] !== undefined ? arr[i] : v)); }
+function loadPreset(i) {
+  const entry = patchList()[i] || { f: 0, name: PRESETS[0].name };
+  patchName = entry.name;
+  if (entry.u !== undefined) {
+    const u = userPatches[entry.u];
+    for (const s of SLOTS) { const st = u.slots[s.id] || { mod: null, p: [] }; rack[s.id] = { mod: st.mod, p: fitParams(MODULES[st.mod], st.p) }; }
+    amp.p = fitParams(AMP, u.amp); lfo.p = fitParams(LFOS, u.lfo);
+    matrix = u.matrix.map((r) => ({ ...r })); macros = [...u.macros];
+    return;
+  }
+  const pr = PRESETS[entry.f];
+  for (const s of SLOTS) { const m = pr.slots[s.id]; rack[s.id] = { mod: m, p: blankParams(MODULES[m]) }; if (m) applyOver(MODULES[m], rack[s.id].p, pr.p && pr.p[s.id]); }
+  amp.p = blankParams(AMP); applyOver(AMP, amp.p, pr.amp);
+  lfo.p = blankParams(LFOS); applyOver(LFOS, lfo.p, pr.lfo);
+  matrix = Array.from({ length: 12 }, (_, k) => {
+    const r = pr.matrix[k];
+    return r ? { src: r[0], dst: r[1], amt: r[2], via: r[3] || "—" } : { src: "—", dst: "—", amt: 0, via: "—" };
+  });
+  macros = [...(pr.macros || [0.5, 0.5, 0.5, 0.5])];
+}
+// factory patches name their values by label, and list values by option
+function applyOver(def, values, over) {
+  if (!over) return;
+  const flat = def.pages.flat();
+  for (const [label, v] of Object.entries(over)) {
+    const j = flat.findIndex((p) => p.l === label);
+    if (j < 0) continue;
+    values[j] = flat[j].t === "list" ? Math.max(0, flat[j].opts.indexOf(String(v))) : v;
+  }
+}
+function snapshot(name) {
+  return { name, slots: Object.fromEntries(SLOTS.map((s) => [s.id, { mod: rack[s.id].mod, p: [...rack[s.id].p] }])),
+           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros] };
+}
+const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
+let saveState = null;
+function openSave() {
+  const base = patchName.replace(/^U\d\d /, "").slice(0, 10).padEnd(10, " ");
+  const free = userPatches.findIndex((p) => !p);
+  saveState = { name: base.split(""), cursor: 0, slot: free < 0 ? 0 : free, t0: animT };
+  page = "SAVE";
+}
+function commitSave() {
+  const name = saveState.name.join("").trim() || "UNTITLED";
+  userPatches[saveState.slot] = snapshot(name);
+  const ok = storeUser();
+  const list = patchList();
+  presetIx = list.findIndex((e) => e.u === saveState.slot);
+  patchName = list[presetIx].name;
+  say(ok ? `SAVED TO U${String(saveState.slot + 1).padStart(2, "0")}` : "SAVED FOR THIS VISIT ONLY", "SAVE");
+  saveState = null; page = "PERFORM";
+}
+
+// ---------------------------------------------------------------- budget
+function budgetFor(ids) {
+  let shared = 0, poly = AMP.cpu, ram = 0;
+  for (const s of SLOTS) {
+    const m = MODULES[ids[s.id]];
+    if (!m) continue;
+    if (m.poly) poly += m.cpu; else shared += m.cpu;
+    ram += m.ram;
+  }
+  const cap = glo.p[G_VOICES] ? glo.p[G_VOICES] : MAXV;
+  const voices = Math.min(cap, Math.floor((BUDGET - shared) / poly));
+  return { shared, poly, ram, voices, cpu: shared + poly * Math.max(voices, 0) };
+}
+const currentIds = () => Object.fromEntries(SLOTS.map((s) => [s.id, rack[s.id].mod]));
+const budget = () => budgetFor(currentIds());
+function fitOf(slotId, modName) {
+  const ids = currentIds(); ids[slotId] = modName;
+  const bg = budgetFor(ids);
+  if (modName && bg.ram > POOL) return { ok: false, why: `${MODULES[modName].ram}K RAM`, bg };
+  if (bg.voices < 1) return { ok: false, why: "CPU", bg };
+  if (modName && (slotId === "FX1" || slotId === "FX2")) { const other = slotId === "FX1" ? "FX2" : "FX1"; if (rack[other].mod === modName) return { ok: false, why: `IN ${other === "FX1" ? "FX 1" : "FX 2"}`, bg }; }
+  return { ok: true, bg };
+}
+
+// sources and destinations
+function sources() {
+  const out = [...BUILT_SRC, ...EXTRA_SRC];
+  for (const id of ["MODA", "MODB"]) { const m = MODULES[rack[id].mod]; if (m) for (const o of m.outs) out.push(`${id.slice(-1)} ${o}`); }
+  return out;
+}
+function destinations() {
+  const out = ["—", "PITCH", "PAN", ...AMP.pages.flat().filter((p) => p.mod !== false).map((p) => `AMP.${p.l}`), ...LFOS.pages.flat().filter((p) => p.mod !== false).map((p) => `LFO.${p.l}`)];
+  for (const s of SLOTS) {
+    const m = MODULES[rack[s.id].mod];
+    if (m) for (const p of m.pages.flat()) if (p.mod !== false) out.push(`${s.name}.${p.l}`);
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------- UI state
+let page = "PERFORM";           // PERFORM | RACK | slot id | AMP | LFOS | MATRIX | SCALE | GLOBAL | SAVE
+let subpage = 0, mxRow = 0, octave = 0, master = 0.7, hold = false;
+let picker = null;              // { slot, ix }
+let toast = null, toastIcon = null, toastT = 0;
+let learn = false, learnMacro = 0;
+let animT = 0;                  // animation clock in seconds (slows or stops with GLO > ANIMATION)
+const phrase = { state: "idle", events: [], t0: 0, len: 0, start: 0, last: 0, bars: 0 };
+const playKeys = new Set();
+const held = new Set(), latched = new Set();
+const say = (msg, ic = null) => { toast = msg; toastIcon = ic; toastT = performance.now(); draw(); };

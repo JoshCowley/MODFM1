@@ -1,0 +1,169 @@
+// ================================================================ 2. screen primitives and pixel icons
+const cv = document.getElementById("screen"), g = cv.getContext("2d");
+g.scale(3, 3);
+const C = { bg: "#000", fg: "#f2efe6", dim: "#7d7a72", faint: "#2b2a27", well: "#0b0b0a", bar: "#111110", warn: "#ff6b5e", ok: "#5fe08a", gold: "#ffd27a" };
+const FONT = '"DotGothic16", monospace';
+function T(x, y, s, o = {}) {
+  g.font = `${o.size || 12}px ${FONT}`;
+  g.fillStyle = o.c || C.fg; g.textAlign = o.a || "left"; g.textBaseline = "alphabetic";
+  g.fillText(s, x, y);
+}
+function textW(s, size) { g.font = `${size}px ${FONT}`; return g.measureText(s).width; }
+function rect(x, y, w, h, c, r = 0) { g.fillStyle = c; g.beginPath(); g.roundRect(x, y, w, h, r); g.fill(); }
+function frame(x, y, w, h, c, r = 4) { g.strokeStyle = c; g.lineWidth = 1; g.beginPath(); g.roundRect(x + .5, y + .5, w - 1, h - 1, r); g.stroke(); }
+const _rgb = {};
+function rgba(hex, a) {
+  const k = _rgb[hex] || (_rgb[hex] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)));
+  return `rgba(${k[0]},${k[1]},${k[2]},${Math.max(0, Math.min(1, a)).toFixed(3)})`;
+}
+function bar(x, y, w, frac, c, bip = false) {
+  rect(x, y, w, 4, C.faint, 2);
+  frac = Math.max(bip ? -1 : 0, Math.min(1, frac));
+  if (bip) { const m = x + w / 2, e = m + frac * w / 2; rect(Math.min(m, e), y, Math.abs(e - m), 4, c, 2); rect(m - .5, y - 2, 1, 8, C.dim); }
+  else rect(x, y, Math.max(2, frac * w), 4, c, 2);
+}
+// a line drawn twice: a soft halo, then the line itself
+function glow(pts, c, w = 1.3) {
+  if (pts.length < 2) return;
+  g.lineJoin = "round"; g.lineCap = "round";
+  for (const [lw, a] of [[w * 3.2, .18], [w, 1]]) {
+    g.strokeStyle = rgba(c, a); g.lineWidth = lw; g.beginPath();
+    pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.stroke();
+  }
+}
+function dot(x, y, r, c, halo = true) {
+  if (halo) { g.fillStyle = rgba(c, .22); g.beginPath(); g.arc(x, y, r * 2.4, 0, 7); g.fill(); }
+  g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+}
+function well(x, y, w, h) {
+  rect(x, y, w, h, C.well, 6);
+  g.fillStyle = "#151513";
+  for (let gx = x + 12; gx < x + w; gx += 12) for (let gy = y + 6; gy < y + h; gy += 6) g.fillRect(gx, gy, 1, 1);
+}
+function clipTo(x, y, w, h, fn) { g.save(); g.beginPath(); g.roundRect(x, y, w, h, 6); g.clip(); fn(); g.restore(); }
+
+// 12 x 12 pixel icons, one per module and page
+const ICONS = {
+  PLAITS: ["............", "..##........", ".#..#.......", "#....#....#.", "......#..#..", ".......##...", "............", "###...###...", "..#...#.#...", "..#...#.#...", "..#####.####", "............"],
+  BRAIDS: ["#...#...#...", ".#.#.#.#.#..", "..#...#...#.", ".#.#.#.#.#..", "#...#...#...", ".#.#.#.#.#..", "..#...#...#.", ".#.#.#.#.#..", "#...#...#...", ".#.#.#.#.#..", "..#...#...#.", "............"],
+  ELEMENTS: ["............", "#..........#", ".#........#.", "..########..", "............", "............", "############", "............", ".....#......", "....###.....", "...#####....", "............"],
+  RINGS: ["....####....", "..##....##..", ".#..####..#.", ".#.#....#.#.", "#.#..##..#.#", "#.#.#..#.#.#", "#.#.#..#.#.#", "#.#..##..#.#", ".#.#....#.#.", ".#..####..#.", "..##....##..", "....####...."],
+  WARPS: ["............", "##........##", "..#......#..", "...#....#...", "....#..#....", ".....##.....", ".....##.....", "....#..#....", "...#....#...", "..#......#..", "##........##", "............"],
+  FILTER: ["............", "............", ".......##...", "#######..#..", "..........#.", "..........#.", "...........#", "...........#", "...........#", "............", "############", "............"],
+  PEAKS: ["............", "......#.....", ".....#.#....", "....#...#...", "..#.#....#..", ".#.#......#.", "#.#........#", "#..........#", "............", "............", "############", "............"],
+  TIDES: ["............", "....#.......", "...#.#......", "..#...#.....", ".#.....#....", "#.......#...", ".........#..", "..........#.", "...........#", "............", "############", "............"],
+  MARBLES: ["............", "..###.......", ".#####......", ".#####..###.", "..###..#####", ".......#####", "...###..###.", "..#####.....", "..#####.....", "...###......", "............", "............"],
+  GRIDS: ["............", ".##.##.##.##", ".##.##.##.##", "............", ".##....##...", ".##....##...", "............", "....##....##", "....##....##", "............", ".##.##.##.##", ".##.##.##.##"],
+  CLOUDS: ["............", "............", "....###.....", "...#...#....", ".###....##..", "#.........#.", "#..........#", "#..........#", ".##########.", "............", "..#..#..#...", ".#..#..#...."],
+  DELAY: ["............", "#...........", "#...........", "#...#.......", "#...#.......", "#...#...#...", "#...#...#...", "#...#...#..#", "#...#...#..#", "############", "............", "............"],
+  REVERB: ["############", "#..........#", "#.#..#..#..#", "#..........#", "#...#..#.#.#", "#.#........#", "#....#..#..#", "#..#.......#", "#......#...#", "#.#..#....##", "#..........#", "############"],
+  CHORUS: ["............", ".##....##...", "#..#..#..#..", "....##....#.", "..##....##..", ".#..#..#..#.", ".....##....#", "...##....##.", "..#..#..#..#", "#.....##....", "............", "............"],
+  AMP: ["............", "..#.........", "..##........", ".#..#.......", ".#...#####..", ".#.......#..", "#.........#.", "#..........#", "#..........#", "............", "############", "............"],
+  LFO: ["............", "............", "............", "..##........", ".#..#.......", "#....#....#.", "......#..#..", ".......##...", "............", "............", "............", "............"],
+  MATRIX: ["............", ".##......##.", "#..#....#..#", "#..#....#..#", ".##......##.", "..#......#..", "..#......#..", "...#....#...", "....####....", "............", "............", "............"],
+  HOME: [".....##.....", "....####....", "...##..##...", "..##....##..", ".##......##.", "############", ".#........#.", ".#..###...#.", ".#..#.#...#.", ".#..#.#...#.", ".####.#####.", "............"],
+  RACK: ["############", "#.##.##.##.#", "############", "............", "############", "#.##.##.##.#", "############", "............", "############", "#.##.##.##.#", "############", "............"],
+  GLOBAL: [".....##.....", "..#..##..#..", "..########..", "...#....#...", "####.##.####", "####.##.####", "...#....#...", "..########..", "..#..##..#..", ".....##.....", "............", "............"],
+  SCALE: ["############", "#.#.#.#.#.##", "#.#.#.#.#.##", "#.#.#.#.#.##", "#..........#", "#..........#", "#..#..#..#.#", "#..#..#..#.#", "#..#..#..#.#", "############", "............", "............"],
+  SAVE: ["##########..", "#.#....#.##.", "#.#....#..##", "#.######...#", "#..........#", "#.########.#", "#.#......#.#", "#.#......#.#", "#.#......#.#", "############", "............", "............"],
+  REC: ["............", "....####....", "..########..", ".##########.", ".##########.", "############", "############", ".##########.", ".##########.", "..########..", "....####....", "............"],
+  EMPTY: ["#.#.#.#.#.#.", "...........#", "#...........", "...........#", "#...........", "...........#", "#...........", "...........#", "#...........", "...........#", "#.#.#.#.#.#.", "............"],
+  KNOB: ["....####....", "..##....##..", ".#...##...#.", ".#...##...#.", "#.....#....#", "#..........#", "#..........#", "#..........#", ".#........#.", ".#........#.", "..##....##..", "....####...."],
+  OUT: ["......#.....", ".....##.....", "....#.#..#..", "####..#...#.", "#.#...#.#..#", "#.#...#.#..#", "#.#...#.#..#", "####..#...#.", "....#.#..#..", ".....##.....", "......#.....", "............"],
+  MIDI: ["...######...", "..#......#..", ".#.#....#.#.", "#..........#", "#.#......#.#", "#..........#", "#....##....#", ".#........#.", "..#......#..", "...######...", "............", "............"],
+  HOLD: ["............", "...######...", "..#......#..", "..#......#..", "..#......#..", "############", "############", "####.##.####", "#####..#####", "############", "############", "............"],
+  LEARN: ["....####....", "..##....##..", ".#...#....#.", ".#...#....#.", "#....#.....#", "#....####..#", "#..........#", ".#........#.", ".#........#.", "..##....##..", "....####....", ".....##....."],
+};
+const ICON_OF = { src: "PLAITS", shp: "FILTER", mod: "PEAKS", fx: "CLOUDS", amp: "AMP", lfo: "LFO", glo: "GLOBAL", scl: "SCALE" };
+const _iconPaths = {};
+function icon(name, x, y, c, s = 1) {
+  const rows = ICONS[name]; if (!rows) return;
+  let p = _iconPaths[name];
+  if (!p) { p = new Path2D(); rows.forEach((row, yy) => { for (let xx = 0; xx < row.length; xx++) if (row[xx] === "#") p.rect(xx, yy, 1, 1); }); _iconPaths[name] = p; }
+  g.save(); g.translate(Math.round(x), Math.round(y)); g.scale(s, s); g.fillStyle = c; g.fill(p); g.restore();
+}
+
+function fmt(p, v) {
+  if (p.t === "list") return p.opts[Math.round(v)] ?? "—";
+  if (p.t === "bip") return (v >= 0 ? "+" : "") + Math.round(v * 100);
+  if (p.t === "int") return String(Math.round(v));
+  return String(Math.round(v * 100));
+}
+function header(tag, color, title, iconName, pages = 1, sub = 0) {
+  rect(0, 0, 240, 26, C.bar);
+  icon(iconName, 6, 7, color);
+  g.font = `11px ${FONT}`;
+  const tw = g.measureText(tag).width + 8;
+  rect(22, 6, tw, 15, color, 3); T(26, 17, tag, { c: "#000", size: 11 });
+  T(28 + tw, 18, title.length > 14 ? title.slice(0, 13) + "…" : title, { size: 13 });
+  for (let i = 0; i < pages; i++) { const x = 232 - (pages - 1 - i) * 9; g.fillStyle = i === sub ? C.fg : C.dim; g.beginPath(); g.arc(x, 13, i === sub ? 3 : 2, 0, 7); g.fill(); }
+}
+function miniBar(x, y, w, frac, c) { rect(x, y, w, 3, C.faint, 1); rect(x, y, Math.max(1, Math.min(1, frac) * w), 3, c, 1); }
+function footer() {
+  const bg = budget();
+  rect(0, 214, 240, 26, C.bar);
+  T(6, 225, "CPU", { size: 8, c: C.dim }); miniBar(6, 229, 44, bg.cpu / BUDGET, bg.cpu > 72 ? C.warn : C.ok);
+  T(56, 225, "RAM", { size: 8, c: C.dim }); miniBar(56, 229, 44, bg.ram / POOL, bg.ram > POOL * .85 ? C.warn : C.ok);
+  // voice LEDs: lit by each voice's envelope
+  for (let i = 0; i < MAXV; i++) {
+    const x = 108 + i * 8, on = i < bg.voices, e = mon[16 + i] || 0;
+    rect(x, 224, 6, 8, on ? rgba(C.ok, .15 + .85 * e) : "#1a1a18", 1);
+  }
+  // output meter
+  const pl = Math.min(1, (mon[48] || 0) * 1.3), pr = Math.min(1, (mon[49] || 0) * 1.3);
+  rect(228, 218, 3, 18, C.faint); rect(232, 218, 3, 18, C.faint);
+  rect(228, 236 - 18 * pl, 3, 18 * pl, pl > .9 ? C.warn : C.ok); rect(232, 236 - 18 * pr, 3, 18 * pr, pr > .9 ? C.warn : C.ok);
+  if (phrase.state === "armed") { if (Math.floor(performance.now() / 300) % 2) dot(164, 228, 3, C.warn, false); T(170, 232, "ARMED", { size: 9, c: C.warn }); }
+  else if (phrase.state === "rec") { dot(164, 228, 3, C.warn); T(170, 232, `${((performance.now() - phrase.t0) / 1000).toFixed(1)}S`, { size: 9, c: C.warn }); }
+  else if (phrase.state === "loop") {
+    const f = ((performance.now() - phrase.start) % phrase.len) / phrase.len;
+    g.strokeStyle = C.faint; g.lineWidth = 2; g.beginPath(); g.arc(165, 228, 5, 0, 7); g.stroke();
+    g.strokeStyle = C.ok; g.beginPath(); g.arc(165, 228, 5, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); g.stroke();
+    T(174, 232, `${phrase.bars}BAR`, { size: 9, c: C.ok });
+  } else if (held.size || latched.size) { const k = [...new Set([...held, ...latched])].pop(); T(222, 232, noteName(k), { size: 10, a: "right", c: C.ok }); }
+  else if (midiState.last && performance.now() - midiState.last < 400) icon("MIDI", 200, 222, C.dim);
+}
+
+// parameter cells: base value, plus a live marker where modulation has moved it
+function cells(params, base, live, color, y0 = 96, hgt = 55) {
+  const pos = [[6, y0], [122, y0], [6, y0 + hgt + 3], [122, y0 + hgt + 3]];
+  for (let i = 0; i < 4; i++) {
+    const [x, y] = pos[i], p = params[i];
+    rect(x, y, 112, hgt, p ? "#121211" : "#0a0a09", 6);
+    T(x + 6, y + 13, String(i + 1), { size: 9, c: C.dim });
+    if (!p) { T(x + 56, y + 34, "—", { a: "center", c: C.faint, size: 14 }); continue; }
+    T(x + 15, y + 13, p.l, { size: 10, c: C.dim });
+    const v = base[i], lv = live ? live[i] : v;
+    const s = fmt(p, v);
+    T(x + 6, y + 36, s, { size: s.length > 7 ? 12 : s.length > 5 ? 15 : 18 });
+    const moved = live && Math.abs(lv - v) > (p.t === "list" || p.t === "int" ? .5 : .015);
+    if (moved) T(x + 106, y + 36, fmt(p, lv), { size: 10, a: "right", c: color });
+    const by = y + hgt - 11;
+    if (p.t === "list") {
+      const nOpt = Math.min(p.opts.length, 24), w = 100 / nOpt;
+      for (let k = 0; k < nOpt; k++) rect(x + 6 + k * w, by, Math.max(1, w - 1), 4, k === Math.round(v) ? color : C.faint, 1);
+    } else {
+      const frac = p.t === "int" ? (v - p.min) / (p.max - p.min) : v;
+      bar(x + 6, by, 100, frac, rgba(color, moved ? .45 : 1), p.t === "bip");
+      if (moved) {
+        const lf = p.t === "int" ? (lv - p.min) / (p.max - p.min) : lv;
+        const mx = p.t === "bip" ? x + 6 + 50 + lf * 50 : x + 6 + lf * 100;
+        rect(mx - 1, by - 3, 2, 10, color); dot(mx, by + 2, 1.5, color);
+      }
+    }
+  }
+}
+function drawToast() {
+  if (!toast) return;
+  const age = performance.now() - toastT;
+  if (age > 1900) { toast = null; return; }
+  const a = Math.min(1, age / 90, (1900 - age) / 250);
+  g.globalAlpha = a;
+  const w = Math.min(228, textW(toast, 11) + (toastIcon ? 34 : 20));
+  const x = 120 - w / 2, y = 184 - (1 - Math.min(1, age / 140)) * 6;
+  rect(x, y, w, 24, "#f2efe6", 5);
+  if (toastIcon) { icon(toastIcon, x + 8, y + 6, "#111"); T(x + 26, y + 16, toast, { size: 11, c: "#111" }); }
+  else T(120, y + 16, toast, { a: "center", size: 11, c: "#111" });
+  g.globalAlpha = 1;
+}
