@@ -1,10 +1,10 @@
-# FM1 Rack 1.0 Manual
+# FM1 Rack 1.1 Manual
 
 Oct 26, 2026 · Josh Cowley
 
 *Text copy of the live manual: https://claude.ai/artifact/8cELcnQ8vCjJQCCqp3HngM*
 
-FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.0 browser build, which runs the original module code.
+FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.1 browser build, which runs the original module code.
 
 ## Quick start
 
@@ -13,7 +13,7 @@ You can go from switch-on to a saved patch of your own in five steps.
 1. **Switch on.** Open the [FM1 Rack browser build](https://claude.ai/artifact/9mWJtyZhwxNKFmqPwhjQ3t) and tap **Switch on** on the screen. The FM1 RACK logo plays, then the HOME page opens on the factory patch GLASS BELLS.
 2. **Play.** Tap the keys; tapping lower on a key plays louder. On a computer, the bottom letter row (Z to /) plays the lower keys and Q to O plays the top octave.
 3. **Shape the sound.** On HOME, Knobs 1–4 are the four macros. Each macro dial shows where it is routed underneath.
-4. **Look inside.** Press **EDIT** to see the source module moving, **SCL** for the shaper, **LFO** for modulation, **FX** for effects. Turn **ALGORITHM** to browse other modules for that slot, then press the same button again to load one.
+4. **Look inside.** Press **EDIT** to see the source module moving, **ENV** twice for the shaper, **LFO** for modulation, **FX** for effects. Turn **ALGORITHM** to browse other modules for that slot, then press the same button again to load one.
 5. **Keep it.** Press **SAVE**, spell a name with **SELECT** and **Knob 1**, choose a user slot with **Knob 2**, and press **SAVE** again.
 
 Turn **PRESETS** at any time to step through the 12 factory patches and your own.
@@ -27,23 +27,23 @@ FM1 Rack uses the FM-1 exactly as printed: four encoders on the left, the screen
 | Control | Turn or tap | Press again, or hold |
 | --- | --- | --- |
 | MASTER | Output volume | — |
-| SELECT | Next or previous page of the current slot; matrix row; letter position when saving. On HOME it flips to the rack view | — |
+| SELECT | Next or previous page of the current slot; matrix row; step cursor on SEQ; letter position when saving. On HOME it flips to the rack view | — |
 | PRESETS | Step through the 12 factory patches, then your user patches | — |
-| ALGORITHM | Open the module list for the slot on screen and browse it | Press that slot's button to load the highlighted module |
+| ALGORITHM | Open the module list for the slot on screen and browse it. On SEQ it transposes the pattern; on STEP, turning left clears the step | Press that slot's button to load the highlighted module |
 | KNOB 1–4 | The four values on screen. On HOME, the four macros | Hold HOME first to assign the knob to a macro (macro learn) |
 | OCT − / OCT + | Shift the keys down or up an octave (±3). The button lights when shifted | — |
 | FX | FX 1 | Again for FX 2 |
-| SCL | Shaper slot | — |
-| ENV | Amp: ADSR, voice and mod envelope pages (SELECT pages) | — |
+| SCL | CHORD page: scale chords. SELECT to page 2 for scale lock | Lit green while chords or scale lock are on |
+| ENV | Amp: ADSR, voice and mod envelope pages (SELECT pages) | Again for the shaper slot (SHP) |
 | LFO | MOD A | Again for MOD B, again for LFO 1–3 |
 | EDIT | Source slot | — |
 | GLO | Global settings | — |
 | HOME | Perform page (macros and scope) | Again for the rack overview. Hold for macro learn |
 | SAVE | Open the naming screen | Again to store |
 | ARP | Mod matrix | — |
-| SEQ | Scale lock | — |
+| SEQ | Sequencer: the 16-step grid and pattern settings | Again for STEP (the step under the cursor). Hold to lock knob values to that step |
 | PLAY | Hold: keys latch on and off | Again to release all |
-| REC | Arm the phrase recorder | Again to close the loop, a third time to clear it |
+| REC | Arm the phrase recorder. On the SEQ pages: record live into the running pattern | Again to close the loop, a third time to clear it |
 | Keys | Play. Tap lower on a key for more velocity | — |
 
 ## The screen
@@ -55,11 +55,13 @@ Every slot page has the same four parts, so once you can read one module you can
 1. **Header.** The module's pixel icon, the slot tag in the slot's colour (SRC, SHP, MOD A, MOD B, FX 1, FX 2), the module name, and a dot for each page. The bright dot is the page you're on; turn **SELECT** to move between pages.
 2. **Live band.** An animation of what the module is doing right now, driven by the engine: waveforms for sources, ripples for Rings, a frequency curve for the filter, grains for Clouds, rolling marbles, the Grids drum map with its playhead. Each module's band is pictured in the Modules section.
 3. **Cells.** One cell per knob. The big number is the value you set. When the matrix or a macro is moving that parameter, a bright marker on the bar shows where it really is, and the small number on the right gives its live value.
-4. **Footer.** CPU and RAM use, one light per voice (it glows with that voice's envelope), the phrase recorder (a ring that fills as the loop plays) or the last note played, and a stereo output meter.
+4. **Footer.** CPU and RAM use, one light per voice (it glows with that voice's envelope), then the phrase recorder (a ring that fills as the loop plays), the sequencer's steps while it runs, or the last note played, and a stereo output meter.
 
 A white message box slides up for a moment after loading a module, changing patch or saving. On HOME the band is an output scope instead, and the cells are the four macro dials.
 
 ![Every page, labelled with the button that opens it](img/g-pages.png)
+
+*This picture shows 1.0. In 1.1, SCL opens CHORD, SEQ opens the sequencer, and the shaper moved under ENV.*
 
 ## Signal chain
 
@@ -85,17 +87,19 @@ Press **HOME** a second time (or turn **SELECT** on HOME) for the whole rack at 
 
 ### Slot pages
 
-**EDIT** (source), **SCL** (shaper), **LFO** (MOD A, MOD B) and **FX** (FX 1, FX 2) open slot pages. Each has the four parts described in The screen. Modules with more than four parameters have more pages; turn **SELECT** to move through them.
+**EDIT** (source), **ENV** pressed twice (shaper), **LFO** (MOD A, MOD B) and **FX** (FX 1, FX 2) open slot pages. Each has the four parts described in The screen. Modules with more than four parameters have more pages; turn **SELECT** to move through them.
 
 **Swapping a module:** on a slot page, turn **ALGORITHM**. A list opens with every module that fits that slot, its icon, and how many voices you'd have with it loaded. Modules that won't fit show why (“✕ CPU” or the RAM they need). Turn to highlight one; the bottom line describes it. Press the slot's own button to load it. Turning any other control closes the list without changing anything, so you can browse safely while playing.
 
-### ENV: amp
+### ENV: amp, then the shaper
 
 Three pages for what every voice shares:
 
 - **ADSR:** attack, decay, sustain, release. The band draws the envelope, and each sounding voice rides it as a dot.
 - **VOICE:** VEL AMT (how much velocity changes level), GLIDE (portamento, mono patches only), SPREAD (stereo spread of the voices), LEVEL (patch volume; 50 is unity, 100 is +12 dB). The band shows six voice meters with the notes they're playing.
 - **MOD ENV:** M ATTACK, M DECAY, M LOOP. A second, attack–decay envelope per voice for the matrix. With M LOOP on, it cycles while the key is held.
+
+Press **ENV** a second time for the SHP slot (Rings, Warps or Filter, or empty), and again to come back to AMP. Turn **ALGORITHM** there to swap the shaper and press **ENV** to load it.
 
 ### LFO: LFO 1–3
 
@@ -112,9 +116,13 @@ Press **LFO** a third time. Three free LFOs for the matrix, one page each (SELEC
 
 Twelve rows, six on screen. **SELECT** picks a row; **Knob 1** source, **Knob 2** destination, **Knob 3** amount (−100 to +100), **Knob 4** via. A small meter on each row shows the route's live output; dots travel along active rows. A destination shown in red belongs to a module that's no longer loaded: the row sleeps until that module comes back.
 
-### SEQ: scale lock
+### SCL: chords
 
-LOCK (OFF/ON), KEY (C to B) and SCALE (major, minor, dorian, mixolydian, pentatonic major and minor, harmonic minor, whole tone). With LOCK on, keys and MIDI notes snap to the nearest scale note. The band is a one-octave keyboard with the scale lit and the root in gold. SEQ stays lit green while the lock is on.
+Page 1: CHORD, INVERT, SPREAD, STRUM. Page 2: LOCK, KEY, SCALE (scale lock). The band is a two-octave keyboard: scale notes are tinted, the chord you play lights up note by note, and its name appears beside it with a ring that pulses on each new chord. See **Chords and scale lock** under Playing.
+
+### SEQ: sequencer
+
+The first press shows the pattern: a 16-step grid with a gliding playhead, and RUN, LENGTH, RATE and SWING on the knobs. Press **SEQ** again for STEP, which edits the step under the cursor. See **Step sequencer** under Playing.
 
 ### GLO: global
 
@@ -193,7 +201,7 @@ A full modal voice: a bow, a breath and a mallet exciting a resonating body. Ric
 | BOW TMB | Roughness of the bow |
 | SPACE | Stereo width, rising into reverb |
 
-### Shapers (SHP, press SCL)
+### Shapers (SHP, press ENV twice)
 
 The source plays into the shaper, one copy per voice. The slot can be left empty.
 
@@ -402,9 +410,20 @@ How many notes play at once depends on the patch (see Voices and the budget). Wi
 
 **PLAY** turns hold on (it lights green). Each key then latches: tap once to start a note, again to stop it. Press **PLAY** again to switch hold off and release everything. Held notes keep playing while you change pages and turn knobs, which is the easiest way to sound-design with both hands free.
 
-### Scale lock
+### Chords and scale lock
 
-**SEQ** opens scale lock. With LOCK on, every key and MIDI note snaps to the nearest note of the chosen KEY and SCALE (ties go down), so the keyboard can't play a wrong note. SEQ stays lit green while the lock is on.
+**SCL** opens CHORD. Turn **CHORD** (Knob 1) away from OFF and every key plays a chord built from the KEY and SCALE on page 2. The key you press moves to the nearest scale note and becomes the root, and the other notes are stacked from the scale, so the chords always fit the key: in C major, C plays C, D plays Dm, B plays Bdim.
+
+| Setting | What it does |
+| --- | --- |
+| CHORD | OFF (single notes), TRIAD, 7TH, SUS2, SUS4, ADD9, 6TH, 9TH, POWER (root, fifth, octave) or QUARTAL (stacked fourths) |
+| INVERT | ROOT, 1ST, 2ND or 3RD: lifts the lowest notes up an octave |
+| SPREAD | Above 33 the second-highest note drops an octave; above 66 the top note also rises an octave, for wider voicings |
+| STRUM | Plays the notes low to high, up to 80 ms apart |
+| LOCK (page 2) | Scale lock: with it on, single notes also snap to the nearest scale note (ties go down). Chords follow the scale either way |
+| KEY, SCALE (page 2) | C to B; major, minor, dorian, mixolydian, pentatonic major and minor, harmonic minor, whole tone |
+
+Chords work from the keys, MIDI notes, the phrase recorder and the sequencer's step entry. The CHORD and scale settings stay with the instrument, not the patch, and are remembered between visits. The SCL lamp stays green while chords or scale lock are on. A chord needs a voice per note: if the patch has fewer, the CHORD page warns (for example “2 VOICES!”) and newer notes take over older voices.
 
 ### Phrase recorder
 
@@ -417,9 +436,34 @@ How many notes play at once depends on the patch (see Voices and the budget). Wi
 
 The recorder captures keys, MIDI notes, macro moves and parameter changes on any page. Recording stops by itself after 16 seconds. Changing patch doesn't clear the loop, so you can audition one phrase through several patches.
 
+### Step sequencer
+
+Press **SEQ**. The grid shows 16 steps in two rows of eight: a pitch mark for each note (brighter is louder), a gold dot on steps with locks, a tail on tied steps and small dots for CHANCE. While it runs, the playing step flashes pink, a playhead glides along under the grid, and the keybed lights pink under the notes.
+
+**Writing a pattern.** Move the cursor with **SELECT**. Play a key: the note goes into the cursor step and the cursor moves on. Hold several keys before letting go to write a chord into one step, or turn CHORD on and one key writes the whole chord. Turn SELECT past a step to leave it empty.
+
+**Running it.** On SEQ, the knobs are **RUN** (STOP or PLAY; **Space** on a computer), **LENGTH** (1 to 16 steps), **RATE** (1/8, 1/16, 1/16T or 1/32 of the GLOBAL tempo) and **SWING** (delays every second step by up to half a step). Starting also restarts the gate bus, so Grids and the BAR gate line up with step 1. The pattern keeps running while you change pages and patches. MIDI Start and Stop run it too. **ALGORITHM** on SEQ transposes the whole pattern a semitone per click.
+
+**Editing a step.** Press **SEQ** again for STEP, which edits the step under the cursor:
+
+| Knob | What it does |
+| --- | --- |
+| TRIG | ON or OFF. OFF silences the step but keeps its notes |
+| VELO | The step's velocity |
+| LENGTH | 1/8, 1/4, 1/2, 3/4 or FULL of a step, or TIE: the note holds until the next step that plays, and tied steps with the same notes join into one long note |
+| CHANCE | How often the step plays, from never to every time |
+
+Turn **ALGORITHM** left on STEP to clear the step's locks, and again to clear its notes.
+
+**Parameter locks.** Put the cursor on a step, then hold **SEQ** for half a second (or Shift-click it): a gold LOCK bar appears. Go to any slot, ENV or LFO page, or to HOME for the macros, and turn knobs. The values are stored for that step only, and the cell shows the locked value with a gold L. Press **SEQ** to finish. When that step plays, its locked values take over, and on the next step they go back to where the knobs are. A step with locks but no notes changes the sound without playing a note; it shows as a gold diamond.
+
+**Live recording.** On SEQ or STEP, press **REC**. The sequencer starts if it was stopped, and a red dot blinks in the header. Notes you play land on the nearest step, replacing what was there. Knob turns on slot, ENV, LFO and HOME pages are recorded as locks on the step that is playing, so you can record a filter sweep step by step. Press **REC** again to stop recording; the pattern keeps playing. Away from the SEQ pages, REC is the phrase recorder as before.
+
+**Saving.** The pattern is part of the patch: SAVE stores it, and loading a patch loads its pattern. ACID DRIFT and STRING MACH come with one.
+
 ## Patches
 
-A patch is the whole rack: which module is in each slot, every parameter, the ENV and LFO pages, all 12 matrix rows and the four macro positions. GLOBAL and SCALE settings stay with the instrument, not the patch.
+A patch is the whole rack: which module is in each slot, every parameter, the ENV and LFO pages, all 12 matrix rows, the four macro positions and the sequencer pattern with its locks. GLOBAL and CHORD settings stay with the instrument, not the patch.
 
 ### Factory patches
 
@@ -439,6 +483,8 @@ Twelve patches, each built to show off a pairing. Their levels were balanced by 
 | FROZEN CLOUD | Plaits chords → Clouds stretch. LFO 2 drifts the position over two bars | Clouds size · Texture · Blend · Timbre | Chords, then FREEZE on FX 1 page 3 |
 | TIDAL FM | Plaits 6-op FM → low-pass → Chorus → Delay. Tides sweeps the cutoff per note; Peaks pans | Harmonics · Morph · Cutoff · Delay feedback | Chords |
 | INIT | Plaits virtual analog, nothing else | Timbre · Morph | A blank start |
+
+ACID DRIFT (a 16th-note acid line with cutoff and resonance locks) and STRING MACH (four slow chords) also come with a sequencer pattern: load one, press **SEQ** and turn Knob 1 to PLAY.
 
 ### Saving your own
 
@@ -531,7 +577,7 @@ Plug in any class-compliant USB MIDI keyboard or controller. In the browser the 
 | CC 64 (sustain) | Holds notes until the pedal lifts |
 | CC 123 | All notes off |
 | Clock (with CLOCK = MIDI) | Tempo follows the incoming clock, measured over one beat and kept within 60–180 BPM. The visual shows “BPM EXT” once it has locked |
-| Start | Restarts the gate bus from beat 1, so Grids and the BAR gate line up with your sequencer |
+| Start | Restarts the gate bus from beat 1, so Grids and the BAR gate line up with your sequencer, and starts the step sequencer from step 1 if the pattern has steps. Stop stops it |
 
 Moving a macro from MIDI also selects that macro on the PERFORM page, so you can see it move. MIDI out isn't part of 1.0.
 
@@ -551,6 +597,8 @@ The three letter rows cover all 27 keys of the FM-1's keybed, F3 to G5, laid out
 | Number row | − = | Octave down, octave up (±3) |
 
 The gaps in the middle row (G and K) sit where a piano has no black key.
+
+**Space** starts and stops the step sequencer from any page.
 
 ### Knobs
 
@@ -577,7 +625,7 @@ SELECT, PRESETS, ALGORITHM and Knobs 1–4 are endless encoders, as on the FM-1,
 | A module won't load | The picker says why: “✕ CPU” (not enough processing for even one voice), “✕ 64K RAM” (not enough memory left) or “✕ IN FX 1” (that effect is already in the other FX slot; each effect can only be loaded once). Empty a slot or swap in something lighter |
 | Chords lose notes | The patch has fewer voices than notes. See the voice lamps in the footer and **Voices and the budget**; lighter modules give more voices |
 | Notes keep sounding | **PLAY** (hold) may be on (its lamp is lit): press latched keys again to release them, or press PLAY to turn hold off. A phrase loop may be playing (REC lamp lit): press REC to stop and clear it. From MIDI, lift the sustain pedal or send CC 123 |
-| Keys play the wrong notes | **SEQ** scale lock may be on (the SEQ lamp stays lit), or the octave is shifted (an OCT lamp is lit) |
+| Keys play the wrong notes | **SCL** chords or scale lock may be on (the SCL lamp stays lit green), or the octave is shifted (an OCT lamp is lit). A running sequence (the SEQ lamp stays lit) also plays notes: press Space or turn RUN to STOP |
 | Computer keys don't play | A knob has keyboard focus. Click anywhere outside the knobs. Keys held with Ctrl, Alt or Cmd are ignored |
 | “NO MIDI INPUT” | Connect the controller before switching on, or replug it; the count updates when devices appear |
 | “MIDI BLOCKED HERE” | The browser, or the page the rack is shown in, refused MIDI access. Not every browser offers Web MIDI; a Chromium-based browser is the safest bet. The on-screen and computer keys still work |
