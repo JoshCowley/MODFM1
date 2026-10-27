@@ -1,6 +1,6 @@
-# MODFM1 · FM1 Rack 1.0
+# MODFM1 · FM1 Rack 1.1
 
-A sound-design firmware design for the M-VAVE FM-1 pocket synth. You build a voice by slotting open-source eurorack modules into a fixed chain (source → shaper → amp, two modulators, two effects), patch them with a 12-row mod matrix, and play them through four macros. This repo holds the 1.0 browser build, which runs the original module code compiled to WebAssembly.
+A sound-design firmware design for the M-VAVE FM-1 pocket synth. You build a voice by slotting open-source eurorack modules into a fixed chain (source → shaper → amp, two modulators, two effects), patch them with a 12-row mod matrix, and play them through four macros, scale chords (SCL) and a 16-step sequencer with parameter locks (SEQ). This repo holds the 1.1 browser build, which runs the original module code compiled to WebAssembly.
 
 **Status:** plays in a browser. It has not yet been built for or run on the FM-1 hardware.
 
@@ -12,7 +12,7 @@ The page loads its sound engine with `fetch`, so it has to be served over http. 
 2. Open Terminal in the `web` folder and run `python3 -m http.server 8000`
 3. Go to http://localhost:8000 in Chrome, Edge, Firefox or Safari and press **Switch on**.
 
-Keys: `Z`–`/` and `Q`–`O` play notes, `-` and `=` shift the octave. MIDI keyboards work in browsers that offer Web MIDI.
+Keys: `Z`–`/` and `Q`–`O` play notes, `-` and `=` shift the octave, `Space` starts and stops the sequencer. MIDI keyboards work in browsers that offer Web MIDI.
 
 ## What's here
 
