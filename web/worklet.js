@@ -46,7 +46,7 @@ class FM1Rack extends AudioWorkletProcessor {
     out[0].set(new Float32Array(mem, this.x.out_l(), n));
     if (out[1]) out[1].set(new Float32Array(mem, this.x.out_r(), n));
     if (++this.count % 4 === 0) {
-      const mon = new Float32Array(this.x.memory.buffer, this.x.monitor(this.watch), 168).slice();
+      const mon = new Float32Array(this.x.memory.buffer, this.x.monitor(this.watch), 200).slice();
       let cpu = null;
       if (this.span > 500) { cpu = [this.busy / this.span * 100, this.peak, this.late]; this.busy = 0; this.span = 0; this.peak = 0; }
       this.port.postMessage({ type: "mon", scope: new Float32Array(this.x.memory.buffer, this.x.scope(), 128).slice(), mon, cpu });
