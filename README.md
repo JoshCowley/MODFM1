@@ -1,6 +1,6 @@
-# MODFM1 · FM1 Rack 1.2
+# MODFM1 · FM1 Rack 1.3
 
-A sound-design firmware design for the M-VAVE FM-1 pocket synth. You build a voice by slotting open-source eurorack modules into a fixed chain (source → shaper → amp, two modulators, two effects), patch them with a 12-row mod matrix, and play them through four macros, scale chords (SCL), a 16-step sequencer with parameter locks, ratchets and pattern generators (SEQ), an arpeggiator with a Turing mode (ARP), modulation lanes, undo / morph / randomize tools, 13 tunings, a master EQ / compressor / limiter and full MIDI in and out over USB. This repo holds the 1.2 browser build, which runs the original module code compiled to WebAssembly.
+A sound-design firmware design for the M-VAVE FM-1 pocket synth. You build a voice by slotting open-source eurorack modules into a fixed chain (source → shaper → amp, two modulators, two effects), patch them with a 12-row mod matrix, and play them through four macros, scale chords (SCL), a Clipper-style sequencer (SEQ, PLAY, REC: up to 64 steps, a piano roll, live and free-take recording, hold layers, parameter locks, ratchets, fills, spice and pattern generators), an arpeggiator with a Turing mode (ARP), modulation lanes, undo / morph / randomize tools, 13 tunings, a master EQ / compressor / limiter and full MIDI in and out over USB. This repo holds the 1.3 browser build, which runs the original module code compiled to WebAssembly.
 
 **Status:** plays in a browser. It has not yet been built for or run on the FM-1 hardware.
 
@@ -27,7 +27,7 @@ Keys: `Z`–`/` and `Q`–`O` play notes, `-` and `=` shift the octave, `Space` 
 
 - Plaits, Braids, Elements, Rings, Warps, Clouds, Peaks, Tides 2, Marbles and Grids: Émilie Gillet's original Mutable Instruments code, with stmlib. This project isn't affiliated with or endorsed by Mutable Instruments or M-VAVE.
 - The hardware port will build on the Felucca firmware platform.
-- Many 1.2 workflows follow ideas from Clipper by isod89 (after SLOOP and Felucca), rebuilt here from its descriptions; no Clipper code is used.
+- Many 1.2 and 1.3 workflows, including the sequencer, follow ideas from Clipper by isod89 (after SLOOP and Felucca), rebuilt here from its descriptions; no Clipper code is used.
 - Screen font: DotGothic16 by Fontworks (SIL Open Font License), loaded from Google Fonts.
 
 ## Licence
