@@ -1,6 +1,6 @@
-# MODFM1 · FM1 Rack 1.1
+# MODFM1 · FM1 Rack 1.2
 
-A sound-design firmware design for the M-VAVE FM-1 pocket synth. You build a voice by slotting open-source eurorack modules into a fixed chain (source → shaper → amp, two modulators, two effects), patch them with a 12-row mod matrix, and play them through four macros, scale chords (SCL) and a 16-step sequencer with parameter locks (SEQ). This repo holds the 1.1 browser build, which runs the original module code compiled to WebAssembly.
+A sound-design firmware design for the M-VAVE FM-1 pocket synth. You build a voice by slotting open-source eurorack modules into a fixed chain (source → shaper → amp, two modulators, two effects), patch them with a 12-row mod matrix, and play them through four macros, scale chords (SCL), a 16-step sequencer with parameter locks, ratchets and pattern generators (SEQ), an arpeggiator with a Turing mode (ARP), modulation lanes, undo / morph / randomize tools, 13 tunings, a master EQ / compressor / limiter and full MIDI in and out over USB. This repo holds the 1.2 browser build, which runs the original module code compiled to WebAssembly.
 
 **Status:** plays in a browser. It has not yet been built for or run on the FM-1 hardware.
 
@@ -12,7 +12,7 @@ The page loads its sound engine with `fetch`, so it has to be served over http. 
 2. Open Terminal in the `web` folder and run `python3 -m http.server 8000`
 3. Go to http://localhost:8000 in Chrome, Edge, Firefox or Safari and press **Switch on**.
 
-Keys: `Z`–`/` and `Q`–`O` play notes, `-` and `=` shift the octave, `Space` starts and stops the sequencer. MIDI keyboards work in browsers that offer Web MIDI.
+Keys: `Z`–`/` and `Q`–`O` play notes, `-` and `=` shift the octave, `Space` starts and stops the sequencer. MIDI keyboards, controllers and DAWs work both ways in browsers that offer Web MIDI (Chrome, Edge).
 
 ## What's here
 
@@ -27,6 +27,7 @@ Keys: `Z`–`/` and `Q`–`O` play notes, `-` and `=` shift the octave, `Space` 
 
 - Plaits, Braids, Elements, Rings, Warps, Clouds, Peaks, Tides 2, Marbles and Grids: Émilie Gillet's original Mutable Instruments code, with stmlib. This project isn't affiliated with or endorsed by Mutable Instruments or M-VAVE.
 - The hardware port will build on the Felucca firmware platform.
+- Many 1.2 workflows follow ideas from Clipper by isod89 (after SLOOP and Felucca), rebuilt here from its descriptions; no Clipper code is used.
 - Screen font: DotGothic16 by Fontworks (SIL Open Font License), loaded from Google Fonts.
 
 ## Licence
