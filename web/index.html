@@ -14,7 +14,7 @@
   /* the instrument: one physical object, identical in both themes */
   --body: #1d1d1f; --tray: #141415; --part: #2a2a2d; --edge: #3b3b3f; --label: #d8d7d3; --label-dim: #8d8c88;
   --lit: #fff1cf; --hold: #5fe08a;
-  --k-src: #ffb347; --k-shp: #4fd1c5; --k-mod: #b48cff; --k-fx: #6aa9ff; --k-amp: #ff7a6b;
+  --k-src: #ffb347; --k-shp: #4fd1c5; --k-mod: #b48cff; --k-fx: #6aa9ff; --k-amp: #ff7a6b; --k-chd: #9be37a; --k-seq: #ff8fc8;
   --f-dot: "DotGothic16", ui-monospace, monospace;
   --f-body: "Barlow", system-ui, sans-serif;
   --f-label: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
@@ -81,7 +81,7 @@ a { color: var(--link); }
 .btn:focus-visible { outline: 2px solid var(--lit); outline-offset: 2px; }
 .btn[data-kind] { box-shadow: inset 0 -3px 0 var(--kc); }
 .btn[data-kind="src"] { --kc: var(--k-src); } .btn[data-kind="shp"] { --kc: var(--k-shp); }
-.btn[data-kind="mod"] { --kc: var(--k-mod); } .btn[data-kind="fx"] { --kc: var(--k-fx); } .btn[data-kind="amp"] { --kc: var(--k-amp); } .btn[data-kind="glo"] { --kc: var(--label-dim); }
+.btn[data-kind="mod"] { --kc: var(--k-mod); } .btn[data-kind="fx"] { --kc: var(--k-fx); } .btn[data-kind="amp"] { --kc: var(--k-amp); } .btn[data-kind="chd"] { --kc: var(--k-chd); } .btn[data-kind="seq"] { --kc: var(--k-seq); } .btn[data-kind="glo"] { --kc: var(--label-dim); }
 .bezel { background: #0b0b0c; border-radius: 18px; padding: 10px; width: 100%; max-width: 312px; position: relative; box-shadow: inset 0 0 0 1px #1d1d20; }
 .power { position: absolute; inset: 10px; border: 0; border-radius: 4px; background: rgba(0,0,0,.66); color: #f2efe6; cursor: pointer;
   display: grid; place-content: center; justify-items: center; gap: 8px; }
@@ -97,6 +97,7 @@ a { color: var(--link); }
 .key::after { content: ""; position: absolute; left: 50%; top: 14px; bottom: 14px; width: 4px; margin-left: -2px; border-radius: 2px; background: #3a3a3c; transition: background .05s; }
 .key.on::after { background: #ececee; box-shadow: 0 0 6px rgba(255,255,255,.6); filter: brightness(var(--ledf)); }
 .key.held { border-color: var(--lit); }
+.key.seq::after { background: var(--k-seq); box-shadow: 0 0 6px rgba(255,143,200,.7); filter: brightness(var(--ledf)); }
 .key:focus-visible { outline: 2px solid var(--lit); outline-offset: 2px; }
 @media (max-width: 960px) {
   .device { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "screen screen" "right right" "left left" "keys keys"; padding: 16px; border-radius: 26px; }
@@ -127,7 +128,7 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
 <main>
   <div class="top">
     <div>
-      <h1>FM1 Rack <span>1.0</span></h1>
+      <h1>FM1 Rack <span>1.1</span></h1>
       <p>A sound-design firmware for the M-VAVE FM-1: open-source eurorack modules in swappable slots, a 12-row mod matrix and four performance macros. This is the browser build, running the original module code.</p>
     </div>
     <a class="manual" href="https://claude.ai/artifact/8cELcnQ8vCjJQCCqp3HngM" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h4.5A1.5 1.5 0 0 1 8 4v10a1.5 1.5 0 0 0-1.5-1.5H2zM14 2.5H9.5A1.5 1.5 0 0 0 8 4v10a1.5 1.5 0 0 1 1.5-1.5H14z"/></svg>Open the manual</a>
@@ -156,16 +157,17 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
       <ol>
         <li>Tap <b>Switch on</b>, then play the keys. Tap lower on a key to play louder, or use <kbd>Z</kbd>–<kbd>/</kbd> and <kbd>Q</kbd>–<kbd>O</kbd> on a computer (<kbd>-</kbd> <kbd>=</kbd> for octave).</li>
         <li>Turn <b>PRESETS</b> to step through the 12 factory patches. <b>Knobs 1–4</b> on HOME are the macros.</li>
-        <li>Press a slot button (<b>EDIT</b>, <b>SCL</b>, <b>LFO</b>, <b>FX</b>) to see that module move. Turn <b>ALGORITHM</b> there to swap the module, then press the button again to load it.</li>
+        <li>Press a slot button (<b>EDIT</b>, <b>ENV</b> twice for the shaper, <b>LFO</b>, <b>FX</b>) to see that module move. Turn <b>ALGORITHM</b> there to swap the module, then press the button again to load it.</li>
       </ol>
-      <div class="chips"><span><i style="background:var(--k-src)"></i>Source</span><span><i style="background:var(--k-shp)"></i>Shaper</span><span><i style="background:var(--k-amp)"></i>Amp</span><span><i style="background:var(--k-mod)"></i>Mod</span><span><i style="background:var(--k-fx)"></i>FX</span></div>
+      <div class="chips"><span><i style="background:var(--k-src)"></i>Source</span><span><i style="background:var(--k-shp)"></i>Shaper</span><span><i style="background:var(--k-amp)"></i>Amp</span><span><i style="background:var(--k-mod)"></i>Mod</span><span><i style="background:var(--k-fx)"></i>FX</span><span><i style="background:var(--k-chd)"></i>Chord</span><span><i style="background:var(--k-seq)"></i>Seq</span></div>
     </div>
     <div>
       <h2>Handy moves</h2>
       <ul>
         <li><b>Hold HOME</b> (or Shift-click it) and turn any knob to give it to a macro.</li>
         <li><b>REC</b> records keys and knob moves into a loop of 1, 2, 4 or 8 bars.</li>
-        <li><b>SEQ</b> locks the keys to a scale. <b>PLAY</b> holds notes.</li>
+        <li><b>SCL</b> turns each key into a chord in your key and scale, with scale lock on its second page. <b>PLAY</b> holds notes.</li>
+        <li><b>SEQ</b> is a 16-step sequencer: play keys to fill steps, <kbd>Space</kbd> starts it. Hold <b>SEQ</b> and turn any knob to lock a value to a step.</li>
         <li><b>SAVE</b> names a patch into one of 16 user slots, kept in this browser.</li>
         <li>A MIDI keyboard works where the browser allows it: notes, CC 1 and 21–24 to the macros, sustain, clock.</li>
       </ul>
@@ -219,7 +221,17 @@ const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["
 const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6;
 const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10] };
 const KEYS12 = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const SCALE = { kind: "scl", pages: [[L("LOCK", ["OFF", "ON"]), L("KEY", KEYS12), L("SCALE", Object.keys(SCALES))]] };
+// CHORD (SCL key): scale chords, with scale lock on its second page
+const CHORD_TYPES = ["OFF", "TRIAD", "7TH", "SUS2", "SUS4", "ADD9", "6TH", "9TH", "POWER", "QUARTAL"];
+const CHORD = { kind: "chd", pages: [[L("CHORD", CHORD_TYPES), L("INVERT", ["ROOT", "1ST", "2ND", "3RD"]), n("SPREAD", 0), n("STRUM", 0)], [L("LOCK", ["OFF", "ON"]), L("KEY", KEYS12), L("SCALE", Object.keys(SCALES))]] };
+const C_TYPE = 0, C_INV = 1, C_SPREAD = 2, C_STRUM = 3, C_LOCK = 4, C_KEY = 5, C_SCALE = 6;
+// SEQ key: 16-step sequencer. Pattern settings, then (press SEQ again) the step under the cursor
+const SEQ_RATES = ["1/8", "1/16", "1/16T", "1/32"], RATE_MUL = [2, 1, 2 / 3, .5];
+const STEP_LENS = ["1/8", "1/4", "1/2", "3/4", "FULL", "TIE"], STEP_LEN_F = [.125, .25, .5, .75, .97, 1];
+const SEQDEF = { kind: "seq", pages: [[L("RUN", ["STOP", "PLAY"]), I("LENGTH", 1, 16, 16), L("RATE", SEQ_RATES, 1), n("SWING", 0)]] };
+const STEPDEF = { kind: "seq", pages: [[L("TRIG", ["OFF", "ON"], 1), n("VELO", .75), L("LENGTH", STEP_LENS, 2), n("CHANCE", 1)]] };
+const blankStep = () => ({ trig: 0, notes: [], vel: .75, len: 2, chance: 1, locks: {} });
+const blankSeq = () => ({ p: [0, 16, 1, 0], steps: Array.from({ length: 16 }, blankStep) });
 const POOL = 256, BUDGET = 80, MAXV = 6;
 
 const SLOTS = [
@@ -230,14 +242,15 @@ const SLOTS = [
   { id: "FX1", kind: "fx", name: "FX 1", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
   { id: "FX2", kind: "fx", name: "FX 2", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
 ];
-const KC = { src: "#ffb347", shp: "#4fd1c5", mod: "#b48cff", fx: "#6aa9ff", amp: "#ff7a6b", glo: "#d8d7d3", lfo: "#c9a7ff", scl: "#9be37a", mx: "#ffd27a" };
+const KC = { src: "#ffb347", shp: "#4fd1c5", mod: "#b48cff", fx: "#6aa9ff", amp: "#ff7a6b", glo: "#d8d7d3", lfo: "#c9a7ff", chd: "#9be37a", seq: "#ff8fc8", mx: "#ffd27a" };
 
 // ---------------------------------------------------------------- state
 const blankParams = (mod) => mod ? mod.pages.flat().map((p) => p.def) : [];
 const rack = {};                    // slot id -> { mod: name|null, p: [] }
 const amp = { p: blankParams(AMP) };
 const glo = { p: blankParams(GLOBAL) };
-const scl = { p: blankParams(SCALE) };
+const chd = { p: blankParams(CHORD) };
+let seq = blankSeq();
 const lfo = { p: blankParams(LFOS) };
 const BUILT_SRC = ["—", "M1", "M2", "M3", "M4", "VELO", "KEY TRK", "RANDOM", "AMP ENV"];
 const EXTRA_SRC = ["LFO 1", "LFO 2", "LFO 3", "MOD ENV"];
@@ -245,8 +258,10 @@ let matrix = [];
 let macros = [0.5, 0.5, 0.5, 0.5];
 try { const sg = JSON.parse(localStorage.getItem("fm1rack.global.v1") || "null"); if (sg && sg.length === glo.p.length) glo.p = sg; } catch { /* defaults */ }
 function storeGlobal() { try { localStorage.setItem("fm1rack.global.v1", JSON.stringify(glo.p)); } catch { /* this visit only */ } }
+try { const sc = JSON.parse(localStorage.getItem("fm1rack.chord.v1") || "null"); if (sc && sc.length === chd.p.length) chd.p = sc; } catch { /* defaults */ }
+function storeChord() { try { localStorage.setItem("fm1rack.chord.v1", JSON.stringify(chd.p)); } catch { /* this visit only */ } }
 
-const PRESETS = [{"name":"GLASS BELLS","slots":{"SRC":"PLAITS","SHP":"RINGS","MODA":"TIDES","MODB":"PEAKS","FX1":"CLOUDS","FX2":null},"p":{"SRC":{"MODEL":"2OP FM","HARMO":0.3,"TIMBRE":0.45,"MORPH":0.25},"SHP":{"MODEL":"MODAL","STRUCT":0.62,"BRIGHT":0.7,"DAMPING":0.55,"POSITION":0.3,"EXCITE":0.7,"MIX":0.75,"SPREAD":0.6},"MODA":{"MODE":"LOOP","FREQ":0.25,"SHAPE":0.5,"SLOPE":0},"MODB":{"FUNC":"ENV","K1":0,"K2":0.5},"FX1":{"POSITION":0.3,"SIZE":0.55,"DENSITY":0.45,"TEXTURE":0.6,"BLEND":0.3,"SPREAD":0.7,"FEEDBACK":0.2,"REVERB":0.45}},"amp":{"ATTACK":0.02,"DECAY":0.5,"SUSTAIN":0.6,"RELEASE":0.55,"LEVEL":1},"matrix":[["M1","SRC.TIMBRE",0.5],["M2","SHP.BRIGHT",0.4],["M3","FX 1.BLEND",0.6],["M4","SHP.STRUCT",0.35],["A TIDES","SHP.POSITION",0.25],["B PEAKS","SRC.MORPH",0.35,"VELO"]],"macros":[0.3,0.4,0.3,0.4]},{"name":"ACID DRIFT","slots":{"SRC":"BRAIDS","SHP":"FILTER","MODA":"GRIDS","MODB":"TIDES","FX1":"DELAY","FX2":"CHORUS"},"p":{"SRC":{"MODEL":"CSAW","TIMBRE":0.35,"COLOR":0.5,"DRIFT":0.15},"SHP":{"TYPE":"LP","CUTOFF":0.32,"RESO":0.72,"DRIVE":0.45,"ENV AMT":0.45,"KEY TRK":0.5},"MODA":{"X":0.3,"Y":0.6,"FILL":0.7,"OUT":"KIT","CHAOS":0.1},"MODB":{"MODE":"AD","FREQ":0.55,"SHAPE":0.3,"SLOPE":-0.6,"GATE":"GRID"},"FX1":{"TIME":"1/8D","FEEDBACK":0.45,"TONE":0.4,"MIX":0.3},"FX2":{"RATE":0.2,"DEPTH":0.3,"WIDTH":0.8,"MIX":0.25}},"amp":{"ATTACK":0.01,"DECAY":0.3,"SUSTAIN":0.55,"RELEASE":0.2,"GLIDE":0.35,"LEVEL":0.5},"matrix":[["M1","SHP.CUTOFF",0.5],["M2","SHP.RESO",0.25],["M3","FX 1.FEEDBACK",0.4],["M4","SRC.TIMBRE",0.5],["B TIDE+","SHP.CUTOFF",0.35],["A ACCENT","SHP.DRIVE",0.4]],"macros":[0.3,0.3,0.3,0.3]},{"name":"BOWED SPACE","slots":{"SRC":"ELEMENTS","SHP":null,"MODA":"MARBLES","MODB":null,"FX1":"REVERB","FX2":null},"p":{"SRC":{"BOW":0.75,"BLOW":0.1,"STRIKE":0.15,"CONTOUR":0.6,"GEOMETRY":0.35,"BRIGHT":0.55,"DAMPING":0.7,"POSITION":0.3,"BOW TMB":0.55,"SPACE":0.45},"MODA":{"RATE":0.35,"SPREAD":0.35,"BIAS":0.5,"STEPS":0.2,"DEJA VU":0.6,"CLOCK":"FREE"},"FX1":{"SIZE":0.8,"DAMP":0.45,"MIX":0.35}},"amp":{"ATTACK":0.45,"DECAY":0.5,"SUSTAIN":0.9,"RELEASE":0.6,"LEVEL":0.32},"matrix":[["M1","SRC.BOW",0.4],["M2","SRC.BRIGHT",0.4],["M3","FX 1.MIX",0.5],["M4","SRC.GEOMETRY",0.5],["A MARB X","SRC.POSITION",0.2]],"macros":[0.2,0.3,0.3,0.3]},{"name":"STRING MACH","slots":{"SRC":"PLAITS","SHP":null,"MODA":null,"MODB":null,"FX1":"CHORUS","FX2":"REVERB"},"p":{"SRC":{"MODEL":"STR MACH","HARMO":0.55,"TIMBRE":0.5,"MORPH":0.45},"FX1":{"RATE":0.25,"DEPTH":0.55,"WIDTH":0.9,"MIX":0.45},"FX2":{"SIZE":0.75,"DAMP":0.5,"MIX":0.3}},"amp":{"ATTACK":0.5,"DECAY":0.5,"SUSTAIN":0.85,"RELEASE":0.6,"SPREAD":0.6,"LEVEL":0.73},"lfo":{"SHAPE 1":"TRI","RATE 1":0.25,"SHAPE 2":"DRIFT","RATE 2":0.15},"matrix":[["M1","SRC.TIMBRE",0.45],["M2","SRC.MORPH",0.5],["M3","FX 1.DEPTH",0.4],["M4","FX 2.MIX",0.5],["LFO 1","SRC.TIMBRE",0.12],["LFO 2","SRC.MORPH",0.1]],"macros":[0.3,0.3,0.3,0.3]},{"name":"SPEECH DUST","slots":{"SRC":"PLAITS","SHP":null,"MODA":"MARBLES","MODB":null,"FX1":"CLOUDS","FX2":null},"p":{"SRC":{"MODEL":"SPEECH","HARMO":0.5,"TIMBRE":0.5,"MORPH":0.4},"MODA":{"RATE":0.45,"SPREAD":0.6,"BIAS":0.5,"STEPS":0.1,"DEJA VU":0.5,"LENGTH":"8","CLOCK":"1/8"},"FX1":{"POSITION":0.5,"SIZE":0.35,"DENSITY":0.65,"TEXTURE":0.5,"BLEND":0.55,"SPREAD":0.8,"FEEDBACK":0.35,"REVERB":0.5}},"amp":{"ATTACK":0.1,"SUSTAIN":0.9,"RELEASE":0.5,"LEVEL":0.93},"matrix":[["A MARB X","SRC.MORPH",0.45],["A MARB T","SRC.TIMBRE",0.3],["M1","SRC.HARMO",0.5],["M2","FX 1.DENSITY",0.4],["M3","FX 1.BLEND",0.4],["M4","MOD A.RATE",0.4]],"macros":[0.3,0.3,0.3,0.3]},{"name":"KARPLUS","slots":{"SRC":"BRAIDS","SHP":"RINGS","MODA":null,"MODB":null,"FX1":"DELAY","FX2":null},"p":{"SRC":{"MODEL":"PLUK","TIMBRE":0.5,"COLOR":0.4},"SHP":{"MODEL":"STRING","STRUCT":0.4,"BRIGHT":0.6,"DAMPING":0.6,"POSITION":0.25,"EXCITE":0.6,"MIX":0.6,"SPREAD":0.5},"FX1":{"TIME":"1/4","FEEDBACK":0.35,"TONE":0.45,"MIX":0.25}},"amp":{"ATTACK":0,"DECAY":0.55,"SUSTAIN":0,"RELEASE":0.5,"VEL AMT":0.8,"LEVEL":0.55},"matrix":[["M1","SHP.DAMPING",0.4],["M2","SHP.BRIGHT",0.4],["M3","FX 1.FEEDBACK",0.4],["M4","SHP.POSITION",0.5],["VELO","SHP.BRIGHT",0.25]],"macros":[0.3,0.3,0.3,0.3]},{"name":"FOLDED BASS","slots":{"SRC":"BRAIDS","SHP":"FILTER","MODA":null,"MODB":null,"FX1":null,"FX2":null},"p":{"SRC":{"MODEL":"FOLD","TIMBRE":0.3,"COLOR":0.5,"DRIFT":0.1},"SHP":{"TYPE":"LP","CUTOFF":0.45,"RESO":0.3,"DRIVE":0.5,"ENV AMT":0.3,"KEY TRK":0.6}},"amp":{"ATTACK":0.01,"DECAY":0.35,"SUSTAIN":0.7,"RELEASE":0.2,"GLIDE":0.4,"M ATTACK":0,"M DECAY":0.35,"LEVEL":0.44},"matrix":[["MOD ENV","SRC.TIMBRE",0.45],["M1","SRC.TIMBRE",0.4],["M2","SRC.COLOR",0.5],["M3","SHP.CUTOFF",0.4],["M4","SHP.DRIVE",0.4],["VELO","SRC.TIMBRE",0.2]],"macros":[0.3,0.3,0.3,0.3]},{"name":"WARPED VOX","slots":{"SRC":"PLAITS","SHP":"WARPS","MODA":"TIDES","MODB":null,"FX1":"REVERB","FX2":null},"p":{"SRC":{"MODEL":"FORMANT","HARMO":0.5,"TIMBRE":0.5,"MORPH":0.5},"SHP":{"ALGO":0.92,"TIMBRE":0.55,"CARRIER":"SAW","MOD IN":"OSC","CAR LVL":1,"MOD LVL":1,"MIX":0.85},"MODA":{"MODE":"LOOP","FREQ":0.3,"SHAPE":0.5,"SLOPE":0.2},"FX1":{"SIZE":0.65,"DAMP":0.5,"MIX":0.3}},"amp":{"ATTACK":0.2,"DECAY":0.5,"SUSTAIN":0.85,"RELEASE":0.45,"LEVEL":1},"matrix":[["A TIDES","SRC.MORPH",0.4],["M1","SHP.ALGO",0.3],["M2","SHP.TIMBRE",0.5],["M3","SRC.HARMO",0.5],["M4","FX 1.MIX",0.5]],"macros":[0.3,0.3,0.3,0.3]},{"name":"GRID GATE","slots":{"SRC":"BRAIDS","SHP":"FILTER","MODA":"GRIDS","MODB":null,"FX1":"DELAY","FX2":"REVERB"},"p":{"SRC":{"MODEL":"WTBL","TIMBRE":0.4,"COLOR":0.6},"SHP":{"TYPE":"LP","CUTOFF":0.62,"RESO":0.3,"DRIVE":0.3,"ENV AMT":0,"KEY TRK":0.5},"MODA":{"X":0.5,"Y":0.5,"FILL":0.65,"OUT":"KIT","CHAOS":0.15},"FX1":{"TIME":"1/8D","FEEDBACK":0.5,"TONE":0.5,"MIX":0.3},"FX2":{"SIZE":0.5,"MIX":0.2}},"amp":{"ATTACK":0,"SUSTAIN":1,"RELEASE":0.3,"LEVEL":0.12},"matrix":[["A GRID","AMP.LEVEL",0.6],["A ACCENT","SHP.CUTOFF",0.25],["M1","MOD A.X",0.5],["M2","MOD A.Y",0.5],["M3","MOD A.FILL",0.3],["M4","SRC.TIMBRE",0.5]],"macros":[0.3,0.3,0.3,0.3]},{"name":"FROZEN CLOUD","slots":{"SRC":"PLAITS","SHP":null,"MODA":null,"MODB":null,"FX1":"CLOUDS","FX2":null},"p":{"SRC":{"MODEL":"CHORDS","HARMO":0.4,"TIMBRE":0.4,"MORPH":0.45},"FX1":{"POSITION":0.2,"SIZE":0.8,"PITCH":0,"DENSITY":0.6,"TEXTURE":0.7,"BLEND":0.6,"SPREAD":0.9,"FEEDBACK":0.4,"REVERB":0.6,"MODE":"STRETCH"}},"amp":{"ATTACK":0.35,"DECAY":0.5,"SUSTAIN":0.8,"RELEASE":0.65,"LEVEL":1},"lfo":{"SHAPE 2":"TRI","SYNC 2":"2 BARS"},"matrix":[["LFO 2","FX 1.POSITION",0.2],["M1","FX 1.SIZE",0.3],["M2","FX 1.TEXTURE",0.3],["M3","FX 1.BLEND",0.4],["M4","SRC.TIMBRE",0.5]],"macros":[0.3,0.3,0.3,0.3]},{"name":"TIDAL FM","slots":{"SRC":"PLAITS","SHP":"FILTER","MODA":"TIDES","MODB":"PEAKS","FX1":"CHORUS","FX2":"DELAY"},"p":{"SRC":{"MODEL":"6OP FM 1","HARMO":0.3,"TIMBRE":0.5,"MORPH":0.3},"SHP":{"TYPE":"LP","CUTOFF":0.62,"RESO":0.3,"DRIVE":0.2,"ENV AMT":0.2,"KEY TRK":0.5},"MODA":{"MODE":"AD","FREQ":0.45,"SHAPE":0.4,"SLOPE":-0.4,"GATE":"NOTE"},"MODB":{"FUNC":"LFO","K1":0.35,"K2":0.3},"FX1":{"RATE":0.3,"DEPTH":0.4,"WIDTH":0.8,"MIX":0.3},"FX2":{"TIME":"1/4","FEEDBACK":0.35,"MIX":0.2}},"amp":{"ATTACK":0.02,"DECAY":0.5,"SUSTAIN":0.7,"RELEASE":0.45,"LEVEL":0.43},"matrix":[["A TIDE+","SHP.CUTOFF",0.4],["B PEAKS","PAN",0.4],["M1","SRC.HARMO",0.5],["M2","SRC.MORPH",0.5],["M3","SHP.CUTOFF",0.3],["M4","FX 2.FEEDBACK",0.4]],"macros":[0.3,0.3,0.3,0.3]},{"name":"INIT","slots":{"SRC":"PLAITS","SHP":null,"MODA":null,"MODB":null,"FX1":null,"FX2":null},"p":{"SRC":{"MODEL":"VA VCF"}},"matrix":[["M1","SRC.TIMBRE",0.5],["M2","SRC.MORPH",0.5]],"macros":[0.5,0.5,0.5,0.5],"amp":{"LEVEL":0.38}}];
+const PRESETS = [{"name": "GLASS BELLS", "slots": {"SRC": "PLAITS", "SHP": "RINGS", "MODA": "TIDES", "MODB": "PEAKS", "FX1": "CLOUDS", "FX2": null}, "p": {"SRC": {"MODEL": "2OP FM", "HARMO": 0.3, "TIMBRE": 0.45, "MORPH": 0.25}, "SHP": {"MODEL": "MODAL", "STRUCT": 0.62, "BRIGHT": 0.7, "DAMPING": 0.55, "POSITION": 0.3, "EXCITE": 0.7, "MIX": 0.75, "SPREAD": 0.6}, "MODA": {"MODE": "LOOP", "FREQ": 0.25, "SHAPE": 0.5, "SLOPE": 0}, "MODB": {"FUNC": "ENV", "K1": 0, "K2": 0.5}, "FX1": {"POSITION": 0.3, "SIZE": 0.55, "DENSITY": 0.45, "TEXTURE": 0.6, "BLEND": 0.3, "SPREAD": 0.7, "FEEDBACK": 0.2, "REVERB": 0.45}}, "amp": {"ATTACK": 0.02, "DECAY": 0.5, "SUSTAIN": 0.6, "RELEASE": 0.55, "LEVEL": 1}, "matrix": [["M1", "SRC.TIMBRE", 0.5], ["M2", "SHP.BRIGHT", 0.4], ["M3", "FX 1.BLEND", 0.6], ["M4", "SHP.STRUCT", 0.35], ["A TIDES", "SHP.POSITION", 0.25], ["B PEAKS", "SRC.MORPH", 0.35, "VELO"]], "macros": [0.3, 0.4, 0.3, 0.4]}, {"name": "ACID DRIFT", "slots": {"SRC": "BRAIDS", "SHP": "FILTER", "MODA": "GRIDS", "MODB": "TIDES", "FX1": "DELAY", "FX2": "CHORUS"}, "p": {"SRC": {"MODEL": "CSAW", "TIMBRE": 0.35, "COLOR": 0.5, "DRIFT": 0.15}, "SHP": {"TYPE": "LP", "CUTOFF": 0.32, "RESO": 0.72, "DRIVE": 0.45, "ENV AMT": 0.45, "KEY TRK": 0.5}, "MODA": {"X": 0.3, "Y": 0.6, "FILL": 0.7, "OUT": "KIT", "CHAOS": 0.1}, "MODB": {"MODE": "AD", "FREQ": 0.55, "SHAPE": 0.3, "SLOPE": -0.6, "GATE": "GRID"}, "FX1": {"TIME": "1/8D", "FEEDBACK": 0.45, "TONE": 0.4, "MIX": 0.3}, "FX2": {"RATE": 0.2, "DEPTH": 0.3, "WIDTH": 0.8, "MIX": 0.25}}, "amp": {"ATTACK": 0.01, "DECAY": 0.3, "SUSTAIN": 0.55, "RELEASE": 0.2, "GLIDE": 0.35, "LEVEL": 0.5}, "matrix": [["M1", "SHP.CUTOFF", 0.5], ["M2", "SHP.RESO", 0.25], ["M3", "FX 1.FEEDBACK", 0.4], ["M4", "SRC.TIMBRE", 0.5], ["B TIDE+", "SHP.CUTOFF", 0.35], ["A ACCENT", "SHP.DRIVE", 0.4]], "macros": [0.3, 0.3, 0.3, 0.3], "seq": {"len": 16, "rate": "1/16", "swing": 0.12, "steps": [{"n": [45], "v": 0.9, "l": "1/2"}, {"n": [45], "v": 0.5, "l": "1/4"}, {"n": [57], "v": 0.85, "l": "1/4", "lock": {"SHP.CUTOFF": 0.62}}, null, {"n": [43], "v": 0.7, "l": "TIE"}, {"n": [45], "v": 0.7, "l": "1/2"}, {"n": [48], "v": 0.9, "l": "1/4"}, {"n": [45], "v": 0.6, "l": "1/4", "c": 0.5}, {"n": [52], "v": 0.9, "l": "1/2", "lock": {"SHP.CUTOFF": 0.7, "SHP.RESO": 0.82}}, null, {"n": [50], "v": 0.7, "l": "1/4"}, {"n": [48], "v": 0.7, "l": "TIE"}, {"n": [48], "v": 0.7, "l": "1/4"}, {"n": [45], "v": 0.8, "l": "1/4"}, {"n": [55], "v": 0.95, "l": "1/8", "lock": {"SHP.CUTOFF": 0.78}}, {"n": [40], "v": 0.7, "l": "1/4"}]}}, {"name": "BOWED SPACE", "slots": {"SRC": "ELEMENTS", "SHP": null, "MODA": "MARBLES", "MODB": null, "FX1": "REVERB", "FX2": null}, "p": {"SRC": {"BOW": 0.75, "BLOW": 0.1, "STRIKE": 0.15, "CONTOUR": 0.6, "GEOMETRY": 0.35, "BRIGHT": 0.55, "DAMPING": 0.7, "POSITION": 0.3, "BOW TMB": 0.55, "SPACE": 0.45}, "MODA": {"RATE": 0.35, "SPREAD": 0.35, "BIAS": 0.5, "STEPS": 0.2, "DEJA VU": 0.6, "CLOCK": "FREE"}, "FX1": {"SIZE": 0.8, "DAMP": 0.45, "MIX": 0.35}}, "amp": {"ATTACK": 0.45, "DECAY": 0.5, "SUSTAIN": 0.9, "RELEASE": 0.6, "LEVEL": 0.32}, "matrix": [["M1", "SRC.BOW", 0.4], ["M2", "SRC.BRIGHT", 0.4], ["M3", "FX 1.MIX", 0.5], ["M4", "SRC.GEOMETRY", 0.5], ["A MARB X", "SRC.POSITION", 0.2]], "macros": [0.2, 0.3, 0.3, 0.3]}, {"name": "STRING MACH", "slots": {"SRC": "PLAITS", "SHP": null, "MODA": null, "MODB": null, "FX1": "CHORUS", "FX2": "REVERB"}, "p": {"SRC": {"MODEL": "STR MACH", "HARMO": 0.55, "TIMBRE": 0.5, "MORPH": 0.45}, "FX1": {"RATE": 0.25, "DEPTH": 0.55, "WIDTH": 0.9, "MIX": 0.45}, "FX2": {"SIZE": 0.75, "DAMP": 0.5, "MIX": 0.3}}, "amp": {"ATTACK": 0.5, "DECAY": 0.5, "SUSTAIN": 0.85, "RELEASE": 0.6, "SPREAD": 0.6, "LEVEL": 0.73}, "lfo": {"SHAPE 1": "TRI", "RATE 1": 0.25, "SHAPE 2": "DRIFT", "RATE 2": 0.15}, "matrix": [["M1", "SRC.TIMBRE", 0.45], ["M2", "SRC.MORPH", 0.5], ["M3", "FX 1.DEPTH", 0.4], ["M4", "FX 2.MIX", 0.5], ["LFO 1", "SRC.TIMBRE", 0.12], ["LFO 2", "SRC.MORPH", 0.1]], "macros": [0.3, 0.3, 0.3, 0.3], "seq": {"len": 16, "rate": "1/8", "swing": 0, "steps": [{"n": [57, 60, 64, 67], "v": 0.7, "l": "TIE"}, null, null, null, {"n": [53, 57, 60, 64], "v": 0.7, "l": "TIE"}, null, null, null, {"n": [55, 60, 64, 67], "v": 0.75, "l": "TIE", "lock": {"SRC.TIMBRE": 0.7}}, null, null, null, {"n": [55, 59, 62, 67], "v": 0.8, "l": "TIE", "lock": {"SRC.TIMBRE": 0.62}}, null, null, null]}}, {"name": "SPEECH DUST", "slots": {"SRC": "PLAITS", "SHP": null, "MODA": "MARBLES", "MODB": null, "FX1": "CLOUDS", "FX2": null}, "p": {"SRC": {"MODEL": "SPEECH", "HARMO": 0.5, "TIMBRE": 0.5, "MORPH": 0.4}, "MODA": {"RATE": 0.45, "SPREAD": 0.6, "BIAS": 0.5, "STEPS": 0.1, "DEJA VU": 0.5, "LENGTH": "8", "CLOCK": "1/8"}, "FX1": {"POSITION": 0.5, "SIZE": 0.35, "DENSITY": 0.65, "TEXTURE": 0.5, "BLEND": 0.55, "SPREAD": 0.8, "FEEDBACK": 0.35, "REVERB": 0.5}}, "amp": {"ATTACK": 0.1, "SUSTAIN": 0.9, "RELEASE": 0.5, "LEVEL": 0.93}, "matrix": [["A MARB X", "SRC.MORPH", 0.45], ["A MARB T", "SRC.TIMBRE", 0.3], ["M1", "SRC.HARMO", 0.5], ["M2", "FX 1.DENSITY", 0.4], ["M3", "FX 1.BLEND", 0.4], ["M4", "MOD A.RATE", 0.4]], "macros": [0.3, 0.3, 0.3, 0.3]}, {"name": "KARPLUS", "slots": {"SRC": "BRAIDS", "SHP": "RINGS", "MODA": null, "MODB": null, "FX1": "DELAY", "FX2": null}, "p": {"SRC": {"MODEL": "PLUK", "TIMBRE": 0.5, "COLOR": 0.4}, "SHP": {"MODEL": "STRING", "STRUCT": 0.4, "BRIGHT": 0.6, "DAMPING": 0.6, "POSITION": 0.25, "EXCITE": 0.6, "MIX": 0.6, "SPREAD": 0.5}, "FX1": {"TIME": "1/4", "FEEDBACK": 0.35, "TONE": 0.45, "MIX": 0.25}}, "amp": {"ATTACK": 0, "DECAY": 0.55, "SUSTAIN": 0, "RELEASE": 0.5, "VEL AMT": 0.8, "LEVEL": 0.55}, "matrix": [["M1", "SHP.DAMPING", 0.4], ["M2", "SHP.BRIGHT", 0.4], ["M3", "FX 1.FEEDBACK", 0.4], ["M4", "SHP.POSITION", 0.5], ["VELO", "SHP.BRIGHT", 0.25]], "macros": [0.3, 0.3, 0.3, 0.3]}, {"name": "FOLDED BASS", "slots": {"SRC": "BRAIDS", "SHP": "FILTER", "MODA": null, "MODB": null, "FX1": null, "FX2": null}, "p": {"SRC": {"MODEL": "FOLD", "TIMBRE": 0.3, "COLOR": 0.5, "DRIFT": 0.1}, "SHP": {"TYPE": "LP", "CUTOFF": 0.45, "RESO": 0.3, "DRIVE": 0.5, "ENV AMT": 0.3, "KEY TRK": 0.6}}, "amp": {"ATTACK": 0.01, "DECAY": 0.35, "SUSTAIN": 0.7, "RELEASE": 0.2, "GLIDE": 0.4, "M ATTACK": 0, "M DECAY": 0.35, "LEVEL": 0.44}, "matrix": [["MOD ENV", "SRC.TIMBRE", 0.45], ["M1", "SRC.TIMBRE", 0.4], ["M2", "SRC.COLOR", 0.5], ["M3", "SHP.CUTOFF", 0.4], ["M4", "SHP.DRIVE", 0.4], ["VELO", "SRC.TIMBRE", 0.2]], "macros": [0.3, 0.3, 0.3, 0.3]}, {"name": "WARPED VOX", "slots": {"SRC": "PLAITS", "SHP": "WARPS", "MODA": "TIDES", "MODB": null, "FX1": "REVERB", "FX2": null}, "p": {"SRC": {"MODEL": "FORMANT", "HARMO": 0.5, "TIMBRE": 0.5, "MORPH": 0.5}, "SHP": {"ALGO": 0.92, "TIMBRE": 0.55, "CARRIER": "SAW", "MOD IN": "OSC", "CAR LVL": 1, "MOD LVL": 1, "MIX": 0.85}, "MODA": {"MODE": "LOOP", "FREQ": 0.3, "SHAPE": 0.5, "SLOPE": 0.2}, "FX1": {"SIZE": 0.65, "DAMP": 0.5, "MIX": 0.3}}, "amp": {"ATTACK": 0.2, "DECAY": 0.5, "SUSTAIN": 0.85, "RELEASE": 0.45, "LEVEL": 1}, "matrix": [["A TIDES", "SRC.MORPH", 0.4], ["M1", "SHP.ALGO", 0.3], ["M2", "SHP.TIMBRE", 0.5], ["M3", "SRC.HARMO", 0.5], ["M4", "FX 1.MIX", 0.5]], "macros": [0.3, 0.3, 0.3, 0.3]}, {"name": "GRID GATE", "slots": {"SRC": "BRAIDS", "SHP": "FILTER", "MODA": "GRIDS", "MODB": null, "FX1": "DELAY", "FX2": "REVERB"}, "p": {"SRC": {"MODEL": "WTBL", "TIMBRE": 0.4, "COLOR": 0.6}, "SHP": {"TYPE": "LP", "CUTOFF": 0.62, "RESO": 0.3, "DRIVE": 0.3, "ENV AMT": 0, "KEY TRK": 0.5}, "MODA": {"X": 0.5, "Y": 0.5, "FILL": 0.65, "OUT": "KIT", "CHAOS": 0.15}, "FX1": {"TIME": "1/8D", "FEEDBACK": 0.5, "TONE": 0.5, "MIX": 0.3}, "FX2": {"SIZE": 0.5, "MIX": 0.2}}, "amp": {"ATTACK": 0, "SUSTAIN": 1, "RELEASE": 0.3, "LEVEL": 0.12}, "matrix": [["A GRID", "AMP.LEVEL", 0.6], ["A ACCENT", "SHP.CUTOFF", 0.25], ["M1", "MOD A.X", 0.5], ["M2", "MOD A.Y", 0.5], ["M3", "MOD A.FILL", 0.3], ["M4", "SRC.TIMBRE", 0.5]], "macros": [0.3, 0.3, 0.3, 0.3]}, {"name": "FROZEN CLOUD", "slots": {"SRC": "PLAITS", "SHP": null, "MODA": null, "MODB": null, "FX1": "CLOUDS", "FX2": null}, "p": {"SRC": {"MODEL": "CHORDS", "HARMO": 0.4, "TIMBRE": 0.4, "MORPH": 0.45}, "FX1": {"POSITION": 0.2, "SIZE": 0.8, "PITCH": 0, "DENSITY": 0.6, "TEXTURE": 0.7, "BLEND": 0.6, "SPREAD": 0.9, "FEEDBACK": 0.4, "REVERB": 0.6, "MODE": "STRETCH"}}, "amp": {"ATTACK": 0.35, "DECAY": 0.5, "SUSTAIN": 0.8, "RELEASE": 0.65, "LEVEL": 1}, "lfo": {"SHAPE 2": "TRI", "SYNC 2": "2 BARS"}, "matrix": [["LFO 2", "FX 1.POSITION", 0.2], ["M1", "FX 1.SIZE", 0.3], ["M2", "FX 1.TEXTURE", 0.3], ["M3", "FX 1.BLEND", 0.4], ["M4", "SRC.TIMBRE", 0.5]], "macros": [0.3, 0.3, 0.3, 0.3]}, {"name": "TIDAL FM", "slots": {"SRC": "PLAITS", "SHP": "FILTER", "MODA": "TIDES", "MODB": "PEAKS", "FX1": "CHORUS", "FX2": "DELAY"}, "p": {"SRC": {"MODEL": "6OP FM 1", "HARMO": 0.3, "TIMBRE": 0.5, "MORPH": 0.3}, "SHP": {"TYPE": "LP", "CUTOFF": 0.62, "RESO": 0.3, "DRIVE": 0.2, "ENV AMT": 0.2, "KEY TRK": 0.5}, "MODA": {"MODE": "AD", "FREQ": 0.45, "SHAPE": 0.4, "SLOPE": -0.4, "GATE": "NOTE"}, "MODB": {"FUNC": "LFO", "K1": 0.35, "K2": 0.3}, "FX1": {"RATE": 0.3, "DEPTH": 0.4, "WIDTH": 0.8, "MIX": 0.3}, "FX2": {"TIME": "1/4", "FEEDBACK": 0.35, "MIX": 0.2}}, "amp": {"ATTACK": 0.02, "DECAY": 0.5, "SUSTAIN": 0.7, "RELEASE": 0.45, "LEVEL": 0.43}, "matrix": [["A TIDE+", "SHP.CUTOFF", 0.4], ["B PEAKS", "PAN", 0.4], ["M1", "SRC.HARMO", 0.5], ["M2", "SRC.MORPH", 0.5], ["M3", "SHP.CUTOFF", 0.3], ["M4", "FX 2.FEEDBACK", 0.4]], "macros": [0.3, 0.3, 0.3, 0.3]}, {"name": "INIT", "slots": {"SRC": "PLAITS", "SHP": null, "MODA": null, "MODB": null, "FX1": null, "FX2": null}, "p": {"SRC": {"MODEL": "VA VCF"}}, "matrix": [["M1", "SRC.TIMBRE", 0.5], ["M2", "SRC.MORPH", 0.5]], "macros": [0.5, 0.5, 0.5, 0.5], "amp": {"LEVEL": 0.38}}];
 let presetIx = 0, patchName = PRESETS[0].name;
 const USER_SLOTS = 16, STORE_KEY = "fm1rack.user.v1";
 let userPatches = (() => { try { const v = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); return Array.from({ length: USER_SLOTS }, (_, i) => v[i] || null); } catch { return Array(USER_SLOTS).fill(null); } })();
@@ -262,6 +277,7 @@ function loadPreset(i) {
     for (const s of SLOTS) { const st = u.slots[s.id] || { mod: null, p: [] }; rack[s.id] = { mod: st.mod, p: fitParams(MODULES[st.mod], st.p) }; }
     amp.p = fitParams(AMP, u.amp); lfo.p = fitParams(LFOS, u.lfo);
     matrix = u.matrix.map((r) => ({ ...r })); macros = [...u.macros];
+    loadSeq(u.seq ? JSON.parse(JSON.stringify(u.seq)) : blankSeq());
     return;
   }
   const pr = PRESETS[entry.f];
@@ -273,7 +289,34 @@ function loadPreset(i) {
     return r ? { src: r[0], dst: r[1], amt: r[2], via: r[3] || "—" } : { src: "—", dst: "—", amt: 0, via: "—" };
   });
   macros = [...(pr.macros || [0.5, 0.5, 0.5, 0.5])];
+  loadSeq(factorySeq(pr.seq));
 }
+// a new pattern keeps the transport running
+function loadSeq(sq) { const run = seq.p[0]; seq = sq; seq.p[0] = run; for (const st of seq.steps) st.locks = st.locks || {}; }
+// factory patterns: { len, rate, swing, steps: [ { n: [notes], v, l: "1/2", c, lock: { "SHP.CUTOFF": 0.7 } } | null ] }
+function factorySeq(f) {
+  const sq = blankSeq(); if (!f) return sq;
+  sq.p[1] = f.len || 16; sq.p[2] = Math.max(0, SEQ_RATES.indexOf(f.rate || "1/16")); sq.p[3] = f.swing || 0;
+  (f.steps || []).forEach((x, i) => {
+    if (!x || i > 15) return;
+    const st = sq.steps[i];
+    Object.assign(st, { trig: 1, notes: x.n || [], vel: x.v ?? .75, len: Math.max(0, STEP_LENS.indexOf(x.l || "1/2")), chance: x.c ?? 1 });
+    for (const [name, v] of Object.entries(x.lock || {})) { const ref = refByName(name); if (ref) st.locks[lockKey(ref)] = { ref, v }; }
+  });
+  return sq;
+}
+// "SHP.CUTOFF", "AMP.DECAY", "LFO.RATE 1", "M2" to a knob reference
+function refByName(name) {
+  if (/^M[1-4]$/.test(name)) return { w: "macro", i: +name[1] - 1 };
+  const [head, label] = [name.slice(0, name.indexOf(".")), name.slice(name.indexOf(".") + 1)];
+  if (head === "AMP") { const j = AMP.pages.flat().findIndex((p) => p.l === label); return j < 0 ? null : { w: "AMP", idx: j }; }
+  if (head === "LFO") { const j = LFOS.pages.flat().findIndex((p) => p.l === label); return j < 0 ? null : { w: "LFOS", idx: j }; }
+  const s = SLOTS.find((x) => x.name === head || x.id === head); if (!s) return null;
+  const m = MODULES[rack[s.id].mod]; if (!m) return null;
+  const j = m.pages.flat().findIndex((p) => p.l === label);
+  return j < 0 ? null : { w: "slot", slot: s.id, mod: rack[s.id].mod, idx: j };
+}
+const lockKey = (r) => r.w === "macro" ? `m${r.i}` : r.w === "slot" ? `${r.slot}.${r.mod}.${r.idx}` : `${r.w}.${r.idx}`;
 // factory patches name their values by label, and list values by option
 function applyOver(def, values, over) {
   if (!over) return;
@@ -286,7 +329,7 @@ function applyOver(def, values, over) {
 }
 function snapshot(name) {
   return { name, slots: Object.fromEntries(SLOTS.map((s) => [s.id, { mod: rack[s.id].mod, p: [...rack[s.id].p] }])),
-           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros] };
+           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros], seq: { ...JSON.parse(JSON.stringify(seq)), p: [0, ...seq.p.slice(1)] } };
 }
 const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 let saveState = null;
@@ -347,7 +390,7 @@ function destinations() {
 }
 
 // ---------------------------------------------------------------- UI state
-let page = "PERFORM";           // PERFORM | RACK | slot id | AMP | LFOS | MATRIX | SCALE | GLOBAL | SAVE
+let page = "PERFORM";           // PERFORM | RACK | slot id | AMP | LFOS | MATRIX | CHORD | SEQ | STEP | GLOBAL | SAVE
 let subpage = 0, mxRow = 0, octave = 0, master = 0.7, hold = false;
 let picker = null;              // { slot, ix }
 let toast = null, toastIcon = null, toastT = 0;
@@ -433,9 +476,13 @@ const ICONS = {
   OUT: ["......#.....", ".....##.....", "....#.#..#..", "####..#...#.", "#.#...#.#..#", "#.#...#.#..#", "#.#...#.#..#", "####..#...#.", "....#.#..#..", ".....##.....", "......#.....", "............"],
   MIDI: ["...######...", "..#......#..", ".#.#....#.#.", "#..........#", "#.#......#.#", "#..........#", "#....##....#", ".#........#.", "..#......#..", "...######...", "............", "............"],
   HOLD: ["............", "...######...", "..#......#..", "..#......#..", "..#......#..", "############", "############", "####.##.####", "#####..#####", "############", "############", "............"],
+  CHORD: ["............", "....######..", "....#....#..", "....#....#..", "..###..###..", ".####.####..", ".####.####..", "..##...##...", "......###...", ".....####...", ".....####...", "......##...."],
+  SEQ: ["............", "##.##.##.##.", "##.##.##.##.", "............", "##.##.##.##.", "##.##.##.##.", "............", "............", "#..........#", "############", "#..........#", "............"],
+  STEP: ["............", ".##########.", "#..........#", "#..######..#", "#..######..#", "#..######..#", "#..######..#", "#..........#", ".##########.", "............", "....####....", "............"],
+  LOCK: ["............", "....####....", "...#....#...", "...#....#...", "..########..", "..########..", "..###..###..", "..###..###..", "..########..", "..########..", "............", "............"],
   LEARN: ["....####....", "..##....##..", ".#...#....#.", ".#...#....#.", "#....#.....#", "#....####..#", "#..........#", ".#........#.", ".#........#.", "..##....##..", "....####....", ".....##....."],
 };
-const ICON_OF = { src: "PLAITS", shp: "FILTER", mod: "PEAKS", fx: "CLOUDS", amp: "AMP", lfo: "LFO", glo: "GLOBAL", scl: "SCALE" };
+const ICON_OF = { src: "PLAITS", shp: "FILTER", mod: "PEAKS", fx: "CLOUDS", amp: "AMP", lfo: "LFO", glo: "GLOBAL", chd: "CHORD", seq: "SEQ" };
 const _iconPaths = {};
 function icon(name, x, y, c, s = 1) {
   const rows = ICONS[name]; if (!rows) return;
@@ -481,12 +528,15 @@ function footer() {
     g.strokeStyle = C.faint; g.lineWidth = 2; g.beginPath(); g.arc(165, 228, 5, 0, 7); g.stroke();
     g.strokeStyle = C.ok; g.beginPath(); g.arc(165, 228, 5, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); g.stroke();
     T(174, 232, `${phrase.bars}BAR`, { size: 9, c: C.ok });
+  } else if (ss.run) {
+    for (let i = 0; i < seqLen(); i++) rect(150 + i * 4.3, 226, 3, 6, i === ss.cur ? KC.seq : seq.steps[i].trig ? "#4a3a42" : C.faint, 1);
+    if (ss.rec && Math.floor(animT * 3) % 2) dot(145, 229, 2, C.warn, false);
   } else if (held.size || latched.size) { const k = [...new Set([...held, ...latched])].pop(); T(222, 232, noteName(k), { size: 10, a: "right", c: C.ok }); }
   else if (midiState.last && performance.now() - midiState.last < 400) icon("MIDI", 200, 222, C.dim);
 }
 
 // parameter cells: base value, plus a live marker where modulation has moved it
-function cells(params, base, live, color, y0 = 96, hgt = 55) {
+function cells(params, base, live, color, y0 = 96, hgt = 55, marks = null) {
   const pos = [[6, y0], [122, y0], [6, y0 + hgt + 3], [122, y0 + hgt + 3]];
   for (let i = 0; i < 4; i++) {
     const [x, y] = pos[i], p = params[i];
@@ -494,6 +544,7 @@ function cells(params, base, live, color, y0 = 96, hgt = 55) {
     T(x + 6, y + 13, String(i + 1), { size: 9, c: C.dim });
     if (!p) { T(x + 56, y + 34, "—", { a: "center", c: C.faint, size: 14 }); continue; }
     T(x + 15, y + 13, p.l, { size: 10, c: C.dim });
+    if (marks && marks[i]) { rect(x + 88, y + 4, 19, 11, C.gold, 3); T(x + 97.5, y + 13, "L", { a: "center", size: 9, c: "#111" }); }
     const v = base[i], lv = live ? live[i] : v;
     const s = fmt(p, v);
     T(x + 6, y + 36, s, { size: s.length > 7 ? 12 : s.length > 5 ? 15 : 18 });
@@ -861,23 +912,6 @@ function visGlobal(X, Y, W, H, c) {
   icon("MIDI", X + W - 18, Y + 6, ma ? C.ok : midiState.inputs ? C.dim : C.faint);
   label(X + 6, Y + 11, midiState.inputs ? `MIDI · ${midiState.inputs} IN` : midiState.denied ? "MIDI BLOCKED HERE" : "NO MIDI INPUT");
 }
-function visScale(X, Y, W, H, c) {
-  const deg = SCALES[Object.keys(SCALES)[scl.p[2]]], root = scl.p[1], on = scl.p[0] === 1;
-  const whites = [0, 2, 4, 5, 7, 9, 11], blacks = [1, 3, 6, 8, 10], kw = (W - 20) / 7, x0 = X + 10, y0 = Y + 8;
-  const inScale = (pc) => deg.includes((pc - root + 12) % 12);
-  const lastPulse = pulses[pulses.length - 1], lastPc = lastPulse && animT - lastPulse.t < .5 ? lastPulse.note % 12 : -1;
-  whites.forEach((pc, i) => {
-    const lit = inScale(pc);
-    rect(x0 + i * kw + 1, y0, kw - 2, H - 14, lit ? rgba(pc === root ? C.gold : c, on ? .85 : .35) : "#1d1d1b", 3);
-    if (pc === lastPc) frame(x0 + i * kw + 1, y0, kw - 2, H - 14, "#fff", 3);
-    T(x0 + i * kw + kw / 2, y0 + H - 18, KEYS12[pc], { size: 9, a: "center", c: lit ? "#111" : C.dim });
-  });
-  blacks.forEach((pc) => {
-    const i = [0, 1, 3, 4, 5][blacks.indexOf(pc)], x = x0 + (i + 1) * kw - kw * .3, lit = inScale(pc);
-    rect(x, y0, kw * .6, (H - 14) * .55, lit ? rgba(pc === root ? C.gold : c, on ? 1 : .45) : "#0a0a09", 2);
-    if (pc === lastPc) frame(x, y0, kw * .6, (H - 14) * .55, "#fff", 2);
-  });
-}
 
 // ================================================================ 4. pages
 function liveFor(slotIdx, count) {
@@ -904,7 +938,8 @@ function drawSlot(slot) {
   well(VX, VY, VW, VH);
   clipTo(VX, VY, VW, VH, () => VIS[st.mod](VX, VY, VW, VH, Pv, c, slot.id === "MODB" ? 1 : 0));
   const off = m.pages.slice(0, subpage).flat().length, params = m.pages[subpage];
-  cells(params, params.map((_, i) => st.p[off + i]), live && params.map((_, i) => live[off + i]), c);
+  const lv = lockView((i) => ({ w: "slot", slot: slot.id, mod: st.mod, idx: off + i }), params.length, params.map((_, i) => st.p[off + i]));
+  cells(params, lv.vals, live && params.map((_, i) => live[off + i]), c, 96, 55, lv.marks);
   footer();
 }
 function drawFixed(def, st, tag, titles, iconName, slotIdx, band) {
@@ -915,7 +950,9 @@ function drawFixed(def, st, tag, titles, iconName, slotIdx, band) {
   clipTo(VX, VY, VW, VH, () => band(VX, VY, VW, VH, c));
   const off = def.pages.slice(0, subpage).flat().length, params = def.pages[subpage];
   const live = slotIdx >= 0 ? liveFor(slotIdx, 16) : null;
-  cells(params, params.map((_, i) => st.p[off + i]), live && params.map((_, i) => live[off + i]), c);
+  const base = params.map((_, i) => st.p[off + i]);
+  const lv = tag === "AMP" || tag === "LFO" ? lockView((i) => ({ w: tag === "AMP" ? "AMP" : "LFOS", idx: off + i }), params.length, base) : { vals: base, marks: null };
+  cells(params, lv.vals, live && params.map((_, i) => live[off + i]), c, 96, 55, lv.marks);
   footer();
 }
 function drawPerform() {
@@ -1078,7 +1115,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.0", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.1", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -1092,7 +1129,8 @@ function render() {
   else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3"], "LFO", 8, visLfos);
   else if (page === "SAVE") drawSave();
   else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING"], "GLOBAL", -1, visGlobal);
-  else if (page === "SCALE") drawFixed(SCALE, scl, "SCALE", [scl.p[0] ? "LOCKED" : "OFF"], "SCALE", -1, visScale);
+  else if (page === "CHORD") drawFixed(CHORD, chd, "CHORD", [CHORD_TYPES[chd.p[C_TYPE]] === "OFF" ? "SINGLE NOTES" : `${CHORD_TYPES[chd.p[C_TYPE]]} CHORDS`, chd.p[C_LOCK] ? "SCALE LOCKED" : "SCALE LOCK OFF"], "CHORD", -1, visChord);
+  else if (page === "SEQ" || page === "STEP") drawSeq();
   else if (page === "RACK") drawRack();
   else if (page === "MATRIX") drawMatrix();
   else drawPerform();
@@ -1100,6 +1138,12 @@ function render() {
     rect(0, 26, 240, 15, C.gold); icon("LEARN", 4, 28, "#111");
     T(124, 37, `LEARN M${learnMacro + 1} · TURN ANY KNOB`, { a: "center", size: 10, c: "#111" });
     if (Math.floor(animT * 3) % 2) dot(232, 33, 2.5, C.warn, false);
+  }
+  if (ss.lock) {
+    rect(0, 26, 240, 15, C.gold); icon("LOCK", 4, 28, "#111");
+    T(124, 37, `LOCK STEP ${ss.cursor + 1} · TURN ANY KNOB`, { a: "center", size: 10, c: "#111" });
+  } else if (ss.rec && ss.run && page !== "SEQ" && page !== "STEP" && lockRefFor(SLOTS.find((s) => s.id === page), 0)) {
+    rect(0, 26, 240, 3, Math.floor(animT * 3) % 2 ? C.warn : "#6a2a22");
   }
   if (picker) drawPicker();
   drawToast();
@@ -1144,7 +1188,7 @@ function stepParam(p, v, k) {
   return clamp(v + k * .01 * (Math.abs(k) > 1 ? 2 : 1), 0, 1);
 }
 function cycle(list, cur, k) { const i = Math.max(0, list.indexOf(cur)); return list[(i + k + list.length * 8) % list.length]; }
-const FIXED = { AMP: [AMP, amp], GLOBAL: [GLOBAL, glo], SCALE: [SCALE, scl], LFOS: [LFOS, lfo] };
+const FIXED = { AMP: [AMP, amp], GLOBAL: [GLOBAL, glo], CHORD: [CHORD, chd], LFOS: [LFOS, lfo] };
 
 function encoder(role, k) {
   if (role === "presets") {
@@ -1160,6 +1204,7 @@ function encoder(role, k) {
     else if (role === 1) st.slot = clamp(st.slot + Math.sign(k), 0, USER_SLOTS - 1);
     draw(); return;
   }
+  if (page === "SEQ" || page === "STEP") { seqEncoder(role, k); draw(); return; }
   const slot = SLOTS.find((s) => s.id === page);
   if (role === "algo") {
     if (!slot) { say("GO TO A SLOT TO SWAP MODULES"); return; }
@@ -1176,6 +1221,7 @@ function encoder(role, k) {
   }
   const i = role;   // knob 0..3
   if (learn && (slot || page === "AMP" || page === "LFOS")) { learnTurn(slot, i, k); draw(); return; }
+  if (lockTarget() >= 0) { const ref = lockRefFor(slot, i); if (ref) { lockTurn(ref, k); draw(); return; } }
   if (page === "PERFORM") {
     learnMacro = i;
     if (!learn) setRef({ w: "macro", i }, clamp(macros[i] + k * .01, 0, 1));
@@ -1201,7 +1247,7 @@ function setRef(ref, v, record = true) {
   if (ref.w === "macro") macros[ref.i] = v;
   else if (ref.w === "AMP") amp.p[ref.idx] = v;
   else if (ref.w === "GLOBAL") { glo.p[ref.idx] = v; storeGlobal(); applyGlobal(); return; }
-  else if (ref.w === "SCALE") { scl.p[ref.idx] = v; return; }
+  else if (ref.w === "CHORD") { chd.p[ref.idx] = v; storeChord(); return; }
   else if (ref.w === "LFOS") lfo.p[ref.idx] = v;
   else if (ref.w === "slot") { if (rack[ref.slot].mod !== ref.mod) return; rack[ref.slot].p[ref.idx] = v; }
   if (record) recEvent({ type: "set", ref, v });
@@ -1271,6 +1317,8 @@ const SVG = {
   SAVE: '<path d="M2 2h9l3 3v9H2z"/><path d="M5 2v4h5V2M5 14v-4h6v4"/>',
   MATRIX: '<circle cx="3.5" cy="4" r="2"/><circle cx="12.5" cy="4" r="2"/><path d="M3.5 6c0 7 9 7 9 0"/>',
   SCALE: '<path d="M2 3h12v10H2zM5.5 13V8.5M8 13V8.5M10.5 13V8.5"/><path d="M4.5 3v5h2V3M9.5 3v5h2V3" fill="currentColor" stroke="none"/>',
+  CHORD: '<ellipse cx="5" cy="12.5" rx="2.6" ry="1.8"/><ellipse cx="5" cy="8.5" rx="2.6" ry="1.8"/><ellipse cx="5" cy="4.5" rx="2.6" ry="1.8"/><path d="M7.6 12.5V2h5"/>',
+  SEQ: '<rect x="1.5" y="5" width="3" height="6" rx=".8"/><rect x="6.5" y="5" width="3" height="6" rx=".8" fill="currentColor"/><rect x="11.5" y="5" width="3" height="6" rx=".8"/><path d="M1.5 13.5h13"/>',
   HOLD: '<rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/>',
   REC: '<circle cx="8" cy="8" r="4.5" fill="currentColor"/>',
   DN: '<path d="M4 6l4 4 4-4"/>', UP: '<path d="M4 10l4-4 4 4"/>',
@@ -1280,8 +1328,8 @@ document.getElementById("octDn").innerHTML = `${svg("DN")}<span>Oct −</span><s
 document.getElementById("octUp").innerHTML = `${svg("UP")}<span>Oct +</span><small>OCT+</small>`;
 // [rack label, printed label, action, colour kind, icon]
 const BTNS = [
-  ["FX 1·2", "FX", "FXBTN", "fx", "FX"], ["Shaper", "SCL", "SHP", "shp", "SHP"], ["Amp", "ENV", "AMP", "amp", "AMP"], ["Mod · LFO", "LFO", "MODBTN", "mod", "LFO"], ["Source", "EDIT", "SRC", "src", "SRC"], ["Global", "GLO", "GLOBAL", "glo", "GLO"],
-  ["Home", "HOME", "HOME", null, "HOME"], ["Save", "SAVE", "SAVE", null, "SAVE"], ["Matrix", "ARP", "MATRIX", null, "MATRIX"], ["Scale", "SEQ", "SCALE", null, "SCALE"], ["Hold", "PLAY", "HOLD", null, "HOLD"], ["Rec", "REC", "REC", null, "REC"],
+  ["FX 1·2", "FX", "FXBTN", "fx", "FX"], ["Chord", "SCL", "CHORD", "chd", "CHORD"], ["Amp · Shp", "ENV", "AMPBTN", "amp", "AMP"], ["Mod · LFO", "LFO", "MODBTN", "mod", "LFO"], ["Source", "EDIT", "SRC", "src", "SRC"], ["Global", "GLO", "GLOBAL", "glo", "GLO"],
+  ["Home", "HOME", "HOME", null, "HOME"], ["Save", "SAVE", "SAVE", null, "SAVE"], ["Matrix", "ARP", "MATRIX", null, "MATRIX"], ["Seq", "SEQ", "SEQBTN", "seq", "SEQ"], ["Hold", "PLAY", "HOLD", null, "HOLD"], ["Rec", "REC", "REC", null, "REC"],
 ];
 const btnEls = {};
 const bwrap = document.getElementById("btns");
@@ -1290,7 +1338,13 @@ for (const [lab, printed, act, kind, ic] of BTNS) {
   el.type = "button"; el.className = "btn"; if (kind) el.dataset.kind = kind;
   el.innerHTML = `${svg(ic)}<span>${lab}</span><small>${printed}</small>`;
   el.setAttribute("aria-label", `${lab} (printed ${printed})`);
-  if (act === "HOME") {
+  if (act === "SEQBTN") {
+    let timer = 0, long = false;
+    el.addEventListener("pointerdown", (e) => { long = false; if (e.shiftKey) return; timer = setTimeout(() => { long = true; if (!ss.lock) setSeqLock(true); }, 500); });
+    const cancel = () => clearTimeout(timer);
+    el.addEventListener("pointerup", cancel); el.addEventListener("pointerleave", cancel); el.addEventListener("pointercancel", cancel);
+    el.addEventListener("click", (e) => { if (long) return; if (e.shiftKey) { setSeqLock(!ss.lock); return; } if (ss.lock) { setSeqLock(false); return; } press("SEQBTN"); });
+  } else if (act === "HOME") {
     let timer = 0, long = false;
     el.addEventListener("pointerdown", (e) => { long = false; if (e.shiftKey) return; timer = setTimeout(() => { long = true; if (!learn) setLearn(true); }, 500); });
     const cancel = () => clearTimeout(timer);
@@ -1300,7 +1354,7 @@ for (const [lab, printed, act, kind, ic] of BTNS) {
   bwrap.appendChild(el); btnEls[act] = el;
 }
 function resolve(act) {
-  const cyc = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"] }[act];
+  const cyc = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP"] }[act];
   if (!cyc) return act;
   if (picker && cyc.includes(picker.slot)) return picker.slot;
   const i = cyc.indexOf(page);
@@ -1324,8 +1378,14 @@ function press(act) {
   if (act === "HOME") { if (page === "SAVE") { saveState = null; page = "PERFORM"; say("SAVE CANCELLED", "SAVE"); } else page = page === "PERFORM" ? "RACK" : "PERFORM"; }
   else if (FIXED[act]) { if (page !== act) subpage = 0; page = act; }
   else if (act === "MATRIX") page = "MATRIX";
+  else if (act === "SEQ" || act === "STEP") page = act;
   else if (act === "SAVE") { if (page === "SAVE") commitSave(); else openSave(); }
   else if (act === "HOLD") { hold = !hold; if (!hold) latched.clear(); say(hold ? "HOLD ON" : "HOLD OFF", "HOLD"); refreshKeys(); }
+  else if (act === "REC" && (page === "SEQ" || page === "STEP")) {
+    ss.rec = !ss.rec; ss.recGroup = null;
+    if (ss.rec && !ss.run) seqStart();
+    say(ss.rec ? "SEQ REC · PLAY OR TURN" : "SEQ REC OFF", "REC");
+  }
   else if (act === "REC") {
     if (phrase.state === "idle") { phrase.state = "armed"; say("REC ARMED · PLAY OR TURN", "REC"); }
     else if (phrase.state === "armed") { phrase.state = "idle"; say("REC CANCELLED", "REC"); }
@@ -1338,14 +1398,14 @@ document.getElementById("octDn").addEventListener("click", () => { octave = clam
 document.getElementById("octUp").addEventListener("click", () => { octave = clamp(octave + 1, -3, 3); say(`OCTAVE ${octave >= 0 ? "+" : ""}${octave}`); });
 
 function syncLeds() {
-  const pairOn = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"] };
+  const pairOn = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP"] };
   for (const [act, el] of Object.entries(btnEls)) {
     let on = act === page || (act === "HOME" && (page === "PERFORM" || page === "RACK")) || (pairOn[act] && pairOn[act].includes(page));
     if (act === "HOLD" || act === "REC") on = false;
     el.classList.toggle("lit", !!on);
-    el.classList.toggle("hold", (act === "HOLD" && hold) || (act === "REC" && phrase.state === "loop") || (act === "SCALE" && !on && scl.p[0] === 1));
-    el.classList.toggle("rec", act === "REC" && (phrase.state === "rec" || phrase.state === "armed"));
-    el.classList.toggle("blink", (act === "REC" && phrase.state === "armed") || (act === "HOME" && learn));
+    el.classList.toggle("hold", (act === "HOLD" && hold) || (act === "REC" && phrase.state === "loop") || (act === "CHORD" && !on && (chd.p[C_TYPE] > 0 || chd.p[C_LOCK] === 1)) || (act === "SEQBTN" && !on && ss.run));
+    el.classList.toggle("rec", act === "REC" && (phrase.state === "rec" || phrase.state === "armed" || (ss.rec && ss.run)));
+    el.classList.toggle("blink", (act === "REC" && phrase.state === "armed") || (act === "HOME" && learn) || (act === "SEQBTN" && ss.lock));
     el.setAttribute("aria-pressed", act === "HOLD" ? String(hold) : String(!!on));
   }
   document.getElementById("octDn").classList.toggle("lit", octave < 0);
@@ -1357,7 +1417,7 @@ const WHITE = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26];
 const BLACK = [1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25];
 const BLACK_AFTER = [0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14];
 const noteNameMidi = (m) => KEYS12[((Math.round(m) % 12) + 12) % 12] + (Math.floor(Math.round(m) / 12) - 1);
-const noteName = (k) => noteNameMidi(keyToNote(k));
+const noteName = (k) => noteNameMidi(quantize(keyToNote(k)));
 const bed = document.getElementById("keybed"), keyEls = [];
 function placeKey(k, leftPct, topPct) {
   const el = document.createElement("button");
@@ -1372,26 +1432,19 @@ function placeKey(k, leftPct, topPct) {
 WHITE.forEach((k, i) => placeKey(k, (i + .5) / 16 * 100, 74));
 BLACK_AFTER.forEach((a, j) => placeKey(BLACK[j], (a + 1) / 16 * 100, 28));
 const velCurve = (v) => clamp(v, 0, 1) ** (2 ** ((0.5 - glo.p[G_VEL]) * 3));
-function keyDown(k, vel = 0.75) { vel = velCurve(vel); keyVel[k] = vel; held.add(k); if (hold) { if (latched.has(k)) latched.delete(k); else latched.add(k); } recEvent({ type: "key", k, on: true, vel }); refreshKeys(); }
-function keyUp(k) { if (!held.has(k)) return; held.delete(k); recEvent({ type: "key", k, on: false }); refreshKeys(); }
+function keyDown(k, vel = 0.75) { vel = velCurve(vel); keyVel[k] = vel; held.add(k); if (hold) { if (latched.has(k)) latched.delete(k); else latched.add(k); } seqInput(chordNotes(keyToNote(k)), vel); recEvent({ type: "key", k, on: true, vel }); refreshKeys(); }
+function keyUp(k) { if (!held.has(k)) return; held.delete(k); recEvent({ type: "key", k, on: false }); refreshKeys(); seqRelease(); }
 const keyVel = [], sounding = new Map();
 function refreshKeys() {
   const midiLit = new Set([...midiNotes.keys()].map((nn) => nn - 53 - 12 * octave));
   keyEls.forEach((el, k) => { if (!el) return; el.classList.toggle("on", held.has(k) || latched.has(k) || playKeys.has(k) || midiLit.has(k)); el.classList.toggle("held", held.has(k)); });
   // what should sound: held, latched or replayed keys
   const want = new Set([...held, ...latched, ...playKeys]);
-  for (const [k, note] of sounding) if (!want.has(k)) { sounding.delete(k); engine(["note_off", note]); }
-  for (const k of want) if (!sounding.has(k)) { const note = keyToNote(k); sounding.set(k, note); engine(["note_on", note, keyVel[k] ?? 0.75]); onNote(note, keyVel[k] ?? 0.75); }
+  for (const [k, e] of sounding) if (!want.has(k)) { sounding.delete(k); notesOff(e); }
+  for (const k of want) if (!sounding.has(k)) sounding.set(k, notesOn(chordNotes(keyToNote(k)), keyVel[k] ?? 0.75));
   draw();
 }
-function quantize(note) {
-  if (scl.p[0] !== 1) return note;
-  const deg = SCALES[Object.keys(SCALES)[scl.p[2]]], root = scl.p[1];
-  let best = note, dist = 99;
-  for (let o = -1; o <= 1; o++) for (const d of deg) { const c = Math.floor((note - root) / 12 + o) * 12 + root + d; const dd = Math.abs(c - note); if (dd < dist || (dd === dist && c < best)) { dist = dd; best = c; } }
-  return best;
-}
-const keyToNote = (k) => quantize(53 + k + 12 * octave);                     // key 0 is F3
+const keyToNote = (k) => 53 + k + 12 * octave;                               // key 0 is F3 (before scale lock and chords)
 const KEYMAP = {};
 ["KeyZ", "KeyX", "KeyC", "KeyV", "KeyB", "KeyN", "KeyM", "Comma", "Period", "Slash"].forEach((c, i) => KEYMAP[c] = WHITE[i]);
 [["KeyS", 1], ["KeyD", 3], ["KeyF", 5], ["KeyH", 8], ["KeyJ", 10], ["KeyL", 13], ["Semicolon", 15], ["Quote", 17]].forEach(([c, k]) => KEYMAP[c] = k);
@@ -1399,10 +1452,339 @@ const KEYMAP = {};
 addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
   if (e.target.closest?.(".knob") || e.target.closest?.("input,textarea")) return;
+  if (e.code === "Space") { e.preventDefault(); if (ss.run) seqStop(); else seqStart(); draw(); return; }
   if (e.code === "Minus" || e.code === "Equal") { e.preventDefault(); document.getElementById(e.code === "Minus" ? "octDn" : "octUp").click(); return; }
   const k = KEYMAP[e.code]; if (k !== undefined) { e.preventDefault(); keyDown(k); }
 });
 addEventListener("keyup", (e) => { const k = KEYMAP[e.code]; if (k !== undefined) keyUp(k); });
+
+// ================================================================ 5b. chords (SCL), step sequencer with parameter locks (SEQ)
+
+// ---------------------------------------------------------------- scale and chords
+const CH_STEPS = { TRIAD: [0, 2, 4], "7TH": [0, 2, 4, 6], SUS2: [0, 1, 4], SUS4: [0, 3, 4], ADD9: [0, 2, 4, 8], "6TH": [0, 2, 4, 5], "9TH": [0, 2, 4, 6, 8], QUARTAL: [0, 3, 6] };
+const scaleDegs = () => SCALES[Object.keys(SCALES)[chd.p[C_SCALE]]];
+function snapToScale(note) {
+  const deg = scaleDegs(), root = chd.p[C_KEY];
+  let best = note, dist = 99;
+  for (let o = -1; o <= 1; o++) for (const d of deg) { const c = Math.floor((note - root) / 12 + o) * 12 + root + d; const dd = Math.abs(c - note); if (dd < dist || (dd === dist && c < best)) { dist = dd; best = c; } }
+  return best;
+}
+const quantize = (note) => chd.p[C_LOCK] === 1 ? snapToScale(note) : note;
+// one key in, a chord out: the root is snapped into KEY + SCALE and the chord is stacked from scale degrees
+function chordNotes(raw) {
+  const type = CHORD_TYPES[chd.p[C_TYPE]];
+  if (type === "OFF") return [quantize(raw)];
+  const r = snapToScale(raw), deg = scaleDegs(), key = chd.p[C_KEY], N = deg.length;
+  const rel = r - key, o = Math.floor(rel / 12), i = deg.indexOf(((rel % 12) + 12) % 12);
+  const dn = (k) => key + 12 * (o + Math.floor((i + k) / N)) + deg[(((i + k) % N) + N) % N];
+  let notes = type === "POWER" ? [r, r + 7, r + 12] : CH_STEPS[type].map(dn);
+  for (let k = 0; k < Math.min(chd.p[C_INV], notes.length - 1); k++) { notes.sort((a, b) => a - b); notes[0] += 12; }
+  notes.sort((a, b) => a - b);
+  if (chd.p[C_SPREAD] > .33 && notes.length >= 3) { notes[notes.length - 2] -= 12; notes.sort((a, b) => a - b); }   // drop 2
+  if (chd.p[C_SPREAD] > .66) notes[notes.length - 1] += 12;                                                        // open the top
+  return [...new Set(notes)].filter((x) => x >= 12 && x <= 120).sort((a, b) => a - b);
+}
+function chordQuality(iv) {
+  const h = (x) => iv.has(x), third = h(4) ? 4 : h(3) ? 3 : 0, used = new Set([0]);
+  let name;
+  if (third === 4) { name = h(8) && !h(7) ? "aug" : ""; used.add(4); used.add(h(8) && !h(7) ? 8 : 7); }
+  else if (third === 3) { name = h(6) && !h(7) ? "dim" : "m"; used.add(3); used.add(h(6) && !h(7) ? 6 : 7); }
+  else if (h(7)) { name = h(5) ? "sus4" : h(2) ? "sus2" : "5"; used.add(7); used.add(h(5) ? 5 : 2); }
+  else if (h(5) && h(10)) { name = "sus4"; used.add(5); }
+  else return null;
+  if (h(11)) { used.add(11); name = name === "m" ? "mMaj7" : name === "" ? "maj7" : name + "M7"; }
+  else if (h(10)) { used.add(10); name = name === "" ? "7" : name === "dim" ? "m7b5" : name === "sus4" ? "7sus4" : name + "7"; }
+  else if (h(9) && third) { used.add(9); name = name === "dim" ? "dim7" : name + "6"; }
+  if (h(2) && third) { used.add(2); name = /7/.test(name) ? name.replace("7", "9") : name + "add9"; }
+  let hits = 0; for (const x of iv) if (used.has(x)) hits++;
+  return { name, score: hits * 2 - (iv.size - hits) * 3 + (third ? 1 : 0) };
+}
+function chordName(notes) {
+  if (!notes || !notes.length) return "—";
+  if (notes.length === 1) return noteNameMidi(notes[0]);
+  const pc = (x) => ((x % 12) + 12) % 12, pcs = [...new Set(notes.map(pc))], bass = pc(Math.min(...notes));
+  let best = null;
+  for (const r of pcs) {
+    const q = chordQuality(new Set(pcs.map((p) => (p - r + 12) % 12)));
+    if (q && (!best || q.score > best.score || (q.score === best.score && r === bass))) best = { r, ...q };
+  }
+  if (!best) return notes.slice(0, 3).map(noteNameMidi).join(" ");
+  return KEYS12[best.r] + best.name + (best.r !== bass ? "/" + KEYS12[bass] : "");
+}
+
+// ---------------------------------------------------------------- timed engine calls (scheduled against the audio clock)
+const audioNow = () => (audio.ctx ? audio.ctx.currentTime : 0);
+function engineAt(at, calls, tag = "n") { if (audio.node) audio.node.port.postMessage({ type: "timed", at, calls, tag }); }
+let lastChord = { notes: [], t: -9 };
+// a chord from the keys: strummed low to high when STRUM is up
+function notesOn(notes, vel) {
+  const strum = chd.p[C_STRUM] * .08, now = audioNow();
+  const at = notes.map((_, i) => now + i * strum);
+  notes.forEach((nt, i) => {
+    if (!strum || !audio.ctx) engine(["note_on", nt, vel]); else engineAt(at[i], [["note_on", nt, vel]]);
+    if (i && strum) setTimeout(() => onNote(nt, vel), i * strum * 1000); else onNote(nt, vel);
+  });
+  if (notes.length > 1 || CHORD_TYPES[chd.p[C_TYPE]] !== "OFF") lastChord = { notes, t: animT };
+  return { notes, at };
+}
+// note-offs never overtake a strummed note-on that is still waiting
+function notesOff(e) {
+  const now = audioNow();
+  e.notes.forEach((nt, i) => { if (e.at[i] > now) engineAt(e.at[i] + .003, [["note_off", nt]]); else engine(["note_off", nt]); });
+}
+
+// ---------------------------------------------------------------- sequencer
+const ss = { run: false, gridT: 0, step: 0, cur: -1, curT: 0, dur: .125, tied: null, active: new Map(), on: new Set(),
+             rec: false, lock: false, cursor: 0, entry: null, recGroup: null, touched: new Map(), flash: new Array(16).fill(-9) };
+const stepDur = () => 60 / glo.p[G_TEMPO] / 4 * RATE_MUL[seq.p[2]];
+const seqLen = () => seq.p[1];
+function seqStart() {
+  if (!audio.on) { seq.p[0] = 0; say("SWITCH ON FIRST", "SEQ"); return; }
+  ss.run = true; seq.p[0] = 1; ss.step = 0; ss.cur = -1; ss.tied = null;
+  ss.gridT = audioNow() + .06;
+  engineAt(ss.gridT, [["reset_clock"]], "seq");          // Grids and the gate bus start on step 1 too
+  say("SEQ PLAY", "SEQ"); seqTick();
+}
+function seqStop() {
+  ss.run = false; seq.p[0] = 0; ss.rec = false;
+  if (audio.node) audio.node.port.postMessage({ type: "cancel", tag: "seq" });
+  for (const nt of ss.on) engine(["note_off", nt]);
+  ss.on.clear(); ss.tied = null; ss.cur = -1;
+  for (const [, ref] of ss.active) { const c = refCall(ref, refBase(ref)); if (c) engine(c); }
+  ss.active.clear(); say("SEQ STOP", "SEQ");
+}
+function seqTick() {
+  if (!ss.run || !audio.on) return;
+  if (ss.step >= seqLen()) ss.step = 0;
+  const ahead = audioNow() + .12;
+  while (ss.gridT < ahead) {
+    const d = stepDur(), i = ss.step;
+    scheduleStep(i, ss.gridT + (i % 2 ? seq.p[3] * .5 * d : 0), d);
+    ss.gridT += d; ss.step = (i + 1) % seqLen();
+  }
+}
+setInterval(seqTick, 25);
+const sameNotes = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+function scheduleStep(i, t, d) {
+  const s = seq.steps[i], wait = Math.max(0, (t - audioNow()) * 1000);
+  setTimeout(() => { ss.cur = i; ss.curT = t; ss.dur = d; dirty = true; }, wait);
+  // parameter locks: a trig step sets its locks; anything the last step locked goes back to the knob
+  const want = new Map();
+  if (s.trig) for (const [k, l] of Object.entries(s.locks)) want.set(k, l);
+  for (const [k, ref] of ss.active) if (!want.has(k)) { const c = refCall(ref, refBase(ref)); if (c) engineAt(t, [c], "seq"); }
+  ss.active = new Map();
+  for (const [k, l] of want) { const c = refCall(l.ref, l.v); if (c) { engineAt(t, [c], "seq"); ss.active.set(k, l.ref); } }
+  const skip = s.skipAt && Math.abs(s.skipAt - t) < d / 2;
+  if (skip) s.skipAt = 0;
+  const play = s.trig && s.notes.length && !skip && Math.random() < s.chance;
+  if (!play) return;
+  const same = ss.tied && sameNotes(ss.tied, s.notes);
+  if (ss.tied && !same) engineAt(t, ss.tied.map((nt) => ["note_off", nt]), "seq");
+  if (!same) {
+    engineAt(t + .001, s.notes.map((nt) => ["note_on", nt, s.vel]), "seq");
+    s.notes.forEach((nt) => ss.on.add(nt));
+    setTimeout(() => { s.notes.forEach((nt) => onNote(nt, s.vel)); seqLight(s.notes); }, wait);
+  }
+  setTimeout(() => { ss.flash[i] = animT; }, wait);
+  if (STEP_LENS[s.len] === "TIE") ss.tied = [...s.notes];
+  else { engineAt(t + STEP_LEN_F[s.len] * d, s.notes.map((nt) => ["note_off", nt]), "seq"); ss.tied = null; }
+}
+// light the keybed under sequenced notes
+function seqLight(notes) {
+  for (const nt of notes) {
+    const el = keyEls[nt - 53 - 12 * octave]; if (!el) continue;
+    el.classList.add("seq"); setTimeout(() => el.classList.remove("seq"), Math.max(90, ss.dur * 600));
+  }
+}
+// where a note played now lands: this step if early in it, else the next one
+function nowStep() {
+  if (ss.cur < 0) return { i: 0, next: false };
+  return audioNow() - ss.curT > ss.dur / 2 ? { i: (ss.cur + 1) % seqLen(), next: true } : { i: ss.cur, next: false };
+}
+// keys and MIDI notes on the SEQ pages: step entry; with live REC: written into the running pattern
+function seqInput(notes, vel) {
+  if (ss.rec && ss.run) {
+    const { i, next } = nowStep(), st = seq.steps[i];
+    if (next) st.skipAt = ss.curT + ss.dur;                // it already sounds: don't play it twice this pass
+    if (!ss.recGroup || ss.recGroup.step !== i) { ss.recGroup = { step: i }; st.notes = []; }
+    for (const nt of notes) if (!st.notes.includes(nt)) st.notes.push(nt);
+    st.notes.sort((a, b) => a - b); st.trig = 1; st.vel = vel; dirty = true; return;
+  }
+  if (page !== "SEQ" && page !== "STEP") return;
+  if (!ss.entry) { ss.entry = { step: ss.cursor }; seq.steps[ss.cursor].notes = []; }
+  const st = seq.steps[ss.entry.step];
+  for (const nt of notes) if (!st.notes.includes(nt)) st.notes.push(nt);
+  st.notes.sort((a, b) => a - b); st.trig = 1; st.vel = vel; dirty = true;
+}
+function seqRelease() {
+  if (held.size || midiNotes.size) return;
+  if (ss.entry) { if (page === "SEQ") ss.cursor = (ss.entry.step + 1) % seqLen(); ss.entry = null; dirty = true; }
+  ss.recGroup = null;
+}
+function seqEncoder(role, k) {
+  if (role === "select") { ss.cursor = clamp(ss.cursor + Math.sign(k), 0, 15); return; }
+  if (role === "algo") {
+    if (page === "SEQ") {
+      const dir = Math.sign(k);
+      for (const st of seq.steps) st.notes = st.notes.map((x) => clamp(x + dir, 12, 120));
+      say(`PATTERN ${dir > 0 ? "UP" : "DOWN"} 1`, "SEQ");
+    } else {
+      const st = seq.steps[ss.cursor];
+      if (k > 0) { say("TURN LEFT TO CLEAR", "STEP"); return; }
+      if (Object.keys(st.locks).length) { st.locks = {}; say(`STEP ${ss.cursor + 1} LOCKS CLEARED`, "STEP"); }
+      else { Object.assign(st, blankStep()); say(`STEP ${ss.cursor + 1} CLEARED`, "STEP"); }
+    }
+    return;
+  }
+  const i = role;
+  if (page === "SEQ") {
+    const p = SEQDEF.pages[0][i], v = stepParam(p, seq.p[i], k);
+    if (i === 0) { if (v && !ss.run) seqStart(); else if (!v && ss.run) seqStop(); }
+    else seq.p[i] = v;
+    if (i === 1) ss.cursor = Math.min(ss.cursor, 15);
+  } else {
+    const st = seq.steps[ss.cursor], key = ["trig", "vel", "len", "chance"][i];
+    st[key] = stepParam(STEPDEF.pages[0][i], st[key], k);
+  }
+}
+
+// ---------------------------------------------------------------- parameter locks
+function refCall(ref, v) {
+  if (ref.w === "macro") return ["set_macro", ref.i, v];
+  if (ref.w === "AMP") return ["set_param", 6, ref.idx, v];
+  if (ref.w === "LFOS") return ["set_param", 8, ref.idx, v];
+  if (ref.w === "slot") return rack[ref.slot].mod === ref.mod ? ["set_param", SLOTS.findIndex((s) => s.id === ref.slot), ref.idx, v] : null;
+  return null;
+}
+function refBase(ref) {
+  if (ref.w === "macro") return macros[ref.i];
+  if (ref.w === "AMP") return amp.p[ref.idx];
+  if (ref.w === "LFOS") return lfo.p[ref.idx];
+  return rack[ref.slot].p[ref.idx];
+}
+function refParam(ref) {
+  if (ref.w === "macro") return { l: `M${ref.i + 1}`, t: "num" };
+  if (ref.w === "AMP") return AMP.pages.flat()[ref.idx];
+  if (ref.w === "LFOS") return LFOS.pages.flat()[ref.idx];
+  return MODULES[ref.mod].pages.flat()[ref.idx];
+}
+function refLabel(ref) {
+  const p = refParam(ref);
+  if (ref.w === "macro") return p.l;
+  if (ref.w === "AMP") return `AMP.${p.l}`;
+  if (ref.w === "LFOS") return `LFO.${p.l}`;
+  return `${SLOTS.find((s) => s.id === ref.slot).name}.${p.l}`;
+}
+// the step that knob turns lock: the cursor step while SEQ is held, the playing step while live-recording
+function lockTarget() { if (ss.lock) return ss.cursor; if (ss.rec && ss.run) return nowStep().i; return -1; }
+function lockRefFor(slot, i) {
+  if (page === "PERFORM") return { w: "macro", i };
+  if (page === "AMP" || page === "LFOS") { const def = page === "AMP" ? AMP : LFOS, p = def.pages[subpage][i]; return p ? { w: page, idx: def.pages.slice(0, subpage).flat().length + i } : null; }
+  if (slot) { const st = rack[slot.id], m = MODULES[st.mod]; if (!m || !m.pages[subpage][i]) return null; return { w: "slot", slot: slot.id, mod: st.mod, idx: m.pages.slice(0, subpage).flat().length + i }; }
+  return null;
+}
+function lockTurn(ref, k) {
+  const i = lockTarget(), st = seq.steps[i], key = lockKey(ref), p = refParam(ref);
+  const cur = st.locks[key] ? st.locks[key].v : refBase(ref);
+  const v = ref.w === "macro" ? clamp(cur + k * .01, 0, 1) : stepParam(p, cur, k);
+  st.locks[key] = { ref, v }; st.trig = 1;
+  const c = refCall(ref, v); if (c) engine(c);
+  ss.touched.set(key, ref); if (ss.run) ss.active.set(key, ref);
+  say(`STEP ${i + 1} · ${refLabel(ref)} ${fmt(p, v)}`, "LOCK");
+}
+function setSeqLock(on) {
+  ss.lock = on;
+  if (!on) { if (!ss.run) for (const [, ref] of ss.touched) { const c = refCall(ref, refBase(ref)); if (c) engine(c); } ss.touched.clear(); }
+  say(on ? `LOCK STEP ${ss.cursor + 1}` : "LOCKS DONE", "LOCK");
+}
+// what a cell shows while locking: the step's value, marked
+function lockView(makeRef, count, base) {
+  const i = lockTarget(); if (i < 0) return { vals: base, marks: null };
+  const st = seq.steps[i], marks = [], vals = base.map((v, j) => {
+    const ref = j < count ? makeRef(j) : null, l = ref && st.locks[lockKey(ref)];
+    marks.push(!!l); return l ? l.v : v;
+  });
+  return { vals, marks };
+}
+
+// ---------------------------------------------------------------- CHORD page band: a keyboard lighting the chord, and its name
+function visChord(X, Y, W, H, c) {
+  const deg = scaleDegs(), key = chd.p[C_KEY], type = CHORD_TYPES[chd.p[C_TYPE]];
+  const inScale = (pc) => deg.includes((pc - key + 12) % 12);
+  const fresh = animT - lastChord.t < 1.2 && lastChord.notes.length;
+  const show = fresh ? lastChord.notes : type === "OFF" ? [] : chordNotes(60 + key);
+  const lit = new Map();
+  for (const p of recentPulses(.7)) lit.set(((p.note % 12) + 12) % 12, Math.max(lit.get(p.note % 12) || 0, 1 - (animT - p.t) / .7));
+  const pcsShown = new Set(show.map((x) => ((x % 12) + 12) % 12));
+  // two octaves of keys
+  const kb = 148, whites = [0, 2, 4, 5, 7, 9, 11], kw = kb / 14, x0 = X + 4, y0 = Y + 6, kh = H - 12;
+  for (let o = 0; o < 2; o++) whites.forEach((pc, i) => {
+    const x = x0 + (o * 7 + i) * kw, on = pcsShown.has(pc), glowA = lit.get(pc) || 0;
+    rect(x + .5, y0, kw - 1, kh, on ? rgba(c, .55 + .45 * glowA) : inScale(pc) ? (pc === key ? "#3b3524" : "#1e221c") : "#101010", 2);
+    if (on) dot(x + kw / 2, y0 + kh - 5, 1.4 + glowA, "#fff", glowA > .1);
+    else if (inScale(pc)) rect(x + kw / 2 - 1, y0 + kh - 6, 2, 2, pc === key ? C.gold : "#4a5a44");
+  });
+  const blk = [[1, 0], [3, 1], [6, 3], [8, 4], [10, 5]];
+  for (let o = 0; o < 2; o++) for (const [pc, after] of blk) {
+    const x = x0 + (o * 7 + after + 1) * kw - kw * .32, on = pcsShown.has(pc), glowA = lit.get(pc) || 0;
+    rect(x, y0, kw * .64, kh * .56, on ? rgba(c, .6 + .4 * glowA) : inScale(pc) ? (pc === key ? "#5a4a26" : "#2f3a2b") : "#050505", 2);
+    if (on) dot(x + kw * .32, y0 + kh * .56 - 4, 1.2 + glowA, "#fff", false);
+  }
+  // the chord's name, with a ring that pulses on each new chord
+  const nx = X + kb + 12, cx = nx + (W - kb - 16) / 2, age = animT - lastChord.t;
+  if (age < .6) { g.strokeStyle = rgba(c, (.6 - age) * 1.4); g.lineWidth = 1.5; g.beginPath(); g.arc(cx, Y + H / 2 - 4, 14 + age * 40, 0, TAU); g.stroke(); }
+  const name = type === "OFF" ? "SINGLE" : type === "QUARTAL" && show.length ? `${KEYS12[((show[0] % 12) + 12) % 12]} 4THS` : chordName(show);
+  T(cx, Y + H / 2 + 2, name.length > 7 ? name.slice(0, 7) : name, { a: "center", size: name.length > 5 ? 13 : 17, c: type === "OFF" ? C.dim : C.fg });
+  T(cx, Y + H / 2 + 16, `${KEYS12[key]} ${Object.keys(SCALES)[chd.p[C_SCALE]]}`, { a: "center", size: 8, c: chd.p[C_LOCK] ? c : C.dim });
+  const nv = budget().voices;
+  if (show.length > nv) T(cx, Y + 12, `${nv} VOICE${nv > 1 ? "S" : ""}!`, { a: "center", size: 8, c: C.warn });
+}
+
+// ---------------------------------------------------------------- SEQ and STEP pages
+function stepLabel(st) { return st.notes.length >= 3 ? chordName(st.notes) : st.notes.map(noteNameMidi).join(" "); }
+function drawSeqGrid() {
+  const c = KC.seq, len = seqLen(), lo = 36, hi = 96;
+  for (let i = 0; i < 16; i++) {
+    const st = seq.steps[i], x = 6 + (i % 8) * 28.5, y = 29 + Math.floor(i / 8) * 31, w = 26, h = 28, inLen = i < len;
+    const fl = Math.max(0, 1 - (animT - ss.flash[i]) * 4);
+    rect(x, y, w, h, !inLen ? "#070707" : st.trig ? "#1b1a19" : "#111110", 4);
+    if (fl > 0 && inLen) rect(x, y, w, h, rgba(c, fl * .5), 4);
+    if (inLen && i % 4 === 0) rect(x + 2, y + h - 3, 4, 1, C.dim);
+    // notes as pitch marks
+    for (const nt of st.notes) {
+      const yy = y + h - 5 - ((clamp(nt, lo, hi) - lo) / (hi - lo)) * (h - 9);
+      rect(x + 4, yy, w - 8, 2, rgba(st.trig ? c : C.dim, inLen ? (st.trig ? .35 + .65 * st.vel : .35) : .15), 1);
+    }
+    if (st.trig && !st.notes.length) { g.fillStyle = rgba(C.gold, inLen ? .8 : .3); g.beginPath(); g.moveTo(x + w / 2, y + 9); g.lineTo(x + w / 2 + 5, y + 14); g.lineTo(x + w / 2, y + 19); g.lineTo(x + w / 2 - 5, y + 14); g.fill(); }
+    if (Object.keys(st.locks).length) dot(x + w - 4, y + 4, 1.6, C.gold, false);
+    if (st.trig && STEP_LENS[st.len] === "TIE" && inLen) rect(x + w - 2, y + h / 2 - 1, 5, 2, c);
+    if (st.trig && st.chance < 1) for (let k = 0; k < 5; k++) if (k / 5 < st.chance) rect(x + 4 + k * 4, y + 3, 2, 1, C.dim);
+    if (i === ss.cur && ss.run) frame(x - 1, y - 1, w + 2, h + 2, rgba(c, .9), 5);
+    if (i === ss.cursor && (Math.floor(animT * 3) % 2 || ss.lock)) frame(x, y, w, h, ss.lock ? C.gold : "#fff", 4);
+    if (i === ss.cursor && !(Math.floor(animT * 3) % 2) && !ss.lock) frame(x, y, w, h, "#666", 4);
+  }
+  // a playhead gliding across the pattern
+  rect(6, 91, 228, 2, C.faint, 1);
+  if (ss.run && ss.cur >= 0) {
+    const f = clamp((audioNow() - ss.curT) / ss.dur, 0, 1), px = 6 + ((ss.cur + f) / len) * 228;
+    rect(6, 91, px - 6, 2, rgba(c, .5), 1); dot(px, 92, 1.8, c);
+  }
+}
+function drawSeq() {
+  const c = KC.seq, rec = ss.rec && ss.run;
+  if (page === "SEQ") {
+    header("SEQ", c, `${ss.run ? "PLAY" : "STOP"} · ${SEQ_RATES[seq.p[2]]}`, "SEQ");
+    drawSeqGrid();
+    cells(SEQDEF.pages[0], seq.p, null, c);
+  } else {
+    const st = seq.steps[ss.cursor], nl = Object.keys(st.locks).length;
+    header("STEP", c, `${ss.cursor + 1} · ${st.notes.length ? stepLabel(st) : "EMPTY"}${nl ? ` · ${nl}L` : ""}`, "STEP");
+    drawSeqGrid();
+    cells(STEPDEF.pages[0], [st.trig, st.vel, st.len, st.chance], null, c);
+  }
+  if (rec && Math.floor(animT * 3) % 2) dot(214, 13, 3, C.warn, false);
+  footer();
+}
 
 // ================================================================ 6. engine bridge, MIDI, main loop
 const MID = { PLAITS: 1, BRAIDS: 2, ELEMENTS: 3, RINGS: 10, WARPS: 11, FILTER: 12, PEAKS: 20, TIDES: 21, MARBLES: 22, GRIDS: 23, CLOUDS: 30, DELAY: 31, REVERB: 32, CHORUS: 33 };
@@ -1467,19 +1849,20 @@ const midiState = { inputs: 0, denied: false, last: 0, clock: [], clockLock: fal
 const midiNotes = new Map(), midiPlay = new Map();
 function midiOn(nn, vel, fromLoop = false) {
   vel = fromLoop ? vel : velCurve(vel);
-  const note = quantize(nn);
-  if (midiNotes.has(nn)) engine(["note_off", midiNotes.get(nn)]);
-  midiNotes.set(nn, note); midiState.deferred.delete(nn);
-  engine(["note_on", note, vel]); onNote(note, vel);
+  const notes = chordNotes(nn);
+  if (midiNotes.has(nn)) notesOff(midiNotes.get(nn));
+  midiState.deferred.delete(nn);
+  if (!fromLoop) seqInput(notes, vel);
+  midiNotes.set(nn, notesOn(notes, vel));
   if (!fromLoop) recEvent({ type: "midi", n: nn, on: true, vel });
   refreshKeys();
 }
 function midiOff(nn, fromLoop = false) {
   if (!midiNotes.has(nn)) return;
   if (midiState.sustain && !fromLoop) { midiState.deferred.add(nn); return; }
-  engine(["note_off", midiNotes.get(nn)]); midiNotes.delete(nn);
+  notesOff(midiNotes.get(nn)); midiNotes.delete(nn);
   if (!fromLoop) recEvent({ type: "midi", n: nn, on: false });
-  refreshKeys();
+  refreshKeys(); if (!fromLoop) seqRelease();
 }
 function onMidi(e) {
   const d = e.data, st = d[0];
@@ -1494,7 +1877,8 @@ function onMidi(e) {
     }
     return;
   }
-  if (st === 0xFA) { engine(["reset_clock"]); return; }
+  if (st === 0xFA) { engine(["reset_clock"]); if (seq.steps.some((x) => x.trig)) { if (ss.run) seqStop(); seqStart(); } return; }
+  if (st === 0xFC) { if (ss.run) seqStop(); draw(); return; }
   if (st >= 0xF0) return;
   const type = st & 0xF0, ch = (st & 0x0F) + 1, want = glo.p[G_MIDICH];
   if (want && ch !== want) return;

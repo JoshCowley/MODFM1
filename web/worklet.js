@@ -2,7 +2,7 @@
 class FM1Rack extends AudioWorkletProcessor {
   constructor() {
     super();
-    this.x = null; this.queue = []; this.count = 0; this.watch = -1;
+    this.x = null; this.queue = []; this.timed = []; this.count = 0; this.watch = -1;
     this.port.onmessage = (e) => this.onMessage(e.data);
   }
   async onMessage(m) {
@@ -23,6 +23,9 @@ class FM1Rack extends AudioWorkletProcessor {
   }
   apply(m) {
     if (m.type === "watch") { this.watch = m.slot; return; }
+    // calls stamped with an AudioContext time, for the sequencer and strummed chords
+    if (m.type === "timed") { this.timed.push(m); this.timed.sort((a, b) => a.at - b.at); return; }
+    if (m.type === "cancel") { this.timed = this.timed.filter((t) => t.tag !== m.tag); return; }
     if (m.type !== "calls") return;
     for (const [fn, ...args] of m.calls) if (typeof this.x[fn] === "function") this.x[fn](...args);
   }
@@ -30,6 +33,8 @@ class FM1Rack extends AudioWorkletProcessor {
     const out = outputs[0];
     if (!this.x || !out || !out[0]) return true;
     const n = out[0].length;
+    const due = currentTime + n / sampleRate;
+    while (this.timed.length && this.timed[0].at < due) this.apply({ type: "calls", calls: this.timed.shift().calls });
     this.x.render(n);
     const mem = this.x.memory.buffer;
     out[0].set(new Float32Array(mem, this.x.out_l(), n));

@@ -8,7 +8,7 @@ args = [a for a in sys.argv[1:] if not a.startswith("--")]
 standalone = "--standalone" in sys.argv
 manual = args[0] if args else "#"
 page = open('src/page.html').read()
-parts = [open(f'src/{p}').read() for p in ['1-data.js', '2-screen.js', '3-vis.js', '4-pages.js', '5-controls.js', '6-engine.js']]
+parts = [open(f'src/{p}').read() for p in ['1-data.js', '2-screen.js', '3-vis.js', '4-pages.js', '5-controls.js', '5b-seq.js', '6-engine.js']]
 app = "\n".join(parts).replace("/*PRESETS*/[]", open('presets.json').read())
 page = page.replace("/*APP*/", app).replace("/*MANUAL*/", manual)
 if standalone:
