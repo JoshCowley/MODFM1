@@ -1,10 +1,8 @@
-# FM1 Rack 1.2 Manual
+# FM1 Rack 1.3 Manual
 
 Oct 26, 2026 · Josh Cowley
 
-*Text copy of the live manual: https://claude.ai/artifact/8cELcnQ8vCjJQCCqp3HngM*
-
-FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.2 browser build, which runs the original module code.
+FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.3 browser build, which runs the original module code.
 
 ## Quick start
 
@@ -27,23 +25,23 @@ FM1 Rack uses the FM-1 exactly as printed: four encoders on the left, the screen
 | Control | Turn or tap | Press again, or hold |
 | --- | --- | --- |
 | MASTER | Output volume | — |
-| SELECT | Next or previous page of the current slot; matrix row; step cursor on SEQ; letter position when saving. On HOME it flips to the rack view | — |
+| SELECT | Next or previous page of the current slot; matrix row; step cursor on NOTES; letter position when saving. On HOME it flips to the rack view | — |
 | PRESETS | Step through the 12 factory patches, then your user patches | — |
-| ALGORITHM | Open the module list for the slot on screen and browse it. On SEQ it transposes the pattern; on STEP, turning left clears the step | Press that slot's button to load the highlighted module |
+| ALGORITHM | Open the module list for the slot on screen and browse it. On NOTES it moves the cursor four steps; on GEN, right applies the tool and left undoes it | Press that slot's button to load the highlighted module |
 | KNOB 1–4 | The four values on screen. On HOME, the four macros | Hold HOME first to assign the knob to a macro (macro learn) |
-| OCT − / OCT + | Shift the keys down or up an octave (±3). The button lights when shifted | — |
+| OCT − / OCT + | Shift the keys down or up an octave (±3). The button lights when shifted | Hold OCT + on NOTES for the note's sheet. Inside a hold layer they do that layer's job |
 | FX | FX 1 | Again for FX 2 |
-| SCL | CHORD page: scale chords. SELECT to page 2 for scale lock | Lit green while chords or scale lock are on |
+| SCL | CHORD page: scale chords. SELECT to page 2 for scale lock | Lit green while chords or scale lock are on. Hold for the SCL layer (key, chord, scale) |
 | ENV | Amp: ADSR, voice and mod envelope pages (SELECT pages) | Again for the shaper slot (SHP) |
 | LFO | MOD A | Again for MOD B, again for LFO 1–3, again for MOD SEQ (the modulation lanes) |
-| EDIT | Source slot | — |
-| GLO | Global settings | — |
+| EDIT | Source slot | On NOTES, deletes the selected note. Hold for the EDIT layer (erase, shift, undo) |
+| GLO | Global settings | Hold for the GLO layer (fills, tap tempo) |
 | HOME | Perform page (macros and scope) | Again for the rack overview, a third time for TOOLS. Hold for macro learn |
 | SAVE | Open the naming screen | Again to store |
-| ARP | Mod matrix; press again for the arpeggiator | — |
-| SEQ | Sequencer: the 16-step grid and pattern settings | Again for STEP, STEP+ and GEN in turn. Hold to lock knob values to the cursor step |
-| PLAY | Hold: keys latch on and off | Again to release all |
-| REC | Arm the phrase recorder. On the SEQ pages: record live into the running pattern | Again to close the loop, a third time to clear it |
+| ARP | Mod matrix; press again for the arpeggiator | Hold for the ARP layer (note repeat) |
+| SEQ | Sequencer: NOTES, the piano roll | Again for PATTERN, SPICE and GEN in turn. Hold for the SEQ layer (steps, ratchets, locks) |
+| PLAY | Start the sequencer | Again to stop it |
+| REC | Record into the pattern. Stopped, the first note starts it | Again to stop recording or close a free take. Hold 1.2 s to clear the pattern |
 | Keys | Play. Tap lower on a key for more velocity | — |
 
 ## The screen
@@ -55,7 +53,7 @@ Every slot page has the same four parts, so once you can read one module you can
 1. **Header.** The module's pixel icon, the slot tag in the slot's colour (SRC, SHP, MOD A, MOD B, FX 1, FX 2), the module name, and a dot for each page. The bright dot is the page you're on; turn **SELECT** to move between pages.
 2. **Live band.** An animation of what the module is doing right now, driven by the engine: waveforms for sources, ripples for Rings, a frequency curve for the filter, grains for Clouds, rolling marbles, the Grids drum map with its playhead. Each module's band is pictured in the Modules section.
 3. **Cells.** One cell per knob. The big number is the value you set. When the matrix or a macro is moving that parameter, a bright marker on the bar shows where it really is, and the small number on the right gives its live value.
-4. **Footer.** CPU and RAM use, one light per voice (it glows with that voice's envelope), then the phrase recorder (a ring that fills as the loop plays), the sequencer's steps while it runs, or the last note played, and a stereo output meter.
+4. **Footer.** CPU and RAM use, one light per voice (it glows with that voice's envelope), then the sequencer's 16 steps while it runs or the last note played, and a stereo output meter.
 
 A white message box slides up for a moment after loading a module, changing patch or saving. On HOME the band is an output scope instead, and the cells are the four macro dials.
 
@@ -122,7 +120,7 @@ Page 1: CHORD, INVERT, SPREAD, STRUM. Page 2: LOCK, KEY, SCALE (scale lock). The
 
 ### SEQ: sequencer
 
-The first press shows the pattern: a 16-step grid with a gliding playhead, and RUN, LENGTH, RATE and SWING on the knobs. Press **SEQ** again for STEP, which edits the step under the cursor. See **Step sequencer** under Playing.
+The first press shows NOTES, a piano roll of the pattern; further presses give PATTERN, SPICE and GEN. Hold SEQ for the SEQ layer. See **The sequencer** under Playing.
 
 ### GLO: global
 
@@ -412,7 +410,7 @@ How many notes play at once depends on the patch (see Voices and the budget). Wi
 
 ### Hold
 
-**PLAY** turns hold on (it lights green). Each key then latches: tap once to start a note, again to stop it. Press **PLAY** again to switch hold off and release everything. Held notes keep playing while you change pages and turn knobs, which is the easiest way to sound-design with both hands free.
+**KBD HOLD** is the HOLD setting on ARP page 2, with the arp's MODE on OFF. With it ON, notes keep sounding after you let go, and the next key or chord you play replaces them. Turn it OFF to release everything. Held notes keep playing while you change pages and turn knobs, which is the easiest way to sound-design with both hands free. With an arp mode on, the same setting keeps the arp playing the last notes.
 
 ### Chords and scale lock
 
@@ -427,71 +425,94 @@ How many notes play at once depends on the patch (see Voices and the budget). Wi
 | LOCK (page 2) | Scale lock: with it on, single notes also snap to the nearest scale note (ties go down). Chords follow the scale either way |
 | KEY, SCALE (page 2) | C to B; major, minor, dorian, mixolydian, pentatonic major and minor, harmonic minor, whole tone |
 
-Chords work from the keys, MIDI notes, the phrase recorder and the sequencer's step entry. The CHORD and scale settings stay with the instrument, not the patch, and are remembered between visits. The SCL lamp stays green while chords or scale lock are on. A chord needs a voice per note: if the patch has fewer, the CHORD page warns (for example “2 VOICES!”) and newer notes take over older voices.
+Chords work from the keys, MIDI notes, the sequencer's step entry and REC recording. The CHORD and scale settings stay with the instrument, not the patch, and are remembered between visits. The SCL lamp stays green while chords or scale lock are on. A chord needs a voice per note: if the patch has fewer, the CHORD page warns (for example “2 VOICES!”) and newer notes take over older voices.
 
-### Phrase recorder
+### The sequencer
 
-**REC** records what you play and loops it, so your hands are free to shape the sound.
+Press **SEQ** for the sequencer's four pages in turn: **NOTES**, **PATTERN**, **SPICE** and **GEN**. A pattern has up to 64 steps. Each step holds up to six notes, each with its own length and level, plus a ratchet, a nudge, a chance, a fill condition, a slide and parameter locks. The pattern is part of the patch: SAVE stores it and loading a patch loads it.
 
-1. Press **REC**. It blinks red: armed.
-2. Play keys and turn knobs. Recording starts with the first key or knob move.
-3. Press **REC** again. The loop closes, rounded to 1, 2, 4 or 8 bars of the GLOBAL tempo, and plays back straight away. REC turns green, and the footer shows the bar count with a ring that fills as the loop goes round.
-4. Press **REC** a third time to stop and clear the loop.
+**PLAY** starts and stops the sequencer from any page (**Space** on a computer). Its lamp is lit while the pattern runs and flashes on each beat. Starting restarts the gate bus and the modulation lanes, so Grids, the BAR gate and the lanes line up with step 1, and sends MIDI Start. MIDI Start, Continue and Stop from outside run it too.
 
-The recorder captures keys, MIDI notes, macro moves and parameter changes on any page. Recording stops by itself after 16 seconds. Changing patch doesn't clear the loop, so you can audition one phrase through several patches.
+### Recording with REC
 
-### Step sequencer
+**REC** records into the pattern.
 
-Press **SEQ**. The grid shows 16 steps in two rows of eight: a pitch mark for each note (brighter is louder), a gold dot on steps with locks, a tail on tied steps and small dots for CHANCE. While it runs, the playing step flashes pink, a playhead glides along under the grid, and the keybed lights pink under the notes.
+- **Stopped:** press REC and its lamp blinks. The first note you play (or PLAY) starts the sequencer, already recording.
+- **Running:** press REC to drop in, and again to drop out. The pattern keeps playing.
 
-**Writing a pattern.** Move the cursor with **SELECT**. Play a key: the note goes into the cursor step and the cursor moves on. Hold several keys before letting go to write a chord into one step, or turn CHORD on and one key writes the whole chord. Turn SELECT past a step to leave it empty.
+Notes land where you play them, with the length you hold them, to a quarter of a step. Recording adds to what is there, so you can build a pattern in passes. On a MONO or LEGATO patch, notes played overlapping are written as slides. Knob turns on slot, AMP, LFO and HOME pages are written as locks on the step that is playing, so you can record a filter sweep step by step.
 
-**Running it.** On SEQ, the knobs are **RUN** (STOP or PLAY; **Space** on a computer), **LENGTH** (1 to 16 steps), **RATE** (1/8, 1/16, 1/16T or 1/32 of the GLOBAL tempo) and **SWING** (delays every second step by up to half a step). Starting also restarts the gate bus, so Grids and the BAR gate line up with step 1. The pattern keeps running while you change pages and patches. MIDI Start and Stop run it too. **ALGORITHM** on SEQ transposes the whole pattern a semitone per click.
+While REC is waiting, the screen shows two take settings: **MODE** (Knob 1: TEMPO or FREE) and **BARS** (Knob 2: 1, 2 or 4, the length an empty pattern gets).
 
-**Editing a step.** Press **SEQ** again for STEP, which edits the step under the cursor:
+**Free take.** With MODE on FREE and an empty pattern, press REC and play freely, with no click and no grid. Press REC again to close the loop. The rack reads it as 1, 2 or 4 bars, whichever gives the tempo nearest the one set. If that is within 3% of the current tempo the tempo stays; otherwise the GLOBAL tempo changes to fit your playing, and the notes are placed on 16th steps.
 
-| Knob | What it does |
+**Clearing.** Hold REC for 1.2 seconds (a ring fills on the screen) to clear every step. The length stays. Undo brings the pattern back.
+
+### The NOTES page
+
+NOTES shows the pattern as a piano roll: pitch up the side, steps across, each note a bar as long as it lasts and as bright as it is loud. The cursor is a column; the selected note is outlined.
+
+| Control | On NOTES |
 | --- | --- |
-| TRIG | ON or OFF. OFF silences the step but keeps its notes |
-| VELO | The step's velocity |
-| LENGTH | 1/8, 1/4, 1/2, 3/4 or FULL of a step, or TIE: the note holds until the next step that plays, and tied steps with the same notes join into one long note |
-| CHANCE | How often the step plays, from never to every time |
+| SELECT | Move the cursor a step |
+| ALGORITHM | Move the cursor four steps |
+| PRESETS | Zoom: 8, 16, 32 or 64 steps across |
+| Knob 1 | Walk from note to note through the pattern; each one plays as you reach it |
+| Knob 2 | The selected note's pitch |
+| Knob 3 | Its length, in quarter steps, up to 64 steps |
+| Knob 4 | Its level: GHOST, SOFT, NORM, HARD or ACC (accent) |
+| EDIT | Delete the selected note |
 
-Turn **ALGORITHM** left on STEP to clear the step's locks, and again to clear its notes.
+**Step entry.** When not recording, playing on NOTES writes into the cursor step, replacing what was there. Hold several keys before letting go to write a chord, or turn CHORD on and one key writes the whole chord. When you let go, the cursor moves on a step; set **STEP ADV** (GLOBAL page 6) to OFF to keep it in place.
 
-**Parameter locks.** Put the cursor on a step, then hold **SEQ** for half a second (or Shift-click it): a gold LOCK bar appears. Go to any slot, ENV or LFO page, or to HOME for the macros, and turn knobs. The values are stored for that step only, and the cell shows the locked value with a gold L. Press **SEQ** to finish. When that step plays, its locked values take over, and on the next step they go back to where the knobs are. A step with locks but no notes changes the sound without playing a note; it shows as a gold diamond.
+**The sheet.** Hold **OCT +** for half a second on NOTES to open the selected note's sheet. Knob 1 picks a row and Knob 2 changes it: **SLIDE** (glide into the next step on a mono patch), **NUDGE** (early or late, up to half a step), **FILL** (see below) and **MOVE** (shift the note a step at a time). On **COPY** (puts a copy straight after the note) and **DELETE**, press OCT + to do it. OCT − closes the sheet.
 
-**Live recording.** On SEQ or STEP, press **REC**. The sequencer starts if it was stopped, and a red dot blinks in the header. Notes you play land on the nearest step, replacing what was there. Knob turns on slot, ENV, LFO and HOME pages are recorded as locks on the step that is playing, so you can record a filter sweep step by step. Press **REC** again to stop recording; the pattern keeps playing. Away from the SEQ pages, REC is the phrase recorder as before.
+### PATTERN, SPICE and GEN
 
-**Saving.** The pattern is part of the patch: SAVE stores it, and loading a patch loads its pattern. ACID DRIFT and STRING MACH come with one.
+| Page | Knob 1 | Knob 2 | Knob 3 | Knob 4 |
+| --- | --- | --- | --- | --- |
+| PATTERN | LENGTH, 1–64 steps | DIV: 1/4, 1/8, 1/16, 1/32, 8T, 16T, 1/2, 1 BAR or 2 BAR per step | SWING: delays every second step (no effect on 8T or 16T) | GATE: the length new notes get |
+| SPICE | SPICE: how much the pattern varies | DICE: another variation | CHANCE: how often the cursor step plays | FILL: the cursor step's fill condition |
+| GEN | TOOL | A | B | SEED |
 
-### STEP+ and GEN
+**SPICE** adds rests, octave jumps and small changes of level and length to random steps; the more SPICE, the more steps change. The variation is fixed by **DICE**, so the same DICE number always gives the same pattern: turn it until you like one and leave it there. The PATTERN page's overview marks spiced steps.
 
-Press **SEQ** a third time for **STEP+**, and a fourth for **GEN**; a fifth goes back to SEQ.
+**Fills.** A step's FILL condition is — (plays always), **FILL** (plays only during a fill) or **NO FILL** (rests during a fill). Fills are played from the GLO layer (below).
 
-| STEP+ knob | What it does |
-| --- | --- |
-| RATCHET | Plays the step 1 to 4 times within its length; the grid shows small ticks |
-| NUDGE | Moves the step early or late by up to half a step (a dot under the cell shows which way) |
-| SPICE | For the whole pattern: some steps rest, some jump an octave, velocities and lengths move. The variation is the same every time round; the grid marks the rests and octave jumps. What you recorded never changes |
-| DICE | Rolls a different variation |
+**GEN** builds or reworks the pattern in the CHORD KEY and SCALE. Pick a **TOOL**, set **A**, **B** and **SEED**, and turn **ALGORITHM** right to apply it; turn it left to undo. A and B are named on screen for each tool.
 
-While live-recording, a key held across several steps is written into each of them: note repeat.
+| Tool | A / B | What it does |
+| --- | --- | --- |
+| EUCLID | PULSES / ROTATE | Spreads the pulses as evenly as possible across the length |
+| RANDOM | DENSITY / LEAPS | Random scale notes; LEAPS widens the jumps |
+| ACID | DENSITY / SLIDES | A 303-style line with accents and slides |
+| ARP UP, ARP UPDN | OCTAVES / GATE | Arpeggiates the scale chord |
+| BERLIN | VARIANT / GATE | A sequencer-school bass ostinato |
+| OCTAVES | DENSITY / GATE | Root and octave jumps |
+| OFFBEAT | VARIANT / GATE | Notes off the beat |
+| ROLLING | DENSITY / GATE | A rolling 16th bass line |
+| STABS | DENSITY / 7THS | Chord stabs |
+| PROGRESS | VARIANT / 7THS | A chord progression, one chord per bar |
+| GATES | DENSITY / VARIANT | Rhythm only: keeps the notes, changes which steps play |
+| SHIFT >, SHIFT < | — | Moves the pattern a step later or earlier |
+| REVERSE | — | Plays the pattern backwards |
+| DOUBLE, HALF | — | Doubles the pattern (up to 64 steps) or halves the length |
+| HUMANIZE | VELO / NUDGE | Small random changes of level and timing |
+| CLEAR | — | Empties the pattern |
 
-**GEN** builds or reshapes patterns in the key and scale set on the CHORD page. Turn **TOOL** (Knob 1), set its two amounts and the SEED, then turn **ALGORITHM** right to apply; turn it left to undo.
+### Hold layers
 
-| Tool | What it makes |
-| --- | --- |
-| EUCLID | Spreads PULSES hits evenly over the pattern, turned by ROTATE, keeping the notes already there |
-| RANDOM | A melody in the key: DENSITY of notes and size of LEAPS |
-| ACID | A 303-style bass line, with TIES |
-| ARP UP, ARP UPDN | The key's triad climbing over 1–3 OCTAVES |
-| BERLIN | Three sequencer-school bass figures (VARIANT) |
-| OCTAVES, OFFBEAT, ROLLING, GATES | Bass and rhythm figures |
-| STABS, PROGRESS | Chord stabs, and a four-chord progression (with 7THS) |
-| SHIFT >, SHIFT <, REVERSE, DOUBLE, HALF | Rotate, reverse, copy the pattern to twice its length, or halve its length |
-| HUMANIZE | Random VELO and NUDGE on every step |
-| CLEAR | Empties the pattern |
+Hold **SEQ**, **EDIT**, **ARP**, **GLO** or **SCL** for a moment and its layer appears: a grid of tiles and dials over the page, and the keys, knobs and OCT buttons take on that layer's job while you hold it. Let go to leave. To keep a layer open, Shift-click its button, or tap **HOME** while holding it; the button blinks, and pressing any other button except PLAY and REC closes it. On every layer, **SELECT** changes the tempo.
+
+| Layer | Keys | Knobs | OCT − / OCT + |
+| --- | --- | --- | --- |
+| SEQ | The 16 white keys are 16 steps. Tap one to add a step (with the layer's NOTE) or clear it. The first four black keys pick steps 1–16, 17–32, 33–48 or 49–64 | No step held: NOTE, DIV, SWING, LENGTH. Steps held: pitch, level, ratchet (1–4 hits) and nudge; PRESETS sets a lock on them and ALGORITHM picks the locked parameter (the last knob you turned to begin with) | Page through the steps. With steps held, OCT + cycles their fill condition and OCT − clears their nudge, locks and fill |
+| EDIT | Hold a key to erase that pitch: stopped, from the whole pattern; running, from each step it passes while you hold it | Knob 1 shifts the pattern a step; Knob 2 doubles or halves the length; Knob 3 transposes it | Undo and redo |
+| ARP | Hold a key for note repeat, on the grid; while recording, the repeats are written as ratchets | Knob 1: repeat rate (1/8, 1/16, 1/32, 32T, 1/64) | — |
+| GLO | Hold the 9th white key for a fill; tap the 10th for a fill on the next bar; tap the last (16th) for tap tempo | Knob 1: patch level | — |
+| SCL | A key sets the KEY | CHORD, SCALE, scale LOCK, INVERT | — |
+
+A step held on the SEQ layer and then released without turning anything toggles; once you turn a knob, the step is kept. Locks show with a gold L on the knob they sit on, and a step with locks but no notes changes the sound without playing a note.
 
 ## Tools
 
@@ -518,7 +539,7 @@ Press **ARP** twice (the matrix, then the arp). With MODE away from OFF, the key
 
 | Page 2 |  |
 | --- | --- |
-| LATCH | ON keeps the notes going after you let go; the next chord replaces them |
+| HOLD | With an arp mode: the arp keeps playing the last notes after you let go; the next chord replaces them. With MODE on OFF this is KBD HOLD for the keys |
 | MUTATE | TURING: how often a bit of the loop flips (0 locked, 100 wild) |
 | LOOP | TURING: the loop's length, 1–16 steps |
 | SWING | Delays every second note |
@@ -552,16 +573,16 @@ Twelve patches, each built to show off a pairing. Their levels were balanced by 
 | ACID DRIFT | Braids saw → resonant low-pass → Delay → Chorus. Grids accents drive the filter; Tides fires on Grids hits | Cutoff · Resonance · Delay feedback · Timbre | Low notes |
 | BOWED SPACE | Elements bowed → Reverb. Marbles wanders the bow position | Bow · Brightness · Reverb mix · Geometry | Long single notes |
 | STRING MACH | Plaits string machine → Chorus → Reverb. LFO 1 and LFO 2 move timbre and morph | Timbre · Morph · Chorus depth · Reverb mix | Slow chords |
-| SPEECH DUST | Plaits speech → Clouds. Marbles picks the words | Harmonics · Clouds density · Clouds blend · Marbles rate | Hold one note with PLAY |
+| SPEECH DUST | Plaits speech → Clouds. Marbles picks the words | Harmonics · Clouds density · Clouds blend · Marbles rate | Hold one note (KBD HOLD helps) |
 | KARPLUS | Braids pluck → Rings string → Delay. Velocity brightens | Damping · Brightness · Delay feedback · Position | Picked notes, soft and hard |
 | FOLDED BASS | Braids wavefolder → low-pass. The mod envelope sweeps the fold | Timbre · Color · Cutoff · Drive | Low notes; set GLO VOICES to 1 for glide |
 | WARPED VOX | Plaits formant → Warps vocoder → Reverb. Tides moves the vowel | Warps algorithm · Warps timbre · Harmonics · Reverb mix | Chords |
-| GRID GATE | Braids wavetable → low-pass → Delay → Reverb. Grids chops the level | Grids X · Grids Y · Grids fill · Timbre | Hold a chord with PLAY |
+| GRID GATE | Braids wavetable → low-pass → Delay → Reverb. Grids chops the level | Grids X · Grids Y · Grids fill · Timbre | Hold a chord (KBD HOLD helps) |
 | FROZEN CLOUD | Plaits chords → Clouds stretch. LFO 2 drifts the position over two bars | Clouds size · Texture · Blend · Timbre | Chords, then FREEZE on FX 1 page 3 |
 | TIDAL FM | Plaits 6-op FM → low-pass → Chorus → Delay. Tides sweeps the cutoff per note; Peaks pans | Harmonics · Morph · Cutoff · Delay feedback | Chords |
 | INIT | Plaits virtual analog, nothing else | Timbre · Morph | A blank start |
 
-ACID DRIFT (a 16th-note acid line with cutoff and resonance locks) and STRING MACH (four slow chords) also come with a sequencer pattern: load one, press **SEQ** and turn Knob 1 to PLAY.
+ACID DRIFT (a 16th-note acid line with cutoff and resonance locks) and STRING MACH (four slow chords) also come with a sequencer pattern: load one and press **PLAY**.
 
 ### Saving your own
 
@@ -642,7 +663,7 @@ Press **GLO** for the instrument-wide settings. They aren't part of any patch, a
 
 | Setting | Range | What it does |
 | --- | --- | --- |
-| TEMPO | 60–180 BPM, default 112 | Drives the gate bus (GRID, 1/16, 1/8, 1/4, BAR), synced LFOs, Delay time, the Marbles clock and the phrase recorder's bar length |
+| TEMPO | 60–180 BPM, default 112 | Drives the gate bus (GRID, 1/16, 1/8, 1/4, BAR), synced LFOs, Delay time, the Marbles clock, the arp and the sequencer |
 | MIDI CH | OMNI, 1–16 | Which channel the rack listens to. OMNI takes every channel |
 | VOICES | AUTO, 1–6 | AUTO gives as many voices as the budget allows, up to 6. A number caps it lower; 1 gives mono legato with glide |
 | CLOCK | INT, MIDI | INT uses TEMPO. MIDI follows incoming MIDI clock |
@@ -678,6 +699,8 @@ LOW EQ (a shelf at 150 Hz), MID EQ (a peak at 1 kHz) and HIGH EQ (a shelf at 5 k
 
 A live readout of the audio engine: **CPU** (the share of real time spent rendering), **PEAK** (the slowest recent block) and **LATE** (blocks that took longer than real time, each a possible click), with a graph, beside the FM-1 budget estimate in units. These are browser measurements; on the FM-1 the same readout will tell us the real costs.
 
+**STEP ADV** (ON or OFF): whether the NOTES cursor moves on a step after you enter a note.
+
 ### MIDI over USB
 
 Plug in any class-compliant USB MIDI keyboard or controller. In the browser the rack asks for MIDI access when you switch it on; on the FM-1 it would arrive over the USB port.
@@ -688,7 +711,7 @@ In 1.2 the rack speaks MIDI both ways over the same USB connection. Set the chan
 
 | Message | Effect |
 | --- | --- |
-| Note on / off | Plays notes, with velocity through VEL CURVE, CHORD and scale lock; feeds the arpeggiator when it is on, and the sequencer's step entry or live recording on the SEQ pages |
+| Note on / off | Plays notes, with velocity through VEL CURVE, CHORD and scale lock; feeds the arpeggiator when it is on, and the sequencer's step entry on NOTES or REC recording |
 | Pitch bend | Bends every voice by up to the GLOBAL **BEND** range (0–24 semitones) |
 | Channel pressure, poly aftertouch, CC 2 (breath) | The **PRESS** matrix source |
 | CC 1 (mod wheel) | Macro M1, and the **WHEEL** matrix source |
@@ -731,7 +754,7 @@ The three letter rows cover all 27 keys of the FM-1's keybed, F3 to G5, laid out
 
 The gaps in the middle row (G and K) sit where a piano has no black key.
 
-**Space** starts and stops the step sequencer from any page.
+**Space** starts and stops the sequencer from any page, like PLAY.
 
 ### Knobs
 
@@ -747,6 +770,8 @@ SELECT, PRESETS, ALGORITHM and Knobs 1–4 are endless encoders, as on the FM-1,
 - **Hold HOME** for half a second, or **Shift-click HOME**, to start macro learn. Click HOME again to leave it.
 - Ctrl, Alt and Cmd combinations are left alone, so browser shortcuts keep working.
 
+**Hold** SEQ, EDIT, ARP, GLO or SCL with the mouse for its hold layer, or **Shift-click** it to keep the layer open. Hold REC for 1.2 seconds to clear the pattern.
+
 ## Troubleshooting
 
 | What's happening | What to try |
@@ -757,8 +782,8 @@ SELECT, PRESETS, ALGORITHM and Knobs 1–4 are endless encoders, as on the FM-1,
 | Distortion | The output meter turns red near full scale. Lower **MASTER** or the patch LEVEL, or reduce feedback on Delay, Clouds or Rings |
 | A module won't load | The picker says why: “✕ CPU” (not enough processing for even one voice), “✕ 64K RAM” (not enough memory left) or “✕ IN FX 1” (that effect is already in the other FX slot; each effect can only be loaded once). Empty a slot or swap in something lighter |
 | Chords lose notes | The patch has fewer voices than notes. See the voice lamps in the footer and **Voices and the budget**; lighter modules give more voices |
-| Notes keep sounding | **PLAY** (hold) may be on (its lamp is lit): press latched keys again to release them, or press PLAY to turn hold off. A phrase loop may be playing (REC lamp lit): press REC to stop and clear it. From MIDI, lift the sustain pedal or send CC 123 |
-| Keys play the wrong notes | **SCL** chords or scale lock may be on (the SCL lamp stays lit green), or the octave is shifted (an OCT lamp is lit). A running sequence (the SEQ lamp stays lit) also plays notes: press Space or turn RUN to STOP |
+| Notes keep sounding | **KBD HOLD** may be on (ARP page 2, HOLD): turn it OFF. The sequencer may be running (the PLAY lamp flashes): press PLAY. From MIDI, lift the sustain pedal or send CC 123 |
+| Keys play the wrong notes | **SCL** chords or scale lock may be on (the SCL lamp stays lit green), or the octave is shifted (an OCT lamp is lit). A running pattern also plays notes: press PLAY or Space to stop it |
 | Computer keys don't play | A knob has keyboard focus. Click anywhere outside the knobs. Keys held with Ctrl, Alt or Cmd are ignored |
 | “NO MIDI INPUT” | Connect the controller before switching on, or replug it; the count updates when devices appear |
 | “MIDI BLOCKED HERE” | The browser, or the page the rack is shown in, refused MIDI access. Not every browser offers Web MIDI; a Chromium-based browser is the safest bet. The on-screen and computer keys still work |
@@ -767,6 +792,8 @@ SELECT, PRESETS, ALGORITHM and Knobs 1–4 are endless encoders, as on the FM-1,
 | Grids or BAR gates seem out of time with a sequencer | Send MIDI Start; it restarts the gate bus at beat 1 |
 | User patches have gone | They live in this browser's site storage. A private window, cleared site data or a different browser or device won't have them. If a save shows “SAVED FOR THIS VISIT ONLY”, the browser blocked storage |
 | The graphics feel busy or the laptop runs warm | Set GLOBAL **ANIMATION** to CALM or STILL. The sound is unaffected |
+| A button blinks and the keys do something else | A hold layer is kept open. Press any button except PLAY or REC to leave it |
+| The pattern has gone | Holding REC for 1.2 seconds clears it. Undo from the EDIT layer (OCT −) or on the TOOLS UNDO page |
 
 ## Hardware status, credits and licences
 
@@ -789,7 +816,7 @@ It has **not yet been built for or run on the FM-1**. What's still to do:
 - The screen font is **DotGothic16** by Fontworks.
 - Built with clang/LLVM, wasi-libc and libc++.
 
-Many 1.2 workflows follow ideas from **Clipper** (isod89's FM-1 firmware, after SLOOP and Felucca): undo and compare, morph, randomize by section, favourites, ratchets and nudge, spice and dice (after the Arturia MicroFreak), pattern generators, the Turing arp (after Music Thing Modular's Turing Machine), modulation lanes, VINTAGE, the tunings, the delay and reverb modes, the master section and the CPU readout. They were rebuilt here from Clipper's descriptions; no Clipper code is used.
+Many 1.2 and 1.3 workflows follow ideas from **Clipper** (isod89's FM-1 firmware, after SLOOP and Felucca): undo and compare, morph, randomize by section, favourites, ratchets and nudge, spice and dice (after the Arturia MicroFreak), pattern generators, the sequencer's PLAY and REC workflow, piano roll, hold layers, free takes and fills, the Turing arp (after Music Thing Modular's Turing Machine), modulation lanes, VINTAGE, the tunings, the delay and reverb modes, the master section and the CPU readout. They were rebuilt here from Clipper's descriptions; no Clipper code is used.
 
 ### Licences
 
