@@ -3,6 +3,7 @@ class FM1Rack extends AudioWorkletProcessor {
   constructor() {
     super();
     this.x = null; this.queue = []; this.timed = []; this.count = 0; this.watch = -1;
+    this.busy = 0; this.span = 0; this.peak = 0; this.late = 0;
     this.port.onmessage = (e) => this.onMessage(e.data);
   }
   async onMessage(m) {
@@ -35,13 +36,20 @@ class FM1Rack extends AudioWorkletProcessor {
     const n = out[0].length;
     const due = currentTime + n / sampleRate;
     while (this.timed.length && this.timed[0].at < due) this.apply({ type: "calls", calls: this.timed.shift().calls });
+    const clk = globalThis.performance ? () => performance.now() : () => Date.now();
+    const t0 = clk();
     this.x.render(n);
+    const used = clk() - t0, budget = n / sampleRate * 1000;
+    this.busy += used; this.span += budget; this.peak = Math.max(this.peak, used / budget * 100);
+    if (used > budget) this.late++;
     const mem = this.x.memory.buffer;
     out[0].set(new Float32Array(mem, this.x.out_l(), n));
     if (out[1]) out[1].set(new Float32Array(mem, this.x.out_r(), n));
     if (++this.count % 4 === 0) {
-      const mon = new Float32Array(this.x.memory.buffer, this.x.monitor(this.watch), 160).slice();
-      this.port.postMessage({ type: "mon", scope: new Float32Array(this.x.memory.buffer, this.x.scope(), 128).slice(), mon });
+      const mon = new Float32Array(this.x.memory.buffer, this.x.monitor(this.watch), 168).slice();
+      let cpu = null;
+      if (this.span > 500) { cpu = [this.busy / this.span * 100, this.peak, this.late]; this.busy = 0; this.span = 0; this.peak = 0; }
+      this.port.postMessage({ type: "mon", scope: new Float32Array(this.x.memory.buffer, this.x.scope(), 128).slice(), mon, cpu });
     }
     return true;
   }

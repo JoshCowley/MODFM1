@@ -14,7 +14,7 @@
   /* the instrument: one physical object, identical in both themes */
   --body: #1d1d1f; --tray: #141415; --part: #2a2a2d; --edge: #3b3b3f; --label: #d8d7d3; --label-dim: #8d8c88;
   --lit: #fff1cf; --hold: #5fe08a;
-  --k-src: #ffb347; --k-shp: #4fd1c5; --k-mod: #b48cff; --k-fx: #6aa9ff; --k-amp: #ff7a6b; --k-chd: #9be37a; --k-seq: #ff8fc8;
+  --k-src: #ffb347; --k-shp: #4fd1c5; --k-mod: #b48cff; --k-fx: #6aa9ff; --k-amp: #ff7a6b; --k-chd: #9be37a; --k-seq: #ff8fc8; --k-arp: #7fd6ff;
   --f-dot: "DotGothic16", ui-monospace, monospace;
   --f-body: "Barlow", system-ui, sans-serif;
   --f-label: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
@@ -81,7 +81,7 @@ a { color: var(--link); }
 .btn:focus-visible { outline: 2px solid var(--lit); outline-offset: 2px; }
 .btn[data-kind] { box-shadow: inset 0 -3px 0 var(--kc); }
 .btn[data-kind="src"] { --kc: var(--k-src); } .btn[data-kind="shp"] { --kc: var(--k-shp); }
-.btn[data-kind="mod"] { --kc: var(--k-mod); } .btn[data-kind="fx"] { --kc: var(--k-fx); } .btn[data-kind="amp"] { --kc: var(--k-amp); } .btn[data-kind="chd"] { --kc: var(--k-chd); } .btn[data-kind="seq"] { --kc: var(--k-seq); } .btn[data-kind="glo"] { --kc: var(--label-dim); }
+.btn[data-kind="mod"] { --kc: var(--k-mod); } .btn[data-kind="fx"] { --kc: var(--k-fx); } .btn[data-kind="amp"] { --kc: var(--k-amp); } .btn[data-kind="chd"] { --kc: var(--k-chd); } .btn[data-kind="seq"] { --kc: var(--k-seq); } .btn[data-kind="arp"] { --kc: var(--k-arp); } .btn[data-kind="glo"] { --kc: var(--label-dim); }
 .bezel { background: #0b0b0c; border-radius: 18px; padding: 10px; width: 100%; max-width: 312px; position: relative; box-shadow: inset 0 0 0 1px #1d1d20; }
 .power { position: absolute; inset: 10px; border: 0; border-radius: 4px; background: rgba(0,0,0,.66); color: #f2efe6; cursor: pointer;
   display: grid; place-content: center; justify-items: center; gap: 8px; }
@@ -128,7 +128,7 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
 <main>
   <div class="top">
     <div>
-      <h1>FM1 Rack <span>1.1</span></h1>
+      <h1>FM1 Rack <span>1.2</span></h1>
       <p>A sound-design firmware for the M-VAVE FM-1: open-source eurorack modules in swappable slots, a 12-row mod matrix and four performance macros. This is the browser build, running the original module code.</p>
     </div>
     <a class="manual" href="https://claude.ai/artifact/8cELcnQ8vCjJQCCqp3HngM" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h4.5A1.5 1.5 0 0 1 8 4v10a1.5 1.5 0 0 0-1.5-1.5H2zM14 2.5H9.5A1.5 1.5 0 0 0 8 4v10a1.5 1.5 0 0 1 1.5-1.5H14z"/></svg>Open the manual</a>
@@ -168,8 +168,9 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
         <li><b>REC</b> records keys and knob moves into a loop of 1, 2, 4 or 8 bars.</li>
         <li><b>SCL</b> turns each key into a chord in your key and scale, with scale lock on its second page. <b>PLAY</b> holds notes.</li>
         <li><b>SEQ</b> is a 16-step sequencer: play keys to fill steps, <kbd>Space</kbd> starts it. Hold <b>SEQ</b> and turn any knob to lock a value to a step.</li>
+        <li><b>HOME</b> three times opens TOOLS: undo and compare, morph A↔B, randomize, favourites. <b>ARP</b> twice is the arpeggiator.</li>
         <li><b>SAVE</b> names a patch into one of 16 user slots, kept in this browser.</li>
-        <li>A MIDI keyboard works where the browser allows it: notes, CC 1 and 21–24 to the macros, sustain, clock.</li>
+        <li>Full MIDI over USB where the browser allows it: notes, bend, pressure, program changes, clock in and out, CC 70–73 for the four knobs, and notes out from the keys, sequencer and arp.</li>
       </ul>
     </div>
     <div>
@@ -207,20 +208,38 @@ const MODULES = {
   MARBLES:  { kind: "mod", poly: false, cpu: 3, ram: 4, blurb: "RANDOM NOTES · GATES", outs: ["MARB X", "MARB T"], pages: [[n("RATE", .5), n("SPREAD", .4), n("BIAS", .5), n("STEPS", .7)], [n("DEJA VU", .5), L("LENGTH", ["1", "2", "3", "4", "5", "6", "8", "16"], 6), n("JITTER", .1), L("CLOCK", ["FREE", "1/16", "1/8", "1/4"], 2)]] },
   GRIDS:    { kind: "mod", poly: false, cpu: 1, ram: 2, blurb: "TOPOGRAPHIC DRUM MAP", outs: ["GRID", "ACCENT"], pages: [[n("X", .4), n("Y", .8), n("FILL", .8), L("OUT", ["BD", "SD", "HH", "KIT"], 3)], [n("CHAOS", 0)]] },
   CLOUDS:   { kind: "fx", poly: false, cpu: 22, ram: 118, blurb: "GRANULAR TEXTURES", pages: [[n("POSITION", .2), n("SIZE", .6), b("PITCH"), n("DENSITY", .5)], [n("TEXTURE", .4), n("BLEND", .3), n("SPREAD", .5), n("FEEDBACK", .2)], [n("REVERB", .3), L("MODE", ["GRANULR", "STRETCH", "LOOPDLY", "SPECTRL"]), L("FREEZE", ["OFF", "ON"])]] },
-  DELAY:    { kind: "fx", poly: false, cpu: 3, ram: 64, blurb: "TEMPO PING-PONG", pages: [[L("TIME", ["1/16", "1/8", "1/8D", "1/4", "1/2"], 2), n("FEEDBACK", .4), n("TONE", .5), n("MIX", .3)]] },
-  REVERB:   { kind: "fx", poly: false, cpu: 6, ram: 32, blurb: "PLATE · CLOUDS VERB", pages: [[n("SIZE", .6), n("DAMP", .5), n("DIFFUSE", .55), n("MIX", .3)]] },
+  DELAY:    { kind: "fx", poly: false, cpu: 3, ram: 64, blurb: "PING · MONO · TAPE", pages: [[L("TIME", ["1/16", "1/8", "1/8D", "1/4", "1/2"], 2), n("FEEDBACK", .4), n("TONE", .5), n("MIX", .3)], [L("MODE", ["PING", "MONO", "TAPE"]), n("WOW", .4)]] },
+  REVERB:   { kind: "fx", poly: false, cpu: 8, ram: 72, blurb: "PLATE · HALL · SHIMMER", pages: [[n("SIZE", .6), n("DAMP", .5), n("DIFFUSE", .55), n("MIX", .3)], [L("TYPE", ["PLATE", "HALL", "SHIMMER"]), n("PRE", 0), n("SHIMMER", .4)]] },
   CHORUS:   { kind: "fx", poly: false, cpu: 2, ram: 4, blurb: "STEREO CHORUS", pages: [[n("RATE", .3), n("DEPTH", .5), n("WIDTH", .7), n("MIX", .4)]] },
 };
-const AMP = { kind: "amp", poly: true, cpu: 1, ram: 0, pages: [[n("ATTACK", .02), n("DECAY", .4), n("SUSTAIN", .7), n("RELEASE", .35)], [n("VEL AMT", .6), n("GLIDE", 0), n("SPREAD", .3), n("LEVEL", .8)], [n("M ATTACK", .05), n("M DECAY", .4), L("M LOOP", ["OFF", "ON"])]] };
+const VOICE_MODES = ["POLY", "MONO", "LEGATO", "UNI 2", "UNI 4"];
+const AMP = { kind: "amp", poly: true, cpu: 1, ram: 0, pages: [[n("ATTACK", .02), n("DECAY", .4), n("SUSTAIN", .7), n("RELEASE", .35)], [n("VEL AMT", .6), n("GLIDE", 0), n("SPREAD", .3), n("LEVEL", .8)], [n("M ATTACK", .05), n("M DECAY", .4), L("M LOOP", ["OFF", "ON"])], [L("MODE", VOICE_MODES), n("DETUNE", .15, { mod: false }), n("VINTAGE", 0, { mod: false })]] };
+const A_MODE = 11, A_DETUNE = 12, A_VINTAGE = 13;
 const LFO_SHAPES = ["SINE", "TRI", "SAW", "SQUARE", "S&H", "DRIFT"], LFO_SYNC = ["FREE", "1/16", "1/8", "1/4", "1/2", "1 BAR", "2 BARS"];
 const lfoPage = (i, shape, rate, sync) => [L(`SHAPE ${i}`, LFO_SHAPES, shape), n(`RATE ${i}`, rate), L(`SYNC ${i}`, LFO_SYNC, sync), L(`RETRIG ${i}`, ["OFF", "ON"])];
 const LFOS = { kind: "lfo", pages: [lfoPage(1, 0, .35, 0), lfoPage(2, 1, .2, 5), lfoPage(3, 5, .5, 0)] };
 const ANIM_MODES = ["FULL", "CALM", "STILL"];
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)]] };
-const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6;
-const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10] };
 const KEYS12 = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+// tunings: [name, cents of each degree from the root, notes per period]; 12-note ones keep the keyboard's layout
+const TUNINGS = [
+  ["EQUAL", [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100]],
+  ["JUST", [0, 111.73, 203.91, 315.64, 386.31, 498.04, 590.22, 701.96, 813.69, 884.36, 1017.6, 1088.27]],
+  ["PYTHAG", [0, 90.22, 203.91, 294.13, 407.82, 498.04, 611.73, 701.96, 792.18, 905.87, 996.09, 1109.78]],
+  ["MEANTONE", [0, 76.05, 193.16, 310.26, 386.31, 503.42, 579.47, 696.58, 772.63, 889.74, 1006.84, 1082.89]],
+  ["WERCK III", [0, 90.22, 192.18, 294.13, 390.22, 498.04, 588.27, 696.09, 792.18, 888.27, 996.09, 1092.18]],
+  ["KIRNB III", [0, 90.22, 193.16, 294.13, 386.31, 498.04, 590.22, 696.58, 792.18, 889.74, 996.09, 1088.27]],
+  ["RAST", [0, 100, 200, 300, 350, 500, 600, 700, 800, 900, 1000, 1050]],
+  ["BAYATI", [0, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100]],
+  ["SLENDRO", [0, 240, 480, 720, 960]],
+  ["PELOG", [0, 120, 270, 540, 670, 785, 950]],
+  ["19-EDO", Array.from({ length: 19 }, (_, i) => i * 1200 / 19)],
+  ["24-EDO", Array.from({ length: 24 }, (_, i) => i * 50)],
+  ["31-EDO", Array.from({ length: 31 }, (_, i) => i * 1200 / 31)],
+];
+const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)], [L("TUNING", TUNINGS.map((t) => t[0])), L("T ROOT", KEYS12), I("A4 HZ", 400, 480, 440), I("BEND", 0, 24, 2)], [L("PROG CHG", ["OFF", "ON"], 1), L("MIDI OUT", ["OFF", "NOTES", "+CC"]), L("OUT CH", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]), L("LOCAL", ["ON", "OFF"])], [b("LOW EQ", 0), b("MID EQ", 0), b("HIGH EQ", 0), n("COMP", 0)], []] };
+const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6, G_TUNE = 7, G_TROOT = 8, G_A4 = 9, G_BEND = 10, G_PROG = 11, G_MOUT = 12, G_OUTCH = 13, G_LOCAL = 14, G_LOW = 15, G_MID = 16, G_HIGH = 17, G_COMP = 18;
+const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10] };
 // CHORD (SCL key): scale chords, with scale lock on its second page
 const CHORD_TYPES = ["OFF", "TRIAD", "7TH", "SUS2", "SUS4", "ADD9", "6TH", "9TH", "POWER", "QUARTAL"];
 const CHORD = { kind: "chd", pages: [[L("CHORD", CHORD_TYPES), L("INVERT", ["ROOT", "1ST", "2ND", "3RD"]), n("SPREAD", 0), n("STRUM", 0)], [L("LOCK", ["OFF", "ON"]), L("KEY", KEYS12), L("SCALE", Object.keys(SCALES))]] };
@@ -230,8 +249,8 @@ const SEQ_RATES = ["1/8", "1/16", "1/16T", "1/32"], RATE_MUL = [2, 1, 2 / 3, .5]
 const STEP_LENS = ["1/8", "1/4", "1/2", "3/4", "FULL", "TIE"], STEP_LEN_F = [.125, .25, .5, .75, .97, 1];
 const SEQDEF = { kind: "seq", pages: [[L("RUN", ["STOP", "PLAY"]), I("LENGTH", 1, 16, 16), L("RATE", SEQ_RATES, 1), n("SWING", 0)]] };
 const STEPDEF = { kind: "seq", pages: [[L("TRIG", ["OFF", "ON"], 1), n("VELO", .75), L("LENGTH", STEP_LENS, 2), n("CHANCE", 1)]] };
-const blankStep = () => ({ trig: 0, notes: [], vel: .75, len: 2, chance: 1, locks: {} });
-const blankSeq = () => ({ p: [0, 16, 1, 0], steps: Array.from({ length: 16 }, blankStep) });
+const blankStep = () => ({ trig: 0, notes: [], vel: .75, len: 2, chance: 1, ratchet: 1, nudge: 0, locks: {} });
+const blankSeq = () => ({ p: [0, 16, 1, 0], spice: 0, dice: 0, steps: Array.from({ length: 16 }, blankStep) });
 const POOL = 256, BUDGET = 80, MAXV = 6;
 
 const SLOTS = [
@@ -242,7 +261,7 @@ const SLOTS = [
   { id: "FX1", kind: "fx", name: "FX 1", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
   { id: "FX2", kind: "fx", name: "FX 2", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
 ];
-const KC = { src: "#ffb347", shp: "#4fd1c5", mod: "#b48cff", fx: "#6aa9ff", amp: "#ff7a6b", glo: "#d8d7d3", lfo: "#c9a7ff", chd: "#9be37a", seq: "#ff8fc8", mx: "#ffd27a" };
+const KC = { src: "#ffb347", shp: "#4fd1c5", mod: "#b48cff", fx: "#6aa9ff", amp: "#ff7a6b", glo: "#d8d7d3", lfo: "#c9a7ff", chd: "#9be37a", seq: "#ff8fc8", mx: "#ffd27a", arp: "#7fd6ff", tool: "#f2c14e" };
 
 // ---------------------------------------------------------------- state
 const blankParams = (mod) => mod ? mod.pages.flat().map((p) => p.def) : [];
@@ -253,10 +272,10 @@ const chd = { p: blankParams(CHORD) };
 let seq = blankSeq();
 const lfo = { p: blankParams(LFOS) };
 const BUILT_SRC = ["—", "M1", "M2", "M3", "M4", "VELO", "KEY TRK", "RANDOM", "AMP ENV"];
-const EXTRA_SRC = ["LFO 1", "LFO 2", "LFO 3", "MOD ENV"];
+const EXTRA_SRC = ["LFO 1", "LFO 2", "LFO 3", "MOD ENV", "SEQ 1", "SEQ 2", "SEQ 3", "SEQ 4", "WHEEL", "PRESS"];
 let matrix = [];
 let macros = [0.5, 0.5, 0.5, 0.5];
-try { const sg = JSON.parse(localStorage.getItem("fm1rack.global.v1") || "null"); if (sg && sg.length === glo.p.length) glo.p = sg; } catch { /* defaults */ }
+try { const sg = JSON.parse(localStorage.getItem("fm1rack.global.v1") || "null"); if (sg && sg.length <= glo.p.length) sg.forEach((v, i) => { glo.p[i] = v; }); } catch { /* defaults */ }
 function storeGlobal() { try { localStorage.setItem("fm1rack.global.v1", JSON.stringify(glo.p)); } catch { /* this visit only */ } }
 try { const sc = JSON.parse(localStorage.getItem("fm1rack.chord.v1") || "null"); if (sc && sc.length === chd.p.length) chd.p = sc; } catch { /* defaults */ }
 function storeChord() { try { localStorage.setItem("fm1rack.chord.v1", JSON.stringify(chd.p)); } catch { /* this visit only */ } }
@@ -267,19 +286,12 @@ const USER_SLOTS = 16, STORE_KEY = "fm1rack.user.v1";
 let userPatches = (() => { try { const v = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); return Array.from({ length: USER_SLOTS }, (_, i) => v[i] || null); } catch { return Array(USER_SLOTS).fill(null); } })();
 function storeUser() { try { localStorage.setItem(STORE_KEY, JSON.stringify(userPatches)); return true; } catch { return false; } }
 // the PRESETS encoder walks the factory patches, then the user slots that hold something
-function patchList() { return [...PRESETS.map((p, i) => ({ f: i, name: p.name })), ...userPatches.map((p, i) => p && { u: i, name: `U${String(i + 1).padStart(2, "0")} ${p.name}` }).filter(Boolean)]; }
+function patchList(raw = false) { const all = [...PRESETS.map((p, i) => ({ f: i, name: p.name })), ...userPatches.map((p, i) => p && { u: i, name: `U${String(i + 1).padStart(2, "0")} ${p.name}` }).filter(Boolean)]; if (raw || typeof filterList !== "function") return all; const f = filterList(all); return f.length ? f : all; }
 function fitParams(def, arr) { const d = blankParams(def); return d.map((v, i) => (arr && arr[i] !== undefined ? arr[i] : v)); }
 function loadPreset(i) {
   const entry = patchList()[i] || { f: 0, name: PRESETS[0].name };
   patchName = entry.name;
-  if (entry.u !== undefined) {
-    const u = userPatches[entry.u];
-    for (const s of SLOTS) { const st = u.slots[s.id] || { mod: null, p: [] }; rack[s.id] = { mod: st.mod, p: fitParams(MODULES[st.mod], st.p) }; }
-    amp.p = fitParams(AMP, u.amp); lfo.p = fitParams(LFOS, u.lfo);
-    matrix = u.matrix.map((r) => ({ ...r })); macros = [...u.macros];
-    loadSeq(u.seq ? JSON.parse(JSON.stringify(u.seq)) : blankSeq());
-    return;
-  }
+  if (entry.u !== undefined) { restoreSnap(userPatches[entry.u]); histReset(`LOADED ${patchName}`); return; }
   const pr = PRESETS[entry.f];
   for (const s of SLOTS) { const m = pr.slots[s.id]; rack[s.id] = { mod: m, p: blankParams(MODULES[m]) }; if (m) applyOver(MODULES[m], rack[s.id].p, pr.p && pr.p[s.id]); }
   amp.p = blankParams(AMP); applyOver(AMP, amp.p, pr.amp);
@@ -290,6 +302,15 @@ function loadPreset(i) {
   });
   macros = [...(pr.macros || [0.5, 0.5, 0.5, 0.5])];
   loadSeq(factorySeq(pr.seq));
+  mseq = blankMseq();
+  histReset(`LOADED ${patchName}`);
+}
+function restoreSnap(u) {
+  for (const s of SLOTS) { const st = u.slots[s.id] || { mod: null, p: [] }; rack[s.id] = { mod: st.mod, p: fitParams(MODULES[st.mod], st.p) }; }
+  amp.p = fitParams(AMP, u.amp); lfo.p = fitParams(LFOS, u.lfo);
+  matrix = u.matrix.map((r) => ({ ...r })); macros = [...u.macros];
+  loadSeq(u.seq ? JSON.parse(JSON.stringify(u.seq)) : blankSeq());
+  mseq = u.mseq ? JSON.parse(JSON.stringify(u.mseq)) : blankMseq();
 }
 // a new pattern keeps the transport running
 function loadSeq(sq) { const run = seq.p[0]; seq = sq; seq.p[0] = run; for (const st of seq.steps) st.locks = st.locks || {}; }
@@ -329,7 +350,7 @@ function applyOver(def, values, over) {
 }
 function snapshot(name) {
   return { name, slots: Object.fromEntries(SLOTS.map((s) => [s.id, { mod: rack[s.id].mod, p: [...rack[s.id].p] }])),
-           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros], seq: { ...JSON.parse(JSON.stringify(seq)), p: [0, ...seq.p.slice(1)] } };
+           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros], seq: { ...JSON.parse(JSON.stringify(seq)), p: [0, ...seq.p.slice(1)] }, mseq: JSON.parse(JSON.stringify(mseq)) };
 }
 const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 let saveState = null;
@@ -345,7 +366,9 @@ function commitSave() {
   const ok = storeUser();
   const list = patchList();
   presetIx = list.findIndex((e) => e.u === saveState.slot);
-  patchName = list[presetIx].name;
+  if (presetIx < 0) { lib.filter = 0; storeLib(); presetIx = patchList().findIndex((e) => e.u === saveState.slot); }
+  patchName = patchList()[presetIx].name;
+  histReset(`SAVED ${name}`);
   say(ok ? `SAVED TO U${String(saveState.slot + 1).padStart(2, "0")}` : "SAVED FOR THIS VISIT ONLY", "SAVE");
   saveState = null; page = "PERFORM";
 }
@@ -359,7 +382,7 @@ function budgetFor(ids) {
     if (m.poly) poly += m.cpu; else shared += m.cpu;
     ram += m.ram;
   }
-  const cap = glo.p[G_VOICES] ? glo.p[G_VOICES] : MAXV;
+  const cap = amp.p[A_MODE] === 1 || amp.p[A_MODE] === 2 ? 1 : glo.p[G_VOICES] ? glo.p[G_VOICES] : MAXV;
   const voices = Math.min(cap, Math.floor((BUDGET - shared) / poly));
   return { shared, poly, ram, voices, cpu: shared + poly * Math.max(voices, 0) };
 }
@@ -480,6 +503,11 @@ const ICONS = {
   SEQ: ["............", "##.##.##.##.", "##.##.##.##.", "............", "##.##.##.##.", "##.##.##.##.", "............", "............", "#..........#", "############", "#..........#", "............"],
   STEP: ["............", ".##########.", "#..........#", "#..######..#", "#..######..#", "#..######..#", "#..######..#", "#..........#", ".##########.", "............", "....####....", "............"],
   LOCK: ["............", "....####....", "...#....#...", "...#....#...", "..########..", "..########..", "..###..###..", "..###..###..", "..########..", "..########..", "............", "............"],
+  TOOLS: ["............", ".##......##.", "#..#....#..#", "#..#....#..#", ".####..####.", "....#..#....", "....#..#....", "....#..#....", "...######...", "...#....#...", "...######...", "............"],
+  UNDO: ["............", "...#........", "..##........", ".#########..", "..##......#.", "...#.......#", "...........#", "...........#", "..........#.", "...#######..", "............", "............"],
+  MORPH: ["............", "###......###", "#.#......#.#", "###.####.###", "....#..#....", "....#..#....", "....#..#....", "###.####.###", "#.#......#.#", "###......###", "............", "............"],
+  RANDOM: ["############", "#..........#", "#.##....##.#", "#.##....##.#", "#..........#", "#....##....#", "#....##....#", "#..........#", "#.##....##.#", "#.##....##.#", "#..........#", "############"],
+  ARP: ["............", "..........##", "..........##", ".......##...", ".......##...", "....##......", "....##......", ".##.........", ".##.........", "............", "############", "............"],
   LEARN: ["....####....", "..##....##..", ".#...#....#.", ".#...#....#.", "#....#.....#", "#....####..#", "#..........#", ".#........#.", ".#........#.", "..##....##..", "....####....", ".....##....."],
 };
 const ICON_OF = { src: "PLAITS", shp: "FILTER", mod: "PEAKS", fx: "CLOUDS", amp: "AMP", lfo: "LFO", glo: "GLOBAL", chd: "CHORD", seq: "SEQ" };
@@ -957,6 +985,7 @@ function drawFixed(def, st, tag, titles, iconName, slotIdx, band) {
 }
 function drawPerform() {
   header("HOME", C.fg, patchName, "HOME");
+  if (hist.edited) { rect(186, 30, 44, 11, C.gold, 3); T(208, 38.5, "EDITED", { a: "center", size: 8, c: "#111" }); }
   // output scope
   well(6, 30, 228, 34);
   const sc = audio.scope;
@@ -1115,7 +1144,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.1", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.2", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -1125,12 +1154,15 @@ function render() {
   if (bootAt >= 0 && performance.now() - bootAt < 1500) { drawBoot((performance.now() - bootAt) / 1000); return; }
   const slot = SLOTS.find((s) => s.id === page);
   if (slot) drawSlot(slot);
-  else if (page === "AMP") drawFixed(AMP, amp, "AMP", ["ADSR", "VOICE", "MOD ENV"], "AMP", 6, [visAdsr, visVoices, visModEnv][Math.min(subpage, 2)]);
+  else if (page === "AMP") drawFixed(AMP, amp, "AMP", ["ADSR", "VOICE", "MOD ENV", `MODE ${VOICE_MODES[amp.p[A_MODE]]}`], "AMP", 6, [visAdsr, visVoices, visModEnv, visVoices][Math.min(subpage, 3)]);
   else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3"], "LFO", 8, visLfos);
   else if (page === "SAVE") drawSave();
-  else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING"], "GLOBAL", -1, visGlobal);
+  else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem][Math.min(subpage, 5)]);
   else if (page === "CHORD") drawFixed(CHORD, chd, "CHORD", [CHORD_TYPES[chd.p[C_TYPE]] === "OFF" ? "SINGLE NOTES" : `${CHORD_TYPES[chd.p[C_TYPE]]} CHORDS`, chd.p[C_LOCK] ? "SCALE LOCKED" : "SCALE LOCK OFF"], "CHORD", -1, visChord);
-  else if (page === "SEQ" || page === "STEP") drawSeq();
+  else if (isSeqPage()) drawSeq();
+  else if (page === "TOOLS") drawTools();
+  else if (page === "MSEQ") drawMseq();
+  else if (page === "ARP") drawFixed(ARPDEF, arpS, "ARP", [ARP_MODES[arpS.p[0]] === "OFF" ? "OFF" : `${ARP_MODES[arpS.p[0]]} · ${ARP_RATES[arpS.p[1]]}`, "LATCH · TURING"], "ARP", -1, visArp);
   else if (page === "RACK") drawRack();
   else if (page === "MATRIX") drawMatrix();
   else drawPerform();
@@ -1142,7 +1174,7 @@ function render() {
   if (ss.lock) {
     rect(0, 26, 240, 15, C.gold); icon("LOCK", 4, 28, "#111");
     T(124, 37, `LOCK STEP ${ss.cursor + 1} · TURN ANY KNOB`, { a: "center", size: 10, c: "#111" });
-  } else if (ss.rec && ss.run && page !== "SEQ" && page !== "STEP" && lockRefFor(SLOTS.find((s) => s.id === page), 0)) {
+  } else if (ss.rec && ss.run && !isSeqPage() && lockRefFor(SLOTS.find((s) => s.id === page), 0)) {
     rect(0, 26, 240, 3, Math.floor(animT * 3) % 2 ? C.warn : "#6a2a22");
   }
   if (picker) drawPicker();
@@ -1195,6 +1227,7 @@ function encoder(role, k) {
     if (page === "SAVE") return;
     const list = patchList();
     presetIx = (presetIx + k + list.length * 8) % list.length; loadPreset(presetIx); picker = null; engine(["all_off"]); sounding.clear(); refreshKeys();
+    if (glo.p[G_MOUT] === 2) midiSend([0xC0 | (glo.p[G_OUTCH] & 15), presetIx & 127]);
     say(patchName, "HOME"); return;
   }
   if (page === "SAVE") {
@@ -1204,7 +1237,9 @@ function encoder(role, k) {
     else if (role === 1) st.slot = clamp(st.slot + Math.sign(k), 0, USER_SLOTS - 1);
     draw(); return;
   }
-  if (page === "SEQ" || page === "STEP") { seqEncoder(role, k); draw(); return; }
+  if (isSeqPage()) { seqEncoder(role, k); noteEdit(`SEQ ${page}`); draw(); return; }
+  if (page === "TOOLS") { toolEncoder(role, k); draw(); return; }
+  if (page === "MSEQ") { mseqEncoder(role, k); draw(); return; }
   const slot = SLOTS.find((s) => s.id === page);
   if (role === "algo") {
     if (!slot) { say("GO TO A SLOT TO SWAP MODULES"); return; }
@@ -1231,6 +1266,7 @@ function encoder(role, k) {
     if (i === 1) r.dst = cycle(destinations(), r.dst, Math.sign(k));
     if (i === 2) r.amt = clamp(Math.round((r.amt + k * .01) * 100) / 100, -1, 1);
     if (i === 3) r.via = cycle(sources(), r.via, Math.sign(k));
+    noteEdit(`MATRIX ROW ${mxRow + 1}`);
   } else if (FIXED[page]) {
     const [def, st] = FIXED[page];
     const off = def.pages.slice(0, subpage).flat().length, p = def.pages[subpage][i];
@@ -1248,9 +1284,12 @@ function setRef(ref, v, record = true) {
   else if (ref.w === "AMP") amp.p[ref.idx] = v;
   else if (ref.w === "GLOBAL") { glo.p[ref.idx] = v; storeGlobal(); applyGlobal(); return; }
   else if (ref.w === "CHORD") { chd.p[ref.idx] = v; storeChord(); return; }
+  else if (ref.w === "ARP") { arpS.p[ref.idx] = v; storeArp(); if (ref.idx === 0 || ref.idx === 4) refreshKeys(); return; }
   else if (ref.w === "LFOS") lfo.p[ref.idx] = v;
   else if (ref.w === "slot") { if (rack[ref.slot].mod !== ref.mod) return; rack[ref.slot].p[ref.idx] = v; }
   if (record) recEvent({ type: "set", ref, v });
+  if (ref.w === "macro") { ccOut(21 + ref.i, v); if (morph.via === ref.i + 1) morphTo(v); }
+  if (record && (ref.w === "slot" || ref.w === "AMP" || ref.w === "LFOS" || ref.w === "macro")) { noteEdit(refLabel(ref)); if (ref.w !== "macro") knobCcOut(ref, v); }
 }
 function learnTurn(slot, i, k) {
   let p, dst;
@@ -1329,7 +1368,7 @@ document.getElementById("octUp").innerHTML = `${svg("UP")}<span>Oct +</span><sma
 // [rack label, printed label, action, colour kind, icon]
 const BTNS = [
   ["FX 1·2", "FX", "FXBTN", "fx", "FX"], ["Chord", "SCL", "CHORD", "chd", "CHORD"], ["Amp · Shp", "ENV", "AMPBTN", "amp", "AMP"], ["Mod · LFO", "LFO", "MODBTN", "mod", "LFO"], ["Source", "EDIT", "SRC", "src", "SRC"], ["Global", "GLO", "GLOBAL", "glo", "GLO"],
-  ["Home", "HOME", "HOME", null, "HOME"], ["Save", "SAVE", "SAVE", null, "SAVE"], ["Matrix", "ARP", "MATRIX", null, "MATRIX"], ["Seq", "SEQ", "SEQBTN", "seq", "SEQ"], ["Hold", "PLAY", "HOLD", null, "HOLD"], ["Rec", "REC", "REC", null, "REC"],
+  ["Home", "HOME", "HOME", null, "HOME"], ["Save", "SAVE", "SAVE", null, "SAVE"], ["Matrix · Arp", "ARP", "ARPBTN", "arp", "MATRIX"], ["Seq", "SEQ", "SEQBTN", "seq", "SEQ"], ["Hold", "PLAY", "HOLD", null, "HOLD"], ["Rec", "REC", "REC", null, "REC"],
 ];
 const btnEls = {};
 const bwrap = document.getElementById("btns");
@@ -1354,7 +1393,7 @@ for (const [lab, printed, act, kind, ic] of BTNS) {
   bwrap.appendChild(el); btnEls[act] = el;
 }
 function resolve(act) {
-  const cyc = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP"] }[act];
+  const cyc = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS", "MSEQ"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP", "STEP2", "GEN"], ARPBTN: ["MATRIX", "ARP"] }[act];
   if (!cyc) return act;
   if (picker && cyc.includes(picker.slot)) return picker.slot;
   const i = cyc.indexOf(page);
@@ -1370,18 +1409,18 @@ function press(act) {
       if (!f.ok) { const free = POOL - (budget().ram - (MODULES[rack[slot.id].mod]?.ram || 0)); say(f.why === "CPU" ? `${ch} NEEDS MORE CPU` : f.why.startsWith("IN ") ? `${ch} IS ALREADY ${f.why}` : `${ch} NEEDS ${MODULES[ch].ram}K, ${free}K FREE`); return; }
       rack[slot.id] = { mod: ch, p: blankParams(MODULES[ch]) }; picker = null; subpage = 0;
       delete vs.rings; delete vs.clouds; delete vs.verb;
-      say(ch ? `${ch} LOADED · ${budget().voices} VOICES` : `${slot.name} EMPTIED`, ch || "EMPTY"); return;
+      say(ch ? `${ch} LOADED · ${budget().voices} VOICES` : `${slot.name} EMPTIED`, ch || "EMPTY"); noteEdit(ch ? `${ch} LOADED` : `${slot.name} EMPTIED`); return;
     }
     picker = null; if (page !== slot.id) subpage = 0; page = slot.id; draw(); return;
   }
   picker = null;
-  if (act === "HOME") { if (page === "SAVE") { saveState = null; page = "PERFORM"; say("SAVE CANCELLED", "SAVE"); } else page = page === "PERFORM" ? "RACK" : "PERFORM"; }
+  if (act === "HOME") { if (page === "SAVE") { saveState = null; page = "PERFORM"; say("SAVE CANCELLED", "SAVE"); } else { page = page === "PERFORM" ? "RACK" : page === "RACK" ? "TOOLS" : "PERFORM"; subpage = 0; } }
   else if (FIXED[act]) { if (page !== act) subpage = 0; page = act; }
   else if (act === "MATRIX") page = "MATRIX";
-  else if (act === "SEQ" || act === "STEP") page = act;
+  else if (["SEQ", "STEP", "STEP2", "GEN", "MSEQ"].includes(act)) page = act;
   else if (act === "SAVE") { if (page === "SAVE") commitSave(); else openSave(); }
   else if (act === "HOLD") { hold = !hold; if (!hold) latched.clear(); say(hold ? "HOLD ON" : "HOLD OFF", "HOLD"); refreshKeys(); }
-  else if (act === "REC" && (page === "SEQ" || page === "STEP")) {
+  else if (act === "REC" && isSeqPage()) {
     ss.rec = !ss.rec; ss.recGroup = null;
     if (ss.rec && !ss.run) seqStart();
     say(ss.rec ? "SEQ REC · PLAY OR TURN" : "SEQ REC OFF", "REC");
@@ -1398,12 +1437,12 @@ document.getElementById("octDn").addEventListener("click", () => { octave = clam
 document.getElementById("octUp").addEventListener("click", () => { octave = clamp(octave + 1, -3, 3); say(`OCTAVE ${octave >= 0 ? "+" : ""}${octave}`); });
 
 function syncLeds() {
-  const pairOn = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP"] };
+  const pairOn = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS", "MSEQ"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP", "STEP2", "GEN"], ARPBTN: ["MATRIX", "ARP"] };
   for (const [act, el] of Object.entries(btnEls)) {
-    let on = act === page || (act === "HOME" && (page === "PERFORM" || page === "RACK")) || (pairOn[act] && pairOn[act].includes(page));
+    let on = act === page || (act === "HOME" && (page === "PERFORM" || page === "RACK" || page === "TOOLS")) || (pairOn[act] && pairOn[act].includes(page));
     if (act === "HOLD" || act === "REC") on = false;
     el.classList.toggle("lit", !!on);
-    el.classList.toggle("hold", (act === "HOLD" && hold) || (act === "REC" && phrase.state === "loop") || (act === "CHORD" && !on && (chd.p[C_TYPE] > 0 || chd.p[C_LOCK] === 1)) || (act === "SEQBTN" && !on && ss.run));
+    el.classList.toggle("hold", (act === "HOLD" && hold) || (act === "REC" && phrase.state === "loop") || (act === "CHORD" && !on && (chd.p[C_TYPE] > 0 || chd.p[C_LOCK] === 1)) || (act === "SEQBTN" && !on && ss.run) || (act === "ARPBTN" && !on && arpOn()));
     el.classList.toggle("rec", act === "REC" && (phrase.state === "rec" || phrase.state === "armed" || (ss.rec && ss.run)));
     el.classList.toggle("blink", (act === "REC" && phrase.state === "armed") || (act === "HOME" && learn) || (act === "SEQBTN" && ss.lock));
     el.setAttribute("aria-pressed", act === "HOLD" ? String(hold) : String(!!on));
@@ -1440,8 +1479,16 @@ function refreshKeys() {
   keyEls.forEach((el, k) => { if (!el) return; el.classList.toggle("on", held.has(k) || latched.has(k) || playKeys.has(k) || midiLit.has(k)); el.classList.toggle("held", held.has(k)); });
   // what should sound: held, latched or replayed keys
   const want = new Set([...held, ...latched, ...playKeys]);
+  if (arpOn()) {
+    for (const [k, e] of sounding) { sounding.delete(k); notesOff(e); }
+    const pool = []; for (const k of want) for (const x of chordNotes(keyToNote(k))) if (!pool.includes(x)) pool.push(x);
+    for (const [, e] of midiNotes) for (const x of e.notes) if (!pool.includes(x)) pool.push(x);
+    const lastK = [...want].pop();
+    arpUpdate(pool, lastK !== undefined ? keyVel[lastK] : 0);
+    draw(); return;
+  }
   for (const [k, e] of sounding) if (!want.has(k)) { sounding.delete(k); notesOff(e); }
-  for (const k of want) if (!sounding.has(k)) sounding.set(k, notesOn(chordNotes(keyToNote(k)), keyVel[k] ?? 0.75));
+  for (const k of want) if (!sounding.has(k)) sounding.set(k, notesOn(chordNotes(keyToNote(k)), keyVel[k] ?? 0.75, "key"));
   draw();
 }
 const keyToNote = (k) => 53 + k + 12 * octave;                               // key 0 is F3 (before scale lock and chords)
@@ -1517,21 +1564,25 @@ const audioNow = () => (audio.ctx ? audio.ctx.currentTime : 0);
 function engineAt(at, calls, tag = "n") { if (audio.node) audio.node.port.postMessage({ type: "timed", at, calls, tag }); }
 let lastChord = { notes: [], t: -9 };
 // a chord from the keys: strummed low to high when STRUM is up
-function notesOn(notes, vel) {
-  const strum = chd.p[C_STRUM] * .08, now = audioNow();
-  const at = notes.map((_, i) => now + i * strum);
+function notesOn(notes, vel, src = "key") {
+  const strum = chd.p[C_STRUM] * .08, now = audioNow(), local = !(src === "key" && glo.p[G_LOCAL] === 1);
+  if (notes.length > 1 || CHORD_TYPES[chd.p[C_TYPE]] !== "OFF") lastChord = { notes, t: animT };
+  if (src !== "midi") notes.forEach((nt, i) => noteOut([nt], vel, strum ? now + i * strum : undefined, null));
+  const voices = [], at = [];
   notes.forEach((nt, i) => {
-    if (!strum || !audio.ctx) engine(["note_on", nt, vel]); else engineAt(at[i], [["note_on", nt, vel]]);
+    const t = now + i * strum;
+    for (const x of expandUni([nt])) { voices.push(x); at.push(t); if (local) { if (!strum || !audio.ctx) engine(["note_on", x, vel]); else engineAt(t, [["note_on", x, vel]]); } }
     if (i && strum) setTimeout(() => onNote(nt, vel), i * strum * 1000); else onNote(nt, vel);
   });
-  if (notes.length > 1 || CHORD_TYPES[chd.p[C_TYPE]] !== "OFF") lastChord = { notes, t: animT };
-  return { notes, at };
+  return { notes, voices, at, out: src !== "midi" };
 }
 // note-offs never overtake a strummed note-on that is still waiting
 function notesOff(e) {
   const now = audioNow();
-  e.notes.forEach((nt, i) => { if (e.at[i] > now) engineAt(e.at[i] + .003, [["note_off", nt]]); else engine(["note_off", nt]); });
+  (e.voices || e.notes).forEach((nt, i) => { if (e.at[i] > now) engineAt(e.at[i] + .003, [["note_off", nt]]); else engine(["note_off", nt]); });
+  if (e.out) noteOut(e.notes, 0, null, Math.max(now, ...e.at, 0) + .004);
 }
+const isSeqPage = () => page === "SEQ" || page === "STEP" || page === "STEP2" || page === "GEN";
 
 // ---------------------------------------------------------------- sequencer
 const ss = { run: false, gridT: 0, step: 0, cur: -1, curT: 0, dur: .125, tied: null, active: new Map(), on: new Set(),
@@ -1543,15 +1594,17 @@ function seqStart() {
   ss.run = true; seq.p[0] = 1; ss.step = 0; ss.cur = -1; ss.tied = null;
   ss.gridT = audioNow() + .06;
   engineAt(ss.gridT, [["reset_clock"]], "seq");          // Grids and the gate bus start on step 1 too
+  msRealign(ss.gridT); midiSend([0xFA], ss.gridT); ss.clockT = ss.gridT;
   say("SEQ PLAY", "SEQ"); seqTick();
 }
 function seqStop() {
   ss.run = false; seq.p[0] = 0; ss.rec = false;
   if (audio.node) audio.node.port.postMessage({ type: "cancel", tag: "seq" });
   for (const nt of ss.on) engine(["note_off", nt]);
+  noteOut([...ss.on], 0, null, audioNow());
   ss.on.clear(); ss.tied = null; ss.cur = -1;
   for (const [, ref] of ss.active) { const c = refCall(ref, refBase(ref)); if (c) engine(c); }
-  ss.active.clear(); say("SEQ STOP", "SEQ");
+  ss.active.clear(); midiSend([0xFC]); say("SEQ STOP", "SEQ");
 }
 function seqTick() {
   if (!ss.run || !audio.on) return;
@@ -1565,29 +1618,48 @@ function seqTick() {
 }
 setInterval(seqTick, 25);
 const sameNotes = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
-function scheduleStep(i, t, d) {
-  const s = seq.steps[i], wait = Math.max(0, (t - audioNow()) * 1000);
-  setTimeout(() => { ss.cur = i; ss.curT = t; ss.dur = d; dirty = true; }, wait);
+function scheduleStep(i, t0, d) {
+  const s = seq.steps[i], t = t0 + (s.nudge || 0) * .5 * d, wait = Math.max(0, (t0 - audioNow()) * 1000);
+  setTimeout(() => { ss.cur = i; ss.curT = t0; ss.dur = d; dirty = true; seqRepeat(i); }, wait);
   // parameter locks: a trig step sets its locks; anything the last step locked goes back to the knob
   const want = new Map();
   if (s.trig) for (const [k, l] of Object.entries(s.locks)) want.set(k, l);
   for (const [k, ref] of ss.active) if (!want.has(k)) { const c = refCall(ref, refBase(ref)); if (c) engineAt(t, [c], "seq"); }
   ss.active = new Map();
   for (const [k, l] of want) { const c = refCall(l.ref, l.v); if (c) { engineAt(t, [c], "seq"); ss.active.set(k, l.ref); } }
-  const skip = s.skipAt && Math.abs(s.skipAt - t) < d / 2;
+  const skip = s.skipAt && Math.abs(s.skipAt - t0) < d / 2;
   if (skip) s.skipAt = 0;
-  const play = s.trig && s.notes.length && !skip && Math.random() < s.chance;
+  // SPICE: the same variation each time round, until DICE is turned
+  const sp = spiceFor(i);
+  let play = s.trig && s.notes.length && !skip && Math.random() < s.chance && !sp.rest;
   if (!play) return;
-  const same = ss.tied && sameNotes(ss.tied, s.notes);
-  if (ss.tied && !same) engineAt(t, ss.tied.map((nt) => ["note_off", nt]), "seq");
-  if (!same) {
-    engineAt(t + .001, s.notes.map((nt) => ["note_on", nt, s.vel]), "seq");
-    s.notes.forEach((nt) => ss.on.add(nt));
-    setTimeout(() => { s.notes.forEach((nt) => onNote(nt, s.vel)); seqLight(s.notes); }, wait);
+  const notes = s.notes.map((x) => x + sp.oct), vel = clamp(s.vel + sp.vel, .05, 1);
+  const voices = expandUni(notes);
+  const same = ss.tied && sameNotes(ss.tied, voices);
+  if (ss.tied && !same) { engineAt(t, ss.tied.map((nt) => ["note_off", nt]), "seq"); noteOut(ss.tiedOut, 0, null, t); }
+  const ratchet = Math.max(1, s.ratchet || 1), lenF = STEP_LEN_F[s.len] * (1 + sp.gate), tie = STEP_LENS[s.len] === "TIE" && ratchet === 1;
+  for (let r = 0; r < ratchet; r++) {
+    const tr = t + r * d / ratchet, len = ratchet > 1 ? d / ratchet * .55 : clamp(lenF, .05, .98) * d;
+    if (!(same && r === 0)) { engineAt(tr + .001, voices.map((nt) => ["note_on", nt, vel]), "seq"); noteOut(notes, vel, tr + .001, tie ? null : tr + len); }
+    voices.forEach((nt) => ss.on.add(nt));
+    if (!tie) engineAt(tr + len, voices.map((nt) => ["note_off", nt]), "seq");
+    setTimeout(() => { notes.forEach((nt) => onNote(nt, vel)); seqLight(notes); ss.flash[i] = animT; }, Math.max(0, (tr - audioNow()) * 1000));
   }
-  setTimeout(() => { ss.flash[i] = animT; }, wait);
-  if (STEP_LENS[s.len] === "TIE") ss.tied = [...s.notes];
-  else { engineAt(t + STEP_LEN_F[s.len] * d, s.notes.map((nt) => ["note_off", nt]), "seq"); ss.tied = null; }
+  if (tie) { ss.tied = [...voices]; ss.tiedOut = [...notes]; } else ss.tied = null;
+}
+// a tiny seeded random, so SPICE varies each step the same way every pass
+function hash01(a, b) { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function spiceFor(i) {
+  const sp = seq.spice || 0, dc = seq.dice || 0;
+  if (!sp) return { rest: false, oct: 0, vel: 0, gate: 0 };
+  return { rest: hash01(dc, i * 4) < sp * .3, oct: hash01(dc, i * 4 + 1) < sp * .25 ? (hash01(dc, i * 4 + 2) < .5 ? -12 : 12) : 0,
+           vel: (hash01(dc, i * 4 + 3) - .5) * sp * .6, gate: (hash01(dc + 7, i) - .5) * sp };
+}
+// note repeat: a key held while live-recording is written into every step it is held over
+function seqRepeat(i) {
+  if (!(ss.rec && ss.run) || !ss.recGroup || !ss.recGroup.notes || i === ss.recGroup.step) return;
+  const st = seq.steps[i];
+  st.notes = [...ss.recGroup.notes]; st.trig = 1; st.vel = ss.recGroup.vel; ss.recGroup.step = i;
 }
 // light the keybed under sequenced notes
 function seqLight(notes) {
@@ -1608,9 +1680,9 @@ function seqInput(notes, vel) {
     if (next) st.skipAt = ss.curT + ss.dur;                // it already sounds: don't play it twice this pass
     if (!ss.recGroup || ss.recGroup.step !== i) { ss.recGroup = { step: i }; st.notes = []; }
     for (const nt of notes) if (!st.notes.includes(nt)) st.notes.push(nt);
-    st.notes.sort((a, b) => a - b); st.trig = 1; st.vel = vel; dirty = true; return;
+    st.notes.sort((a, b) => a - b); st.trig = 1; st.vel = vel; ss.recGroup.notes = [...st.notes]; ss.recGroup.vel = vel; dirty = true; return;
   }
-  if (page !== "SEQ" && page !== "STEP") return;
+  if (!isSeqPage()) return;
   if (!ss.entry) { ss.entry = { step: ss.cursor }; seq.steps[ss.cursor].notes = []; }
   const st = seq.steps[ss.entry.step];
   for (const nt of notes) if (!st.notes.includes(nt)) st.notes.push(nt);
@@ -1621,13 +1693,65 @@ function seqRelease() {
   if (ss.entry) { if (page === "SEQ") ss.cursor = (ss.entry.step + 1) % seqLen(); ss.entry = null; dirty = true; }
   ss.recGroup = null;
 }
+const STEP2DEF = { kind: "seq", pages: [[I("RATCHET", 1, 4, 1), b("NUDGE", 0), n("SPICE", 0), I("DICE", 0, 99, 0)]] };
+const GEN_TOOLS = ["EUCLID", "RANDOM", "ACID", "ARP UP", "ARP UPDN", "BERLIN", "OCTAVES", "OFFBEAT", "ROLLING", "STABS", "PROGRESS", "GATES", "SHIFT >", "SHIFT <", "REVERSE", "DOUBLE", "HALF", "HUMANIZE", "CLEAR"];
+const GEN_AB = { EUCLID: ["PULSES", "ROTATE"], RANDOM: ["DENSITY", "LEAPS"], ACID: ["DENSITY", "TIES"], "ARP UP": ["OCTAVES", "GATE"], "ARP UPDN": ["OCTAVES", "GATE"],
+  BERLIN: ["VARIANT", "GATE"], OCTAVES: ["DENSITY", "GATE"], OFFBEAT: ["VARIANT", "GATE"], ROLLING: ["DENSITY", "GATE"], STABS: ["DENSITY", "7THS"],
+  PROGRESS: ["VARIANT", "7THS"], GATES: ["DENSITY", "VARIANT"], HUMANIZE: ["VELO", "NUDGE"] };
+ss.gen = { tool: 0, a: .5, b: .3, seed: 1 };
+function mulberry(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function scaleNote(R, k) { const deg = scaleDegs(), N = deg.length; return R + 12 * Math.floor(k / N) + deg[((k % N) + N) % N]; }
+function genApply() {
+  const L = seqLen(), G = ss.gen, tool = GEN_TOOLS[G.tool], A = G.a, B = G.b, rng = mulberry(G.seed * 7919 + G.tool * 101);
+  const key = chd.p[C_KEY], N = scaleDegs().length, bass = 36 + key, mid = 48 + key;
+  const set = (i, notes, vel = .75, len = 2, extra = {}) => { const st = seq.steps[i % 16]; Object.assign(st, blankStep(), { trig: 1, notes: notes.map((x) => clamp(Math.round(x), 12, 120)), vel, len }, extra); };
+  const clearAll = () => { for (let i = 0; i < 16; i++) Object.assign(seq.steps[i], blankStep()); };
+  const chordAt = (R, k, sev) => (sev ? [0, 2, 4, 6] : [0, 2, 4]).map((x) => scaleNote(R, k + x));
+  const gateIx = Math.round(B * 4);
+  switch (tool) {
+    case "EUCLID": {
+      const k = 1 + Math.round(A * (L - 1)), rot = Math.round(B * (L - 1));
+      const old = seq.steps.map((x) => (x.notes.length ? [...x.notes] : null)), fb = old.find(Boolean) || [mid];
+      for (let i = 0; i < L; i++) { const j = (i + rot) % L, hit = (i * k) % L < k; if (hit) set(j, old[j] || fb, i === 0 ? .9 : .7); else seq.steps[j].trig = 0; }
+      break;
+    }
+    case "RANDOM": { clearAll(); let d = 0; for (let i = 0; i < L; i++) if (rng() < .25 + A * .7) { d = clamp(d + Math.round((rng() * 2 - 1) * (1 + B * 5)), -N, 2 * N); set(i, [scaleNote(mid, d)], .55 + rng() * .45, rng() < .12 ? 5 : rng() < .5 ? 2 : 1); } break; }
+    case "ACID": { clearAll(); const degs = [0, 0, 0, 0, 2, 4, N, -1, 1]; for (let i = 0; i < L; i++) if (rng() < .45 + A * .5) set(i, [scaleNote(bass, degs[Math.floor(rng() * degs.length)]) + (rng() < .2 ? 12 : 0)], rng() < .3 ? 1 : .65, rng() < B * .6 ? 5 : rng() < .5 ? 1 : 2); break; }
+    case "ARP UP": case "ARP UPDN": {
+      clearAll(); const oct = 1 + Math.round(A * 2), up = []; for (let o = 0; o < oct; o++) for (const x of [0, 2, 4]) up.push(scaleNote(mid, x + o * N));
+      const arr = tool === "ARP UP" ? up : up.concat(up.slice(1, -1).reverse());
+      for (let i = 0; i < L; i++) set(i, [arr[i % arr.length]], i % 4 ? .65 : .85, gateIx); break;
+    }
+    case "BERLIN": {
+      clearAll(); const V = [[0, 4, 7, 4, 0, 4, 9, 4, 0, 4, 7, 4, 2, 4, 9, 4], [0, 7, 2, 7, 4, 7, 2, 7, 0, 7, 2, 7, 5, 7, 4, 7], [0, 2, 4, 7, 9, 7, 4, 2, 0, 2, 4, 7, 11, 7, 4, 2]][Math.min(2, Math.floor(A * 3))];
+      for (let i = 0; i < L; i++) set(i, [scaleNote(bass + 12, V[i % 16])], i % 2 ? .6 : .8, gateIx); break;
+    }
+    case "OCTAVES": { clearAll(); for (let i = 0; i < L; i++) if (rng() < .6 + A * .4) set(i, [bass + (i % 2 ? 12 : 0)], i % 2 ? .6 : .9, gateIx); break; }
+    case "OFFBEAT": { clearAll(); for (let i = 2; i < L; i += 4) set(i, A < .5 ? [scaleNote(mid, 0)] : chordAt(mid, 0, false), .8, gateIx); break; }
+    case "ROLLING": { clearAll(); for (let i = 0; i < L; i++) if (i % 4 && rng() < .6 + A * .4) set(i, [bass], i % 4 === 1 ? .9 : .6, gateIx); break; }
+    case "STABS": { clearAll(); const hits = [0, 3, 6, 10, 12, 14]; hits.forEach((h, n2) => { if (h < L && (n2 < 4 || rng() < A)) set(h, chordAt(mid, n2 % 2 ? 4 : 0, B > .5), .8, 1); }); break; }
+    case "PROGRESS": {
+      clearAll(); const P = [[0, 5, 3, 4], [0, 3, 4, 0], [5, 3, 0, 4], [0, 4, 5, 3]][Math.min(3, Math.floor(A * 4))], span = Math.max(1, Math.floor(L / 4));
+      P.forEach((dg, n2) => { if (n2 * span < L) set(n2 * span, chordAt(mid, dg, B > .5), .7, 5); }); break;
+    }
+    case "GATES": { clearAll(); for (let i = 0; i < L; i++) if (rng() < .4 + A * .6) set(i, [mid], .5 + rng() * .5, Math.floor(rng() * (2 + B * 3))); break; }
+    case "SHIFT >": case "SHIFT <": { const part = seq.steps.slice(0, L), r = tool === "SHIFT >" ? 1 : L - 1; part.forEach((st, i) => { seq.steps[(i + r) % L] = st; }); break; }
+    case "REVERSE": seq.steps.splice(0, L, ...seq.steps.slice(0, L).reverse()); break;
+    case "DOUBLE": if (L > 8) { say("ONLY UP TO 8 STEPS", "SEQ"); return; } for (let i = 0; i < L; i++) seq.steps[L + i] = JSON.parse(JSON.stringify(seq.steps[i])); seq.p[1] = L * 2; break;
+    case "HALF": seq.p[1] = Math.max(1, Math.floor(L / 2)); break;
+    case "HUMANIZE": for (const st of seq.steps) if (st.trig) { st.vel = clamp(st.vel + (rng() - .5) * A * .5, .1, 1); st.nudge = clamp((rng() - .5) * B * .4, -1, 1); } break;
+    case "CLEAR": clearAll(); break;
+  }
+  say(`${tool} · ALGO LEFT TO UNDO`, "SEQ");
+}
 function seqEncoder(role, k) {
-  if (role === "select") { ss.cursor = clamp(ss.cursor + Math.sign(k), 0, 15); return; }
+  const d = Math.sign(k);
+  if (role === "select") { ss.cursor = clamp(ss.cursor + d, 0, 15); return; }
   if (role === "algo") {
+    if (page === "GEN") { if (d > 0) genApply(); else histGo(-1); return; }
     if (page === "SEQ") {
-      const dir = Math.sign(k);
-      for (const st of seq.steps) st.notes = st.notes.map((x) => clamp(x + dir, 12, 120));
-      say(`PATTERN ${dir > 0 ? "UP" : "DOWN"} 1`, "SEQ");
+      for (const st of seq.steps) st.notes = st.notes.map((x) => clamp(x + d, 12, 120));
+      say(`PATTERN ${d > 0 ? "UP" : "DOWN"} 1`, "SEQ");
     } else {
       const st = seq.steps[ss.cursor];
       if (k > 0) { say("TURN LEFT TO CLEAR", "STEP"); return; }
@@ -1641,10 +1765,21 @@ function seqEncoder(role, k) {
     const p = SEQDEF.pages[0][i], v = stepParam(p, seq.p[i], k);
     if (i === 0) { if (v && !ss.run) seqStart(); else if (!v && ss.run) seqStop(); }
     else seq.p[i] = v;
-    if (i === 1) ss.cursor = Math.min(ss.cursor, 15);
-  } else {
+  } else if (page === "STEP") {
     const st = seq.steps[ss.cursor], key = ["trig", "vel", "len", "chance"][i];
     st[key] = stepParam(STEPDEF.pages[0][i], st[key], k);
+  } else if (page === "STEP2") {
+    const st = seq.steps[ss.cursor], p = STEP2DEF.pages[0][i];
+    if (i === 0) st.ratchet = stepParam(p, st.ratchet || 1, k);
+    if (i === 1) st.nudge = stepParam(p, st.nudge || 0, k);
+    if (i === 2) seq.spice = stepParam(p, seq.spice || 0, k);
+    if (i === 3) { seq.dice = stepParam(p, seq.dice || 0, k); say(`DICE ${seq.dice}: A NEW VARIATION`, "SEQ"); }
+  } else if (page === "GEN") {
+    const G = ss.gen;
+    if (i === 0) G.tool = clamp(G.tool + d, 0, GEN_TOOLS.length - 1);
+    if (i === 1) G.a = clamp(G.a + k * .01, 0, 1);
+    if (i === 2) G.b = clamp(G.b + k * .01, 0, 1);
+    if (i === 3) G.seed = clamp(G.seed + d, 0, 99);
   }
 }
 
@@ -1757,6 +1892,9 @@ function drawSeqGrid() {
     }
     if (st.trig && !st.notes.length) { g.fillStyle = rgba(C.gold, inLen ? .8 : .3); g.beginPath(); g.moveTo(x + w / 2, y + 9); g.lineTo(x + w / 2 + 5, y + 14); g.lineTo(x + w / 2, y + 19); g.lineTo(x + w / 2 - 5, y + 14); g.fill(); }
     if (Object.keys(st.locks).length) dot(x + w - 4, y + 4, 1.6, C.gold, false);
+    if (st.trig && (st.ratchet || 1) > 1) for (let r = 0; r < st.ratchet; r++) rect(x + 3 + r * 4, y + 3, 2, 3, c);
+    if (st.trig && st.nudge) rect(x + w / 2 + st.nudge * (w / 2 - 2) - 1, y + h - 2, 2, 2, C.fg);
+    if (seq.spice && st.trig && inLen) { const sp = spiceFor(i); if (sp.rest) rect(x + 2, y + h / 2, w - 4, 1, rgba(C.warn, .6)); else if (sp.oct) T(x + w - 3, y + h - 3, sp.oct > 0 ? "+" : "−", { a: "right", size: 8, c: C.gold }); }
     if (st.trig && STEP_LENS[st.len] === "TIE" && inLen) rect(x + w - 2, y + h / 2 - 1, 5, 2, c);
     if (st.trig && st.chance < 1) for (let k = 0; k < 5; k++) if (k / 5 < st.chance) rect(x + 4 + k * 4, y + 3, 2, 1, C.dim);
     if (i === ss.cur && ss.run) frame(x - 1, y - 1, w + 2, h + 2, rgba(c, .9), 5);
@@ -1771,19 +1909,452 @@ function drawSeqGrid() {
   }
 }
 function drawSeq() {
-  const c = KC.seq, rec = ss.rec && ss.run;
-  if (page === "SEQ") {
-    header("SEQ", c, `${ss.run ? "PLAY" : "STOP"} · ${SEQ_RATES[seq.p[2]]}`, "SEQ");
-    drawSeqGrid();
-    cells(SEQDEF.pages[0], seq.p, null, c);
-  } else {
-    const st = seq.steps[ss.cursor], nl = Object.keys(st.locks).length;
-    header("STEP", c, `${ss.cursor + 1} · ${st.notes.length ? stepLabel(st) : "EMPTY"}${nl ? ` · ${nl}L` : ""}`, "STEP");
-    drawSeqGrid();
-    cells(STEPDEF.pages[0], [st.trig, st.vel, st.len, st.chance], null, c);
+  const c = KC.seq, rec = ss.rec && ss.run, st = seq.steps[ss.cursor], nl = Object.keys(st.locks).length;
+  const stepTitle = `${ss.cursor + 1} · ${st.notes.length ? stepLabel(st) : "EMPTY"}${nl ? ` · ${nl}L` : ""}`;
+  if (page === "SEQ") { header("SEQ", c, `${ss.run ? "PLAY" : "STOP"} · ${SEQ_RATES[seq.p[2]]}`, "SEQ", 4, 0); drawSeqGrid(); cells(SEQDEF.pages[0], seq.p, null, c); }
+  else if (page === "STEP") { header("STEP", c, stepTitle, "STEP", 4, 1); drawSeqGrid(); cells(STEPDEF.pages[0], [st.trig, st.vel, st.len, st.chance], null, c); }
+  else if (page === "STEP2") { header("STEP+", c, stepTitle, "STEP", 4, 2); drawSeqGrid(); cells(STEP2DEF.pages[0], [st.ratchet || 1, st.nudge || 0, seq.spice || 0, seq.dice || 0], null, c); }
+  else {
+    const G = ss.gen, tool = GEN_TOOLS[G.tool], ab = GEN_AB[tool];
+    header("GEN", c, `${tool} · ALGO → APPLY`, "SEQ", 4, 3); drawSeqGrid();
+    const L = seqLen(), eu = tool === "EUCLID";
+    const pa = ab ? (eu ? { l: ab[0], t: "int", min: 1, max: L } : { l: ab[0], t: "num" }) : null, pb = ab ? (eu ? { l: ab[1], t: "int", min: 0, max: Math.max(1, L - 1) } : { l: ab[1], t: "num" }) : null;
+    cells([{ l: "TOOL", t: "list", opts: GEN_TOOLS }, pa, pb, { l: "SEED", t: "int", min: 0, max: 99 }], [G.tool, eu ? 1 + Math.round(G.a * (L - 1)) : G.a, eu ? Math.round(G.b * (L - 1)) : G.b, G.seed], null, c);
   }
   if (rec && Math.floor(animT * 3) % 2) dot(214, 13, 3, C.warn, false);
   footer();
+}
+
+// ================================================================ 5c. after Clipper: undo / compare, morph, randomizer, library,
+// arpeggiator with a Turing machine, modulation sequencer lanes, voice modes, tuning, MIDI out, CPU readout
+
+// ---------------------------------------------------------------- undo and compare: every edit becomes a step once it rests
+const hist = { list: [], i: -1, orig: null, timer: 0, pending: "", applying: false, cmp: 0, cmpEdit: null, edited: false };
+const bodyOf = (s) => JSON.stringify({ ...s, name: 0, label: 0 });
+function snapNow(label) { return { ...snapshot(patchName), label }; }
+function histReset(label) { clearTimeout(hist.timer); const s = snapNow(label); hist.list = [s]; hist.i = 0; hist.orig = s; hist.cmp = 0; hist.cmpEdit = null; hist.edited = false; }
+function noteEdit(label) {
+  if (hist.applying) return;
+  if (hist.cmp) { hist.cmp = 0; hist.cmpEdit = null; }
+  hist.pending = label; clearTimeout(hist.timer); hist.timer = setTimeout(histCommit, 650);
+}
+function histCommit() {
+  const s = snapNow(hist.pending);
+  if (hist.list[hist.i] && bodyOf(hist.list[hist.i]) === bodyOf(s)) return;
+  hist.list = hist.list.slice(0, hist.i + 1); hist.list.push(s);
+  if (hist.list.length > 17) hist.list.shift();
+  hist.i = hist.list.length - 1;
+  hist.edited = !!hist.orig && bodyOf(s) !== bodyOf(hist.orig); dirty = true;
+}
+function applySnap(s) { hist.applying = true; restoreSnap(s); hist.applying = false; draw(); }
+function histGo(k) {
+  clearTimeout(hist.timer); if (hist.pending && hist.i === hist.list.length - 1) { histCommit(); hist.pending = ""; }
+  const j = clamp(hist.i + k, 0, hist.list.length - 1);
+  if (j === hist.i) { say(k < 0 ? "NOTHING TO UNDO" : "NOTHING TO REDO", "UNDO"); return; }
+  hist.i = j; applySnap(hist.list[j]);
+  hist.edited = bodyOf(hist.list[j]) !== bodyOf(hist.orig);
+  say(`${j - (hist.list.length - 1) || "NOW"} ${hist.list[j].label}`.trim(), "UNDO");
+}
+function setCompare(on) {
+  if (on === hist.cmp) return;
+  if (on) { hist.cmpEdit = snapNow("EDIT"); applySnap(hist.orig); }
+  else if (hist.cmpEdit) applySnap(hist.cmpEdit);
+  hist.cmp = on; say(on ? "COMPARE: AS LOADED" : "COMPARE: YOUR EDITS", "UNDO");
+}
+
+// ---------------------------------------------------------------- morph between two versions of the patch
+const morph = { a: null, b: null, x: 0, via: 0, lastVia: -1 };
+const lerp = (a, b, x) => a + (b - a) * x;
+function lerpParams(def, pa, pb, x) {
+  const flat = def ? def.pages.flat() : [];
+  return pa.map((v, i) => { const p = flat[i]; if (!p || pb[i] === undefined) return v; return p.t === "list" || p.t === "int" ? (x < .5 ? v : pb[i]) : lerp(v, pb[i], x); });
+}
+function morphTo(x) {
+  const A = morph.a, B = morph.b; if (!A || !B) return;
+  morph.x = x; hist.applying = true;
+  for (const s of SLOTS) {
+    const a = A.slots[s.id], b = B.slots[s.id], use = x < .5 ? a : b;
+    if (a.mod === b.mod) { if (rack[s.id].mod !== a.mod) rack[s.id] = { mod: a.mod, p: [...a.p] }; rack[s.id].p = lerpParams(MODULES[a.mod], a.p, b.p, x); }
+    else if (rack[s.id].mod !== use.mod) { const f = fitOf(s.id, use.mod); if (f.ok) rack[s.id] = { mod: use.mod, p: [...use.p] }; }
+  }
+  amp.p = lerpParams(AMP, A.amp, B.amp, x); lfo.p = lerpParams(LFOS, A.lfo, B.lfo, x);
+  matrix = A.matrix.map((r, i) => { const q = B.matrix[i]; return r.src === q.src && r.dst === q.dst && r.via === q.via ? { ...r, amt: lerp(r.amt, q.amt, x) } : { ...(x < .5 ? r : q) }; });
+  if (!morph.via) macros = A.macros.map((v, i) => lerp(v, B.macros[i], x));
+  hist.applying = false; noteEdit("MORPH"); draw();
+}
+
+// ---------------------------------------------------------------- randomizer by section
+const RAND_WHAT = ["SRC", "SHP", "AMP", "MOD", "FX", "MATRIX", "ALL"];
+const rnd = { what: 0, amt: .35, t: -9, changed: [] };
+function randomize() {
+  const what = RAND_WHAT[rnd.what], amt = rnd.amt, keep = /LEVEL|FREEZE|MODE$/;
+  const jiggle = (def, arr) => def.pages.flat().forEach((p, i) => {
+    if (keep.test(p.l) && !(def === AMP && p.l === "MODE" && false)) return;
+    if (p.t === "list") { if (Math.random() < amt * .6) arr[i] = Math.floor(Math.random() * p.opts.length); }
+    else if (p.t === "int") { if (Math.random() < amt * .5) arr[i] = Math.round(clamp(arr[i] + (Math.random() - .5) * amt * (p.max - p.min), p.min, p.max)); }
+    else if (p.t === "bip") arr[i] = clamp(arr[i] + (Math.random() * 2 - 1) * amt, -1, 1);
+    else arr[i] = clamp(arr[i] + (Math.random() * 2 - 1) * amt, 0, 1);
+  });
+  const slotIds = { SRC: ["SRC"], SHP: ["SHP"], MOD: ["MODA", "MODB"], FX: ["FX1", "FX2"], ALL: ["SRC", "SHP", "MODA", "MODB", "FX1", "FX2"] }[what] || [];
+  for (const id of slotIds) { const m = MODULES[rack[id].mod]; if (m) jiggle(m, rack[id].p); }
+  if (what === "AMP" || what === "ALL") jiggle({ pages: AMP.pages.slice(0, 3) }, amp.p);
+  if (what === "MOD" || what === "ALL") jiggle(LFOS, lfo.p);
+  if (what === "MATRIX" || what === "ALL") for (const r of matrix) if (r.src !== "—" && r.dst !== "—") r.amt = clamp(Math.round((r.amt + (Math.random() * 2 - 1) * amt) * 100) / 100, -1, 1);
+  rnd.t = animT; noteEdit(`RANDOM ${what}`); say(`RANDOM ${what} ${Math.round(amt * 100)}`, "RANDOM"); draw();
+}
+
+// ---------------------------------------------------------------- library: favourites and a filter for PRESETS
+const LIB_FILTERS = ["ALL", "FAVS", "USER", "PLAITS", "BRAIDS", "ELEMENTS"];
+const lib = { filter: 0, favs: new Set() };
+try { const v = JSON.parse(localStorage.getItem("fm1rack.lib.v1") || "null"); if (v) { lib.filter = v.filter || 0; lib.favs = new Set(v.favs || []); } } catch { /* defaults */ }
+function storeLib() { try { localStorage.setItem("fm1rack.lib.v1", JSON.stringify({ filter: lib.filter, favs: [...lib.favs] })); } catch { /* this visit only */ } }
+const entryKey = (e) => (e.u !== undefined ? `U${e.u}` : `F:${PRESETS[e.f].name}`);
+function entrySrc(e) { return e.u !== undefined ? userPatches[e.u].slots.SRC.mod : PRESETS[e.f].slots.SRC; }
+function filterList(list) {
+  const f = LIB_FILTERS[lib.filter];
+  const out = f === "ALL" ? list : f === "FAVS" ? list.filter((e) => lib.favs.has(entryKey(e))) : f === "USER" ? list.filter((e) => e.u !== undefined) : list.filter((e) => entrySrc(e) === f);
+  // favourites first
+  return [...out.filter((e) => lib.favs.has(entryKey(e))), ...out.filter((e) => !lib.favs.has(entryKey(e)))];
+}
+function currentEntry() { return patchList(true).find((e) => e.name === patchName) || patchList(true)[0]; }
+
+// ---------------------------------------------------------------- TOOLS page (HOME pressed three times)
+const TOOL_PAGES = ["UNDO", "MORPH", "RANDOM", "LIBRARY"];
+function toolParams() {
+  if (subpage === 0) return [[{ l: "HISTORY", t: "list", opts: hist.list.map((_, i) => String(i - (hist.list.length - 1) || "NOW")) }, hist.i], [{ l: "COMPARE", t: "list", opts: ["EDIT", "ORIG"] }, hist.cmp], [null], [null]];
+  if (subpage === 1) return [[{ l: "SET A", t: "list", opts: ["—", "STORED"] }, morph.a ? 1 : 0], [{ l: "SET B", t: "list", opts: ["—", "STORED"] }, morph.b ? 1 : 0], [{ l: "MORPH", t: "num" }, morph.x], [{ l: "VIA", t: "list", opts: ["KNOB", "M1", "M2", "M3", "M4"] }, morph.via]];
+  if (subpage === 2) return [[{ l: "WHAT", t: "list", opts: RAND_WHAT }, rnd.what], [{ l: "AMOUNT", t: "num" }, rnd.amt], [{ l: "ROLL", t: "list", opts: ["TURN"] }, 0], [{ l: "BACK", t: "list", opts: ["TURN"] }, 0]];
+  const e = currentEntry();
+  return [[{ l: "FILTER", t: "list", opts: LIB_FILTERS }, lib.filter], [{ l: "FAVOURITE", t: "list", opts: ["OFF", "ON"] }, e && lib.favs.has(entryKey(e)) ? 1 : 0], [null], [null]];
+}
+function toolEncoder(role, k) {
+  if (role === "select") { subpage = clamp(subpage + Math.sign(k), 0, TOOL_PAGES.length - 1); return; }
+  if (role === "algo") return;
+  const d = Math.sign(k);
+  if (subpage === 0) { if (role === 0) histGo(d); if (role === 1) setCompare(d > 0 ? 1 : 0); }
+  else if (subpage === 1) {
+    if (role === 0 && d > 0) { morph.a = snapshot("A"); say("MORPH A STORED", "MORPH"); }
+    if (role === 1 && d > 0) { morph.b = snapshot("B"); say("MORPH B STORED", "MORPH"); }
+    if (role === 2) { if (!morph.a || !morph.b) { say("STORE A AND B FIRST", "MORPH"); return; } morphTo(clamp(morph.x + k * .01, 0, 1)); }
+    if (role === 3) { morph.via = clamp(morph.via + d, 0, 4); morph.lastVia = -1; say(morph.via ? `MORPH FOLLOWS M${morph.via}` : "MORPH ON KNOB 3", "MORPH"); }
+  } else if (subpage === 2) {
+    if (role === 0) rnd.what = clamp(rnd.what + d, 0, RAND_WHAT.length - 1);
+    if (role === 1) rnd.amt = clamp(rnd.amt + k * .01, .02, 1);
+    if (role === 2 && d > 0) randomize();
+    if (role === 3 && d < 0) histGo(-1);
+  } else {
+    if (role === 0) { lib.filter = clamp(lib.filter + d, 0, LIB_FILTERS.length - 1); storeLib(); say(`PRESETS: ${LIB_FILTERS[lib.filter]} · ${patchList().length}`, "HOME"); }
+    if (role === 1) { const e = currentEntry(); if (!e) return; const key = entryKey(e); if (d > 0) lib.favs.add(key); else lib.favs.delete(key); storeLib(); say(d > 0 ? "FAVOURITE ★" : "NOT A FAVOURITE", "HOME"); }
+  }
+}
+function drawTools() {
+  const c = KC.tool;
+  header("TOOLS", c, TOOL_PAGES[subpage], "TOOLS", TOOL_PAGES.length, subpage);
+  well(VX, VY, VW, VH);
+  clipTo(VX, VY, VW, VH, () => [visUndo, visMorph, visRandom, visLibrary][subpage](VX, VY, VW, VH, c));
+  const tp = toolParams();
+  cells(tp.map((x) => x[0]), tp.map((x) => x[1] ?? 0), null, c);
+  footer();
+}
+function visUndo(X, Y, W, H, c) {
+  const n = hist.list.length;
+  for (let k = 0; k < 4; k++) {
+    const j = hist.i - 1 + k; if (j < 0 || j >= n) continue;
+    const y = Y + 12 + k * 14, cur = j === hist.i;
+    if (cur) rect(X + 4, y - 10, W - 8, 13, rgba(c, .18), 3);
+    T(X + 10, y, String(j - (n - 1) || "NOW"), { size: 9, c: cur ? c : C.dim });
+    T(X + 40, y, (hist.list[j].label || "").slice(0, 26), { size: 10, c: cur ? C.fg : C.dim });
+  }
+  // the timeline: one dot per step, the current one glowing
+  for (let j = 0; j < n; j++) dot(X + W - 8 - (n - 1 - j) * 7, Y + H - 6, j === hist.i ? 2.2 : 1.3, j === hist.i ? c : C.dim, j === hist.i);
+  if (hist.cmp) { rect(X + W - 54, Y + 4, 50, 13, C.gold, 3); T(X + W - 29, Y + 14, "ORIG", { a: "center", size: 10, c: "#111" }); }
+  else if (hist.edited) T(X + W - 6, Y + 14, "EDITED", { a: "right", size: 9, c: C.gold });
+}
+function visMorph(X, Y, W, H, c) {
+  const A = morph.a, B = morph.b;
+  rect(X + 6, Y + 8, 26, 20, A ? rgba(c, .7) : "#1b1b19", 4); T(X + 19, Y + 22, "A", { a: "center", size: 12, c: A ? "#111" : C.dim });
+  rect(X + W - 32, Y + 8, 26, 20, B ? rgba(c, .7) : "#1b1b19", 4); T(X + W - 19, Y + 22, "B", { a: "center", size: 12, c: B ? "#111" : C.dim });
+  const x0 = X + 40, x1 = X + W - 40, px = x0 + (x1 - x0) * morph.x;
+  rect(x0, Y + 17, x1 - x0, 2, C.faint, 1); rect(x0, Y + 17, px - x0, 2, c, 1); dot(px, Y + 18, 3, c);
+  if (A && B) {     // how far apart A and B are, parameter by parameter
+    const diffs = [];
+    for (const s of SLOTS) if (A.slots[s.id].mod === B.slots[s.id].mod) A.slots[s.id].p.forEach((v, i) => diffs.push(Math.abs(v - B.slots[s.id].p[i])));
+    A.amp.forEach((v, i) => diffs.push(Math.abs(v - B.amp[i])));
+    const nb = Math.min(diffs.length, 54), bw = (W - 12) / nb;
+    for (let i = 0; i < nb; i++) { const h = Math.min(1, diffs[i]) * 24, wob = 1 + .15 * Math.sin(animT * 3 + i); rect(X + 6 + i * bw, Y + H - 4 - h * wob, Math.max(1, bw - 1), h * wob, rgba(c, .25 + .6 * Math.min(1, diffs[i] * 2)), 1); }
+  } else T(X + W / 2, Y + H - 12, "TURN K1 AND K2 TO STORE A AND B", { a: "center", size: 9, c: C.dim });
+}
+function visRandom(X, Y, W, H, c) {
+  const age = animT - rnd.t, spin = Math.max(0, 1 - age * 1.5);
+  g.save(); g.translate(X + 30, Y + H / 2); g.rotate(spin * 6); rect(-13, -13, 26, 26, rgba(c, .8), 5);
+  const pips = [[-6, -6], [6, 6], [0, 0], [6, -6], [-6, 6]].slice(0, 1 + (Math.floor(animT * (spin ? 12 : 0)) % 5));
+  for (const [x, y] of pips) dot(x, y, 2, "#111", false);
+  g.restore();
+  T(X + 62, Y + 22, `RANDOM ${RAND_WHAT[rnd.what]}`, { size: 13 });
+  T(X + 62, Y + 38, `BY ${Math.round(rnd.amt * 100)} · K3 ROLLS · K4 BACK`, { size: 9, c: C.dim });
+  for (let i = 0; i < 20; i++) { const h = 4 + 10 * Math.abs(Math.sin(i * 1.7 + rnd.t * 9)) * (spin ? 1 : .6); rect(X + 62 + i * 8, Y + H - 4 - h, 5, h, rgba(c, .2 + spin * .6), 1); }
+}
+function visLibrary(X, Y, W, H, c) {
+  const list = patchList(), cur = list.findIndex((e) => e.name === patchName);
+  const top = clamp(cur - 1, 0, Math.max(0, list.length - 4));
+  for (let k = 0; k < 4 && top + k < list.length; k++) {
+    const e = list[top + k], y = Y + 13 + k * 14, sel = top + k === cur;
+    if (sel) rect(X + 4, y - 10, W - 8, 13, rgba(c, .18), 3);
+    if (lib.favs.has(entryKey(e))) T(X + 10, y, "★", { size: 10, c: C.gold });
+    T(X + 24, y, e.name.slice(0, 22), { size: 10, c: sel ? C.fg : C.dim });
+  }
+  T(X + W - 6, Y + 13, `${LIB_FILTERS[lib.filter]} ${list.length}`, { a: "right", size: 9, c });
+}
+
+// ---------------------------------------------------------------- arpeggiator (ARP pressed twice), with a Turing machine
+const ARP_MODES = ["OFF", "UP", "DOWN", "UPDN", "DNUP", "RANDOM", "ORDER", "CHORD", "REPEAT", "UP+8", "CONV", "DIVG", "PINKY", "THUMB", "TURING"];
+const ARP_RATES = ["1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32"], ARP_BEATS = [1, .5, 1 / 3, .25, 1 / 6, .125];
+const ARPDEF = { kind: "arp", pages: [[L("MODE", ARP_MODES), L("RATE", ARP_RATES, 3), I("OCTAVE", 1, 4, 1), n("GATE", .5)], [L("LATCH", ["OFF", "ON"]), n("MUTATE", .1), I("LOOP", 1, 16, 8), n("SWING", 0)]] };
+const arpS = { p: blankParams(ARPDEF) };
+try { const v = JSON.parse(localStorage.getItem("fm1rack.arp.v1") || "null"); if (v && v.length === arpS.p.length) arpS.p = v; } catch { /* defaults */ }
+function storeArp() { try { localStorage.setItem("fm1rack.arp.v1", JSON.stringify(arpS.p)); } catch { /* this visit only */ } }
+const arp = { pool: [], vel: .75, nextT: 0, idx: 0, reg: 0xb5ad, cur: [], flash: -9, running: false, step: 0 };
+const arpOn = () => arpS.p[0] > 0;
+// the notes the arp plays: held and latched keys (as chords), held MIDI notes, in the order they arrived
+function arpUpdate(pool, vel) {
+  if (vel) arp.vel = vel;
+  if (!pool.length && arpS.p[4] === 1) { arp.latchFree = true; return; }      // LATCH: keep the last notes
+  if (arpS.p[4] === 1 && arp.latchFree && pool.length) { arp.latchFree = false; arp.idx = 0; }
+  if (pool.length && !arp.pool.length) { arp.idx = 0; arp.nextT = 0; }
+  arp.pool = pool;
+}
+function arpSequence() {
+  const pool = arp.pool, mode = ARP_MODES[arpS.p[0]], oct = arpS.p[2];
+  const asc = []; const sorted = [...pool].sort((a, b) => a - b);
+  for (let o = 0; o < oct; o++) for (const nt of sorted) asc.push(nt + 12 * o);
+  const ord = []; for (let o = 0; o < oct; o++) for (const nt of pool) ord.push(nt + 12 * o);
+  const lo = asc[0], hi = asc[asc.length - 1];
+  switch (mode) {
+    case "DOWN": return [...asc].reverse();
+    case "UPDN": return asc.length > 2 ? asc.concat(asc.slice(1, -1).reverse()) : asc;
+    case "DNUP": { const d = [...asc].reverse(); return d.length > 2 ? d.concat(d.slice(1, -1).reverse()) : d; }
+    case "ORDER": return ord;
+    case "REPEAT": return asc.flatMap((x) => [x, x]);
+    case "UP+8": return asc.flatMap((x) => [x, x + 12]);
+    case "CONV": { const o = []; let a = 0, b = asc.length - 1; while (a <= b) { o.push(asc[a++]); if (a <= b) o.push(asc[b--]); } return o; }
+    case "DIVG": { const o = []; let m = Math.floor((asc.length - 1) / 2), k = 0; while (o.length < asc.length) { const j = m + (k % 2 ? -Math.ceil(k / 2) : Math.ceil(k / 2)); if (j >= 0 && j < asc.length) o.push(asc[j]); k++; } return o; }
+    case "PINKY": return asc.slice(0, -1).flatMap((x) => [x, hi]).concat(asc.length === 1 ? [hi] : []);
+    case "THUMB": return asc.slice(1).flatMap((x) => [lo, x]).concat(asc.length === 1 ? [lo] : []);
+    default: return asc;
+  }
+}
+function arpPick() {
+  const mode = ARP_MODES[arpS.p[0]];
+  if (mode === "CHORD") return [...arp.pool];
+  const sq = arpSequence(); if (!sq.length) return [];
+  if (mode === "RANDOM") return [sq[Math.floor(Math.random() * sq.length)]];
+  if (mode === "TURING") {      // a looping shift register; MUTATE is how often a bit flips
+    const L = arpS.p[6], mask = (1 << L) - 1;
+    let bit = (arp.reg >> (L - 1)) & 1; if (Math.random() < arpS.p[5] * .5) bit ^= 1;
+    arp.reg = ((arp.reg << 1) | bit) & mask;
+    const asc = [...sq].sort((a, b) => a - b);
+    return [asc[Math.min(asc.length - 1, Math.floor((arp.reg / Math.max(1, mask)) * asc.length))]];
+  }
+  return [sq[arp.idx++ % sq.length]];
+}
+function arpTick() {
+  if (!audio.on || !arpOn() || !arp.pool.length) { arp.running = false; return; }
+  const now = audioNow(), beat = 60 / glo.p[G_TEMPO], d = ARP_BEATS[arpS.p[1]] * beat;
+  if (!arp.running || arp.nextT < now - .05) { arp.nextT = now + .01; arp.running = true; arp.step = 0; }
+  while (arp.nextT < now + .1) {
+    const t = arp.nextT + (arp.step % 2 ? arpS.p[7] * .5 * d : 0), notes = expandUni(arpPick());
+    if (notes.length) {
+      engineAt(t, notes.map((x) => ["note_on", x, arp.vel]), "arp");
+      engineAt(t + Math.max(.02, arpS.p[3] * d * .95), notes.map((x) => ["note_off", x]), "arp");
+      noteOut(notes, arp.vel, t, t + Math.max(.02, arpS.p[3] * d * .95));
+      const wait = Math.max(0, (t - now) * 1000);
+      setTimeout(() => { arp.cur = notes; arp.flash = animT; notes.forEach((x) => onNote(x, arp.vel)); seqLight(notes); }, wait);
+    }
+    arp.nextT += d; arp.step++;
+  }
+}
+setInterval(arpTick, 25);
+function visArp(X, Y, W, H, c) {
+  const mode = ARP_MODES[arpS.p[0]];
+  if (mode === "OFF") { T(X + W / 2, Y + H / 2 + 4, "ARP OFF · TURN K1", { a: "center", size: 12, c: C.dim }); return; }
+  const sq = arp.pool.length ? arpSequence() : [];
+  const fl = Math.max(0, 1 - (animT - arp.flash) * 5);
+  if (mode === "TURING") {         // the register's bits, lit
+    const L = arpS.p[6];
+    for (let b = 0; b < 16; b++) { const on = b < L && ((arp.reg >> (L - 1 - b)) & 1); rect(X + 8 + b * 13.5, Y + 6, 10, 10, b >= L ? "#0e0e0d" : on ? rgba(c, .5 + .5 * fl) : "#1d1d1b", 2); }
+  }
+  const lo = Math.min(...(sq.length ? sq : [60])), hi = Math.max(...(sq.length ? sq : [72])), span = Math.max(12, hi - lo);
+  const n = Math.min(sq.length, 24), bw = (W - 16) / Math.max(1, n), top = mode === "TURING" ? Y + 22 : Y + 8;
+  for (let i = 0; i < n; i++) {
+    const h = 6 + ((sq[i] - lo) / span) * (Y + H - 6 - top - 6), on = arp.cur.includes(sq[i]) && fl > 0;
+    rect(X + 8 + i * bw, Y + H - 6 - h, Math.max(2, bw - 2), h, on ? rgba(c, .6 + .4 * fl) : rgba(c, .22), 2);
+  }
+  if (!sq.length) T(X + W / 2, Y + H / 2 + 8, `${mode} · HOLD SOME KEYS`, { a: "center", size: 11, c: C.dim });
+}
+
+// ---------------------------------------------------------------- modulation sequencer: four lanes of 16 steps, matrix sources SEQ 1-4
+const MSEQ_RATES = ["1/32", "1/16", "1/8", "1/4", "1/2", "1 BAR", "2 BARS"], MSEQ_BEATS = [.125, .25, .5, 1, 2, 4, 8];
+const MSEQ_SHAPES = ["—", "RAMP+", "RAMP-", "TRI", "SINE", "SQR", "RND", "FLAT", "INVERT", "SHIFT"];
+function shapeLane(name, v) {
+  const f = (i) => i / 15;
+  switch (name) {
+    case "RAMP+": return v.map((_, i) => f(i) * 2 - 1);
+    case "RAMP-": return v.map((_, i) => 1 - f(i) * 2);
+    case "TRI": return v.map((_, i) => 1 - Math.abs(i / 7.5 - 1) * 2);
+    case "SINE": return v.map((_, i) => Math.sin(i / 16 * TAU));
+    case "SQR": return v.map((_, i) => (i % 8 < 4 ? 1 : -1));
+    case "RND": return v.map(() => Math.round((Math.random() * 2 - 1) * 8) / 8);
+    case "FLAT": return v.map(() => 0);
+    case "INVERT": return v.map((x) => -x);
+    case "SHIFT": return v.map((_, i) => v[(i + 15) % 16]);
+    default: return v;
+  }
+}
+const blankMseq = () => ({ rate: 2, lanes: ["RAMP+", "TRI", "SQR", "RND"].map((s) => ({ v: shapeLane(s, new Array(16).fill(0)), smooth: s === "SQR" ? 0 : .3 })) });
+let mseq = blankMseq();
+const ms = { lane: 0, cursor: 0, anchor: 0, last: -1, cur: -1, shape: 0 };
+function msRealign(t) { ms.anchor = t; ms.last = -1; }
+function msTick() {
+  if (!audio.on) return;
+  const now = audioNow(), d = MSEQ_BEATS[mseq.rate] * 60 / glo.p[G_TEMPO];
+  if (!ms.anchor || now - ms.anchor > 3600) msRealign(now);
+  const upto = Math.floor((now + .08 - ms.anchor) / d);
+  if (ms.last < upto - 8) ms.last = upto - 1;
+  for (let s = ms.last + 1; s <= upto; s++) {
+    const t = ms.anchor + s * d, st = ((s % 16) + 16) % 16;
+    engineAt(t, mseq.lanes.map((l, i) => ["set_ext", i, l.v[st]]), "ms");
+    setTimeout(() => { ms.cur = st; dirty = true; }, Math.max(0, (t - now) * 1000));
+  }
+  ms.last = upto;
+}
+setInterval(msTick, 25);
+function mseqParams() {
+  const ln = mseq.lanes[ms.lane];
+  return [[{ l: "VALUE", t: "bip" }, ln.v[ms.cursor]], [{ l: "SHAPE", t: "list", opts: MSEQ_SHAPES }, ms.shape], [{ l: "RATE", t: "list", opts: MSEQ_RATES }, mseq.rate], [{ l: "SMOOTH", t: "num" }, ln.smooth]];
+}
+function mseqEncoder(role, k) {
+  const ln = mseq.lanes[ms.lane], d = Math.sign(k);
+  if (role === "select") { ms.cursor = clamp(ms.cursor + d, 0, 15); return; }
+  if (role === "algo") { ms.lane = clamp(ms.lane + d, 0, 3); ms.shape = 0; return; }
+  if (role === 0) ln.v[ms.cursor] = clamp(Math.round((ln.v[ms.cursor] + k * .02) * 100) / 100, -1, 1);
+  if (role === 1) { ms.shape = clamp(ms.shape + d, 0, MSEQ_SHAPES.length - 1); if (ms.shape) ln.v = shapeLane(MSEQ_SHAPES[ms.shape], ln.v); }
+  if (role === 2) mseq.rate = clamp(mseq.rate + d, 0, MSEQ_RATES.length - 1);
+  if (role === 3) ln.smooth = clamp(ln.smooth + k * .01, 0, 1);
+  noteEdit(`SEQ ${ms.lane + 1} ${["VALUE", "SHAPE", "RATE", "SMOOTH"][role]}`);
+}
+function drawMseq() {
+  const c = KC.lfo;
+  header("MSEQ", c, `LANE ${ms.lane + 1} · ${ms.cursor + 1}`, "LFO");
+  well(VX, VY, VW, VH);
+  // the lane being edited, drawn big; the other three small underneath
+  const big = mseq.lanes[ms.lane], bw = (VW - 8) / 16, mid = VY + 22;
+  for (let i = 0; i < 16; i++) {
+    const v = big.v[i], x = VX + 4 + i * bw, on = i === ms.cur, h = v * 18;
+    rect(x + 1, Math.min(mid, mid - h), bw - 2, Math.max(1, Math.abs(h)), on ? c : rgba(c, .45), 1);
+    if (i === ms.cursor && Math.floor(animT * 3) % 2) frame(x, VY + 2, bw, 40, "#fff", 2);
+    if (on) rect(x + 1, VY + 42, bw - 2, 2, C.fg);
+  }
+  rect(VX + 4, mid, VW - 8, 1, C.faint);
+  let row = 0;
+  for (let L = 0; L < 4; L++) {
+    if (L === ms.lane) continue;
+    const y = VY + 50 + row * 4;
+    T(VX + 4, y + 3, String(L + 1), { size: 6, c: C.dim });
+    for (let i = 0; i < 16; i++) rect(VX + 12 + i * 13.4, y, 12, 3, rgba(c, .15 + .6 * Math.abs(mseq.lanes[L].v[i]) * (i === ms.cur ? 1.6 : 1)), 1);
+    row++;
+  }
+  const mp = mseqParams();
+  cells(mp.map((x) => x[0]), mp.map((x) => x[1]), null, c);
+  footer();
+}
+
+// ---------------------------------------------------------------- voice modes, tuning
+function expandUni(notes) {
+  const m = amp.p[A_MODE]; if (m < 3) return notes;
+  const d = amp.p[A_DETUNE] * .3, offs = m === 3 ? [-d, d] : [-d, -d / 3, d / 3, d];
+  return notes.flatMap((x) => offs.map((o) => Math.round((x + o) * 1000) / 1000));
+}
+function tuningCalls() {
+  const [, table] = TUNINGS[glo.p[G_TUNE]], N = table.length, rootPc = glo.p[G_TROOT];
+  const a4 = 12 * Math.log2(glo.p[G_A4] / 440), R = 60 - ((60 - rootPc) % 12 + 12) % 12;
+  const calls = [];
+  for (let x = 0; x < 128; x++) {
+    let tuned;
+    if (N === 12) { const pc = (((x - R) % 12) + 12) % 12; tuned = x + (table[pc] - pc * 100) / 100; }
+    else { const dd = x - R, o = Math.floor(dd / N), deg = ((dd % N) + N) % N; tuned = R + (o * 1200 + table[deg]) / 100; }
+    calls.push(["set_tune", x, tuned - x + a4]);
+  }
+  return calls;
+}
+
+// ---------------------------------------------------------------- MIDI out: keys, sequencer and arp notes, and the macros as CCs
+const mout = { outs: [] };
+function midiSend(bytes, at) {
+  if (!glo.p[G_MOUT] || !mout.outs.length) return;
+  const ts = at ? performance.now() + Math.max(0, (at - audioNow()) * 1000) : undefined;
+  for (const o of mout.outs) try { o.send(bytes, ts); } catch { /* port gone */ }
+}
+function noteOut(notes, vel, onAt, offAt) {
+  if (!glo.p[G_MOUT]) return;
+  const ch = glo.p[G_OUTCH] & 15, seen = new Set();
+  for (const x of notes) {
+    const nn = clamp(Math.round(x), 0, 127); if (seen.has(nn)) continue; seen.add(nn);
+    if (onAt !== null) midiSend([0x90 | ch, nn, clamp(Math.round(vel * 127), 1, 127)], onAt);
+    if (offAt !== null && offAt !== undefined) midiSend([0x80 | ch, nn, 0], offAt);
+  }
+}
+function ccOut(cc, v) { if (glo.p[G_MOUT] === 2) midiSend([0xB0 | (glo.p[G_OUTCH] & 15), cc, clamp(Math.round(v * 127), 0, 127)]); }
+
+// ---------------------------------------------------------------- GLOBAL bands for the new pages: tuning, MIDI, system load
+const cpuHist = [];
+function visTuning(X, Y, W, H, c) {
+  const [name, table] = TUNINGS[glo.p[G_TUNE]], N = table.length;
+  T(X + 8, Y + 16, name, { size: 14 }); T(X + 8, Y + 30, `${N} NOTES · ROOT ${KEYS12[glo.p[G_TROOT]]} · A4 ${glo.p[G_A4]} HZ`, { size: 9, c: C.dim });
+  // each degree against equal temperament
+  for (let i = 0; i < N; i++) {
+    const x = X + 8 + i * ((W - 16) / N), cents = N === 12 ? table[i] - i * 100 : table[i] - Math.round(table[i] / 100) * 100;
+    const h = clamp(cents, -50, 50) / 50 * 12, wob = Math.sin(animT * 2 + i) * .5;
+    rect(x, Y + 50 - Math.max(0, h) + wob, Math.max(2, (W - 16) / N - 2), Math.max(1, Math.abs(h)), rgba(c, .7), 1);
+  }
+  rect(X + 8, Y + 50, W - 16, 1, C.faint);
+}
+function visMidiOut(X, Y, W, H, c) {
+  const on = glo.p[G_MOUT];
+  icon("MIDI", X + 8, Y + 8, on ? C.ok : C.dim);
+  T(X + 26, Y + 18, on ? `OUT ON CH ${glo.p[G_OUTCH] + 1}${on === 2 ? " · MACRO CCS 21-24" : ""}` : "MIDI OUT OFF", { size: 10 });
+  T(X + 26, Y + 32, `${mout.outs.length} OUTPUT${mout.outs.length === 1 ? "" : "S"} · PROG CHANGE ${glo.p[G_PROG] ? "ON" : "OFF"}`, { size: 9, c: C.dim });
+  T(X + 26, Y + 46, glo.p[G_LOCAL] ? "LOCAL OFF: KEYS ONLY SEND MIDI" : `BEND ±${glo.p[G_BEND]} · CC11 EXPRESSION ${Math.round(midiState.expr * 100)}`, { size: 9, c: glo.p[G_LOCAL] ? C.warn : C.dim });
+}
+function visSystem(X, Y, W, H, c) {
+  const st = audio.cpu || [0, 0, 0], bg = budget();
+  T(X + 8, Y + 14, `CPU ${Math.round(st[0])}%`, { size: 12 }); T(X + 80, Y + 14, `PEAK ${Math.round(st[1])}%`, { size: 10, c: st[1] > 90 ? C.warn : C.dim });
+  T(X + 150, Y + 14, `LATE ${st[2]}`, { size: 10, c: st[2] ? C.warn : C.dim });
+  T(X + 8, Y + 27, `BROWSER ESTIMATE · FM-1 BUDGET ${bg.cpu}/${BUDGET} UNITS`, { size: 8, c: C.dim });
+  const n = cpuHist.length;
+  const pts = cpuHist.map((v, i) => [X + 6 + i * ((W - 12) / Math.max(1, HIST - 1)), Y + H - 4 - Math.min(1, v / 100) * 26]);
+  rect(X + 6, Y + H - 30, W - 12, 26, "#0f0f0e", 2);
+  if (n > 1) glow(pts, st[0] > 70 ? C.warn : c);
+}
+
+// ARP is a fixed page like AMP and GLOBAL
+FIXED.ARP = [ARPDEF, arpS];
+
+// MASTER band: the EQ's curve, and how hard the compressor and limiter are working
+function visMaster(X, Y, W, H, c) {
+  const gains = [glo.p[G_LOW] * 12, glo.p[G_MID] * 10, glo.p[G_HIGH] * 12], pts = [];
+  for (let i = 0; i <= 60; i++) {
+    const f = 20 * Math.pow(1000, i / 60), lf = Math.log2(f);
+    const db = gains[0] / (1 + Math.pow(2, (lf - Math.log2(150)) * 3)) + gains[1] * Math.exp(-Math.pow(lf - Math.log2(1000), 2) * 1.2) + gains[2] / (1 + Math.pow(2, -(lf - Math.log2(5000)) * 3));
+    pts.push([X + 6 + i * ((W - 70) / 60), Y + H / 2 - db * 1.8]);
+  }
+  rect(X + 6, Y + H / 2, W - 70, 1, C.faint); glow(pts, c);
+  const comp = mon[160] || 0, lim = mon[161] || 0, mx = X + W - 56;
+  for (const [k, lab, v] of [[0, "COMP", comp], [1, "LIMIT", lim]]) {
+    const x = mx + k * 26;
+    rect(x, Y + 6, 10, H - 22, "#141413", 2);
+    const h = clamp(v / 12, 0, 1) * (H - 22); rect(x, Y + 6, 10, h, v > 6 ? C.warn : C.gold, 2);
+    T(x + 5, Y + H - 5, lab, { a: "center", size: 7, c: C.dim });
+  }
 }
 
 // ================================================================ 6. engine bridge, MIDI, main loop
@@ -1830,7 +2401,13 @@ function syncEngine() {
     put(`r${i}`, ["set_route", i, d ? sidx : 0, d ? d[0] : 0, d ? d[1] : 0, r.amt, srcIndex(r.via)]);
   });
   macros.forEach((v, i) => put(`m${i}`, ["set_macro", i, v]));
-  put("master", ["set_master", master]);
+  put("master", ["set_master", master * midiState.expr]);
+  put("mfx", ["set_master_fx", glo.p[G_LOW] * 12, glo.p[G_MID] * 10, glo.p[G_HIGH] * 12, glo.p[G_COMP]]);
+  put("legato", ["set_legato", amp.p[A_MODE] === 1 ? 0 : 1]);
+  put("vintage", ["set_vintage", amp.p[A_VINTAGE]]);
+  mseq.lanes.forEach((l, i) => put(`slew${i}`, ["set_ext_slew", i, 1 - l.smooth * .995]));
+  const tk = `${glo.p[G_TUNE]}.${glo.p[G_TROOT]}.${glo.p[G_A4]}`;
+  if (sent.tune !== tk) { sent.tune = tk; calls.push(...tuningCalls()); }
   put("voices", ["set_voices", Math.max(1, budget().voices)]);
   if (calls.length) audio.node.port.postMessage({ type: "calls", calls });
 }
@@ -1844,8 +2421,8 @@ function applyGlobal() {
   draw();
 }
 
-// ---------------------------------------------------------------- MIDI in: notes, CC 1 and 21-24 to macros, CC 64 hold, clock
-const midiState = { inputs: 0, denied: false, last: 0, clock: [], clockLock: false, sustain: false, deferred: new Set() };
+// ---------------------------------------------------------------- MIDI over USB: everything in, notes / clock / CCs / programs out
+const midiState = { inputs: 0, outputs: 0, denied: false, last: 0, clock: [], clockLock: false, sustain: false, deferred: new Set(), expr: 1, bend: 0, bank: 0 };
 const midiNotes = new Map(), midiPlay = new Map();
 function midiOn(nn, vel, fromLoop = false) {
   vel = fromLoop ? vel : velCurve(vel);
@@ -1853,7 +2430,7 @@ function midiOn(nn, vel, fromLoop = false) {
   if (midiNotes.has(nn)) notesOff(midiNotes.get(nn));
   midiState.deferred.delete(nn);
   if (!fromLoop) seqInput(notes, vel);
-  midiNotes.set(nn, notesOn(notes, vel));
+  midiNotes.set(nn, arpOn() ? { notes, voices: [], at: [], out: false } : notesOn(notes, vel, fromLoop ? "loop" : "midi"));
   if (!fromLoop) recEvent({ type: "midi", n: nn, on: true, vel });
   refreshKeys();
 }
@@ -1864,42 +2441,91 @@ function midiOff(nn, fromLoop = false) {
   if (!fromLoop) recEvent({ type: "midi", n: nn, on: false });
   refreshKeys(); if (!fromLoop) seqRelease();
 }
+// the knob under Knob 1-4 on the page on screen, for CC 70-73 in and out
+function pageRef(i) {
+  if (FIXED[page] && page !== "AMP" && page !== "LFOS") { const def = FIXED[page][0], p = def.pages[subpage] && def.pages[subpage][i]; return p ? { ref: { w: page, idx: def.pages.slice(0, subpage).flat().length + i }, p } : null; }
+  const ref = lockRefFor(SLOTS.find((x) => x.id === page), i); return ref ? { ref, p: refParam(ref) } : null;
+}
+const toNorm = (p, v) => p.t === "list" ? v / Math.max(1, p.opts.length - 1) : p.t === "int" ? (v - p.min) / (p.max - p.min) : p.t === "bip" ? (v + 1) / 2 : v;
+const fromNorm = (p, x) => p.t === "list" ? Math.round(x * (p.opts.length - 1)) : p.t === "int" ? Math.round(p.min + x * (p.max - p.min)) : p.t === "bip" ? x * 2 - 1 : x;
+function knobCcOut(ref, v) {
+  if (glo.p[G_MOUT] !== 2) return;
+  for (let i = 0; i < 4; i++) { const pr = pageRef(i); if (pr && pr.ref.w !== "GLOBAL" && lockKey(pr.ref) === lockKey(ref)) { ccOut(70 + i, toNorm(pr.p, v)); return; } }
+}
+function allSoundOff() {
+  midiNotes.clear(); latched.clear(); held.clear(); sounding.clear(); arp.pool = [];
+  engine(["all_off"]); refreshKeys();
+}
+function resetControllers() {
+  midiState.bend = 0; midiState.expr = 1; midiState.sustain = false; midiState.deferred.clear();
+  engine(["set_bend", 0]); engine(["set_ext", 4, 0]); engine(["set_ext", 5, 0]); draw();
+}
 function onMidi(e) {
   const d = e.data, st = d[0];
   midiState.last = performance.now();
   if (st === 0xF8) {
     if (glo.p[G_CLOCK] !== 1) return;
-    const ct = midiState.clock; ct.push(performance.now()); if (ct.length > 25) ct.shift();
-    if (ct.length === 25) {
-      const bpm = clamp(Math.round(60000 / (ct[24] - ct[0])), 60, 180);
+    const ct = midiState.clock; ct.push(performance.now()); if (ct.length > 49) ct.shift();
+    if (ct.length >= 25) {     // averaged over up to two beats, so a steady master reads steady
+      const bpm = clamp(Math.round(60000 * (ct.length - 1) / 24 / (ct[ct.length - 1] - ct[0])), 60, 180);
       if (bpm !== glo.p[G_TEMPO]) { glo.p[G_TEMPO] = bpm; draw(); }
       midiState.clockLock = true;
     }
     return;
   }
   if (st === 0xFA) { engine(["reset_clock"]); if (seq.steps.some((x) => x.trig)) { if (ss.run) seqStop(); seqStart(); } return; }
+  if (st === 0xFB) { if (!ss.run && seq.steps.some((x) => x.trig)) seqStart(); return; }
   if (st === 0xFC) { if (ss.run) seqStop(); draw(); return; }
   if (st >= 0xF0) return;
   const type = st & 0xF0, ch = (st & 0x0F) + 1, want = glo.p[G_MIDICH];
   if (want && ch !== want) return;
   if (type === 0x90 && d[2] > 0) midiOn(d[1], d[2] / 127);
   else if (type === 0x80 || type === 0x90) midiOff(d[1]);
+  else if (type === 0xE0) { midiState.bend = (((d[2] << 7) | d[1]) - 8192) / 8192; engine(["set_bend", midiState.bend * glo.p[G_BEND]]); }
+  else if (type === 0xD0) engine(["set_ext", 5, d[1] / 127]);
+  else if (type === 0xA0) engine(["set_ext", 5, d[2] / 127]);
+  else if (type === 0xC0) {
+    if (!glo.p[G_PROG]) return;
+    const list = patchList(true), ix = midiState.bank * 128 + d[1];
+    if (ix < list.length) { lib.filter = 0; presetIx = ix; loadPreset(ix); engine(["all_off"]); sounding.clear(); refreshKeys(); say(patchName, "HOME"); }
+  }
   else if (type === 0xB0) {
-    const v = d[2] / 127;
-    if (d[1] === 1) { setRef({ w: "macro", i: 0 }, v); learnMacro = 0; draw(); }
-    else if (d[1] >= 21 && d[1] <= 24) { setRef({ w: "macro", i: d[1] - 21 }, v); learnMacro = d[1] - 21; draw(); }
-    else if (d[1] === 64) { midiState.sustain = d[2] >= 64; if (!midiState.sustain) { for (const nn of [...midiState.deferred]) { midiState.deferred.delete(nn); midiOff(nn); } } }
-    else if (d[1] === 123) { for (const nn of [...midiNotes.keys()]) midiOff(nn); }
+    const cc = d[1], v = d[2] / 127;
+    if (cc === 0) midiState.bank = d[2];
+    else if (cc === 1) { engine(["set_ext", 4, v]); setRef({ w: "macro", i: 0 }, v); learnMacro = 0; draw(); }
+    else if (cc === 2) engine(["set_ext", 5, v]);
+    else if (cc === 7) { master = v; draw(); }
+    else if (cc === 11) { midiState.expr = v; draw(); }
+    else if (cc >= 16 && cc <= 19) { setRef({ w: "macro", i: cc - 16 }, v); learnMacro = cc - 16; draw(); }
+    else if (cc >= 21 && cc <= 24) { setRef({ w: "macro", i: cc - 21 }, v); learnMacro = cc - 21; draw(); }
+    else if (cc >= 70 && cc <= 73) { const pr = pageRef(cc - 70); if (pr) { setRef(pr.ref, fromNorm(pr.p, v)); draw(); } }
+    else if (cc === 64) { midiState.sustain = d[2] >= 64; if (!midiState.sustain) { for (const nn of [...midiState.deferred]) { midiState.deferred.delete(nn); midiOff(nn); } } }
+    else if (cc === 120) allSoundOff();
+    else if (cc === 121) resetControllers();
+    else if (cc === 122) { glo.p[G_LOCAL] = d[2] >= 64 ? 0 : 1; storeGlobal(); draw(); }
+    else if (cc === 123) { for (const nn of [...midiNotes.keys()]) midiOff(nn); }
   }
 }
 async function midiStart() {
   if (!navigator.requestMIDIAccess) { midiState.denied = true; return; }
   try {
     const access = await navigator.requestMIDIAccess();
-    const bind = () => { midiState.inputs = access.inputs.size; for (const input of access.inputs.values()) input.onmidimessage = onMidi; draw(); };
+    const bind = () => {
+      midiState.inputs = access.inputs.size; midiState.outputs = access.outputs.size;
+      for (const input of access.inputs.values()) input.onmidimessage = onMidi;
+      mout.outs = [...access.outputs.values()]; draw();
+    };
     access.onstatechange = bind; bind();
   } catch { midiState.denied = true; }
 }
+// MIDI clock out (24 per beat) while the internal clock leads and MIDI OUT is on
+const clockOut = { next: 0 };
+setInterval(() => {
+  if (!audio.on || !glo.p[G_MOUT] || glo.p[G_CLOCK] === 1 || !mout.outs.length) { clockOut.next = 0; return; }
+  const now = audioNow(), d = 60 / glo.p[G_TEMPO] / 24;
+  if (!clockOut.next || clockOut.next < now - .1) clockOut.next = now + .01;
+  while (clockOut.next < now + .1) { midiSend([0xF8], clockOut.next); clockOut.next += d; }
+}, 25);
 
 // ---------------------------------------------------------------- switching on
 async function switchOn() {
@@ -1917,7 +2543,7 @@ async function switchOn() {
         const m = e.data;
         if (m.type === "ready") res();
         else if (m.type === "error") rej(new Error(m.message));
-        else if (m.type === "mon") { audio.scope = m.scope; mon = m.mon; }
+        else if (m.type === "mon") { audio.scope = m.scope; mon = m.mon; if (m.cpu) { audio.cpu = m.cpu; if (cpuHist.push(m.cpu[0]) > HIST) cpuHist.shift(); } }
       };
       node.port.postMessage({ type: "load", wasm }, [wasm]);
     });
