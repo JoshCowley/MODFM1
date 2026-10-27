@@ -1,8 +1,8 @@
-# FM1 Rack 1.4 Manual
+# FM1 Rack 1.5 Manual
 
 Oct 26, 2026 · Josh Cowley
 
-FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.4 browser build, which runs the original module code.
+FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.5 browser build, which runs the original module code.
 
 ## Quick start
 
@@ -465,7 +465,27 @@ LFO 1 +, LFO 2 + and LFO 3 + add four controls to each LFO: **FADE** (fades the 
 | DELAY | TIME gains 1/8T, 1/4T, 1/4D and 1/2D. Page 2: WIDTH (narrower or wider repeats), DUCK (the repeats dip while you play). Page 3: LO CUT (thins the repeats), SYNC (TEMPO, or FREE time), FREE MS (10 ms to 2 s) |
 | REVERB | Page 2: LO CUT. Page 3: WIDTH and DUCK |
 | CHORUS | Page 2: MODE (CHORUS, FLANGER, VIBRATO), FEEDBACK and DELAY |
-| CLOUDS | Page 3: QUALITY (16-bit or 8-bit, stereo or mono, as the hardware's button; 8-bit is lo-fi). Page 4: IN GAIN, NOTE TRG (a grain on each new note) and PITCH TRK (grains follow the note you play) |
+| CLOUDS | Page 3: QUALITY (16-bit or 8-bit, stereo or mono, as the hardware's button; 8-bit is lo-fi). Page 4: IN GAIN, NOTE TRG (a grain on each new note) and PITCH TRK (grains follow the note you play), GRN SYNC. Pages 5 and 6: the granular controls below |
+
+### Granular controls (Clouds, 1.5)
+
+Clouds now has the controls of current granular instruments such as Make Noise's Morphagene, Hologram's Microcosm, the Tasty Chips GR-1 and Ableton's Granulator. They are made around Clouds' own engine, so they work best in GRANULR mode; in the other modes they add movement rather than shaping single grains.
+
+| Page | Control | What it does |
+| --- | --- | --- |
+| 4 | GRN SYNC | OFF, or fires a grain on every 1/16, 1/8, 1/4 or 1/2 note of the tempo. With DENSITY at 12 o'clock (no free grains) you get purely rhythmic grains |
+| 5 | SPRAY | Each grain starts at a random distance from POSITION |
+|  | PITCH RND | Each grain gets a random pitch, up to two octaves either way |
+|  | PITCH QNT | Keeps the random pitches musical: FREE, SEMI (semitones), 5TH+OCT (fifths and octaves) or OCT |
+|  | SIZE RND | Each grain is shortened by a random amount |
+| 6 | SCAN | The read position travels through the buffer by itself: right forwards, left backwards, faster further out. At 0 it stops and POSITION is in charge again |
+|  | TONE | Darkens (left) or thins (right) the granular signal only; the dry sound passes untouched. Just off zero the wet level can drop by about 1 dB, because the wet is taken out of Clouds and mixed again |
+
+### Modulating the effects (1.5)
+
+Every effect parameter can now be modulated, the switch-type ones too: DELAY TIME, MODE and SYNC, REVERB TYPE, CHORUS MODE, and Clouds' MODE, FREEZE, QUALITY, NOTE TRG, PITCH TRK, GRN SYNC and PITCH QNT. Modulation steps a switch through its options, so an LFO can flip FREEZE on and off or hop between delay times. Changing Clouds' QUALITY clears its buffer, so modulating it gives deliberate dropouts.
+
+Each LFO also has a **TARGET** page of its own (LFO pages 7, 8 and 9, after the LFO + pages): **DEST A** and **DEST B** (Knobs 1 and 3) and their **AMT** (Knobs 2 and 4). Turning DEST right goes through the effect parameters first, then everything else the matrix can reach. These targets don't use matrix rows, so the 12 rows stay free. They are saved with the patch; a destination whose module has been swapped out shows in orange and does nothing until the module returns.
 
 The CPU and RAM figures in **Voices and the budget** are unchanged. LP24 and AUDIO FM cost a little more than the other filter types; that will show up when the costs are measured on the FM-1.
 
