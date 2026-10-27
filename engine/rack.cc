@@ -66,7 +66,8 @@ static float mod_out_[4];       // MOD A out0/out1, MOD B out0/out1
 static float pitch_mod_dummy;
 
 struct Route { int src, slot, param, via; float amt; };
-static Route routes_[12];
+static const int NROUTE = 18;   // 12 matrix rows, then two direct targets per LFO
+static Route routes_[NROUTE];
 
 // ------------------------------------------------------------------ voice
 struct VoiceState {
@@ -100,6 +101,9 @@ static uint32_t age_counter_ = 0;
 // ------------------------------------------------------------------ shared
 static clouds::GranularProcessor clouds_;
 static int clouds_quality_ = 0;
+static float cl_scan_ = 0.0f, cl_tone_l_ = 0.0f, cl_tone_r_ = 0.0f;
+static int cl_grid_ = -1;
+namespace clouds { extern const float lut_xfade_in[]; extern const float lut_xfade_out[]; }
 static uint8_t clouds_large_[118784];
 static uint8_t clouds_small_[65536 - 128];
 static clouds::Reverb reverb_;
@@ -192,7 +196,7 @@ static float source_value(int s, const VoiceState* v) {
 
 static float mod_sum(int slot, int param, const VoiceState* v) {
   float m = 0.0f;
-  for (int i = 0; i < 12; ++i) {
+  for (int i = 0; i < NROUTE; ++i) {
     const Route& r = routes_[i];
     if (r.src == SR_NONE || r.slot != slot || r.param != param) continue;
     float s = source_value(r.src, v) * r.amt;
@@ -228,6 +232,7 @@ EXPORT void set_bend(float semis) { bend_ = semis; }
 EXPORT void set_vintage(float a) { vintage_ = a; }
 EXPORT void set_legato(int on) { legato_ = on != 0; }
 EXPORT void set_route(int i, int src, int slot, int param, float amt, int via) {
+  if (i < 0 || i >= NROUTE) return;
   routes_[i].src = src; routes_[i].slot = slot; routes_[i].param = param;
   routes_[i].amt = amt; routes_[i].via = via;
 }
@@ -313,7 +318,7 @@ EXPORT void init() {
   memset(tune_, 0, sizeof(tune_)); bend_ = 0.0f; vintage_ = 0.0f; legato_ = true;
   for (int i = 0; i < 6; ++i) ext_tgt_[i] = ext_cur_[i] = 0.0f;
   for (int k = 0; k < 2; ++k) { peaks_lfo_[k].Init(); peaks_env_[k].Init(); tides_[k].Init(); tap_period_[k] = 0.5f; }
-  for (int i = 0; i < 12; ++i) routes_[i].src = SR_NONE;
+  for (int i = 0; i < NROUTE; ++i) routes_[i].src = SR_NONE;
   marbles_rng_.Init(0x2357bd1);
   marbles_stream_.Init(&marbles_rng_);
 }
@@ -835,8 +840,30 @@ static void run_fx(int slot, float* l, float* r) {
     // page 3-4: QUALITY (16/8-bit, stereo/mono, as the hardware's button), IN GAIN, NOTE TRG (a grain on each new note), PITCH TRK
     int qual = PI(slot, 11, 0); if (qual != clouds_quality_) { clouds_quality_ = qual; clouds_.set_quality(qual); }
     static bool cl_prev = false; bool trg = PI(slot, 13, 0) == 1 && any_gate_ && !cl_prev; cl_prev = any_gate_;
+    // page 4-6 (1.5): GRN SYNC fires grains on the tempo; SPRAY, PITCH RND and SIZE RND give each grain its own
+    // position, pitch and length; PITCH QNT keeps the scatter musical; SCAN moves the read point; TONE colours the wet only
+    static const float grid_div[] = { 0, 1, 2, 4, 8 };
+    int gs = PI(slot, 15, 0);
+    if (gs > 0) { int cell = (int)(clock_phase_ / grid_div[gs]); if (cell != cl_grid_) { cl_grid_ = cell; trg = true; } } else cl_grid_ = -1;
     p->trigger = trg; p->gate = trg;
     if (PI(slot, 14, 0) == 1) p->pitch = clampf(p->pitch + vs_[last_voice_].note - 60.0f, -48.0f, 48.0f);
+    float spray = P(slot, 16, 0), prnd = P(slot, 17, 0), srnd = P(slot, 19, 0), scan = P(slot, 20, 0), tone = P(slot, 21, 0);
+    int pq = PI(slot, 18, 0);
+    if (scan != 0.0f) { cl_scan_ += scan * fabsf(scan) * 0.5f * BLOCK / SR; cl_scan_ -= floorf(cl_scan_); } else cl_scan_ = 0.0f;
+    if (scan != 0.0f || spray > 0.0f) {
+      float pos = p->position + cl_scan_ + (spray > 0.0f ? (randf() - 0.5f) * spray : 0.0f);
+      p->position = pos - floorf(pos);
+    }
+    if (prnd > 0.0f) {
+      float st = (randf() * 2.0f - 1.0f) * prnd * 24.0f;
+      if (pq == 1) st = floorf(st + 0.5f);
+      else if (pq == 2) { static const float iv[] = { -24, -19, -12, -7, 0, 7, 12, 19, 24 }; float best = 0; for (float x : iv) if (fabsf(x - st) < fabsf(best - st)) best = x; st = best; }
+      else if (pq == 3) st = floorf(st / 12.0f + 0.5f) * 12.0f;
+      p->pitch = clampf(p->pitch + st, -48.0f, 48.0f);
+    }
+    if (srnd > 0.0f) p->size = clampf(p->size * (1.0f - randf() * srnd), 0.0f, 1.0f);
+    float user_mix = p->dry_wet;
+    if (tone != 0.0f) p->dry_wet = 1.0f;     // TONE: take the wet signal alone, filter it, and mix it back ourselves
     float ig = P(slot, 12, 0), igain = ig != 0.0f ? powf(10.0f, ig * 12.0f / 20.0f) : 1.0f;
     clouds_.Prepare();
     clouds::ShortFrame in[BLOCK], out[BLOCK];
@@ -845,7 +872,20 @@ static void run_fx(int slot, float* l, float* r) {
       in[n].r = (int16_t)(clampf(r[n] * igain, -1.0f, 1.0f) * 32767.0f);
     }
     clouds_.Process(in, out, BLOCK);
-    for (int n = 0; n < BLOCK; ++n) { l[n] = out[n].l / 32768.0f; r[n] = out[n].r / 32768.0f; }
+    if (tone == 0.0f) for (int n = 0; n < BLOCK; ++n) { l[n] = out[n].l / 32768.0f; r[n] = out[n].r / 32768.0f; }
+    else {
+      float hz = tone < 0.0f ? 18000.0f * powf(300.0f / 18000.0f, -tone) : 20.0f * powf(2000.0f / 20.0f, tone);
+      float c = 1.0f - expf(-6.2831853f * hz / SR);
+      float fi = Interpolate(clouds::lut_xfade_in, user_mix, 16.0f), fo = Interpolate(clouds::lut_xfade_out, user_mix, 16.0f);
+      float norm = 2.0f / Interpolate(clouds::lut_xfade_in, 1.0f, 16.0f);   // Clouds halves its output (SoftConvert); undo that for the wet
+      for (int n = 0; n < BLOCK; ++n) {
+        float wl = out[n].l / 32768.0f * norm, wr = out[n].r / 32768.0f * norm;
+        cl_tone_l_ += (wl - cl_tone_l_) * c; cl_tone_r_ += (wr - cl_tone_r_) * c;
+        if (tone < 0.0f) { wl = cl_tone_l_; wr = cl_tone_r_; } else { wl -= cl_tone_l_; wr -= cl_tone_r_; }
+        float dl = in[n].l / 32768.0f, dr = in[n].r / 32768.0f;
+        l[n] = SoftLimit((dl * fo + wl * fi) * 0.5f); r[n] = SoftLimit((dr * fo + wr * fi) * 0.5f);   // the same output stage as Clouds
+      }
+    }
   } else if (id == M_REVERB) {
     int type = PI(slot, 4, 0);                     // 0 PLATE, 1 HALL, 2 SHIMMER
     float size = P(slot, 0, 0), mix = P(slot, 3, 0);
