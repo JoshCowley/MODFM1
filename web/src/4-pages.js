@@ -28,10 +28,27 @@ function drawSlot(slot) {
   cells(params, lv.vals, live && params.map((_, i) => live[off + i]), c, 96, 55, lv.marks);
   footer();
 }
+// LFO n TARGET: two destinations of its own, effects listed first, without using a matrix row
+function drawLfoTgt(l) {
+  const c = KC.lfo, dst = destinations();
+  header("LFO", c, `LFO ${l + 1} TARGET`, "LFO", LFOS.pages.length + 3, LFOS.pages.length + l);
+  well(VX, VY, VW, VH);
+  clipTo(VX, VY, VW, VH, () => visLfos(VX, VY, VW, VH, c));
+  [0, 1].forEach((k) => {
+    const t = lfoTgt[l * 2 + k], y = 98 + k * 58, dormant = t.dst !== "—" && !dst.includes(t.dst);
+    rect(6, y, 228, 54, "#121211", 6);
+    T(12, y + 13, `${2 * k + 1} DEST ${k ? "B" : "A"}`, { size: 9, c: C.dim });
+    T(12, y + 38, t.dst.length > 14 ? t.dst.slice(0, 13) + "…" : t.dst, { size: 15, c: dormant ? C.warn : t.dst === "—" ? C.dim : C.fg });
+    T(228, y + 13, `${2 * k + 2} AMT`, { size: 9, c: C.dim, a: "right" });
+    T(228, y + 38, `${t.amt >= 0 ? "+" : ""}${Math.round(t.amt * 100)}`, { size: 15, c: t.amt ? c : C.dim, a: "right" });
+    const w = 60 * Math.abs(t.amt); rect(t.amt >= 0 ? 168 : 168 - w, y + 46, w, 3, c, 1);
+  });
+  footer();
+}
 function drawFixed(def, st, tag, titles, iconName, slotIdx, band) {
   subpage = Math.min(subpage, def.pages.length - 1);
   const c = KC[def.kind];
-  header(tag, c, titles[subpage], iconName, def.pages.length, subpage);
+  header(tag, c, titles[subpage], iconName, def.pages.length + (def === LFOS ? 3 : 0), subpage);
   well(VX, VY, VW, VH);
   clipTo(VX, VY, VW, VH, () => band(VX, VY, VW, VH, c));
   const off = def.pages.slice(0, subpage).flat().length, params = def.pages[subpage];
@@ -202,7 +219,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.4", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.5", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -213,6 +230,7 @@ function render() {
   const slot = SLOTS.find((s) => s.id === page);
   if (slot) drawSlot(slot);
   else if (page === "AMP") drawFixed(AMP, amp, "AMP", ["ADSR", "VOICE", "MOD ENV", `MODE ${VOICE_MODES[amp.p[A_MODE]]}`, "ENV SHAPE", "TRACKING"], "AMP", 6, [visAdsr, visVoices, visModEnv, visVoices, visAdsr, visModEnv][Math.min(subpage, 5)]);
+  else if (page === "LFOS" && subpage >= LFOS.pages.length) drawLfoTgt(Math.min(2, subpage - LFOS.pages.length));
   else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3", "LFO 1 +", "LFO 2 +", "LFO 3 +"], "LFO", 8, visLfos);
   else if (page === "SAVE") drawSave();
   else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem][Math.min(subpage, 5)]);

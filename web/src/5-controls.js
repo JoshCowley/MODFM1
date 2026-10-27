@@ -70,11 +70,12 @@ function encoder(role, k) {
   if (role === "select") {
     if (page === "MATRIX") mxRow = clamp(mxRow + Math.sign(k), 0, 11);
     else if (slot && MODULES[rack[slot.id].mod]) subpage = clamp(subpage + Math.sign(k), 0, MODULES[rack[slot.id].mod].pages.length - 1);
-    else if (FIXED[page]) subpage = clamp(subpage + Math.sign(k), 0, FIXED[page][0].pages.length - 1);
+    else if (FIXED[page]) subpage = clamp(subpage + Math.sign(k), 0, FIXED[page][0].pages.length - 1 + (page === "LFOS" ? 3 : 0));
     else if (page === "PERFORM" || page === "RACK") { page = page === "PERFORM" ? "RACK" : "PERFORM"; }
     draw(); return;
   }
   const i = role;   // knob 0..3
+  if (page === "LFOS" && subpage >= LFOS.pages.length) { lfoTgtEncoder(subpage - LFOS.pages.length, i, k); draw(); return; }
   if (learn && (slot || page === "AMP" || page === "LFOS")) { learnTurn(slot, i, k); draw(); return; }
   if (lockTarget() >= 0) { const ref = lockRefFor(slot, i); if (ref) { lockTurn(ref, k); draw(); return; } }
   if (page === "PERFORM") {
@@ -99,6 +100,18 @@ function encoder(role, k) {
   draw();
 }
 
+// LFO TARGET pages: Knob 1 / 3 pick a destination (effects first), Knob 2 / 4 set its amount
+function tgtDestinations() {
+  const all = destinations(), fx = all.filter((d) => d.startsWith("FX "));
+  return ["—", ...fx, ...all.filter((d) => d !== "—" && !d.startsWith("FX "))];
+}
+function lfoTgtEncoder(l, i, k) {
+  const t = lfoTgt[l * 2 + (i >= 2 ? 1 : 0)];
+  if (i % 2 === 0) t.dst = cycle(tgtDestinations(), t.dst, Math.sign(k));
+  else t.amt = clamp(Math.round((t.amt + k * .01) * 100) / 100, -1, 1);
+  say(`LFO ${l + 1} → ${t.dst} ${t.amt >= 0 ? "+" : ""}${Math.round(t.amt * 100)}`, "LFO");
+  noteEdit(`LFO ${l + 1} TARGET`);
+}
 function setRef(ref, v, record = true) {
   if (ref.w === "macro") macros[ref.i] = v;
   else if (ref.w === "AMP") amp.p[ref.idx] = v;
@@ -115,7 +128,7 @@ function setRef(ref, v, record = true) {
 function learnTurn(slot, i, k) {
   let p, dst;
   if (page === "AMP") { p = AMP.pages[subpage][i]; dst = p && `AMP.${p.l}`; }
-  else if (page === "LFOS") { p = LFOS.pages[subpage][i]; dst = p && `LFO.${p.l}`; }
+  else if (page === "LFOS") { p = (LFOS.pages[subpage] || [])[i]; dst = p && `LFO.${p.l}`; }
   else if (slot) { const m = MODULES[rack[slot.id].mod]; p = m && m.pages[subpage][i]; dst = p && `${slot.name}.${p.l}`; }
   if (!p) return;
   if (p.mod === false) { say(`${p.l} CAN'T BE MODULATED`); return; }

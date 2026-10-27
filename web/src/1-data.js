@@ -19,11 +19,12 @@ const MODULES = {
   TIDES:    { kind: "mod", poly: false, cpu: 1, ram: 1, blurb: "SLOPE GENERATOR", outs: ["TIDES", "TIDE+"], pages: [[L("MODE", ["AD", "LOOP", "AR"], 1), n("FREQ", .3), n("SHAPE", .5), b("SLOPE", -.3)], [b("SMOOTH", .3), L("RANGE", ["LO", "MID", "HI"]), L("GATE", GATES, 4), L("INVERT", ["OFF", "ON"])]] },
   MARBLES:  { kind: "mod", poly: false, cpu: 3, ram: 4, blurb: "RANDOM NOTES · GATES", outs: ["MARB X", "MARB T"], pages: [[n("RATE", .5), n("SPREAD", .4), n("BIAS", .5), n("STEPS", .7)], [n("DEJA VU", .5), L("LENGTH", ["1", "2", "3", "4", "5", "6", "8", "16"], 6), n("JITTER", .1), L("CLOCK", ["FREE", "1/16", "1/8", "1/4"], 2)], [L("SCALE", ["MAJOR", "MINOR", "PENTA", "PELOG", "BHAIRAV", "SHRI"]), L("T MODEL", ["COMPLEM", "CLUSTER", "DRUMS", "INDEP", "DIVIDER", "3 STATE", "MARKOV"]), L("X RANGE", ["2V", "5V", "±5V"]), b("GATE LEN")]] },
   GRIDS:    { kind: "mod", poly: false, cpu: 1, ram: 2, blurb: "TOPOGRAPHIC DRUM MAP", outs: ["GRID", "ACCENT"], pages: [[n("X", .4), n("Y", .8), n("FILL", .8), L("OUT", ["BD", "SD", "HH", "KIT"], 3)], [n("CHAOS", 0), b("DECAY")]] },
-  CLOUDS:   { kind: "fx", poly: false, cpu: 22, ram: 118, blurb: "GRANULAR TEXTURES", pages: [[n("POSITION", .2), n("SIZE", .6), b("PITCH"), n("DENSITY", .5)], [n("TEXTURE", .4), n("BLEND", .3), n("SPREAD", .5), n("FEEDBACK", .2)], [n("REVERB", .3), L("MODE", ["GRANULR", "STRETCH", "LOOPDLY", "SPECTRL"]), L("FREEZE", ["OFF", "ON"]), L("QUALITY", ["16 ST", "16 MONO", "8 ST", "8 MONO"])], [b("IN GAIN"), L("NOTE TRG", ["OFF", "ON"]), L("PITCH TRK", ["OFF", "ON"])]] },
+  CLOUDS:   { kind: "fx", poly: false, cpu: 22, ram: 118, blurb: "GRANULAR TEXTURES", pages: [[n("POSITION", .2), n("SIZE", .6), b("PITCH"), n("DENSITY", .5)], [n("TEXTURE", .4), n("BLEND", .3), n("SPREAD", .5), n("FEEDBACK", .2)], [n("REVERB", .3), L("MODE", ["GRANULR", "STRETCH", "LOOPDLY", "SPECTRL"]), L("FREEZE", ["OFF", "ON"]), L("QUALITY", ["16 ST", "16 MONO", "8 ST", "8 MONO"])], [b("IN GAIN"), L("NOTE TRG", ["OFF", "ON"]), L("PITCH TRK", ["OFF", "ON"]), L("GRN SYNC", ["OFF", "1/16", "1/8", "1/4", "1/2"])], [n("SPRAY", 0), n("PITCH RND", 0), L("PITCH QNT", ["FREE", "SEMI", "5TH+OCT", "OCT"]), n("SIZE RND", 0)], [b("SCAN"), b("TONE")]] },
   DELAY:    { kind: "fx", poly: false, cpu: 3, ram: 64, blurb: "PING · MONO · TAPE", pages: [[L("TIME", ["1/16", "1/8", "1/8D", "1/4", "1/2", "1/8T", "1/4T", "1/4D", "1/2D"], 2), n("FEEDBACK", .4), n("TONE", .5), n("MIX", .3)], [L("MODE", ["PING", "MONO", "TAPE"]), n("WOW", .4), b("WIDTH"), n("DUCK", 0)], [n("LO CUT", 0), L("SYNC", ["TEMPO", "FREE"]), n("FREE MS", .5)]] },
   REVERB:   { kind: "fx", poly: false, cpu: 8, ram: 72, blurb: "PLATE · HALL · SHIMMER", pages: [[n("SIZE", .6), n("DAMP", .5), n("DIFFUSE", .55), n("MIX", .3)], [L("TYPE", ["PLATE", "HALL", "SHIMMER"]), n("PRE", 0), n("SHIMMER", .4), n("LO CUT", 0)], [b("WIDTH"), n("DUCK", 0)]] },
   CHORUS:   { kind: "fx", poly: false, cpu: 2, ram: 4, blurb: "STEREO CHORUS", pages: [[n("RATE", .3), n("DEPTH", .5), n("WIDTH", .7), n("MIX", .4)], [L("MODE", ["CHORUS", "FLANGER", "VIBRATO"]), n("FEEDBACK", 0), b("DELAY")]] },
 };
+for (const m of Object.values(MODULES)) if (m.kind === "fx") m.pages.flat().forEach((p) => { p.mod = true; });
 const VOICE_MODES = ["POLY", "MONO", "LEGATO", "UNI 2", "UNI 4"];
 const AMP = { kind: "amp", poly: true, cpu: 1, ram: 0, pages: [[n("ATTACK", .02), n("DECAY", .4), n("SUSTAIN", .7), n("RELEASE", .35)], [n("VEL AMT", .6), n("GLIDE", 0), n("SPREAD", .3), n("LEVEL", .8)], [n("M ATTACK", .05), n("M DECAY", .4), L("M LOOP", ["OFF", "ON"])], [L("MODE", VOICE_MODES), n("DETUNE", .15, { mod: false }), n("VINTAGE", 0, { mod: false })], [n("DELAY", 0), n("HOLD", 0), b("A CURVE"), b("D CURVE")], [b("VEL>ATK"), b("KEY>TIME"), n("M SUST", 0), b("PITCH ENV")]] };
 const A_MODE = 11, A_DETUNE = 12, A_VINTAGE = 13;
@@ -115,6 +116,9 @@ const lfo = { p: blankParams(LFOS) };
 const BUILT_SRC = ["—", "M1", "M2", "M3", "M4", "VELO", "KEY TRK", "RANDOM", "AMP ENV"];
 const EXTRA_SRC = ["LFO 1", "LFO 2", "LFO 3", "MOD ENV", "SEQ 1", "SEQ 2", "SEQ 3", "SEQ 4", "WHEEL", "PRESS"];
 let matrix = [];
+// each LFO's two direct targets (1.5): LFO 1 A, LFO 1 B, LFO 2 A, ... sent to the engine as routes 12-17
+const blankLfoTgt = () => Array.from({ length: 6 }, () => ({ dst: "—", amt: 0 }));
+let lfoTgt = blankLfoTgt();
 let macros = [0.5, 0.5, 0.5, 0.5];
 try { const sg = JSON.parse(localStorage.getItem("fm1rack.global.v1") || "null"); if (sg && sg.length <= glo.p.length) sg.forEach((v, i) => { glo.p[i] = v; }); } catch { /* defaults */ }
 function storeGlobal() { try { localStorage.setItem("fm1rack.global.v1", JSON.stringify(glo.p)); } catch { /* this visit only */ } }
@@ -142,6 +146,7 @@ function loadPreset(i) {
     return r ? { src: r[0], dst: r[1], amt: r[2], via: r[3] || "—" } : { src: "—", dst: "—", amt: 0, via: "—" };
   });
   macros = [...(pr.macros || [0.5, 0.5, 0.5, 0.5])];
+  lfoTgt = blankLfoTgt();
   loadSeq(factorySeq(pr.seq));
   mseq = blankMseq();
   histReset(`LOADED ${patchName}`);
@@ -150,6 +155,7 @@ function restoreSnap(u) {
   for (const s of SLOTS) { const st = u.slots[s.id] || { mod: null, p: [] }; rack[s.id] = { mod: st.mod, p: fitParams(MODULES[st.mod], st.p) }; }
   amp.p = fitParams(AMP, u.amp); lfo.p = fitParams(LFOS, u.lfo);
   matrix = u.matrix.map((r) => ({ ...r })); macros = [...u.macros];
+  lfoTgt = u.lfoTgt ? u.lfoTgt.map((t) => ({ ...t })) : blankLfoTgt();
   loadSeq(u.seq ? JSON.parse(JSON.stringify(u.seq)) : blankSeq());
   mseq = u.mseq ? JSON.parse(JSON.stringify(u.mseq)) : blankMseq();
 }
@@ -193,7 +199,7 @@ function applyOver(def, values, over) {
 }
 function snapshot(name) {
   return { name, slots: Object.fromEntries(SLOTS.map((s) => [s.id, { mod: rack[s.id].mod, p: [...rack[s.id].p] }])),
-           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros], seq: JSON.parse(JSON.stringify(seq)), mseq: JSON.parse(JSON.stringify(mseq)) };
+           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), lfoTgt: lfoTgt.map((t) => ({ ...t })), macros: [...macros], seq: JSON.parse(JSON.stringify(seq)), mseq: JSON.parse(JSON.stringify(mseq)) };
 }
 const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 let saveState = null;

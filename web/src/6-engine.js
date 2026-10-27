@@ -41,6 +41,10 @@ function syncEngine() {
     const d = r.dst === "—" ? null : dstIndex(r.dst), sidx = srcIndex(r.src);
     put(`r${i}`, ["set_route", i, d ? sidx : 0, d ? d[0] : 0, d ? d[1] : 0, r.amt, srcIndex(r.via)]);
   });
+  lfoTgt.forEach((t, j) => {
+    const d = t.dst === "—" ? null : dstIndex(t.dst);
+    put(`r${12 + j}`, ["set_route", 12 + j, d ? srcIndex(`LFO ${Math.floor(j / 2) + 1}`) : 0, d ? d[0] : 0, d ? d[1] : 0, t.amt, 0]);
+  });
   macros.forEach((v, i) => put(`m${i}`, ["set_macro", i, v]));
   put("master", ["set_master", master * midiState.expr]);
   put("mfx", ["set_master_fx", glo.p[G_LOW] * 12, glo.p[G_MID] * 10, glo.p[G_HIGH] * 12, glo.p[G_COMP]]);
