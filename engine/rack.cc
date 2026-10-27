@@ -47,7 +47,15 @@ enum ModId { M_NONE = 0, M_PLAITS = 1, M_BRAIDS = 2, M_ELEMENTS = 3,
              M_PEAKS = 20, M_TIDES = 21, M_MARBLES = 22, M_GRIDS = 23,
              M_CLOUDS = 30, M_DELAY = 31, M_REVERB = 32, M_CHORUS = 33 };
 enum Src { SR_NONE, SR_M1, SR_M2, SR_M3, SR_M4, SR_VELO, SR_KEY, SR_RAND, SR_ENV,
-           SR_MA0, SR_MA1, SR_MB0, SR_MB1, SR_LFO1, SR_LFO2, SR_LFO3, SR_MENV, NSRC };
+           SR_MA0, SR_MA1, SR_MB0, SR_MB1, SR_LFO1, SR_LFO2, SR_LFO3, SR_MENV,
+           SR_SEQ1, SR_SEQ2, SR_SEQ3, SR_SEQ4, SR_WHEEL, SR_PRESS, NSRC };
+// external sources set from the page: 0-3 mod sequencer lanes, 4 mod wheel, 5 pressure (aftertouch)
+static float ext_tgt_[6], ext_cur_[6], ext_slew_[6] = { 1, 1, 1, 1, 0.3f, 0.3f };
+// tuning: an offset in semitones per MIDI note; pitch bend in semitones; VINTAGE drift amount; MONO retrigger
+static float tune_[128];
+static float bend_ = 0.0f, vintage_ = 0.0f;
+static bool legato_ = true;
+static float card_[6], vdrift_[6];
 
 static const int NP = 16;
 static float base_[NSLOT][NP];
@@ -98,6 +106,10 @@ static float chorus_l_[4096], chorus_r_[4096];
 static int chorus_w_ = 0;
 static float chorus_phase_ = 0.0f;
 static float delay_tone_l_ = 0.0f, delay_tone_r_ = 0.0f;
+// shimmer: an octave-up pitch shifter (two crossfaded grains) feeding the reverb
+static int16_t shim_buf_[4096]; static int shim_w_ = 0; static float shim_ph_ = 0.0f, shim_fb_ = 0.0f;
+static int16_t pre_buf_l_[8192], pre_buf_r_[8192]; static int pre_w_ = 0;
+static float tape_ph1_ = 0.0f, tape_ph2_ = 0.0f;
 
 static peaks::Lfo peaks_lfo_[2];
 static peaks::MultistageEnvelope peaks_env_[2];
@@ -166,6 +178,7 @@ static float source_value(int s, const VoiceState* v) {
     case SR_MB1: return mod_out_[3];
     case SR_LFO1: case SR_LFO2: case SR_LFO3: return lfo_val_[s - SR_LFO1];
     case SR_MENV: return v ? v->menv : 0.0f;
+    case SR_SEQ1: case SR_SEQ2: case SR_SEQ3: case SR_SEQ4: case SR_WHEEL: case SR_PRESS: return ext_cur_[s - SR_SEQ1];
     default: return 0.0f;
   }
 }
@@ -201,6 +214,12 @@ EXPORT void set_meta(int slot, int param, float lo, float hi, float span) {
 }
 EXPORT void set_macro(int i, float v) { macros_[i] = v; }
 EXPORT void set_master(float v) { master_ = v; }
+EXPORT void set_ext(int i, float v) { if (i >= 0 && i < 6) ext_tgt_[i] = v; }
+EXPORT void set_ext_slew(int i, float s) { if (i >= 0 && i < 6) ext_slew_[i] = clampf(s, 0.001f, 1.0f); }
+EXPORT void set_tune(int note, float semis) { if (note >= 0 && note < 128) tune_[note] = semis; }
+EXPORT void set_bend(float semis) { bend_ = semis; }
+EXPORT void set_vintage(float a) { vintage_ = a; }
+EXPORT void set_legato(int on) { legato_ = on != 0; }
 EXPORT void set_route(int i, int src, int slot, int param, float amt, int via) {
   routes_[i].src = src; routes_[i].slot = slot; routes_[i].param = param;
   routes_[i].amt = amt; routes_[i].via = via;
@@ -238,7 +257,7 @@ EXPORT void set_module(int slot, int id) {
       clouds_.Init(clouds_large_, sizeof(clouds_large_), clouds_small_, sizeof(clouds_small_));
       clouds_.set_num_channels(2); clouds_.set_low_fidelity(false);
     }
-    if (id == M_REVERB) reverb_.Init(reverb_buf_);
+    if (id == M_REVERB) { reverb_.Init(reverb_buf_); memset(shim_buf_, 0, sizeof(shim_buf_)); memset(pre_buf_l_, 0, sizeof(pre_buf_l_)); memset(pre_buf_r_, 0, sizeof(pre_buf_r_)); shim_fb_ = 0; }
     if (id == M_DELAY) { memset(delay_l_, 0, sizeof(delay_l_)); memset(delay_r_, 0, sizeof(delay_r_)); }
     if (id == M_CHORUS) { memset(chorus_l_, 0, sizeof(chorus_l_)); memset(chorus_r_, 0, sizeof(chorus_r_)); }
   }
@@ -254,7 +273,7 @@ EXPORT void note_on(float note, float vel) {
   any_gate_ = true;
   if (nvoices_ == 1) {
     VoiceState& v = vs_[0];
-    bool legato = v.gate;
+    bool legato = v.gate && legato_;
     v.note = note; v.vel = vel; v.gate = true; v.active = true;
     if (!legato) { v.retrig = true; v.stage = 1; v.rnd = randf() * 2.0f - 1.0f; }
     v.age = ++age_counter_; last_voice_ = 0;
@@ -283,7 +302,9 @@ EXPORT void all_off() { for (int i = 0; i < MAXV; ++i) { vs_[i].gate = false; if
 EXPORT void init() {
   memset(base_, 0, sizeof(base_));
   for (int s = 0; s < NSLOT; ++s) for (int p = 0; p < NP; ++p) { lo_[s][p] = -1e9f; hi_[s][p] = 1e9f; span_[s][p] = 1.0f; }
-  for (int i = 0; i < MAXV; ++i) { memset(&vs_[i], 0, sizeof(VoiceState)); svf_[i].Init(); }
+  for (int i = 0; i < MAXV; ++i) { memset(&vs_[i], 0, sizeof(VoiceState)); svf_[i].Init(); card_[i] = randf() * 2.0f - 1.0f; vdrift_[i] = 0.0f; }
+  memset(tune_, 0, sizeof(tune_)); bend_ = 0.0f; vintage_ = 0.0f; legato_ = true;
+  for (int i = 0; i < 6; ++i) ext_tgt_[i] = ext_cur_[i] = 0.0f;
   for (int k = 0; k < 2; ++k) { peaks_lfo_[k].Init(); peaks_env_[k].Init(); tides_[k].Init(); tap_period_[k] = 0.5f; }
   for (int i = 0; i < 12; ++i) routes_[i].src = SR_NONE;
   marbles_rng_.Init(0x2357bd1);
@@ -469,7 +490,13 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
   float glide = P(S_AMP, 5, &v);
   if (nvoices_ == 1 && glide > 0.001f) v.cur_note += (v.note - v.cur_note) * (1.0f - powf(glide, 0.08f) * 0.995f);
   else v.cur_note = v.note;
-  float note = v.cur_note + mod_sum(-1, 0, &v) * 12.0f;
+  int ti = (int)(v.cur_note + 0.5f); ti = ti < 0 ? 0 : ti > 127 ? 127 : ti;
+  float vint = 0.0f;
+  if (vintage_ > 0.0f) {   // each voice its own small tuning error, a slow drift, and each note a little of its own
+    vdrift_[i] += (randf() * 2.0f - 1.0f) * 0.01f; vdrift_[i] *= 0.999f;
+    vint = vintage_ * (card_[i] * 0.06f + clampf(vdrift_[i], -1.0f, 1.0f) * 0.05f + v.rnd * 0.02f);
+  }
+  float note = v.cur_note + tune_[ti] + bend_ + vint + mod_sum(-1, 0, &v) * 12.0f;
 
   // ---- SRC
   int src = mod_id_[S_SRC];
@@ -608,6 +635,63 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
   for (int n = 0; n < BLOCK; ++n) { mix_l[n] += vbuf_[n] * gl * 1.41f; mix_r[n] += vaux_[n] * gr * 1.41f; }
 }
 
+// ------------------------------------------------------------------ master: 3-band EQ, glue compressor, look-ahead limiter
+struct Biquad {
+  float b0 = 1, b1 = 0, b2 = 0, a1 = 0, a2 = 0, z1 = 0, z2 = 0;
+  void set(int type, float f, float gain_db, float q) {   // RBJ cookbook: 0 low shelf, 1 peak, 2 high shelf
+    float A = powf(10.0f, gain_db / 40.0f), w = 2.0f * 3.14159265f * f / SR, cw = cosf(w), sw = sinf(w);
+    float a0, alpha = sw / (2.0f * q);
+    if (type == 1) { b0 = 1 + alpha * A; b1 = -2 * cw; b2 = 1 - alpha * A; a0 = 1 + alpha / A; a1 = -2 * cw; a2 = 1 - alpha / A; }
+    else {
+      float sa = 2.0f * sqrtf(A) * alpha, s = type == 0 ? -1.0f : 1.0f;
+      b0 = A * ((A + 1) - s * (A - 1) * cw + sa); b1 = 2 * s * A * ((A - 1) - s * (A + 1) * cw); b2 = A * ((A + 1) - s * (A - 1) * cw - sa);
+      a0 = (A + 1) + s * (A - 1) * cw + sa; a1 = -2 * s * ((A - 1) + s * (A + 1) * cw); a2 = (A + 1) + s * (A - 1) * cw - sa;
+    }
+    b0 /= a0; b1 /= a0; b2 /= a0; a1 /= a0; a2 /= a0;
+  }
+  inline float run(float x) { float y = b0 * x + z1; z1 = b1 * x - a1 * y + z2; z2 = b2 * x - a2 * y; return y; }
+};
+static Biquad eq_[2][3];
+static float eq_db_[3] = { 0, 0, 0 }, eq_cur_[3] = { 0, 0, 0 }, comp_amt_ = 0.0f;
+static float comp_env_ = 0.0f, comp_gr_db_ = 0.0f, lim_gain_ = 1.0f, lim_gr_db_ = 0.0f;
+static float lim_buf_l_[64], lim_buf_r_[64]; static int lim_w_ = 0;
+EXPORT void set_master_fx(float low, float mid, float high, float comp) { eq_db_[0] = low; eq_db_[1] = mid; eq_db_[2] = high; comp_amt_ = comp; }
+static void run_master(float* l, float* r) {
+  // EQ: the gains glide, the filters are re-designed only when they move
+  bool flat = true;
+  for (int b = 0; b < 3; ++b) {
+    if (fabsf(eq_cur_[b] - eq_db_[b]) > 0.01f) { eq_cur_[b] += (eq_db_[b] - eq_cur_[b]) * 0.2f;
+      static const float f[3] = { 150.0f, 1000.0f, 5000.0f }, q[3] = { 0.707f, 0.9f, 0.707f };
+      for (int c = 0; c < 2; ++c) eq_[c][b].set(b == 0 ? 0 : b == 1 ? 1 : 2, f[b], eq_cur_[b], q[b]); }
+    if (fabsf(eq_cur_[b]) > 0.01f) flat = false;
+  }
+  if (!flat) for (int n = 0; n < BLOCK; ++n) for (int b = 0; b < 3; ++b) { l[n] = eq_[0][b].run(l[n]); r[n] = eq_[1][b].run(r[n]); }
+  // glue compressor: one knob lowers the threshold from -6 to -30 dB and raises the ratio from 2:1 to 4:1, with make-up
+  if (comp_amt_ > 0.001f) {
+    float thr = -6.0f - 24.0f * comp_amt_, ratio = 2.0f + 2.0f * comp_amt_, makeup = -thr * (1.0f - 1.0f / ratio) * 0.5f;
+    for (int n = 0; n < BLOCK; ++n) {
+      float x = fmaxf(fabsf(l[n]), fabsf(r[n]));
+      comp_env_ += (x - comp_env_) * (x > comp_env_ ? 0.02f : 0.0004f);
+      float lvl = 20.0f * log10f(comp_env_ + 1e-6f), over = lvl - thr;
+      float gr = over > 0 ? over * (1.0f - 1.0f / ratio) : 0.0f;
+      comp_gr_db_ = gr;
+      float g = powf(10.0f, (makeup - gr) / 20.0f);
+      l[n] *= g; r[n] *= g;
+    }
+  } else comp_gr_db_ = 0.0f;
+  // limiter: looks 48 samples (1 ms) ahead, so a loud attack is already turned down when it arrives
+  for (int n = 0; n < BLOCK; ++n) {
+    lim_buf_l_[lim_w_] = l[n]; lim_buf_r_[lim_w_] = r[n];
+    float peak = 0.0f; for (int k = 0; k < 48; ++k) { int i2 = (lim_w_ - k) & 63; peak = fmaxf(peak, fmaxf(fabsf(lim_buf_l_[i2]), fabsf(lim_buf_r_[i2]))); }
+    float target = peak > 0.89f ? 0.89f / peak : 1.0f;
+    lim_gain_ += (target - lim_gain_) * (target < lim_gain_ ? 0.3f : 0.0005f);
+    int rd = (lim_w_ - 47) & 63;
+    l[n] = lim_buf_l_[rd] * lim_gain_; r[n] = lim_buf_r_[rd] * lim_gain_;
+    lim_w_ = (lim_w_ + 1) & 63;
+  }
+  lim_gr_db_ = -20.0f * log10f(lim_gain_ + 1e-6f);
+}
+
 // ------------------------------------------------------------------ FX
 static void run_fx(int slot, float* l, float* r) {
   int id = mod_id_[slot];
@@ -628,30 +712,71 @@ static void run_fx(int slot, float* l, float* r) {
     clouds_.Process(in, out, BLOCK);
     for (int n = 0; n < BLOCK; ++n) { l[n] = out[n].l / 32768.0f; r[n] = out[n].r / 32768.0f; }
   } else if (id == M_REVERB) {
-    reverb_.set_amount(P(slot, 3, 0) * 0.6f);
-    reverb_.set_time(0.35f + P(slot, 0, 0) * 0.63f);
+    int type = PI(slot, 4, 0);                     // 0 PLATE, 1 HALL, 2 SHIMMER
+    float size = P(slot, 0, 0), mix = P(slot, 3, 0);
+    float time = type == 0 ? 0.35f + size * 0.63f : 0.6f + size * 0.39f;
+    reverb_.set_amount(1.0f);
+    reverb_.set_time(time);
     reverb_.set_diffusion(0.3f + 0.6f * P(slot, 2, 0));
-    reverb_.set_lp(0.95f - P(slot, 1, 0) * 0.6f);
-    reverb_.set_input_gain(0.25f);
+    reverb_.set_lp((type == 1 ? 0.8f : 0.95f) - P(slot, 1, 0) * 0.6f);
+    reverb_.set_input_gain(type == 0 ? 0.25f : 0.2f);
+    int pre = (int)(P(slot, 5, 0) * 0.15f * SR); if (pre > 7999) pre = 7999;
+    float shim = type == 2 ? P(slot, 6, 0) : 0.0f;
     clouds::FloatFrame fr[BLOCK];
-    for (int n = 0; n < BLOCK; ++n) { fr[n].l = l[n]; fr[n].r = r[n]; }
+    float dry_l[BLOCK], dry_r[BLOCK];
+    for (int n = 0; n < BLOCK; ++n) {
+      dry_l[n] = l[n]; dry_r[n] = r[n];
+      pre_buf_l_[pre_w_] = (int16_t)(clampf(l[n], -1.0f, 1.0f) * 32767.0f); pre_buf_r_[pre_w_] = (int16_t)(clampf(r[n], -1.0f, 1.0f) * 32767.0f);
+      int rd = (pre_w_ - pre) & 8191; pre_w_ = (pre_w_ + 1) & 8191;
+      float in_l = pre_buf_l_[rd] / 32768.0f, in_r = pre_buf_r_[rd] / 32768.0f;
+      if (shim > 0.0f) {         // the tail, an octave up, back into the tank
+        shim_buf_[shim_w_] = (int16_t)(clampf(shim_fb_, -1.0f, 1.0f) * 32767.0f);
+        shim_ph_ += 1.0f / 2048.0f; if (shim_ph_ >= 1.0f) shim_ph_ -= 1.0f;
+        float d1 = (1.0f - shim_ph_) * 2048.0f, d2 = (1.0f - fmodf(shim_ph_ + 0.5f, 1.0f)) * 2048.0f;
+        auto rdbuf = [](float d) { float pos = shim_w_ - d; while (pos < 0) pos += 4096.0f; int i0 = (int)pos; float f = pos - i0; return (shim_buf_[i0 & 4095] * (1 - f) + shim_buf_[(i0 + 1) & 4095] * f) / 32768.0f; };
+        float w1 = sinf(3.14159265f * shim_ph_), w2 = sinf(3.14159265f * fmodf(shim_ph_ + 0.5f, 1.0f));
+        float up = rdbuf(d1) * w1 + rdbuf(d2) * w2;
+        shim_w_ = (shim_w_ + 1) & 4095;
+        in_l += up * shim * 0.7f; in_r += up * shim * 0.7f;
+      }
+      fr[n].l = in_l; fr[n].r = in_r;
+    }
     reverb_.Process(fr, BLOCK);
-    for (int n = 0; n < BLOCK; ++n) { l[n] = fr[n].l; r[n] = fr[n].r; }
+    for (int n = 0; n < BLOCK; ++n) {
+      shim_fb_ = (fr[n].l + fr[n].r) * 0.5f;
+      float wet = mix * (type == 1 ? 0.75f : 0.6f);
+      l[n] = dry_l[n] * (1.0f - mix * 0.4f) + fr[n].l * wet; r[n] = dry_r[n] * (1.0f - mix * 0.4f) + fr[n].r * wet;
+    }
   } else if (id == M_DELAY) {
     static const float beats[] = { 0.25f, 0.5f, 0.75f, 1.0f, 2.0f };
     float bpm = base_[S_GLO][0] > 1.0f ? base_[S_GLO][0] : 112.0f;
     int samples = (int)(beats[PI(slot, 0, 0)] * 60.0f / bpm * SR);
     if (samples > 95999) samples = 95999;
     float fb = P(slot, 1, 0) * 0.92f, tone = P(slot, 2, 0), mix = P(slot, 3, 0);
+    int mode = PI(slot, 4, 0); float wow = P(slot, 5, 0);      // 0 PING, 1 MONO, 2 TAPE
     float lp = 0.05f + tone * 0.9f;
     for (int n = 0; n < BLOCK; ++n) {
-      int rd = delay_w_ - samples; if (rd < 0) rd += 96000;
-      float dl = delay_l_[rd], dr = delay_r_[rd];
+      float dsamp = (float)samples;
+      if (mode == 2) {           // wow and flutter swing the read point; the repeats saturate as they pile up
+        tape_ph1_ += 0.45f / SR; if (tape_ph1_ >= 1.0f) tape_ph1_ -= 1.0f;
+        tape_ph2_ += 6.3f / SR; if (tape_ph2_ >= 1.0f) tape_ph2_ -= 1.0f;
+        dsamp += wow * (sinf(tape_ph1_ * 6.2831853f) * 90.0f + sinf(tape_ph2_ * 6.2831853f) * 6.0f);
+      }
+      float pos = delay_w_ - dsamp; while (pos < 0) pos += 96000.0f;
+      int i0 = (int)pos; float fr2 = pos - i0; int i1 = (i0 + 1) % 96000; i0 %= 96000;
+      float dl = delay_l_[i0] * (1 - fr2) + delay_l_[i1] * fr2, dr = delay_r_[i0] * (1 - fr2) + delay_r_[i1] * fr2;
       delay_tone_l_ += (dl - delay_tone_l_) * lp; delay_tone_r_ += (dr - delay_tone_r_) * lp;
-      delay_l_[delay_w_] = l[n] + delay_tone_r_ * fb;    // ping-pong
-      delay_r_[delay_w_] = r[n] * 0.5f + delay_tone_l_ * fb;
+      if (mode == 0) {           // ping-pong
+        delay_l_[delay_w_] = l[n] + delay_tone_r_ * fb;
+        delay_r_[delay_w_] = r[n] * 0.5f + delay_tone_l_ * fb;
+      } else if (mode == 1) {
+        float m = (l[n] + r[n]) * 0.5f;
+        delay_l_[delay_w_] = m + delay_tone_l_ * fb; delay_r_[delay_w_] = m + delay_tone_r_ * fb;
+      } else {
+        delay_l_[delay_w_] = SoftClip(l[n] + delay_tone_l_ * fb * 1.05f); delay_r_[delay_w_] = SoftClip(r[n] + delay_tone_r_ * fb * 1.05f);
+      }
       delay_w_ = (delay_w_ + 1) % 96000;
-      l[n] += (delay_tone_l_ - 0.0f) * mix; r[n] += delay_tone_r_ * mix;
+      l[n] += delay_tone_l_ * mix; r[n] += delay_tone_r_ * mix;
     }
   } else if (id == M_CHORUS) {
     float rate = 0.05f + P(slot, 0, 0) * 4.0f, depth = P(slot, 1, 0), width = P(slot, 2, 0), mix = P(slot, 3, 0);
@@ -677,16 +802,16 @@ static void process_block() {
   float bpm = base_[S_GLO][0] > 1.0f ? base_[S_GLO][0] : 112.0f;
   clock_phase_ += BLOCK / SR * bpm / 60.0 * 4.0;
   if (clock_phase_ > 4096.0) clock_phase_ -= 4096.0;
+  for (int i = 0; i < 6; ++i) ext_cur_[i] += (ext_tgt_[i] - ext_cur_[i]) * ext_slew_[i];
   run_lfos();
   run_mod(0); run_mod(1);
   memset(blk_l_, 0, sizeof(blk_l_)); memset(blk_r_, 0, sizeof(blk_r_));
   for (int i = 0; i < nvoices_; ++i) render_voice(i, blk_l_, blk_r_);
   run_fx(S_FX1, blk_l_, blk_r_);
   run_fx(S_FX2, blk_l_, blk_r_);
-  for (int n = 0; n < BLOCK; ++n) {
-    blk_l_[n] = SoftClip(blk_l_[n] * master_ * 0.9f);
-    blk_r_[n] = SoftClip(blk_r_[n] * master_ * 0.9f);
-  }
+  for (int n = 0; n < BLOCK; ++n) { blk_l_[n] *= master_ * 0.9f; blk_r_[n] *= master_ * 0.9f; }
+  run_master(blk_l_, blk_r_);
+  for (int n = 0; n < BLOCK; ++n) { blk_l_[n] = SoftClip(blk_l_[n]); blk_r_[n] = SoftClip(blk_r_[n]); }
 }
 
 EXPORT void render(int n) {
@@ -701,7 +826,7 @@ EXPORT void render(int n) {
 // monitor: what the screen draws. 0-15 modulated params of `slot` (as the most recent voice hears them),
 // 16 envs, 22 mod envs, 28 gates, 34 notes, 40 mod outs, 44 lfos, 47 clock (16ths), 48 peaks, 50 route values,
 // 62 last voice, 63 voices; 64-159 Grids levels (3 x 32) when `slot` holds Grids.
-static float mon_[160];
+static float mon_[168];
 EXPORT float* monitor(int slot) {
   const VoiceState* v = &vs_[last_voice_];
   if (slot >= 0 && slot < NSLOT) for (int p = 0; p < 16; ++p) mon_[p] = P(slot, p, v);
@@ -721,6 +846,7 @@ EXPORT float* monitor(int slot) {
     mon_[50 + i] = x;
   }
   mon_[62] = (float)last_voice_; mon_[63] = (float)nvoices_;
+  mon_[160] = comp_gr_db_; mon_[161] = lim_gr_db_;
   if ((slot == S_MODA || slot == S_MODB) && mod_id_[slot] == M_GRIDS)
     for (int inst = 0; inst < 3; ++inst) for (int st = 0; st < 32; ++st) mon_[64 + inst * 32 + st] = grids_level(slot, inst, st) / 255.0f;
   return mon_;
