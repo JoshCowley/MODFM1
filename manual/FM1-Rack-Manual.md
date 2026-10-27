@@ -1,10 +1,10 @@
-# FM1 Rack 1.1 Manual
+# FM1 Rack 1.2 Manual
 
 Oct 26, 2026 · Josh Cowley
 
 *Text copy of the live manual: https://claude.ai/artifact/8cELcnQ8vCjJQCCqp3HngM*
 
-FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.1 browser build, which runs the original module code.
+FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.2 browser build, which runs the original module code.
 
 ## Quick start
 
@@ -35,13 +35,13 @@ FM1 Rack uses the FM-1 exactly as printed: four encoders on the left, the screen
 | FX | FX 1 | Again for FX 2 |
 | SCL | CHORD page: scale chords. SELECT to page 2 for scale lock | Lit green while chords or scale lock are on |
 | ENV | Amp: ADSR, voice and mod envelope pages (SELECT pages) | Again for the shaper slot (SHP) |
-| LFO | MOD A | Again for MOD B, again for LFO 1–3 |
+| LFO | MOD A | Again for MOD B, again for LFO 1–3, again for MOD SEQ (the modulation lanes) |
 | EDIT | Source slot | — |
 | GLO | Global settings | — |
-| HOME | Perform page (macros and scope) | Again for the rack overview. Hold for macro learn |
+| HOME | Perform page (macros and scope) | Again for the rack overview, a third time for TOOLS. Hold for macro learn |
 | SAVE | Open the naming screen | Again to store |
-| ARP | Mod matrix | — |
-| SEQ | Sequencer: the 16-step grid and pattern settings | Again for STEP (the step under the cursor). Hold to lock knob values to that step |
+| ARP | Mod matrix; press again for the arpeggiator | — |
+| SEQ | Sequencer: the 16-step grid and pattern settings | Again for STEP, STEP+ and GEN in turn. Hold to lock knob values to the cursor step |
 | PLAY | Hold: keys latch on and off | Again to release all |
 | REC | Arm the phrase recorder. On the SEQ pages: record live into the running pattern | Again to close the loop, a third time to clear it |
 | Keys | Play. Tap lower on a key for more velocity | — |
@@ -341,6 +341,8 @@ A stereo ping-pong delay locked to the GLOBAL tempo. **Animation:** the echo tap
 | TONE | Darker to brighter repeats |
 | MIX | Level of the echoes |
 
+Page 2: **MODE** PING (ping-pong, as before), MONO (both sides together) or TAPE (wow and flutter swing the echoes, and the repeats saturate as they pile up), and **WOW**, how much TAPE wobbles.
+
 #### Reverb
 
 The Clouds reverb as its own effect. **Animation:** sound bouncing round a room; the dots dim faster with more DAMP.
@@ -351,6 +353,8 @@ The Clouds reverb as its own effect. **Animation:** sound bouncing round a room;
 | DAMP | Darkens the tail |
 | DIFFUSE | From distinct echoes to a smooth wash |
 | MIX | Level of the reverb |
+
+Page 2: **TYPE** PLATE (as before), HALL (a longer, darker tail) or SHIMMER (the tail is fed back an octave up, for pitched halos), **PRE** (pre-delay up to 150 ms) and **SHIMMER** (how much of the octave goes back in). In 1.2 the reverb needs 72K of RAM and 8 CPU units.
 
 #### Chorus
 
@@ -461,6 +465,79 @@ Turn **ALGORITHM** left on STEP to clear the step's locks, and again to clear it
 
 **Saving.** The pattern is part of the patch: SAVE stores it, and loading a patch loads its pattern. ACID DRIFT and STRING MACH come with one.
 
+### STEP+ and GEN
+
+Press **SEQ** a third time for **STEP+**, and a fourth for **GEN**; a fifth goes back to SEQ.
+
+| STEP+ knob | What it does |
+| --- | --- |
+| RATCHET | Plays the step 1 to 4 times within its length; the grid shows small ticks |
+| NUDGE | Moves the step early or late by up to half a step (a dot under the cell shows which way) |
+| SPICE | For the whole pattern: some steps rest, some jump an octave, velocities and lengths move. The variation is the same every time round; the grid marks the rests and octave jumps. What you recorded never changes |
+| DICE | Rolls a different variation |
+
+While live-recording, a key held across several steps is written into each of them: note repeat.
+
+**GEN** builds or reshapes patterns in the key and scale set on the CHORD page. Turn **TOOL** (Knob 1), set its two amounts and the SEED, then turn **ALGORITHM** right to apply; turn it left to undo.
+
+| Tool | What it makes |
+| --- | --- |
+| EUCLID | Spreads PULSES hits evenly over the pattern, turned by ROTATE, keeping the notes already there |
+| RANDOM | A melody in the key: DENSITY of notes and size of LEAPS |
+| ACID | A 303-style bass line, with TIES |
+| ARP UP, ARP UPDN | The key's triad climbing over 1–3 OCTAVES |
+| BERLIN | Three sequencer-school bass figures (VARIANT) |
+| OCTAVES, OFFBEAT, ROLLING, GATES | Bass and rhythm figures |
+| STABS, PROGRESS | Chord stabs, and a four-chord progression (with 7THS) |
+| SHIFT >, SHIFT <, REVERSE, DOUBLE, HALF | Rotate, reverse, copy the pattern to twice its length, or halve its length |
+| HUMANIZE | Random VELO and NUDGE on every step |
+| CLEAR | Empties the pattern |
+
+## Tools
+
+Press **HOME** three times (HOME, the rack, then TOOLS). Turn **SELECT** for the four pages.
+
+**UNDO.** Every change to the patch becomes a step once you stop turning: knobs, modules, the matrix, the sequencer and the mod lanes. Turn **Knob 1** left to go back through up to 16 steps and right to go forward; the band lists them. Turn **Knob 2** to ORIG to hear the patch as it was loaded, and back to EDIT for your changes. HOME shows a gold **EDITED** tag while your patch differs from what was loaded.
+
+**MORPH.** Turn **Knob 1** right to store the current patch as A, change it, then turn **Knob 2** right to store B. **Knob 3** moves every parameter between them; switches and module choices change half way. **Knob 4** (VIA) hands the morph to a macro, so M1–M4 on HOME or a MIDI CC can sweep it. The band shows how far apart A and B are, parameter by parameter.
+
+**RANDOM.** **WHAT** picks the section (SRC, SHP, AMP, MOD, FX, MATRIX or ALL) and **AMOUNT** how far it moves. Turn **Knob 3** right to roll; turn **Knob 4** left to go back. Levels and FREEZE are left alone.
+
+**LIBRARY.** **FILTER** limits what PRESETS steps through: ALL, FAVS, USER, or the patches built on PLAITS, BRAIDS or ELEMENTS. **FAVOURITE** pins the current patch: favourites come first in every list and show a star. Both are remembered in this browser.
+
+## Arpeggiator
+
+Press **ARP** twice (the matrix, then the arp). With MODE away from OFF, the keys and MIDI notes stop sounding directly and feed the arp instead; chords from SCL feed it too.
+
+| Page 1 |  |
+| --- | --- |
+| MODE | OFF, UP, DOWN, UPDN, DNUP, RANDOM, ORDER (as played), CHORD (all together), REPEAT, UP+8, CONV (outside in), DIVG (inside out), PINKY (each note then the top), THUMB (the bottom then each note), TURING |
+| RATE | 1/4, 1/8, 1/8T, 1/16, 1/16T, 1/32 of the tempo |
+| OCTAVE | 1–4 octaves |
+| GATE | Note length |
+
+| Page 2 |  |
+| --- | --- |
+| LATCH | ON keeps the notes going after you let go; the next chord replaces them |
+| MUTATE | TURING: how often a bit of the loop flips (0 locked, 100 wild) |
+| LOOP | TURING: the loop's length, 1–16 steps |
+| SWING | Delays every second note |
+
+**TURING** is a looping shift register in the spirit of Music Thing's Turing Machine: it picks notes from what you hold, repeats its loop, and changes it as often as MUTATE says. The band lights its bits. The ARP lamp stays lit while the arp is on. Arp settings belong to the instrument, not the patch.
+
+## Modulation sequencer
+
+Press **LFO** four times for MOD SEQ: four lanes of 16 steps that run with the tempo, read by the matrix as **SEQ 1** to **SEQ 4**. **SELECT** moves the step cursor and **ALGORITHM** picks the lane.
+
+| Knob | What it does |
+| --- | --- |
+| VALUE | The cursor step's value, −100 to +100 |
+| SHAPE | Turn through RAMP+, RAMP−, TRI, SINE, SQR, RND, FLAT, INVERT and SHIFT to rewrite the lane; you hear each as you pass it |
+| RATE | 1/32 to 2 bars per step, for all lanes |
+| SMOOTH | Glides between steps in this lane |
+
+The lane being edited is drawn big with the playing step lit; the other three run underneath. The lanes are saved with the patch and restart with the sequencer, so they stay in time with it.
+
 ## Patches
 
 A patch is the whole rack: which module is in each slot, every parameter, the ENV and LFO pages, all 12 matrix rows, the four macro positions and the sequencer pattern with its locks. GLOBAL and CHORD settings stay with the instrument, not the patch.
@@ -544,6 +621,19 @@ A new note takes a free voice first. If none are free it takes the voice that wa
 
 With one voice (Elements patches, or VOICES set to 1) the rack plays **mono legato**: a note played while another is held changes pitch without restarting the envelopes, and **GLIDE** on AMP page 2 slides between them. Glide only works in mono.
 
+### Voice modes and VINTAGE
+
+AMP page 4 (**MODE**):
+
+| MODE |  |
+| --- | --- |
+| POLY | As above |
+| MONO | One voice; every note restarts the envelopes |
+| LEGATO | One voice; overlapping notes glide without restarting (GLIDE works here and in MONO) |
+| UNI 2, UNI 4 | Each note plays 2 or 4 voices spread by **DETUNE** (up to 30 cents). A UNI 4 note uses four of your voices |
+
+**VINTAGE** makes the voices behave like an analog poly's: each voice gets its own small fixed tuning error (up to 6 cents), a slow drift (up to 5 cents), and each note a little of its own. At 0 it does nothing.
+
 ## GLOBAL settings and MIDI
 
 Press **GLO** for the instrument-wide settings. They aren't part of any patch, and they're remembered between visits. The visual on page 1 flashes the beat (gold on the downbeat), shows the tempo and reports MIDI: how many inputs are connected, “NO MIDI INPUT”, or “MIDI BLOCKED HERE” if the browser refused access. The MIDI icon lights green while messages arrive.
@@ -565,21 +655,64 @@ Press **GLO** for the instrument-wide settings. They aren't part of any patch, a
 | ANIMATION | FULL, CALM, STILL | FULL redraws at about 30 frames a second. CALM slows the motion to under half speed at 20 frames. STILL freezes the moving graphics and updates values only. If your system asks for reduced motion, the rack starts on CALM |
 | LED BRIGHT | 0–100 | Brightness of the button lamps |
 
-### MIDI in
+### Page 3: TUNING
+
+| Setting | What it does |
+| --- | --- |
+| TUNING | EQUAL, JUST (5-limit), PYTHAG, MEANTONE (quarter-comma), WERCK III, KIRNB III, RAST and BAYATI (maqam neutral intervals), SLENDRO, PELOG, 19-EDO, 24-EDO, 31-EDO |
+| T ROOT | The tonic the tuning is built on |
+| A4 HZ | The reference pitch, 400–480 Hz (432, 415, 442…), under every tuning |
+| BEND | The pitch bend range, 0–24 semitones |
+
+Twelve-note tunings keep the keyboard as it is and retune each note. SLENDRO (5 notes), PELOG (7) and the EDOs map consecutive keys to consecutive steps, so a 19-EDO octave spans 19 keys. The band shows each degree against equal temperament.
+
+### Page 4: MIDI
+
+PROG CHG (program changes load patches), MIDI OUT (OFF, NOTES, or +CC), OUT CH (1–16) and LOCAL (ON, or OFF so the keys only send MIDI). See **MIDI over USB** below.
+
+### Page 5: MASTER
+
+LOW EQ (a shelf at 150 Hz), MID EQ (a peak at 1 kHz) and HIGH EQ (a shelf at 5 kHz), each ±12 dB (MID ±10), and **COMP**, one knob for a bus compressor that lowers the threshold from −6 to −30 dB and raises the ratio from 2:1 to 4:1, with make-up gain. After it, a limiter looks 1 ms ahead so loud attacks are already turned down when they arrive. The band draws the EQ curve and two meters for the compressor's and limiter's gain reduction. EQ and COMP are part of the instrument, not the patch.
+
+### Page 6: SYSTEM
+
+A live readout of the audio engine: **CPU** (the share of real time spent rendering), **PEAK** (the slowest recent block) and **LATE** (blocks that took longer than real time, each a possible click), with a graph, beside the FM-1 budget estimate in units. These are browser measurements; on the FM-1 the same readout will tell us the real costs.
+
+### MIDI over USB
 
 Plug in any class-compliant USB MIDI keyboard or controller. In the browser the rack asks for MIDI access when you switch it on; on the FM-1 it would arrive over the USB port.
 
+In 1.2 the rack speaks MIDI both ways over the same USB connection. Set the channel it listens on with **MIDI CH** (page 1) and what it sends on the **MIDI** page below.
+
+**MIDI in**
+
 | Message | Effect |
 | --- | --- |
-| Note on / off | Plays notes, with velocity through VEL CURVE and scale lock. MIDI notes light the matching on-screen keys |
-| CC 1 (mod wheel) | Macro M1 |
-| CC 21, 22, 23, 24 | Macros M1, M2, M3, M4 |
-| CC 64 (sustain) | Holds notes until the pedal lifts |
-| CC 123 | All notes off |
-| Clock (with CLOCK = MIDI) | Tempo follows the incoming clock, measured over one beat and kept within 60–180 BPM. The visual shows “BPM EXT” once it has locked |
-| Start | Restarts the gate bus from beat 1, so Grids and the BAR gate line up with your sequencer, and starts the step sequencer from step 1 if the pattern has steps. Stop stops it |
+| Note on / off | Plays notes, with velocity through VEL CURVE, CHORD and scale lock; feeds the arpeggiator when it is on, and the sequencer's step entry or live recording on the SEQ pages |
+| Pitch bend | Bends every voice by up to the GLOBAL **BEND** range (0–24 semitones) |
+| Channel pressure, poly aftertouch, CC 2 (breath) | The **PRESS** matrix source |
+| CC 1 (mod wheel) | Macro M1, and the **WHEEL** matrix source |
+| CC 7 | MASTER volume |
+| CC 11 | Expression: scales the output level |
+| CC 16–19 and CC 21–24 | Macros M1–M4 |
+| CC 70–73 | Knobs 1–4 of the page on screen, so one controller can edit any page |
+| CC 64 | Sustain |
+| CC 120 / 123 | All sound off / all notes off |
+| CC 121 | Reset controllers: bend, expression, wheel, pressure, sustain |
+| CC 122 | Local control on or off |
+| Program change, with bank select (CC 0) | Loads patch bank × 128 + program from the full list (when PROG CHG is on) |
+| Clock | With CLOCK = MIDI, the tempo follows, averaged over two beats |
+| Start / Continue / Stop | Start restarts the gate bus and the sequencer from step 1; Continue starts a stopped sequence; Stop stops it |
 
-Moving a macro from MIDI also selects that macro on the PERFORM page, so you can see it move. MIDI out isn't part of 1.0.
+**MIDI out** (GLOBAL page 4, MIDI OUT set to NOTES or +CC)
+
+| What | Sent |
+| --- | --- |
+| Notes | From the keys (chords and strums included), the sequencer (ratchets included) and the arpeggiator, on **OUT CH**, timed against the audio clock |
+| Clock | 24 per beat while CLOCK = INT, with Start and Stop when the sequencer starts and stops |
+| +CC | Macro moves as CC 21–24, the four knobs on screen as CC 70–73, and a program change when you turn PRESETS |
+
+With **LOCAL** OFF the keys only send MIDI and don't play the rack, for a DAW that sends the track back. Notes that arrive over MIDI are never sent back out. On the FM-1 hardware the same messages would travel over its USB-C port through the Felucca USB-MIDI layer; that part isn't ported yet.
 
 ## Computer keyboard and mouse
 
@@ -655,6 +788,8 @@ It has **not yet been built for or run on the FM-1**. What's still to do:
 - **Felucca** is the open firmware platform the FM-1 port builds on, via FM1 Modular.
 - The screen font is **DotGothic16** by Fontworks.
 - Built with clang/LLVM, wasi-libc and libc++.
+
+Many 1.2 workflows follow ideas from **Clipper** (isod89's FM-1 firmware, after SLOOP and Felucca): undo and compare, morph, randomize by section, favourites, ratchets and nudge, spice and dice (after the Arturia MicroFreak), pattern generators, the Turing arp (after Music Thing Modular's Turing Machine), modulation lanes, VINTAGE, the tunings, the delay and reverb modes, the master section and the CPU readout. They were rebuilt here from Clipper's descriptions; no Clipper code is used.
 
 ### Licences
 
