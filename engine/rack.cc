@@ -57,7 +57,7 @@ static float bend_ = 0.0f, vintage_ = 0.0f;
 static bool legato_ = true;
 static float card_[6], vdrift_[6];
 
-static const int NP = 16;
+static const int NP = 32;
 static float base_[NSLOT][NP];
 static float lo_[NSLOT][NP], hi_[NSLOT][NP], span_[NSLOT][NP];
 static int mod_id_[NSLOT];
@@ -77,7 +77,10 @@ struct VoiceState {
   float drift;
   float pan;
   bool prev_gate_el;
-  float menv; int mstage;        // mod env: 0 idle 1 att 2 dec
+  float menv; int mstage;        // mod env: 0 idle 1 att 2 dec 3 sus 4 rel
+  float tm;                      // seconds spent in the AMP delay or hold stage
+  float fenv; int fstage;        // the filter's own ADSR
+  float benv; int bstage;        // Braids' internal AD
 };
 
 static VoiceState vs_[MAXV];
@@ -88,7 +91,7 @@ static rings::Part rings_[MAXV];
 static uint16_t rings_rev_[MAXV][32768];
 static elements::Part elements_[MAXV];
 static uint16_t elements_rev_[MAXV][32768];
-static Svf svf_[MAXV];
+static Svf svf_[MAXV], svf2_[MAXV];
 static warps::Modulator warps_[MAXV];
 static int nvoices_ = 2;
 static int last_voice_ = 0;
@@ -96,6 +99,7 @@ static uint32_t age_counter_ = 0;
 
 // ------------------------------------------------------------------ shared
 static clouds::GranularProcessor clouds_;
+static int clouds_quality_ = 0;
 static uint8_t clouds_large_[118784];
 static uint8_t clouds_small_[65536 - 128];
 static clouds::Reverb reverb_;
@@ -110,6 +114,7 @@ static float delay_tone_l_ = 0.0f, delay_tone_r_ = 0.0f;
 static int16_t shim_buf_[4096]; static int shim_w_ = 0; static float shim_ph_ = 0.0f, shim_fb_ = 0.0f;
 static int16_t pre_buf_l_[8192], pre_buf_r_[8192]; static int pre_w_ = 0;
 static float tape_ph1_ = 0.0f, tape_ph2_ = 0.0f;
+static float rv_lc_l_ = 0, rv_lc_r_ = 0, rv_duck_ = 0, dl_lc_l_ = 0, dl_lc_r_ = 0, dl_duck_ = 0, ch_fb_l_ = 0, ch_fb_r_ = 0;
 
 static peaks::Lfo peaks_lfo_[2];
 static peaks::MultistageEnvelope peaks_env_[2];
@@ -128,7 +133,9 @@ static int grids_step_ = -1;
 static float grids_env_[2][2];   // [slot][trigger, accent]
 static bool grids_gate_ = false;
 // built-in lfos
-static float lfo_phase_[3], lfo_val_[3], lfo_sh_[3], lfo_sh_prev_[3];
+static float lfo_phase_[3], lfo_val_[3], lfo_raw_[3], lfo_sh_[3], lfo_sh_prev_[3];
+static bool lfo_done_[3];
+static float lfo_since_gate_ = 0.0f;
 static const uint8_t* const grids_map_[5][5] = {
   { grids_data::node_10, grids_data::node_8, grids_data::node_0, grids_data::node_9, grids_data::node_11 },
   { grids_data::node_15, grids_data::node_7, grids_data::node_13, grids_data::node_12, grids_data::node_6 },
@@ -235,7 +242,7 @@ static void reset_voice_modules(int slot) {
     } else if (slot == S_SHP) {
       if (mod_id_[S_SHP] == M_RINGS) { rings_[i].Init(rings_rev_[i]); rings_[i].set_polyphony(1); }
       if (mod_id_[S_SHP] == M_WARPS) warps_[i].Init(96000.0f);
-      svf_[i].Init();
+      svf_[i].Init(); svf2_[i].Init();
     }
   }
 }
@@ -255,7 +262,7 @@ EXPORT void set_module(int slot, int id) {
   if (slot == S_FX1 || slot == S_FX2) {
     if (id == M_CLOUDS) {
       clouds_.Init(clouds_large_, sizeof(clouds_large_), clouds_small_, sizeof(clouds_small_));
-      clouds_.set_num_channels(2); clouds_.set_low_fidelity(false);
+      clouds_.set_num_channels(2); clouds_.set_low_fidelity(false); clouds_quality_ = 0;
     }
     if (id == M_REVERB) { reverb_.Init(reverb_buf_); memset(shim_buf_, 0, sizeof(shim_buf_)); memset(pre_buf_l_, 0, sizeof(pre_buf_l_)); memset(pre_buf_r_, 0, sizeof(pre_buf_r_)); shim_fb_ = 0; }
     if (id == M_DELAY) { memset(delay_l_, 0, sizeof(delay_l_)); memset(delay_r_, 0, sizeof(delay_r_)); }
@@ -302,7 +309,7 @@ EXPORT void all_off() { for (int i = 0; i < MAXV; ++i) { vs_[i].gate = false; if
 EXPORT void init() {
   memset(base_, 0, sizeof(base_));
   for (int s = 0; s < NSLOT; ++s) for (int p = 0; p < NP; ++p) { lo_[s][p] = -1e9f; hi_[s][p] = 1e9f; span_[s][p] = 1.0f; }
-  for (int i = 0; i < MAXV; ++i) { memset(&vs_[i], 0, sizeof(VoiceState)); svf_[i].Init(); card_[i] = randf() * 2.0f - 1.0f; vdrift_[i] = 0.0f; }
+  for (int i = 0; i < MAXV; ++i) { memset(&vs_[i], 0, sizeof(VoiceState)); svf_[i].Init(); svf2_[i].Init(); card_[i] = randf() * 2.0f - 1.0f; vdrift_[i] = 0.0f; }
   memset(tune_, 0, sizeof(tune_)); bend_ = 0.0f; vintage_ = 0.0f; legato_ = true;
   for (int i = 0; i < 6; ++i) ext_tgt_[i] = ext_cur_[i] = 0.0f;
   for (int k = 0; k < 2; ++k) { peaks_lfo_[k].Init(); peaks_env_[k].Init(); tides_[k].Init(); tap_period_[k] = 0.5f; }
@@ -317,20 +324,82 @@ static inline float time_coef(float t01, float min_s, float max_s) {
   return 1.0f - expf(-1.0f / (secs * SR / BLOCK) * 4.0f);
 }
 
+// AMP params: 0-3 ADSR, 14 DELAY, 15 HOLD, 16 A CURVE, 17 D CURVE, 18 VEL>ATK, 19 KEY>TIME, 20 M SUST, 21 PITCH ENV.
+// Every new control is neutral at 0, so older patches render exactly as before.
+static inline float stage_secs(float x) { return x * x * 4.0f; }
+static float attack_step(float env, float a, float curve) {
+  // the attack aims past 1 and stops there: aiming far past is close to linear, aiming just past is punchy
+  if (curve == 0.0f) return env + (1.15f - env) * time_coef(a, 0.001f, 6.0f);
+  float T = curve > 0.0f ? 1.15f - curve * 0.13f : 1.15f - curve * 3.0f;
+  float norm = logf(1.15f / 0.15f) / logf(T / (T - 1.0f));
+  return env + (T - env) * fminf(1.0f, time_coef(a, 0.001f, 6.0f) * norm);
+}
+// one decay/release step toward `tgt` from `top`; returns true once there
+static bool fall_step(float& env, float tgt, float c, float curve, float top, float done_at) {
+  if (curve < -0.01f) {                       // aim below the target: straighter, nearer linear
+    float k = -curve; c *= logf((1.0f + k) / k) / logf(1.0f / done_at);
+    float aim = tgt - k * (top - tgt) - k * 0.05f;
+    env += (aim - env) * fminf(1.0f, c);
+    if (env <= tgt) { env = tgt; return true; }
+    return false;
+  }
+  if (curve > 0.01f) c = fminf(1.0f, c * (1.0f + curve * 4.0f * clampf((env - tgt) / (top - tgt + 1e-4f), 0.0f, 1.0f)));
+  env += (tgt - env) * c;
+  return tgt <= 0.0f ? env < done_at : fabsf(env - tgt) < done_at;
+}
 static void run_env(VoiceState& v) {
   float a = P(S_AMP, 0, &v), d = P(S_AMP, 1, &v), s = P(S_AMP, 2, &v), r = P(S_AMP, 3, &v);
+  float va = P(S_AMP, 18, &v), kt = P(S_AMP, 19, &v);
+  if (va != 0.0f || kt != 0.0f) {
+    float k = -kt * clampf((v.note - 60.0f) / 48.0f, -1.0f, 1.0f) * 0.4f;   // higher notes shorter when KEY>TIME is up
+    a = clampf(a - va * v.vel * 0.5f + k, 0.0f, 1.0f); d = clampf(d + k, 0.0f, 1.0f); r = clampf(r + k, 0.0f, 1.0f);
+  }
+  float dly = P(S_AMP, 14, &v), hold = P(S_AMP, 15, &v), ac = P(S_AMP, 16, &v), dc = P(S_AMP, 17, &v);
+  if (v.retrig && v.stage == 1 && dly > 0.0005f) { v.stage = 5; v.tm = 0.0f; }
   switch (v.stage) {
-    case 1: v.env += (1.15f - v.env) * time_coef(a, 0.001f, 6.0f); if (v.env >= 1.0f) { v.env = 1.0f; v.stage = 2; } break;
-    case 2: v.env += (s - v.env) * time_coef(d, 0.005f, 8.0f); if (fabsf(v.env - s) < 0.001f) v.stage = 3; break;
+    case 5: v.env *= 0.9f; v.tm += BLOCK / SR; if (v.tm >= stage_secs(dly)) v.stage = 1; break;
+    case 1: v.env = attack_step(v.env, a, ac); if (v.env >= 1.0f) { v.env = 1.0f; v.stage = hold > 0.0005f ? 6 : 2; v.tm = 0.0f; } break;
+    case 6: v.env = 1.0f; v.tm += BLOCK / SR; if (v.tm >= stage_secs(hold)) v.stage = 2; break;
+    case 2:
+      if (dc == 0.0f) { v.env += (s - v.env) * time_coef(d, 0.005f, 8.0f); if (fabsf(v.env - s) < 0.001f) v.stage = 3; }
+      else if (fall_step(v.env, s, time_coef(d, 0.005f, 8.0f), dc, 1.0f, 0.001f)) v.stage = 3;
+      break;
     case 3: v.env = s; break;
-    case 4: v.env += (0.0f - v.env) * time_coef(r, 0.005f, 10.0f); if (v.env < 0.0005f) { v.env = 0.0f; v.stage = 0; v.active = false; } break;
+    case 4:
+      if (dc == 0.0f) { v.env += (0.0f - v.env) * time_coef(r, 0.005f, 10.0f); if (v.env < 0.0005f) { v.env = 0.0f; v.stage = 0; v.active = false; } }
+      else if (fall_step(v.env, 0.0f, time_coef(r, 0.005f, 10.0f), dc, 1.0f, 0.0005f)) { v.env = 0.0f; v.stage = 0; v.active = false; }
+      break;
     default: v.env = 0.0f;
   }
-  // mod env (AD, optional loop): AMP params 8 attack, 9 decay, 10 loop
+  // mod env (AD, optional loop; with M SUST up it holds while the key is down): AMP params 8 attack, 9 decay, 10 loop, 20 sustain
   float ma = P(S_AMP, 8, &v), md = P(S_AMP, 9, &v); bool loop = PI(S_AMP, 10, &v) == 1;
+  float ms = loop ? 0.0f : P(S_AMP, 20, &v);
   if (v.retrig) v.mstage = 1;
   if (v.mstage == 1) { v.menv += (1.15f - v.menv) * time_coef(ma, 0.001f, 6.0f); if (v.menv >= 1.0f) { v.menv = 1.0f; v.mstage = 2; } }
-  else if (v.mstage == 2) { v.menv += (0.0f - v.menv) * time_coef(md, 0.005f, 8.0f); if (v.menv < 0.002f) { v.menv = 0.0f; v.mstage = loop && v.gate ? 1 : 0; } }
+  else if (v.mstage == 2 && ms <= 0.001f) { v.menv += (0.0f - v.menv) * time_coef(md, 0.005f, 8.0f); if (v.menv < 0.002f) { v.menv = 0.0f; v.mstage = loop && v.gate ? 1 : 0; } }
+  else if (v.mstage == 2) { v.menv += (ms - v.menv) * time_coef(md, 0.005f, 8.0f); if (!v.gate) v.mstage = 4; else if (fabsf(v.menv - ms) < 0.002f) v.mstage = 3; }
+  else if (v.mstage == 3) { v.menv = ms; if (!v.gate) v.mstage = 4; }
+  else if (v.mstage == 4) { v.menv += (0.0f - v.menv) * time_coef(md, 0.005f, 8.0f); if (v.menv < 0.002f) { v.menv = 0.0f; v.mstage = 0; } }
+}
+// the filter's own ADSR (FILTER params 8-11), used when ENV SRC is OWN
+static void run_fenv(VoiceState& v) {
+  float a = P(S_SHP, 8, &v), d = P(S_SHP, 9, &v), s = P(S_SHP, 10, &v), r = P(S_SHP, 11, &v);
+  if (v.retrig) v.fstage = 1;
+  if (!v.gate && v.fstage >= 1 && v.fstage <= 3) v.fstage = 4;
+  switch (v.fstage) {
+    case 1: v.fenv += (1.15f - v.fenv) * time_coef(a, 0.001f, 6.0f); if (v.fenv >= 1.0f) { v.fenv = 1.0f; v.fstage = 2; } break;
+    case 2: v.fenv += (s - v.fenv) * time_coef(d, 0.005f, 8.0f); if (fabsf(v.fenv - s) < 0.001f) v.fstage = 3; break;
+    case 3: v.fenv = s; break;
+    case 4: v.fenv += (0.0f - v.fenv) * time_coef(r, 0.005f, 10.0f); if (v.fenv < 0.0005f) { v.fenv = 0.0f; v.fstage = 0; } break;
+    default: v.fenv = 0.0f;
+  }
+}
+// Braids' internal AD (SRC params 10 attack, 11 decay), struck on each new note
+static void run_benv(VoiceState& v) {
+  if (v.retrig) v.bstage = 1;
+  float a = P(S_SRC, 10, &v), d = P(S_SRC, 11, &v);
+  if (v.bstage == 1) { v.benv += (1.15f - v.benv) * time_coef(a, 0.001f, 2.0f); if (v.benv >= 1.0f) { v.benv = 1.0f; v.bstage = 2; } }
+  else if (v.bstage == 2) { v.benv += (0.0f - v.benv) * time_coef(d, 0.005f, 8.0f); if (v.benv < 0.001f) { v.benv = 0.0f; v.bstage = 0; } }
 }
 
 // ------------------------------------------------------------------ mod slots
@@ -353,22 +422,24 @@ static void run_mod(int k) {
     GateFlags flags[BLOCK]; int16_t out[BLOCK];
     for (int i = 0; i < BLOCK; ++i) { flags[i] = ExtractGateFlags(mod_prev_gate_[k], g); mod_prev_gate_[k] = flags[i]; }
     if (func == 0) {
-      peaks_env_[k].set_adsr((uint16_t)(k1 * 65535), (uint16_t)(k2 * 65535), 0, (uint16_t)(k2 * 65535));
+      peaks_env_[k].set_adsr((uint16_t)(k1 * 65535), (uint16_t)(k2 * 65535), (uint16_t)(P(slot, 4, 0) * 65535), (uint16_t)(k2 * 65535));
       peaks_env_[k].Process(flags, out, BLOCK);
       o[0] = out[BLOCK - 1] / 32767.0f; o[1] = o[0];
+      if (PI(slot, 5, 0) == 1) { o[0] = 1.0f - o[0]; o[1] = o[0]; }
     } else {
       peaks_lfo_[k].set_sync(func == 2);
       peaks_lfo_[k].set_rate((uint16_t)(k1 * 65535));
       peaks_lfo_[k].set_shape_parameter_preset((uint16_t)(k2 * 65535));
       peaks_lfo_[k].Process(flags, out, BLOCK);
       o[0] = out[BLOCK - 1] / 32767.0f; o[1] = o[0] * 0.5f + 0.5f;
+      if (PI(slot, 5, 0) == 1) { o[0] = -o[0]; o[1] = 1.0f - o[1]; }
     }
   } else if (id == M_TIDES) {
     int mode = PI(slot, 0, 0);                // AD LOOP AR
     float freq = P(slot, 1, 0), shape = P(slot, 2, 0), slope = P(slot, 3, 0);
     float smooth = P(slot, 4, 0); int range = PI(slot, 5, 0);
     bool g = division_gate(PI(slot, 6, 0)) > 0.5f;
-    float hz = (range == 0 ? 0.02f : 0.25f) * powf(2.0f, freq * 8.0f);
+    float hz = (range == 0 ? 0.02f : range == 1 ? 0.25f : 2.0f) * powf(2.0f, freq * 8.0f);
     GateFlags flags[BLOCK];
     for (int i = 0; i < BLOCK; ++i) { flags[i] = ExtractGateFlags(mod_prev_gate_[k], g); mod_prev_gate_[k] = flags[i]; }
     tides::PolySlopeGenerator::OutputSample out[BLOCK];
@@ -379,6 +450,7 @@ static void run_mod(int k) {
     tides_raw_ = out[BLOCK - 1].channel[0];
     float raw = out[BLOCK - 1].channel[0];
     float u = clampf(mode == 1 ? raw / 4.5f * 0.5f + 0.5f : raw / TIDES_AD_MAX, 0.0f, 1.0f);
+    if (PI(slot, 7, 0) == 1) u = 1.0f - u;   // INVERT
     o[1] = u;                    // TIDE+ unipolar
     o[0] = u * 2.0f - 1.0f;      // TIDES bipolar
   } else if (id == M_MARBLES) {
@@ -388,12 +460,12 @@ static void run_mod(int k) {
     int clock = PI(slot, 7, 0);
     float dv = P(slot, 4, 0);
     marbles::TGenerator& t = marbles_t_[k];
-    t.set_model(marbles::T_GENERATOR_MODEL_COMPLEMENTARY_BERNOULLI);
+    t.set_model((marbles::TGeneratorModel)PI(slot, 9, 0));
     t.set_range(marbles::T_GENERATOR_RANGE_1X);
     t.set_rate((P(slot, 0, 0) - 0.5f) * 72.0f);
     t.set_bias(P(slot, 2, 0)); t.set_jitter(P(slot, 6, 0));
     t.set_deja_vu(dv); t.set_length(lengths[PI(slot, 5, 0)]);
-    t.set_pulse_width_mean(0.5f); t.set_pulse_width_std(0.0f);
+    t.set_pulse_width_mean(0.5f + P(slot, 11, 0) * 0.45f); t.set_pulse_width_std(0.0f);
     float rb[BLOCK * 4]; bool gates[BLOCK * 2]; float volts[BLOCK * 4];
     marbles::Ramps ramps; ramps.master = rb; ramps.external = rb + BLOCK; ramps.slave[0] = rb + BLOCK * 2; ramps.slave[1] = rb + BLOCK * 3;
     GateFlags ext[BLOCK];
@@ -401,10 +473,10 @@ static void run_mod(int k) {
     for (int i = 0; i < BLOCK; ++i) { ext[i] = ExtractGateFlags(mod_prev_gate_[k], ext_gate); mod_prev_gate_[k] = ext[i]; }
     t.Process(clock != 0, ext, ramps, gates, BLOCK);
     marbles::GroupSettings x, y;
-    x.control_mode = marbles::CONTROL_MODE_IDENTICAL; x.voltage_range = marbles::VOLTAGE_RANGE_NARROW;
+    x.control_mode = marbles::CONTROL_MODE_IDENTICAL; x.voltage_range = (marbles::VoltageRange)PI(slot, 10, 0);
     x.register_mode = false; x.register_value = 0.0f;
     x.spread = P(slot, 1, 0); x.bias = P(slot, 2, 0); x.steps = P(slot, 3, 0); x.deja_vu = dv;
-    x.scale_index = 0; x.length = lengths[PI(slot, 5, 0)]; x.ratio.p = 1; x.ratio.q = 1;
+    x.scale_index = PI(slot, 8, 0); x.length = lengths[PI(slot, 5, 0)]; x.ratio.p = 1; x.ratio.q = 1;
     y = x; y.deja_vu = 0.0f; y.length = 1;
     marbles_xy_[k].Process(marbles::CLOCK_SOURCE_INTERNAL_T1_T2_T3, x, y, ext, ramps, volts, BLOCK);
     o[0] = volts[(BLOCK - 1) * 4 + 0];            // X1 in volts, 0..2 V: 1.0 = one octave on PITCH
@@ -436,7 +508,8 @@ static void run_mod(int k) {
       }
     }
     o[0] = env[0]; o[1] = env[1];
-    env[0] *= 0.993f; env[1] *= 0.993f;   // ~70 ms trigger envelopes
+    float gd = P(slot, 5, 0), gk = gd == 0.0f ? 0.993f : 1.0f - 0.007f * powf(2.0f, -gd * 3.0f);   // DECAY: ~70 ms at 0
+    env[0] *= gk; env[1] *= gk;
   } else {
     o[0] = o[1] = 0.0f;
   }
@@ -447,7 +520,11 @@ static void run_lfos() {
   bool any = any_gate_;
   bool rising = any && !lfo_any_gate_prev_;
   lfo_any_gate_prev_ = any;
+  if (rising) lfo_since_gate_ = 0.0f; else lfo_since_gate_ += BLOCK / SR;
   for (int l = 0; l < 3; ++l) {
+    // LFO params 12 + l*4: FADE, PHASE, POLARITY (BI/UNI), ONE SHOT
+    float fade = P(S_LFO, 12 + l * 4, 0), phase = P(S_LFO, 13 + l * 4, 0);
+    bool uni = PI(S_LFO, 14 + l * 4, 0) == 1, one = PI(S_LFO, 15 + l * 4, 0) == 1;
     int shape = PI(S_LFO, l * 4 + 0, 0);
     float rate = P(S_LFO, l * 4 + 1, 0);
     int sync = PI(S_LFO, l * 4 + 2, 0);
@@ -457,11 +534,14 @@ static void run_lfos() {
       ph = fmodf((float)clock_phase_, shapes_div[sync]) / shapes_div[sync];
     } else {
       float hz = 0.03f * powf(2.0f, rate * 10.0f);     // 0.03 .. 30 Hz
-      lfo_phase_[l] += hz * BLOCK / SR;
+      if (one && rising) { lfo_phase_[l] = 0.0f; lfo_done_[l] = false; }
+      if (!(one && lfo_done_[l])) lfo_phase_[l] += hz * BLOCK / SR;
       if (retrig && rising) lfo_phase_[l] = 0.0f;
+      if (one && lfo_phase_[l] >= 1.0f) { lfo_done_[l] = true; lfo_phase_[l] = 0.9999f; }
       lfo_phase_[l] -= floorf(lfo_phase_[l]);
       ph = lfo_phase_[l];
     }
+    if (phase != 0.0f) { ph += phase; ph -= floorf(ph); }
     bool wrapped = ph < lfo_sh_prev_[l];
     lfo_sh_prev_[l] = ph;
     if (wrapped) lfo_sh_[l] = randf() * 2.0f - 1.0f;
@@ -472,8 +552,11 @@ static void run_lfos() {
       case 2: v = 1.0f - ph * 2.0f; break;
       case 3: v = ph < 0.5f ? 1.0f : -1.0f; break;
       case 4: v = lfo_sh_[l]; break;
-      default: v = lfo_val_[l] + (lfo_sh_[l] - lfo_val_[l]) * 0.05f; break;
+      default: v = lfo_raw_[l] + (lfo_sh_[l] - lfo_raw_[l]) * 0.05f; break;
     }
+    lfo_raw_[l] = v;
+    if (uni) v = v * 0.5f + 0.5f;
+    if (fade > 0.001f) v *= fminf(1.0f, lfo_since_gate_ / stage_secs(fade) * 0.5f);
     lfo_val_[l] = v;
   }
 }
@@ -497,6 +580,7 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
     vint = vintage_ * (card_[i] * 0.06f + clampf(vdrift_[i], -1.0f, 1.0f) * 0.05f + v.rnd * 0.02f);
   }
   float note = v.cur_note + tune_[ti] + bend_ + vint + mod_sum(-1, 0, &v) * 12.0f;
+  float penv = P(S_AMP, 21, &v); if (penv != 0.0f) note += v.menv * penv * 24.0f;   // PITCH ENV: the mod env bends the pitch
 
   // ---- SRC
   int src = mod_id_[S_SRC];
@@ -505,6 +589,11 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
     memset(&p, 0, sizeof(p)); memset(&m, 0, sizeof(m));
     p.engine = PI(S_SRC, 0, &v);
     p.note = note; p.harmonics = P(S_SRC, 1, &v); p.timbre = P(S_SRC, 2, &v); p.morph = P(S_SRC, 3, &v);
+    // page 3-4: OCTAVE, FINE, and how far the internal decay envelope moves TIMBRE, MORPH and pitch (as Plaits' attenuverters do with TRIG patched)
+    float oct = P(S_SRC, 8, &v), fine = P(S_SRC, 9, &v); if (oct != 0.0f || fine != 0.0f) p.note += floorf(oct + 0.5f) * 12.0f + fine;
+    p.timbre_modulation_amount = P(S_SRC, 10, &v); p.morph_modulation_amount = P(S_SRC, 11, &v);
+    p.frequency_modulation_amount = P(S_SRC, 12, &v);
+    float aux = P(S_SRC, 13, &v);
     bool lpg = PI(S_SRC, 4, &v) == 1;
     p.decay = P(S_SRC, 5, &v); p.lpg_colour = P(S_SRC, 6, &v);
     m.trigger_patched = true;
@@ -515,14 +604,23 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
       plaits_[i].Render(p, m, fr + h * 12, 12);
     }
     float lvl = P(S_SRC, 7, &v);
-    for (int n = 0; n < BLOCK; ++n) vbuf_[n] = fr[n].out / 32768.0f * lvl;
+    if (aux > 0.0f) for (int n = 0; n < BLOCK; ++n) vbuf_[n] = (fr[n].out * (1.0f - aux) + fr[n].aux * aux) / 32768.0f * lvl;
+    else for (int n = 0; n < BLOCK; ++n) vbuf_[n] = fr[n].out / 32768.0f * lvl;
   } else if (src == M_BRAIDS) {
     braids::MacroOscillator& b = braids_[i];
     b.set_shape((braids::MacroOscillatorShape)PI(S_SRC, 0, &v));
     v.drift += (randf() * 2.0f - 1.0f) * 0.02f; v.drift *= 0.995f;
     float n2 = note + v.drift * P(S_SRC, 3, &v) * 0.6f;
+    // page 3-4: OCTAVE, FINE, and the internal AD envelope (as Braids' |\ settings) on TIMBRE, COLOR, pitch and level
+    run_benv(v);
+    float oct = P(S_SRC, 8, &v), fine = P(S_SRC, 9, &v), et = P(S_SRC, 12, &v), ec = P(S_SRC, 13, &v), ep = P(S_SRC, 14, &v);
+    if (oct != 0.0f || fine != 0.0f || ep != 0.0f) n2 += floorf(oct + 0.5f) * 12.0f + fine + v.benv * ep * 24.0f;
     b.set_pitch((int16_t)clampf((n2 - 12.0f) * 128.0f, 0, 16383));   // Braids runs at 96 kHz natively
-    b.set_parameters((int16_t)(P(S_SRC, 1, &v) * 32767), (int16_t)(P(S_SRC, 2, &v) * 32767));
+    float tb = P(S_SRC, 1, &v), cl = P(S_SRC, 2, &v);
+    if (et != 0.0f) tb = clampf(tb + v.benv * et, 0.0f, 1.0f);
+    if (ec != 0.0f) cl = clampf(cl + v.benv * ec, 0.0f, 1.0f);
+    b.set_parameters((int16_t)(tb * 32767), (int16_t)(cl * 32767));
+    bool vca = PI(S_SRC, 15, &v) == 1;
     if (v.retrig) b.Strike();
     int16_t buf[BLOCK]; uint8_t sync[BLOCK]; memset(sync, 0, sizeof(sync));
     b.Render(sync, buf, BLOCK);
@@ -539,6 +637,7 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
       if (sign > 0.01f) f = f * (1.0f - sign) + sign * f * fabsf(f) * 1.6f;
       vbuf_[n] = f * P(S_SRC, 7, &v);
     }
+    if (vca) for (int n = 0; n < BLOCK; ++n) vbuf_[n] *= v.benv;
   } else if (src == M_ELEMENTS) {
     elements::Patch* ep = elements_[i].mutable_patch();
     ep->exciter_bow_level = P(S_SRC, 0, &v); ep->exciter_blow_level = P(S_SRC, 1, &v);
@@ -547,11 +646,13 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
     ep->resonator_damping = P(S_SRC, 6, &v); ep->resonator_position = P(S_SRC, 7, &v);
     ep->exciter_blow_meta = P(S_SRC, 8, &v); ep->exciter_strike_meta = P(S_SRC, 9, &v);
     ep->exciter_bow_timbre = P(S_SRC, 10, &v); ep->space = P(S_SRC, 11, &v) * 2.0f;
-    ep->exciter_blow_timbre = 0.5f; ep->exciter_strike_timbre = ep->resonator_brightness;
+    ep->exciter_blow_timbre = 0.5f + P(S_SRC, 14, &v) * 0.5f;
+    ep->exciter_strike_timbre = clampf(ep->resonator_brightness + P(S_SRC, 15, &v), 0.0f, 1.0f);
     ep->exciter_signature = 0.0f; ep->resonator_modulation_frequency = 0.0f; ep->resonator_modulation_offset = 0.0f;
     ep->reverb_diffusion = 0.625f; ep->reverb_lp = 0.7f; ep->modulation_frequency = 0.0f;
     elements::PerformanceState ps;
-    ps.gate = v.gate; ps.note = note - 7.02f;   // Elements runs at 32 kHz natively
+    float eoct = P(S_SRC, 12, &v), efine = P(S_SRC, 13, &v);
+    ps.gate = v.gate; ps.note = (eoct != 0.0f || efine != 0.0f ? note + floorf(eoct + 0.5f) * 12.0f + efine : note) - 7.02f;   // Elements runs at 32 kHz natively
     ps.modulation = 0.0f; ps.strength = 0.4f + 0.6f * v.vel;
     float zero[12] = { 0 }, a[12], b2[12];
     for (int h = 0; h < 2; ++h) {
@@ -572,8 +673,10 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
     rings::Patch rp; rp.structure = P(S_SHP, 1, &v); rp.brightness = P(S_SHP, 2, &v);
     rp.damping = P(S_SHP, 3, &v); rp.position = P(S_SHP, 4, &v);
     rings::PerformanceState ps;
-    ps.strum = v.retrig; ps.internal_exciter = false; ps.internal_strum = false; ps.internal_note = false;
-    ps.tonic = 0.0f; ps.note = note; ps.fm = 0.0f; ps.chord = 0;
+    // page 3: TUNE, FINE, INT EXC (Rings' own pluck, so it rings with no source) and CHORD (the SYM QNT chord table)
+    float rt = P(S_SHP, 8, &v), rf = P(S_SHP, 9, &v);
+    ps.strum = v.retrig; ps.internal_exciter = PI(S_SHP, 10, &v) == 1; ps.internal_strum = false; ps.internal_note = false;
+    ps.tonic = 0.0f; ps.note = rt != 0.0f || rf != 0.0f ? note + floorf(rt + 0.5f) + rf : note; ps.fm = 0.0f; ps.chord = PI(S_SHP, 11, &v);
     float excite = P(S_SHP, 5, &v) * 2.0f, mix = P(S_SHP, 6, &v), spread = P(S_SHP, 7, &v);
     float in[BLOCK], o1[BLOCK], o2[BLOCK];
     for (int n = 0; n < BLOCK; ++n) in[n] = vbuf_[n] * excite;
@@ -592,7 +695,8 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
     wp->modulation_algorithm = P(S_SHP, 0, &v);
     wp->modulation_parameter = P(S_SHP, 1, &v);
     wp->carrier_shape = mod_in == 0 ? 1 + PI(S_SHP, 2, &v) : 0;
-    wp->note = note - 12.0f;                       // Warps runs at 96 kHz natively
+    float ct = P(S_SHP, 7, &v);
+    wp->note = (ct != 0.0f ? note + floorf(ct + 0.5f) : note) - 12.0f;   // Warps runs at 96 kHz natively; CAR TUNE
     wp->channel_drive[0] = P(S_SHP, 4, &v); wp->channel_drive[1] = P(S_SHP, 5, &v);
     wp->frequency_shift_pot = 0.5f; wp->frequency_shift_cv = 0.0f; wp->phase_shift = 0.0f;
     float mix = mod_in == 1 ? 0.0f : P(S_SHP, 6, &v);   // USB IN: no audio input in the browser, pass the source through
@@ -610,17 +714,43 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
       vaux_[n] = vaux_[n] * (1.0f - mix) + b * mix;
     }
   } else if (shp == M_FILTER) {
+    // TYPE CUTOFF RESO DRIVE | ENV AMT KEY TRK VEL AMT ENV SRC | F ATK F DEC F SUS F REL | SAT AUDIO FM GAIN
     int type = PI(S_SHP, 0, &v);
     float cutoff = P(S_SHP, 1, &v), reso = P(S_SHP, 2, &v), drive = P(S_SHP, 3, &v);
-    float env_amt = P(S_SHP, 4, &v), ktrk = P(S_SHP, 5, &v);
-    float semis = cutoff * 120.0f - 30.0f + env_amt * v.env * 60.0f + ktrk * (note - 60.0f);
+    float env_amt = P(S_SHP, 4, &v), ktrk = P(S_SHP, 5, &v), velamt = P(S_SHP, 6, &v);
+    int esrc = PI(S_SHP, 7, &v);
+    float e = v.env;
+    if (esrc == 1) { run_fenv(v); e = v.fenv; } else if (esrc == 2) e = v.menv;
+    float semis = cutoff * 120.0f - 30.0f + env_amt * e * 60.0f + ktrk * (note - 60.0f);
+    if (velamt != 0.0f) semis += velamt * v.vel * 48.0f;
     float f = clampf(440.0f * SemitonesToRatio(semis - 69.0f + 60.0f) / SR, 0.0001f, 0.45f);
-    svf_[i].set_f_q<FREQUENCY_FAST>(f, 0.5f + reso * reso * 25.0f);
-    float g = 1.0f + drive * 6.0f;
+    float q = 0.5f + reso * reso * 25.0f;
+    int sat = PI(S_SHP, 12, &v); float fm = P(S_SHP, 13, &v), gdb = P(S_SHP, 14, &v);
+    float post = gdb != 0.0f ? powf(10.0f, gdb * 12.0f / 20.0f) : 1.0f;
+    bool four = type == 3;
+    svf_[i].set_f_q<FREQUENCY_FAST>(f, four ? 0.5f + reso * reso * 4.0f : q);
+    if (four) svf2_[i].set_f_q<FREQUENCY_FAST>(f, 0.6f + reso * reso * 20.0f);
+    float g = 1.0f + drive * 6.0f, norm = drive > 0.0f ? sqrtf(g) : 1.0f;
     for (int n = 0; n < BLOCK; ++n) {
-      float x = tanhf((vbuf_[n] + vaux_[n]) * 0.5f * g) / (drive > 0.0f ? sqrtf(g) : 1.0f);
-      float y = type == 0 ? svf_[i].Process<FILTER_MODE_LOW_PASS>(x) : type == 1 ? svf_[i].Process<FILTER_MODE_BAND_PASS>(x) : svf_[i].Process<FILTER_MODE_HIGH_PASS>(x);
-      vbuf_[n] = vaux_[n] = y;
+      float in = (vbuf_[n] + vaux_[n]) * 0.5f, xg = in * g, x;
+      switch (sat) {
+        case 1: x = clampf(xg, -1.0f, 1.0f) / norm; break;                        // HARD
+        case 2: x = sinf(clampf(xg, -4.0f, 4.0f) * 1.5707963f) / norm; break;      // FOLD
+        case 3: x = (xg >= 0.0f ? tanhf(xg) : tanhf(xg * 0.6f) / 0.6f) / norm; break;   // ASYM
+        default: x = tanhf(xg) / norm;                                             // SOFT (as before)
+      }
+      if (fm > 0.0f) {      // AUDIO FM: the source moves the cutoff at audio rate
+        float ff = clampf(f * SemitonesToRatio(in * fm * 48.0f), 0.0001f, 0.45f);
+        svf_[i].set_f_q<FREQUENCY_FAST>(ff, four ? 0.5f + reso * reso * 4.0f : q);
+        if (four) svf2_[i].set_f_q<FREQUENCY_FAST>(ff, 0.6f + reso * reso * 20.0f);
+      }
+      float y;
+      if (type == 0) y = svf_[i].Process<FILTER_MODE_LOW_PASS>(x);
+      else if (type == 1) y = svf_[i].Process<FILTER_MODE_BAND_PASS>(x);
+      else if (type == 2) y = svf_[i].Process<FILTER_MODE_HIGH_PASS>(x);
+      else if (four) y = svf2_[i].Process<FILTER_MODE_LOW_PASS>(svf_[i].Process<FILTER_MODE_LOW_PASS>(x));
+      else { float lp, hp; svf_[i].Process<FILTER_MODE_LOW_PASS, FILTER_MODE_HIGH_PASS>(x, &lp, &hp); y = type == 4 ? lp + hp : lp - hp; }   // NOTCH, PEAK
+      vbuf_[n] = vaux_[n] = y * post;
     }
   }
   v.retrig = false;
@@ -702,12 +832,17 @@ static void run_fx(int slot, float* l, float* r) {
     p->stereo_spread = P(slot, 6, 0); p->feedback = P(slot, 7, 0); p->reverb = P(slot, 8, 0);
     clouds_.set_playback_mode((clouds::PlaybackMode)PI(slot, 9, 0));
     p->freeze = PI(slot, 10, 0) == 1;
-    p->trigger = false; p->gate = false;
+    // page 3-4: QUALITY (16/8-bit, stereo/mono, as the hardware's button), IN GAIN, NOTE TRG (a grain on each new note), PITCH TRK
+    int qual = PI(slot, 11, 0); if (qual != clouds_quality_) { clouds_quality_ = qual; clouds_.set_quality(qual); }
+    static bool cl_prev = false; bool trg = PI(slot, 13, 0) == 1 && any_gate_ && !cl_prev; cl_prev = any_gate_;
+    p->trigger = trg; p->gate = trg;
+    if (PI(slot, 14, 0) == 1) p->pitch = clampf(p->pitch + vs_[last_voice_].note - 60.0f, -48.0f, 48.0f);
+    float ig = P(slot, 12, 0), igain = ig != 0.0f ? powf(10.0f, ig * 12.0f / 20.0f) : 1.0f;
     clouds_.Prepare();
     clouds::ShortFrame in[BLOCK], out[BLOCK];
     for (int n = 0; n < BLOCK; ++n) {
-      in[n].l = (int16_t)(clampf(l[n], -1.0f, 1.0f) * 32767.0f);
-      in[n].r = (int16_t)(clampf(r[n], -1.0f, 1.0f) * 32767.0f);
+      in[n].l = (int16_t)(clampf(l[n] * igain, -1.0f, 1.0f) * 32767.0f);
+      in[n].r = (int16_t)(clampf(r[n] * igain, -1.0f, 1.0f) * 32767.0f);
     }
     clouds_.Process(in, out, BLOCK);
     for (int n = 0; n < BLOCK; ++n) { l[n] = out[n].l / 32768.0f; r[n] = out[n].r / 32768.0f; }
@@ -721,6 +856,8 @@ static void run_fx(int slot, float* l, float* r) {
     reverb_.set_lp((type == 1 ? 0.8f : 0.95f) - P(slot, 1, 0) * 0.6f);
     reverb_.set_input_gain(type == 0 ? 0.25f : 0.2f);
     int pre = (int)(P(slot, 5, 0) * 0.15f * SR); if (pre > 7999) pre = 7999;
+    float lc = P(slot, 7, 0), width = P(slot, 8, 0), duck = P(slot, 9, 0);
+    float lcc = lc > 0.0f ? 1.0f - expf(-6.2831853f * (20.0f + lc * lc * 980.0f) / SR) : 0.0f;
     float shim = type == 2 ? P(slot, 6, 0) : 0.0f;
     clouds::FloatFrame fr[BLOCK];
     float dry_l[BLOCK], dry_r[BLOCK];
@@ -729,6 +866,7 @@ static void run_fx(int slot, float* l, float* r) {
       pre_buf_l_[pre_w_] = (int16_t)(clampf(l[n], -1.0f, 1.0f) * 32767.0f); pre_buf_r_[pre_w_] = (int16_t)(clampf(r[n], -1.0f, 1.0f) * 32767.0f);
       int rd = (pre_w_ - pre) & 8191; pre_w_ = (pre_w_ + 1) & 8191;
       float in_l = pre_buf_l_[rd] / 32768.0f, in_r = pre_buf_r_[rd] / 32768.0f;
+      if (lc > 0.0f) { rv_lc_l_ += (in_l - rv_lc_l_) * lcc; rv_lc_r_ += (in_r - rv_lc_r_) * lcc; in_l -= rv_lc_l_; in_r -= rv_lc_r_; }   // LO CUT: thin the tail
       if (shim > 0.0f) {         // the tail, an octave up, back into the tank
         shim_buf_[shim_w_] = (int16_t)(clampf(shim_fb_, -1.0f, 1.0f) * 32767.0f);
         shim_ph_ += 1.0f / 2048.0f; if (shim_ph_ >= 1.0f) shim_ph_ -= 1.0f;
@@ -745,12 +883,19 @@ static void run_fx(int slot, float* l, float* r) {
     for (int n = 0; n < BLOCK; ++n) {
       shim_fb_ = (fr[n].l + fr[n].r) * 0.5f;
       float wet = mix * (type == 1 ? 0.75f : 0.6f);
-      l[n] = dry_l[n] * (1.0f - mix * 0.4f) + fr[n].l * wet; r[n] = dry_r[n] * (1.0f - mix * 0.4f) + fr[n].r * wet;
+      float wl = fr[n].l, wr = fr[n].r;
+      if (width != 0.0f) { float m = (wl + wr) * 0.5f, sd = (wl - wr) * 0.5f * (1.0f + width); wl = m + sd; wr = m - sd; }
+      if (duck > 0.0f) { float x = fmaxf(fabsf(dry_l[n]), fabsf(dry_r[n])); rv_duck_ += (x - rv_duck_) * (x > rv_duck_ ? 0.01f : 0.0002f); wet *= 1.0f - duck * clampf(rv_duck_ * 3.0f, 0.0f, 1.0f); }
+      l[n] = dry_l[n] * (1.0f - mix * 0.4f) + wl * wet; r[n] = dry_r[n] * (1.0f - mix * 0.4f) + wr * wet;
     }
   } else if (id == M_DELAY) {
-    static const float beats[] = { 0.25f, 0.5f, 0.75f, 1.0f, 2.0f };
+    static const float beats[] = { 0.25f, 0.5f, 0.75f, 1.0f, 2.0f, 1.0f / 3.0f, 2.0f / 3.0f, 1.5f, 3.0f };   // .. 1/2, then 1/8T 1/4T 1/4D 1/2D
     float bpm = base_[S_GLO][0] > 1.0f ? base_[S_GLO][0] : 112.0f;
-    int samples = (int)(beats[PI(slot, 0, 0)] * 60.0f / bpm * SR);
+    int ti = PI(slot, 0, 0); ti = ti < 0 ? 0 : ti > 8 ? 8 : ti;
+    int samples = PI(slot, 9, 0) == 1 ? (int)(0.01f * powf(200.0f, P(slot, 10, 0)) * SR)   // SYNC FREE: 10 ms to 2 s
+                                      : (int)(beats[ti] * 60.0f / bpm * SR);
+    float width = P(slot, 6, 0), duck = P(slot, 7, 0), lc = P(slot, 8, 0);
+    float lcc = lc > 0.0f ? 1.0f - expf(-6.2831853f * (20.0f + lc * lc * 980.0f) / SR) : 0.0f;
     if (samples > 95999) samples = 95999;
     float fb = P(slot, 1, 0) * 0.92f, tone = P(slot, 2, 0), mix = P(slot, 3, 0);
     int mode = PI(slot, 4, 0); float wow = P(slot, 5, 0);      // 0 PING, 1 MONO, 2 TAPE
@@ -766,6 +911,7 @@ static void run_fx(int slot, float* l, float* r) {
       int i0 = (int)pos; float fr2 = pos - i0; int i1 = (i0 + 1) % 96000; i0 %= 96000;
       float dl = delay_l_[i0] * (1 - fr2) + delay_l_[i1] * fr2, dr = delay_r_[i0] * (1 - fr2) + delay_r_[i1] * fr2;
       delay_tone_l_ += (dl - delay_tone_l_) * lp; delay_tone_r_ += (dr - delay_tone_r_) * lp;
+      if (lc > 0.0f) { dl_lc_l_ += (delay_tone_l_ - dl_lc_l_) * lcc; dl_lc_r_ += (delay_tone_r_ - dl_lc_r_) * lcc; delay_tone_l_ -= dl_lc_l_; delay_tone_r_ -= dl_lc_r_; }
       if (mode == 0) {           // ping-pong
         delay_l_[delay_w_] = l[n] + delay_tone_r_ * fb;
         delay_r_[delay_w_] = r[n] * 0.5f + delay_tone_l_ * fb;
@@ -776,15 +922,21 @@ static void run_fx(int slot, float* l, float* r) {
         delay_l_[delay_w_] = SoftClip(l[n] + delay_tone_l_ * fb * 1.05f); delay_r_[delay_w_] = SoftClip(r[n] + delay_tone_r_ * fb * 1.05f);
       }
       delay_w_ = (delay_w_ + 1) % 96000;
-      l[n] += delay_tone_l_ * mix; r[n] += delay_tone_r_ * mix;
+      float wl = delay_tone_l_, wr = delay_tone_r_, wm = mix;
+      if (width != 0.0f) { float m = (wl + wr) * 0.5f, sd = (wl - wr) * 0.5f * (1.0f + width); wl = m + sd; wr = m - sd; }
+      if (duck > 0.0f) { float x = fmaxf(fabsf(l[n]), fabsf(r[n])); dl_duck_ += (x - dl_duck_) * (x > dl_duck_ ? 0.01f : 0.0002f); wm *= 1.0f - duck * clampf(dl_duck_ * 3.0f, 0.0f, 1.0f); }
+      l[n] += wl * wm; r[n] += wr * wm;
     }
   } else if (id == M_CHORUS) {
     float rate = 0.05f + P(slot, 0, 0) * 4.0f, depth = P(slot, 1, 0), width = P(slot, 2, 0), mix = P(slot, 3, 0);
+    int cmode = PI(slot, 4, 0); float cfb = P(slot, 5, 0) * 0.9f, cdl = P(slot, 6, 0);   // MODE CHORUS/FLANGER/VIBRATO, FEEDBACK, DELAY
+    float base = cmode == 1 ? 24.0f + cdl * 20.0f : 240.0f + cdl * 200.0f, swing = cmode == 1 ? 200.0f : 600.0f;
+    if (cmode == 2) mix = 1.0f;
     for (int n = 0; n < BLOCK; ++n) {
       chorus_phase_ += rate / SR; if (chorus_phase_ >= 1.0f) chorus_phase_ -= 1.0f;
       float s = sinf(chorus_phase_ * 6.2831853f);
-      chorus_l_[chorus_w_] = l[n]; chorus_r_[chorus_w_] = r[n];
-      float dl = 240.0f + (1.0f + s) * depth * 600.0f, dr = 240.0f + (1.0f - s * width) * depth * 600.0f;
+      chorus_l_[chorus_w_] = cfb > 0.0f ? l[n] + ch_fb_l_ * cfb : l[n]; chorus_r_[chorus_w_] = cfb > 0.0f ? r[n] + ch_fb_r_ * cfb : r[n];
+      float dl = base + (1.0f + s) * depth * swing, dr = base + (1.0f - s * width) * depth * swing;
       auto tap = [](float* buf, int w, float d) {
         float pos = w - d; while (pos < 0) pos += 4096.0f;
         int i0 = (int)pos; float fr = pos - i0;
@@ -792,7 +944,9 @@ static void run_fx(int slot, float* l, float* r) {
       };
       float wl = tap(chorus_l_, chorus_w_, dl), wr = tap(chorus_r_, chorus_w_, dr);
       chorus_w_ = (chorus_w_ + 1) & 4095;
-      l[n] = l[n] * (1.0f - mix * 0.5f) + wl * mix; r[n] = r[n] * (1.0f - mix * 0.5f) + wr * mix;
+      ch_fb_l_ = wl; ch_fb_r_ = wr;
+      if (cmode == 2) { l[n] = wl; r[n] = wr; }
+      else { l[n] = l[n] * (1.0f - mix * 0.5f) + wl * mix; r[n] = r[n] * (1.0f - mix * 0.5f) + wr * mix; }
     }
   }
 }
@@ -825,11 +979,11 @@ EXPORT void render(int n) {
 
 // monitor: what the screen draws. 0-15 modulated params of `slot` (as the most recent voice hears them),
 // 16 envs, 22 mod envs, 28 gates, 34 notes, 40 mod outs, 44 lfos, 47 clock (16ths), 48 peaks, 50 route values,
-// 62 last voice, 63 voices; 64-159 Grids levels (3 x 32) when `slot` holds Grids.
-static float mon_[168];
+// 62 last voice, 63 voices; 64-159 Grids levels (3 x 32) when `slot` holds Grids; 160-161 master gain reduction; 168-183 params 16-31.
+static float mon_[200];
 EXPORT float* monitor(int slot) {
   const VoiceState* v = &vs_[last_voice_];
-  if (slot >= 0 && slot < NSLOT) for (int p = 0; p < 16; ++p) mon_[p] = P(slot, p, v);
+  if (slot >= 0 && slot < NSLOT) { for (int p = 0; p < 16; ++p) mon_[p] = P(slot, p, v); for (int p = 16; p < 32; ++p) mon_[168 + p - 16] = P(slot, p, v); }
   for (int i = 0; i < MAXV; ++i) {
     mon_[16 + i] = vs_[i].env; mon_[22 + i] = vs_[i].menv;
     mon_[28 + i] = i < nvoices_ ? (vs_[i].gate ? 1.0f : vs_[i].stage ? 0.5f : 0.0f) : -1.0f;
