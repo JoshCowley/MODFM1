@@ -44,6 +44,7 @@ function encoder(role, k) {
     if (page === "SAVE") return;
     const list = patchList();
     presetIx = (presetIx + k + list.length * 8) % list.length; loadPreset(presetIx); picker = null; engine(["all_off"]); sounding.clear(); refreshKeys();
+    if (glo.p[G_MOUT] === 2) midiSend([0xC0 | (glo.p[G_OUTCH] & 15), presetIx & 127]);
     say(patchName, "HOME"); return;
   }
   if (page === "SAVE") {
@@ -53,7 +54,9 @@ function encoder(role, k) {
     else if (role === 1) st.slot = clamp(st.slot + Math.sign(k), 0, USER_SLOTS - 1);
     draw(); return;
   }
-  if (page === "SEQ" || page === "STEP") { seqEncoder(role, k); draw(); return; }
+  if (isSeqPage()) { seqEncoder(role, k); noteEdit(`SEQ ${page}`); draw(); return; }
+  if (page === "TOOLS") { toolEncoder(role, k); draw(); return; }
+  if (page === "MSEQ") { mseqEncoder(role, k); draw(); return; }
   const slot = SLOTS.find((s) => s.id === page);
   if (role === "algo") {
     if (!slot) { say("GO TO A SLOT TO SWAP MODULES"); return; }
@@ -80,6 +83,7 @@ function encoder(role, k) {
     if (i === 1) r.dst = cycle(destinations(), r.dst, Math.sign(k));
     if (i === 2) r.amt = clamp(Math.round((r.amt + k * .01) * 100) / 100, -1, 1);
     if (i === 3) r.via = cycle(sources(), r.via, Math.sign(k));
+    noteEdit(`MATRIX ROW ${mxRow + 1}`);
   } else if (FIXED[page]) {
     const [def, st] = FIXED[page];
     const off = def.pages.slice(0, subpage).flat().length, p = def.pages[subpage][i];
@@ -97,9 +101,12 @@ function setRef(ref, v, record = true) {
   else if (ref.w === "AMP") amp.p[ref.idx] = v;
   else if (ref.w === "GLOBAL") { glo.p[ref.idx] = v; storeGlobal(); applyGlobal(); return; }
   else if (ref.w === "CHORD") { chd.p[ref.idx] = v; storeChord(); return; }
+  else if (ref.w === "ARP") { arpS.p[ref.idx] = v; storeArp(); if (ref.idx === 0 || ref.idx === 4) refreshKeys(); return; }
   else if (ref.w === "LFOS") lfo.p[ref.idx] = v;
   else if (ref.w === "slot") { if (rack[ref.slot].mod !== ref.mod) return; rack[ref.slot].p[ref.idx] = v; }
   if (record) recEvent({ type: "set", ref, v });
+  if (ref.w === "macro") { ccOut(21 + ref.i, v); if (morph.via === ref.i + 1) morphTo(v); }
+  if (record && (ref.w === "slot" || ref.w === "AMP" || ref.w === "LFOS" || ref.w === "macro")) { noteEdit(refLabel(ref)); if (ref.w !== "macro") knobCcOut(ref, v); }
 }
 function learnTurn(slot, i, k) {
   let p, dst;
@@ -178,7 +185,7 @@ document.getElementById("octUp").innerHTML = `${svg("UP")}<span>Oct +</span><sma
 // [rack label, printed label, action, colour kind, icon]
 const BTNS = [
   ["FX 1·2", "FX", "FXBTN", "fx", "FX"], ["Chord", "SCL", "CHORD", "chd", "CHORD"], ["Amp · Shp", "ENV", "AMPBTN", "amp", "AMP"], ["Mod · LFO", "LFO", "MODBTN", "mod", "LFO"], ["Source", "EDIT", "SRC", "src", "SRC"], ["Global", "GLO", "GLOBAL", "glo", "GLO"],
-  ["Home", "HOME", "HOME", null, "HOME"], ["Save", "SAVE", "SAVE", null, "SAVE"], ["Matrix", "ARP", "MATRIX", null, "MATRIX"], ["Seq", "SEQ", "SEQBTN", "seq", "SEQ"], ["Hold", "PLAY", "HOLD", null, "HOLD"], ["Rec", "REC", "REC", null, "REC"],
+  ["Home", "HOME", "HOME", null, "HOME"], ["Save", "SAVE", "SAVE", null, "SAVE"], ["Matrix · Arp", "ARP", "ARPBTN", "arp", "MATRIX"], ["Seq", "SEQ", "SEQBTN", "seq", "SEQ"], ["Hold", "PLAY", "HOLD", null, "HOLD"], ["Rec", "REC", "REC", null, "REC"],
 ];
 const btnEls = {};
 const bwrap = document.getElementById("btns");
@@ -203,7 +210,7 @@ for (const [lab, printed, act, kind, ic] of BTNS) {
   bwrap.appendChild(el); btnEls[act] = el;
 }
 function resolve(act) {
-  const cyc = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP"] }[act];
+  const cyc = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS", "MSEQ"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP", "STEP2", "GEN"], ARPBTN: ["MATRIX", "ARP"] }[act];
   if (!cyc) return act;
   if (picker && cyc.includes(picker.slot)) return picker.slot;
   const i = cyc.indexOf(page);
@@ -219,18 +226,18 @@ function press(act) {
       if (!f.ok) { const free = POOL - (budget().ram - (MODULES[rack[slot.id].mod]?.ram || 0)); say(f.why === "CPU" ? `${ch} NEEDS MORE CPU` : f.why.startsWith("IN ") ? `${ch} IS ALREADY ${f.why}` : `${ch} NEEDS ${MODULES[ch].ram}K, ${free}K FREE`); return; }
       rack[slot.id] = { mod: ch, p: blankParams(MODULES[ch]) }; picker = null; subpage = 0;
       delete vs.rings; delete vs.clouds; delete vs.verb;
-      say(ch ? `${ch} LOADED · ${budget().voices} VOICES` : `${slot.name} EMPTIED`, ch || "EMPTY"); return;
+      say(ch ? `${ch} LOADED · ${budget().voices} VOICES` : `${slot.name} EMPTIED`, ch || "EMPTY"); noteEdit(ch ? `${ch} LOADED` : `${slot.name} EMPTIED`); return;
     }
     picker = null; if (page !== slot.id) subpage = 0; page = slot.id; draw(); return;
   }
   picker = null;
-  if (act === "HOME") { if (page === "SAVE") { saveState = null; page = "PERFORM"; say("SAVE CANCELLED", "SAVE"); } else page = page === "PERFORM" ? "RACK" : "PERFORM"; }
+  if (act === "HOME") { if (page === "SAVE") { saveState = null; page = "PERFORM"; say("SAVE CANCELLED", "SAVE"); } else { page = page === "PERFORM" ? "RACK" : page === "RACK" ? "TOOLS" : "PERFORM"; subpage = 0; } }
   else if (FIXED[act]) { if (page !== act) subpage = 0; page = act; }
   else if (act === "MATRIX") page = "MATRIX";
-  else if (act === "SEQ" || act === "STEP") page = act;
+  else if (["SEQ", "STEP", "STEP2", "GEN", "MSEQ"].includes(act)) page = act;
   else if (act === "SAVE") { if (page === "SAVE") commitSave(); else openSave(); }
   else if (act === "HOLD") { hold = !hold; if (!hold) latched.clear(); say(hold ? "HOLD ON" : "HOLD OFF", "HOLD"); refreshKeys(); }
-  else if (act === "REC" && (page === "SEQ" || page === "STEP")) {
+  else if (act === "REC" && isSeqPage()) {
     ss.rec = !ss.rec; ss.recGroup = null;
     if (ss.rec && !ss.run) seqStart();
     say(ss.rec ? "SEQ REC · PLAY OR TURN" : "SEQ REC OFF", "REC");
@@ -247,12 +254,12 @@ document.getElementById("octDn").addEventListener("click", () => { octave = clam
 document.getElementById("octUp").addEventListener("click", () => { octave = clamp(octave + 1, -3, 3); say(`OCTAVE ${octave >= 0 ? "+" : ""}${octave}`); });
 
 function syncLeds() {
-  const pairOn = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP"] };
+  const pairOn = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS", "MSEQ"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP", "STEP2", "GEN"], ARPBTN: ["MATRIX", "ARP"] };
   for (const [act, el] of Object.entries(btnEls)) {
-    let on = act === page || (act === "HOME" && (page === "PERFORM" || page === "RACK")) || (pairOn[act] && pairOn[act].includes(page));
+    let on = act === page || (act === "HOME" && (page === "PERFORM" || page === "RACK" || page === "TOOLS")) || (pairOn[act] && pairOn[act].includes(page));
     if (act === "HOLD" || act === "REC") on = false;
     el.classList.toggle("lit", !!on);
-    el.classList.toggle("hold", (act === "HOLD" && hold) || (act === "REC" && phrase.state === "loop") || (act === "CHORD" && !on && (chd.p[C_TYPE] > 0 || chd.p[C_LOCK] === 1)) || (act === "SEQBTN" && !on && ss.run));
+    el.classList.toggle("hold", (act === "HOLD" && hold) || (act === "REC" && phrase.state === "loop") || (act === "CHORD" && !on && (chd.p[C_TYPE] > 0 || chd.p[C_LOCK] === 1)) || (act === "SEQBTN" && !on && ss.run) || (act === "ARPBTN" && !on && arpOn()));
     el.classList.toggle("rec", act === "REC" && (phrase.state === "rec" || phrase.state === "armed" || (ss.rec && ss.run)));
     el.classList.toggle("blink", (act === "REC" && phrase.state === "armed") || (act === "HOME" && learn) || (act === "SEQBTN" && ss.lock));
     el.setAttribute("aria-pressed", act === "HOLD" ? String(hold) : String(!!on));
@@ -289,8 +296,16 @@ function refreshKeys() {
   keyEls.forEach((el, k) => { if (!el) return; el.classList.toggle("on", held.has(k) || latched.has(k) || playKeys.has(k) || midiLit.has(k)); el.classList.toggle("held", held.has(k)); });
   // what should sound: held, latched or replayed keys
   const want = new Set([...held, ...latched, ...playKeys]);
+  if (arpOn()) {
+    for (const [k, e] of sounding) { sounding.delete(k); notesOff(e); }
+    const pool = []; for (const k of want) for (const x of chordNotes(keyToNote(k))) if (!pool.includes(x)) pool.push(x);
+    for (const [, e] of midiNotes) for (const x of e.notes) if (!pool.includes(x)) pool.push(x);
+    const lastK = [...want].pop();
+    arpUpdate(pool, lastK !== undefined ? keyVel[lastK] : 0);
+    draw(); return;
+  }
   for (const [k, e] of sounding) if (!want.has(k)) { sounding.delete(k); notesOff(e); }
-  for (const k of want) if (!sounding.has(k)) sounding.set(k, notesOn(chordNotes(keyToNote(k)), keyVel[k] ?? 0.75));
+  for (const k of want) if (!sounding.has(k)) sounding.set(k, notesOn(chordNotes(keyToNote(k)), keyVel[k] ?? 0.75, "key"));
   draw();
 }
 const keyToNote = (k) => 53 + k + 12 * octave;                               // key 0 is F3 (before scale lock and chords)

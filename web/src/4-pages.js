@@ -42,6 +42,7 @@ function drawFixed(def, st, tag, titles, iconName, slotIdx, band) {
 }
 function drawPerform() {
   header("HOME", C.fg, patchName, "HOME");
+  if (hist.edited) { rect(186, 30, 44, 11, C.gold, 3); T(208, 38.5, "EDITED", { a: "center", size: 8, c: "#111" }); }
   // output scope
   well(6, 30, 228, 34);
   const sc = audio.scope;
@@ -200,7 +201,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.1", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.2", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -210,12 +211,15 @@ function render() {
   if (bootAt >= 0 && performance.now() - bootAt < 1500) { drawBoot((performance.now() - bootAt) / 1000); return; }
   const slot = SLOTS.find((s) => s.id === page);
   if (slot) drawSlot(slot);
-  else if (page === "AMP") drawFixed(AMP, amp, "AMP", ["ADSR", "VOICE", "MOD ENV"], "AMP", 6, [visAdsr, visVoices, visModEnv][Math.min(subpage, 2)]);
+  else if (page === "AMP") drawFixed(AMP, amp, "AMP", ["ADSR", "VOICE", "MOD ENV", `MODE ${VOICE_MODES[amp.p[A_MODE]]}`], "AMP", 6, [visAdsr, visVoices, visModEnv, visVoices][Math.min(subpage, 3)]);
   else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3"], "LFO", 8, visLfos);
   else if (page === "SAVE") drawSave();
-  else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING"], "GLOBAL", -1, visGlobal);
+  else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem][Math.min(subpage, 5)]);
   else if (page === "CHORD") drawFixed(CHORD, chd, "CHORD", [CHORD_TYPES[chd.p[C_TYPE]] === "OFF" ? "SINGLE NOTES" : `${CHORD_TYPES[chd.p[C_TYPE]]} CHORDS`, chd.p[C_LOCK] ? "SCALE LOCKED" : "SCALE LOCK OFF"], "CHORD", -1, visChord);
-  else if (page === "SEQ" || page === "STEP") drawSeq();
+  else if (isSeqPage()) drawSeq();
+  else if (page === "TOOLS") drawTools();
+  else if (page === "MSEQ") drawMseq();
+  else if (page === "ARP") drawFixed(ARPDEF, arpS, "ARP", [ARP_MODES[arpS.p[0]] === "OFF" ? "OFF" : `${ARP_MODES[arpS.p[0]]} · ${ARP_RATES[arpS.p[1]]}`, "LATCH · TURING"], "ARP", -1, visArp);
   else if (page === "RACK") drawRack();
   else if (page === "MATRIX") drawMatrix();
   else drawPerform();
@@ -227,7 +231,7 @@ function render() {
   if (ss.lock) {
     rect(0, 26, 240, 15, C.gold); icon("LOCK", 4, 28, "#111");
     T(124, 37, `LOCK STEP ${ss.cursor + 1} · TURN ANY KNOB`, { a: "center", size: 10, c: "#111" });
-  } else if (ss.rec && ss.run && page !== "SEQ" && page !== "STEP" && lockRefFor(SLOTS.find((s) => s.id === page), 0)) {
+  } else if (ss.rec && ss.run && !isSeqPage() && lockRefFor(SLOTS.find((s) => s.id === page), 0)) {
     rect(0, 26, 240, 3, Math.floor(animT * 3) % 2 ? C.warn : "#6a2a22");
   }
   if (picker) drawPicker();

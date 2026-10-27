@@ -57,21 +57,25 @@ const audioNow = () => (audio.ctx ? audio.ctx.currentTime : 0);
 function engineAt(at, calls, tag = "n") { if (audio.node) audio.node.port.postMessage({ type: "timed", at, calls, tag }); }
 let lastChord = { notes: [], t: -9 };
 // a chord from the keys: strummed low to high when STRUM is up
-function notesOn(notes, vel) {
-  const strum = chd.p[C_STRUM] * .08, now = audioNow();
-  const at = notes.map((_, i) => now + i * strum);
+function notesOn(notes, vel, src = "key") {
+  const strum = chd.p[C_STRUM] * .08, now = audioNow(), local = !(src === "key" && glo.p[G_LOCAL] === 1);
+  if (notes.length > 1 || CHORD_TYPES[chd.p[C_TYPE]] !== "OFF") lastChord = { notes, t: animT };
+  if (src !== "midi") notes.forEach((nt, i) => noteOut([nt], vel, strum ? now + i * strum : undefined, null));
+  const voices = [], at = [];
   notes.forEach((nt, i) => {
-    if (!strum || !audio.ctx) engine(["note_on", nt, vel]); else engineAt(at[i], [["note_on", nt, vel]]);
+    const t = now + i * strum;
+    for (const x of expandUni([nt])) { voices.push(x); at.push(t); if (local) { if (!strum || !audio.ctx) engine(["note_on", x, vel]); else engineAt(t, [["note_on", x, vel]]); } }
     if (i && strum) setTimeout(() => onNote(nt, vel), i * strum * 1000); else onNote(nt, vel);
   });
-  if (notes.length > 1 || CHORD_TYPES[chd.p[C_TYPE]] !== "OFF") lastChord = { notes, t: animT };
-  return { notes, at };
+  return { notes, voices, at, out: src !== "midi" };
 }
 // note-offs never overtake a strummed note-on that is still waiting
 function notesOff(e) {
   const now = audioNow();
-  e.notes.forEach((nt, i) => { if (e.at[i] > now) engineAt(e.at[i] + .003, [["note_off", nt]]); else engine(["note_off", nt]); });
+  (e.voices || e.notes).forEach((nt, i) => { if (e.at[i] > now) engineAt(e.at[i] + .003, [["note_off", nt]]); else engine(["note_off", nt]); });
+  if (e.out) noteOut(e.notes, 0, null, Math.max(now, ...e.at, 0) + .004);
 }
+const isSeqPage = () => page === "SEQ" || page === "STEP" || page === "STEP2" || page === "GEN";
 
 // ---------------------------------------------------------------- sequencer
 const ss = { run: false, gridT: 0, step: 0, cur: -1, curT: 0, dur: .125, tied: null, active: new Map(), on: new Set(),
@@ -83,15 +87,17 @@ function seqStart() {
   ss.run = true; seq.p[0] = 1; ss.step = 0; ss.cur = -1; ss.tied = null;
   ss.gridT = audioNow() + .06;
   engineAt(ss.gridT, [["reset_clock"]], "seq");          // Grids and the gate bus start on step 1 too
+  msRealign(ss.gridT); midiSend([0xFA], ss.gridT); ss.clockT = ss.gridT;
   say("SEQ PLAY", "SEQ"); seqTick();
 }
 function seqStop() {
   ss.run = false; seq.p[0] = 0; ss.rec = false;
   if (audio.node) audio.node.port.postMessage({ type: "cancel", tag: "seq" });
   for (const nt of ss.on) engine(["note_off", nt]);
+  noteOut([...ss.on], 0, null, audioNow());
   ss.on.clear(); ss.tied = null; ss.cur = -1;
   for (const [, ref] of ss.active) { const c = refCall(ref, refBase(ref)); if (c) engine(c); }
-  ss.active.clear(); say("SEQ STOP", "SEQ");
+  ss.active.clear(); midiSend([0xFC]); say("SEQ STOP", "SEQ");
 }
 function seqTick() {
   if (!ss.run || !audio.on) return;
@@ -105,29 +111,48 @@ function seqTick() {
 }
 setInterval(seqTick, 25);
 const sameNotes = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
-function scheduleStep(i, t, d) {
-  const s = seq.steps[i], wait = Math.max(0, (t - audioNow()) * 1000);
-  setTimeout(() => { ss.cur = i; ss.curT = t; ss.dur = d; dirty = true; }, wait);
+function scheduleStep(i, t0, d) {
+  const s = seq.steps[i], t = t0 + (s.nudge || 0) * .5 * d, wait = Math.max(0, (t0 - audioNow()) * 1000);
+  setTimeout(() => { ss.cur = i; ss.curT = t0; ss.dur = d; dirty = true; seqRepeat(i); }, wait);
   // parameter locks: a trig step sets its locks; anything the last step locked goes back to the knob
   const want = new Map();
   if (s.trig) for (const [k, l] of Object.entries(s.locks)) want.set(k, l);
   for (const [k, ref] of ss.active) if (!want.has(k)) { const c = refCall(ref, refBase(ref)); if (c) engineAt(t, [c], "seq"); }
   ss.active = new Map();
   for (const [k, l] of want) { const c = refCall(l.ref, l.v); if (c) { engineAt(t, [c], "seq"); ss.active.set(k, l.ref); } }
-  const skip = s.skipAt && Math.abs(s.skipAt - t) < d / 2;
+  const skip = s.skipAt && Math.abs(s.skipAt - t0) < d / 2;
   if (skip) s.skipAt = 0;
-  const play = s.trig && s.notes.length && !skip && Math.random() < s.chance;
+  // SPICE: the same variation each time round, until DICE is turned
+  const sp = spiceFor(i);
+  let play = s.trig && s.notes.length && !skip && Math.random() < s.chance && !sp.rest;
   if (!play) return;
-  const same = ss.tied && sameNotes(ss.tied, s.notes);
-  if (ss.tied && !same) engineAt(t, ss.tied.map((nt) => ["note_off", nt]), "seq");
-  if (!same) {
-    engineAt(t + .001, s.notes.map((nt) => ["note_on", nt, s.vel]), "seq");
-    s.notes.forEach((nt) => ss.on.add(nt));
-    setTimeout(() => { s.notes.forEach((nt) => onNote(nt, s.vel)); seqLight(s.notes); }, wait);
+  const notes = s.notes.map((x) => x + sp.oct), vel = clamp(s.vel + sp.vel, .05, 1);
+  const voices = expandUni(notes);
+  const same = ss.tied && sameNotes(ss.tied, voices);
+  if (ss.tied && !same) { engineAt(t, ss.tied.map((nt) => ["note_off", nt]), "seq"); noteOut(ss.tiedOut, 0, null, t); }
+  const ratchet = Math.max(1, s.ratchet || 1), lenF = STEP_LEN_F[s.len] * (1 + sp.gate), tie = STEP_LENS[s.len] === "TIE" && ratchet === 1;
+  for (let r = 0; r < ratchet; r++) {
+    const tr = t + r * d / ratchet, len = ratchet > 1 ? d / ratchet * .55 : clamp(lenF, .05, .98) * d;
+    if (!(same && r === 0)) { engineAt(tr + .001, voices.map((nt) => ["note_on", nt, vel]), "seq"); noteOut(notes, vel, tr + .001, tie ? null : tr + len); }
+    voices.forEach((nt) => ss.on.add(nt));
+    if (!tie) engineAt(tr + len, voices.map((nt) => ["note_off", nt]), "seq");
+    setTimeout(() => { notes.forEach((nt) => onNote(nt, vel)); seqLight(notes); ss.flash[i] = animT; }, Math.max(0, (tr - audioNow()) * 1000));
   }
-  setTimeout(() => { ss.flash[i] = animT; }, wait);
-  if (STEP_LENS[s.len] === "TIE") ss.tied = [...s.notes];
-  else { engineAt(t + STEP_LEN_F[s.len] * d, s.notes.map((nt) => ["note_off", nt]), "seq"); ss.tied = null; }
+  if (tie) { ss.tied = [...voices]; ss.tiedOut = [...notes]; } else ss.tied = null;
+}
+// a tiny seeded random, so SPICE varies each step the same way every pass
+function hash01(a, b) { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function spiceFor(i) {
+  const sp = seq.spice || 0, dc = seq.dice || 0;
+  if (!sp) return { rest: false, oct: 0, vel: 0, gate: 0 };
+  return { rest: hash01(dc, i * 4) < sp * .3, oct: hash01(dc, i * 4 + 1) < sp * .25 ? (hash01(dc, i * 4 + 2) < .5 ? -12 : 12) : 0,
+           vel: (hash01(dc, i * 4 + 3) - .5) * sp * .6, gate: (hash01(dc + 7, i) - .5) * sp };
+}
+// note repeat: a key held while live-recording is written into every step it is held over
+function seqRepeat(i) {
+  if (!(ss.rec && ss.run) || !ss.recGroup || !ss.recGroup.notes || i === ss.recGroup.step) return;
+  const st = seq.steps[i];
+  st.notes = [...ss.recGroup.notes]; st.trig = 1; st.vel = ss.recGroup.vel; ss.recGroup.step = i;
 }
 // light the keybed under sequenced notes
 function seqLight(notes) {
@@ -148,9 +173,9 @@ function seqInput(notes, vel) {
     if (next) st.skipAt = ss.curT + ss.dur;                // it already sounds: don't play it twice this pass
     if (!ss.recGroup || ss.recGroup.step !== i) { ss.recGroup = { step: i }; st.notes = []; }
     for (const nt of notes) if (!st.notes.includes(nt)) st.notes.push(nt);
-    st.notes.sort((a, b) => a - b); st.trig = 1; st.vel = vel; dirty = true; return;
+    st.notes.sort((a, b) => a - b); st.trig = 1; st.vel = vel; ss.recGroup.notes = [...st.notes]; ss.recGroup.vel = vel; dirty = true; return;
   }
-  if (page !== "SEQ" && page !== "STEP") return;
+  if (!isSeqPage()) return;
   if (!ss.entry) { ss.entry = { step: ss.cursor }; seq.steps[ss.cursor].notes = []; }
   const st = seq.steps[ss.entry.step];
   for (const nt of notes) if (!st.notes.includes(nt)) st.notes.push(nt);
@@ -161,13 +186,65 @@ function seqRelease() {
   if (ss.entry) { if (page === "SEQ") ss.cursor = (ss.entry.step + 1) % seqLen(); ss.entry = null; dirty = true; }
   ss.recGroup = null;
 }
+const STEP2DEF = { kind: "seq", pages: [[I("RATCHET", 1, 4, 1), b("NUDGE", 0), n("SPICE", 0), I("DICE", 0, 99, 0)]] };
+const GEN_TOOLS = ["EUCLID", "RANDOM", "ACID", "ARP UP", "ARP UPDN", "BERLIN", "OCTAVES", "OFFBEAT", "ROLLING", "STABS", "PROGRESS", "GATES", "SHIFT >", "SHIFT <", "REVERSE", "DOUBLE", "HALF", "HUMANIZE", "CLEAR"];
+const GEN_AB = { EUCLID: ["PULSES", "ROTATE"], RANDOM: ["DENSITY", "LEAPS"], ACID: ["DENSITY", "TIES"], "ARP UP": ["OCTAVES", "GATE"], "ARP UPDN": ["OCTAVES", "GATE"],
+  BERLIN: ["VARIANT", "GATE"], OCTAVES: ["DENSITY", "GATE"], OFFBEAT: ["VARIANT", "GATE"], ROLLING: ["DENSITY", "GATE"], STABS: ["DENSITY", "7THS"],
+  PROGRESS: ["VARIANT", "7THS"], GATES: ["DENSITY", "VARIANT"], HUMANIZE: ["VELO", "NUDGE"] };
+ss.gen = { tool: 0, a: .5, b: .3, seed: 1 };
+function mulberry(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function scaleNote(R, k) { const deg = scaleDegs(), N = deg.length; return R + 12 * Math.floor(k / N) + deg[((k % N) + N) % N]; }
+function genApply() {
+  const L = seqLen(), G = ss.gen, tool = GEN_TOOLS[G.tool], A = G.a, B = G.b, rng = mulberry(G.seed * 7919 + G.tool * 101);
+  const key = chd.p[C_KEY], N = scaleDegs().length, bass = 36 + key, mid = 48 + key;
+  const set = (i, notes, vel = .75, len = 2, extra = {}) => { const st = seq.steps[i % 16]; Object.assign(st, blankStep(), { trig: 1, notes: notes.map((x) => clamp(Math.round(x), 12, 120)), vel, len }, extra); };
+  const clearAll = () => { for (let i = 0; i < 16; i++) Object.assign(seq.steps[i], blankStep()); };
+  const chordAt = (R, k, sev) => (sev ? [0, 2, 4, 6] : [0, 2, 4]).map((x) => scaleNote(R, k + x));
+  const gateIx = Math.round(B * 4);
+  switch (tool) {
+    case "EUCLID": {
+      const k = 1 + Math.round(A * (L - 1)), rot = Math.round(B * (L - 1));
+      const old = seq.steps.map((x) => (x.notes.length ? [...x.notes] : null)), fb = old.find(Boolean) || [mid];
+      for (let i = 0; i < L; i++) { const j = (i + rot) % L, hit = (i * k) % L < k; if (hit) set(j, old[j] || fb, i === 0 ? .9 : .7); else seq.steps[j].trig = 0; }
+      break;
+    }
+    case "RANDOM": { clearAll(); let d = 0; for (let i = 0; i < L; i++) if (rng() < .25 + A * .7) { d = clamp(d + Math.round((rng() * 2 - 1) * (1 + B * 5)), -N, 2 * N); set(i, [scaleNote(mid, d)], .55 + rng() * .45, rng() < .12 ? 5 : rng() < .5 ? 2 : 1); } break; }
+    case "ACID": { clearAll(); const degs = [0, 0, 0, 0, 2, 4, N, -1, 1]; for (let i = 0; i < L; i++) if (rng() < .45 + A * .5) set(i, [scaleNote(bass, degs[Math.floor(rng() * degs.length)]) + (rng() < .2 ? 12 : 0)], rng() < .3 ? 1 : .65, rng() < B * .6 ? 5 : rng() < .5 ? 1 : 2); break; }
+    case "ARP UP": case "ARP UPDN": {
+      clearAll(); const oct = 1 + Math.round(A * 2), up = []; for (let o = 0; o < oct; o++) for (const x of [0, 2, 4]) up.push(scaleNote(mid, x + o * N));
+      const arr = tool === "ARP UP" ? up : up.concat(up.slice(1, -1).reverse());
+      for (let i = 0; i < L; i++) set(i, [arr[i % arr.length]], i % 4 ? .65 : .85, gateIx); break;
+    }
+    case "BERLIN": {
+      clearAll(); const V = [[0, 4, 7, 4, 0, 4, 9, 4, 0, 4, 7, 4, 2, 4, 9, 4], [0, 7, 2, 7, 4, 7, 2, 7, 0, 7, 2, 7, 5, 7, 4, 7], [0, 2, 4, 7, 9, 7, 4, 2, 0, 2, 4, 7, 11, 7, 4, 2]][Math.min(2, Math.floor(A * 3))];
+      for (let i = 0; i < L; i++) set(i, [scaleNote(bass + 12, V[i % 16])], i % 2 ? .6 : .8, gateIx); break;
+    }
+    case "OCTAVES": { clearAll(); for (let i = 0; i < L; i++) if (rng() < .6 + A * .4) set(i, [bass + (i % 2 ? 12 : 0)], i % 2 ? .6 : .9, gateIx); break; }
+    case "OFFBEAT": { clearAll(); for (let i = 2; i < L; i += 4) set(i, A < .5 ? [scaleNote(mid, 0)] : chordAt(mid, 0, false), .8, gateIx); break; }
+    case "ROLLING": { clearAll(); for (let i = 0; i < L; i++) if (i % 4 && rng() < .6 + A * .4) set(i, [bass], i % 4 === 1 ? .9 : .6, gateIx); break; }
+    case "STABS": { clearAll(); const hits = [0, 3, 6, 10, 12, 14]; hits.forEach((h, n2) => { if (h < L && (n2 < 4 || rng() < A)) set(h, chordAt(mid, n2 % 2 ? 4 : 0, B > .5), .8, 1); }); break; }
+    case "PROGRESS": {
+      clearAll(); const P = [[0, 5, 3, 4], [0, 3, 4, 0], [5, 3, 0, 4], [0, 4, 5, 3]][Math.min(3, Math.floor(A * 4))], span = Math.max(1, Math.floor(L / 4));
+      P.forEach((dg, n2) => { if (n2 * span < L) set(n2 * span, chordAt(mid, dg, B > .5), .7, 5); }); break;
+    }
+    case "GATES": { clearAll(); for (let i = 0; i < L; i++) if (rng() < .4 + A * .6) set(i, [mid], .5 + rng() * .5, Math.floor(rng() * (2 + B * 3))); break; }
+    case "SHIFT >": case "SHIFT <": { const part = seq.steps.slice(0, L), r = tool === "SHIFT >" ? 1 : L - 1; part.forEach((st, i) => { seq.steps[(i + r) % L] = st; }); break; }
+    case "REVERSE": seq.steps.splice(0, L, ...seq.steps.slice(0, L).reverse()); break;
+    case "DOUBLE": if (L > 8) { say("ONLY UP TO 8 STEPS", "SEQ"); return; } for (let i = 0; i < L; i++) seq.steps[L + i] = JSON.parse(JSON.stringify(seq.steps[i])); seq.p[1] = L * 2; break;
+    case "HALF": seq.p[1] = Math.max(1, Math.floor(L / 2)); break;
+    case "HUMANIZE": for (const st of seq.steps) if (st.trig) { st.vel = clamp(st.vel + (rng() - .5) * A * .5, .1, 1); st.nudge = clamp((rng() - .5) * B * .4, -1, 1); } break;
+    case "CLEAR": clearAll(); break;
+  }
+  say(`${tool} · ALGO LEFT TO UNDO`, "SEQ");
+}
 function seqEncoder(role, k) {
-  if (role === "select") { ss.cursor = clamp(ss.cursor + Math.sign(k), 0, 15); return; }
+  const d = Math.sign(k);
+  if (role === "select") { ss.cursor = clamp(ss.cursor + d, 0, 15); return; }
   if (role === "algo") {
+    if (page === "GEN") { if (d > 0) genApply(); else histGo(-1); return; }
     if (page === "SEQ") {
-      const dir = Math.sign(k);
-      for (const st of seq.steps) st.notes = st.notes.map((x) => clamp(x + dir, 12, 120));
-      say(`PATTERN ${dir > 0 ? "UP" : "DOWN"} 1`, "SEQ");
+      for (const st of seq.steps) st.notes = st.notes.map((x) => clamp(x + d, 12, 120));
+      say(`PATTERN ${d > 0 ? "UP" : "DOWN"} 1`, "SEQ");
     } else {
       const st = seq.steps[ss.cursor];
       if (k > 0) { say("TURN LEFT TO CLEAR", "STEP"); return; }
@@ -181,10 +258,21 @@ function seqEncoder(role, k) {
     const p = SEQDEF.pages[0][i], v = stepParam(p, seq.p[i], k);
     if (i === 0) { if (v && !ss.run) seqStart(); else if (!v && ss.run) seqStop(); }
     else seq.p[i] = v;
-    if (i === 1) ss.cursor = Math.min(ss.cursor, 15);
-  } else {
+  } else if (page === "STEP") {
     const st = seq.steps[ss.cursor], key = ["trig", "vel", "len", "chance"][i];
     st[key] = stepParam(STEPDEF.pages[0][i], st[key], k);
+  } else if (page === "STEP2") {
+    const st = seq.steps[ss.cursor], p = STEP2DEF.pages[0][i];
+    if (i === 0) st.ratchet = stepParam(p, st.ratchet || 1, k);
+    if (i === 1) st.nudge = stepParam(p, st.nudge || 0, k);
+    if (i === 2) seq.spice = stepParam(p, seq.spice || 0, k);
+    if (i === 3) { seq.dice = stepParam(p, seq.dice || 0, k); say(`DICE ${seq.dice}: A NEW VARIATION`, "SEQ"); }
+  } else if (page === "GEN") {
+    const G = ss.gen;
+    if (i === 0) G.tool = clamp(G.tool + d, 0, GEN_TOOLS.length - 1);
+    if (i === 1) G.a = clamp(G.a + k * .01, 0, 1);
+    if (i === 2) G.b = clamp(G.b + k * .01, 0, 1);
+    if (i === 3) G.seed = clamp(G.seed + d, 0, 99);
   }
 }
 
@@ -297,6 +385,9 @@ function drawSeqGrid() {
     }
     if (st.trig && !st.notes.length) { g.fillStyle = rgba(C.gold, inLen ? .8 : .3); g.beginPath(); g.moveTo(x + w / 2, y + 9); g.lineTo(x + w / 2 + 5, y + 14); g.lineTo(x + w / 2, y + 19); g.lineTo(x + w / 2 - 5, y + 14); g.fill(); }
     if (Object.keys(st.locks).length) dot(x + w - 4, y + 4, 1.6, C.gold, false);
+    if (st.trig && (st.ratchet || 1) > 1) for (let r = 0; r < st.ratchet; r++) rect(x + 3 + r * 4, y + 3, 2, 3, c);
+    if (st.trig && st.nudge) rect(x + w / 2 + st.nudge * (w / 2 - 2) - 1, y + h - 2, 2, 2, C.fg);
+    if (seq.spice && st.trig && inLen) { const sp = spiceFor(i); if (sp.rest) rect(x + 2, y + h / 2, w - 4, 1, rgba(C.warn, .6)); else if (sp.oct) T(x + w - 3, y + h - 3, sp.oct > 0 ? "+" : "−", { a: "right", size: 8, c: C.gold }); }
     if (st.trig && STEP_LENS[st.len] === "TIE" && inLen) rect(x + w - 2, y + h / 2 - 1, 5, 2, c);
     if (st.trig && st.chance < 1) for (let k = 0; k < 5; k++) if (k / 5 < st.chance) rect(x + 4 + k * 4, y + 3, 2, 1, C.dim);
     if (i === ss.cur && ss.run) frame(x - 1, y - 1, w + 2, h + 2, rgba(c, .9), 5);
@@ -311,16 +402,17 @@ function drawSeqGrid() {
   }
 }
 function drawSeq() {
-  const c = KC.seq, rec = ss.rec && ss.run;
-  if (page === "SEQ") {
-    header("SEQ", c, `${ss.run ? "PLAY" : "STOP"} · ${SEQ_RATES[seq.p[2]]}`, "SEQ");
-    drawSeqGrid();
-    cells(SEQDEF.pages[0], seq.p, null, c);
-  } else {
-    const st = seq.steps[ss.cursor], nl = Object.keys(st.locks).length;
-    header("STEP", c, `${ss.cursor + 1} · ${st.notes.length ? stepLabel(st) : "EMPTY"}${nl ? ` · ${nl}L` : ""}`, "STEP");
-    drawSeqGrid();
-    cells(STEPDEF.pages[0], [st.trig, st.vel, st.len, st.chance], null, c);
+  const c = KC.seq, rec = ss.rec && ss.run, st = seq.steps[ss.cursor], nl = Object.keys(st.locks).length;
+  const stepTitle = `${ss.cursor + 1} · ${st.notes.length ? stepLabel(st) : "EMPTY"}${nl ? ` · ${nl}L` : ""}`;
+  if (page === "SEQ") { header("SEQ", c, `${ss.run ? "PLAY" : "STOP"} · ${SEQ_RATES[seq.p[2]]}`, "SEQ", 4, 0); drawSeqGrid(); cells(SEQDEF.pages[0], seq.p, null, c); }
+  else if (page === "STEP") { header("STEP", c, stepTitle, "STEP", 4, 1); drawSeqGrid(); cells(STEPDEF.pages[0], [st.trig, st.vel, st.len, st.chance], null, c); }
+  else if (page === "STEP2") { header("STEP+", c, stepTitle, "STEP", 4, 2); drawSeqGrid(); cells(STEP2DEF.pages[0], [st.ratchet || 1, st.nudge || 0, seq.spice || 0, seq.dice || 0], null, c); }
+  else {
+    const G = ss.gen, tool = GEN_TOOLS[G.tool], ab = GEN_AB[tool];
+    header("GEN", c, `${tool} · ALGO → APPLY`, "SEQ", 4, 3); drawSeqGrid();
+    const L = seqLen(), eu = tool === "EUCLID";
+    const pa = ab ? (eu ? { l: ab[0], t: "int", min: 1, max: L } : { l: ab[0], t: "num" }) : null, pb = ab ? (eu ? { l: ab[1], t: "int", min: 0, max: Math.max(1, L - 1) } : { l: ab[1], t: "num" }) : null;
+    cells([{ l: "TOOL", t: "list", opts: GEN_TOOLS }, pa, pb, { l: "SEED", t: "int", min: 0, max: 99 }], [G.tool, eu ? 1 + Math.round(G.a * (L - 1)) : G.a, eu ? Math.round(G.b * (L - 1)) : G.b, G.seed], null, c);
   }
   if (rec && Math.floor(animT * 3) % 2) dot(214, 13, 3, C.warn, false);
   footer();

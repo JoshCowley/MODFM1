@@ -42,7 +42,13 @@ function syncEngine() {
     put(`r${i}`, ["set_route", i, d ? sidx : 0, d ? d[0] : 0, d ? d[1] : 0, r.amt, srcIndex(r.via)]);
   });
   macros.forEach((v, i) => put(`m${i}`, ["set_macro", i, v]));
-  put("master", ["set_master", master]);
+  put("master", ["set_master", master * midiState.expr]);
+  put("mfx", ["set_master_fx", glo.p[G_LOW] * 12, glo.p[G_MID] * 10, glo.p[G_HIGH] * 12, glo.p[G_COMP]]);
+  put("legato", ["set_legato", amp.p[A_MODE] === 1 ? 0 : 1]);
+  put("vintage", ["set_vintage", amp.p[A_VINTAGE]]);
+  mseq.lanes.forEach((l, i) => put(`slew${i}`, ["set_ext_slew", i, 1 - l.smooth * .995]));
+  const tk = `${glo.p[G_TUNE]}.${glo.p[G_TROOT]}.${glo.p[G_A4]}`;
+  if (sent.tune !== tk) { sent.tune = tk; calls.push(...tuningCalls()); }
   put("voices", ["set_voices", Math.max(1, budget().voices)]);
   if (calls.length) audio.node.port.postMessage({ type: "calls", calls });
 }
@@ -56,8 +62,8 @@ function applyGlobal() {
   draw();
 }
 
-// ---------------------------------------------------------------- MIDI in: notes, CC 1 and 21-24 to macros, CC 64 hold, clock
-const midiState = { inputs: 0, denied: false, last: 0, clock: [], clockLock: false, sustain: false, deferred: new Set() };
+// ---------------------------------------------------------------- MIDI over USB: everything in, notes / clock / CCs / programs out
+const midiState = { inputs: 0, outputs: 0, denied: false, last: 0, clock: [], clockLock: false, sustain: false, deferred: new Set(), expr: 1, bend: 0, bank: 0 };
 const midiNotes = new Map(), midiPlay = new Map();
 function midiOn(nn, vel, fromLoop = false) {
   vel = fromLoop ? vel : velCurve(vel);
@@ -65,7 +71,7 @@ function midiOn(nn, vel, fromLoop = false) {
   if (midiNotes.has(nn)) notesOff(midiNotes.get(nn));
   midiState.deferred.delete(nn);
   if (!fromLoop) seqInput(notes, vel);
-  midiNotes.set(nn, notesOn(notes, vel));
+  midiNotes.set(nn, arpOn() ? { notes, voices: [], at: [], out: false } : notesOn(notes, vel, fromLoop ? "loop" : "midi"));
   if (!fromLoop) recEvent({ type: "midi", n: nn, on: true, vel });
   refreshKeys();
 }
@@ -76,42 +82,91 @@ function midiOff(nn, fromLoop = false) {
   if (!fromLoop) recEvent({ type: "midi", n: nn, on: false });
   refreshKeys(); if (!fromLoop) seqRelease();
 }
+// the knob under Knob 1-4 on the page on screen, for CC 70-73 in and out
+function pageRef(i) {
+  if (FIXED[page] && page !== "AMP" && page !== "LFOS") { const def = FIXED[page][0], p = def.pages[subpage] && def.pages[subpage][i]; return p ? { ref: { w: page, idx: def.pages.slice(0, subpage).flat().length + i }, p } : null; }
+  const ref = lockRefFor(SLOTS.find((x) => x.id === page), i); return ref ? { ref, p: refParam(ref) } : null;
+}
+const toNorm = (p, v) => p.t === "list" ? v / Math.max(1, p.opts.length - 1) : p.t === "int" ? (v - p.min) / (p.max - p.min) : p.t === "bip" ? (v + 1) / 2 : v;
+const fromNorm = (p, x) => p.t === "list" ? Math.round(x * (p.opts.length - 1)) : p.t === "int" ? Math.round(p.min + x * (p.max - p.min)) : p.t === "bip" ? x * 2 - 1 : x;
+function knobCcOut(ref, v) {
+  if (glo.p[G_MOUT] !== 2) return;
+  for (let i = 0; i < 4; i++) { const pr = pageRef(i); if (pr && pr.ref.w !== "GLOBAL" && lockKey(pr.ref) === lockKey(ref)) { ccOut(70 + i, toNorm(pr.p, v)); return; } }
+}
+function allSoundOff() {
+  midiNotes.clear(); latched.clear(); held.clear(); sounding.clear(); arp.pool = [];
+  engine(["all_off"]); refreshKeys();
+}
+function resetControllers() {
+  midiState.bend = 0; midiState.expr = 1; midiState.sustain = false; midiState.deferred.clear();
+  engine(["set_bend", 0]); engine(["set_ext", 4, 0]); engine(["set_ext", 5, 0]); draw();
+}
 function onMidi(e) {
   const d = e.data, st = d[0];
   midiState.last = performance.now();
   if (st === 0xF8) {
     if (glo.p[G_CLOCK] !== 1) return;
-    const ct = midiState.clock; ct.push(performance.now()); if (ct.length > 25) ct.shift();
-    if (ct.length === 25) {
-      const bpm = clamp(Math.round(60000 / (ct[24] - ct[0])), 60, 180);
+    const ct = midiState.clock; ct.push(performance.now()); if (ct.length > 49) ct.shift();
+    if (ct.length >= 25) {     // averaged over up to two beats, so a steady master reads steady
+      const bpm = clamp(Math.round(60000 * (ct.length - 1) / 24 / (ct[ct.length - 1] - ct[0])), 60, 180);
       if (bpm !== glo.p[G_TEMPO]) { glo.p[G_TEMPO] = bpm; draw(); }
       midiState.clockLock = true;
     }
     return;
   }
   if (st === 0xFA) { engine(["reset_clock"]); if (seq.steps.some((x) => x.trig)) { if (ss.run) seqStop(); seqStart(); } return; }
+  if (st === 0xFB) { if (!ss.run && seq.steps.some((x) => x.trig)) seqStart(); return; }
   if (st === 0xFC) { if (ss.run) seqStop(); draw(); return; }
   if (st >= 0xF0) return;
   const type = st & 0xF0, ch = (st & 0x0F) + 1, want = glo.p[G_MIDICH];
   if (want && ch !== want) return;
   if (type === 0x90 && d[2] > 0) midiOn(d[1], d[2] / 127);
   else if (type === 0x80 || type === 0x90) midiOff(d[1]);
+  else if (type === 0xE0) { midiState.bend = (((d[2] << 7) | d[1]) - 8192) / 8192; engine(["set_bend", midiState.bend * glo.p[G_BEND]]); }
+  else if (type === 0xD0) engine(["set_ext", 5, d[1] / 127]);
+  else if (type === 0xA0) engine(["set_ext", 5, d[2] / 127]);
+  else if (type === 0xC0) {
+    if (!glo.p[G_PROG]) return;
+    const list = patchList(true), ix = midiState.bank * 128 + d[1];
+    if (ix < list.length) { lib.filter = 0; presetIx = ix; loadPreset(ix); engine(["all_off"]); sounding.clear(); refreshKeys(); say(patchName, "HOME"); }
+  }
   else if (type === 0xB0) {
-    const v = d[2] / 127;
-    if (d[1] === 1) { setRef({ w: "macro", i: 0 }, v); learnMacro = 0; draw(); }
-    else if (d[1] >= 21 && d[1] <= 24) { setRef({ w: "macro", i: d[1] - 21 }, v); learnMacro = d[1] - 21; draw(); }
-    else if (d[1] === 64) { midiState.sustain = d[2] >= 64; if (!midiState.sustain) { for (const nn of [...midiState.deferred]) { midiState.deferred.delete(nn); midiOff(nn); } } }
-    else if (d[1] === 123) { for (const nn of [...midiNotes.keys()]) midiOff(nn); }
+    const cc = d[1], v = d[2] / 127;
+    if (cc === 0) midiState.bank = d[2];
+    else if (cc === 1) { engine(["set_ext", 4, v]); setRef({ w: "macro", i: 0 }, v); learnMacro = 0; draw(); }
+    else if (cc === 2) engine(["set_ext", 5, v]);
+    else if (cc === 7) { master = v; draw(); }
+    else if (cc === 11) { midiState.expr = v; draw(); }
+    else if (cc >= 16 && cc <= 19) { setRef({ w: "macro", i: cc - 16 }, v); learnMacro = cc - 16; draw(); }
+    else if (cc >= 21 && cc <= 24) { setRef({ w: "macro", i: cc - 21 }, v); learnMacro = cc - 21; draw(); }
+    else if (cc >= 70 && cc <= 73) { const pr = pageRef(cc - 70); if (pr) { setRef(pr.ref, fromNorm(pr.p, v)); draw(); } }
+    else if (cc === 64) { midiState.sustain = d[2] >= 64; if (!midiState.sustain) { for (const nn of [...midiState.deferred]) { midiState.deferred.delete(nn); midiOff(nn); } } }
+    else if (cc === 120) allSoundOff();
+    else if (cc === 121) resetControllers();
+    else if (cc === 122) { glo.p[G_LOCAL] = d[2] >= 64 ? 0 : 1; storeGlobal(); draw(); }
+    else if (cc === 123) { for (const nn of [...midiNotes.keys()]) midiOff(nn); }
   }
 }
 async function midiStart() {
   if (!navigator.requestMIDIAccess) { midiState.denied = true; return; }
   try {
     const access = await navigator.requestMIDIAccess();
-    const bind = () => { midiState.inputs = access.inputs.size; for (const input of access.inputs.values()) input.onmidimessage = onMidi; draw(); };
+    const bind = () => {
+      midiState.inputs = access.inputs.size; midiState.outputs = access.outputs.size;
+      for (const input of access.inputs.values()) input.onmidimessage = onMidi;
+      mout.outs = [...access.outputs.values()]; draw();
+    };
     access.onstatechange = bind; bind();
   } catch { midiState.denied = true; }
 }
+// MIDI clock out (24 per beat) while the internal clock leads and MIDI OUT is on
+const clockOut = { next: 0 };
+setInterval(() => {
+  if (!audio.on || !glo.p[G_MOUT] || glo.p[G_CLOCK] === 1 || !mout.outs.length) { clockOut.next = 0; return; }
+  const now = audioNow(), d = 60 / glo.p[G_TEMPO] / 24;
+  if (!clockOut.next || clockOut.next < now - .1) clockOut.next = now + .01;
+  while (clockOut.next < now + .1) { midiSend([0xF8], clockOut.next); clockOut.next += d; }
+}, 25);
 
 // ---------------------------------------------------------------- switching on
 async function switchOn() {
@@ -129,7 +184,7 @@ async function switchOn() {
         const m = e.data;
         if (m.type === "ready") res();
         else if (m.type === "error") rej(new Error(m.message));
-        else if (m.type === "mon") { audio.scope = m.scope; mon = m.mon; }
+        else if (m.type === "mon") { audio.scope = m.scope; mon = m.mon; if (m.cpu) { audio.cpu = m.cpu; if (cpuHist.push(m.cpu[0]) > HIST) cpuHist.shift(); } }
       };
       node.port.postMessage({ type: "load", wasm }, [wasm]);
     });

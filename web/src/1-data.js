@@ -20,20 +20,38 @@ const MODULES = {
   MARBLES:  { kind: "mod", poly: false, cpu: 3, ram: 4, blurb: "RANDOM NOTES · GATES", outs: ["MARB X", "MARB T"], pages: [[n("RATE", .5), n("SPREAD", .4), n("BIAS", .5), n("STEPS", .7)], [n("DEJA VU", .5), L("LENGTH", ["1", "2", "3", "4", "5", "6", "8", "16"], 6), n("JITTER", .1), L("CLOCK", ["FREE", "1/16", "1/8", "1/4"], 2)]] },
   GRIDS:    { kind: "mod", poly: false, cpu: 1, ram: 2, blurb: "TOPOGRAPHIC DRUM MAP", outs: ["GRID", "ACCENT"], pages: [[n("X", .4), n("Y", .8), n("FILL", .8), L("OUT", ["BD", "SD", "HH", "KIT"], 3)], [n("CHAOS", 0)]] },
   CLOUDS:   { kind: "fx", poly: false, cpu: 22, ram: 118, blurb: "GRANULAR TEXTURES", pages: [[n("POSITION", .2), n("SIZE", .6), b("PITCH"), n("DENSITY", .5)], [n("TEXTURE", .4), n("BLEND", .3), n("SPREAD", .5), n("FEEDBACK", .2)], [n("REVERB", .3), L("MODE", ["GRANULR", "STRETCH", "LOOPDLY", "SPECTRL"]), L("FREEZE", ["OFF", "ON"])]] },
-  DELAY:    { kind: "fx", poly: false, cpu: 3, ram: 64, blurb: "TEMPO PING-PONG", pages: [[L("TIME", ["1/16", "1/8", "1/8D", "1/4", "1/2"], 2), n("FEEDBACK", .4), n("TONE", .5), n("MIX", .3)]] },
-  REVERB:   { kind: "fx", poly: false, cpu: 6, ram: 32, blurb: "PLATE · CLOUDS VERB", pages: [[n("SIZE", .6), n("DAMP", .5), n("DIFFUSE", .55), n("MIX", .3)]] },
+  DELAY:    { kind: "fx", poly: false, cpu: 3, ram: 64, blurb: "PING · MONO · TAPE", pages: [[L("TIME", ["1/16", "1/8", "1/8D", "1/4", "1/2"], 2), n("FEEDBACK", .4), n("TONE", .5), n("MIX", .3)], [L("MODE", ["PING", "MONO", "TAPE"]), n("WOW", .4)]] },
+  REVERB:   { kind: "fx", poly: false, cpu: 8, ram: 72, blurb: "PLATE · HALL · SHIMMER", pages: [[n("SIZE", .6), n("DAMP", .5), n("DIFFUSE", .55), n("MIX", .3)], [L("TYPE", ["PLATE", "HALL", "SHIMMER"]), n("PRE", 0), n("SHIMMER", .4)]] },
   CHORUS:   { kind: "fx", poly: false, cpu: 2, ram: 4, blurb: "STEREO CHORUS", pages: [[n("RATE", .3), n("DEPTH", .5), n("WIDTH", .7), n("MIX", .4)]] },
 };
-const AMP = { kind: "amp", poly: true, cpu: 1, ram: 0, pages: [[n("ATTACK", .02), n("DECAY", .4), n("SUSTAIN", .7), n("RELEASE", .35)], [n("VEL AMT", .6), n("GLIDE", 0), n("SPREAD", .3), n("LEVEL", .8)], [n("M ATTACK", .05), n("M DECAY", .4), L("M LOOP", ["OFF", "ON"])]] };
+const VOICE_MODES = ["POLY", "MONO", "LEGATO", "UNI 2", "UNI 4"];
+const AMP = { kind: "amp", poly: true, cpu: 1, ram: 0, pages: [[n("ATTACK", .02), n("DECAY", .4), n("SUSTAIN", .7), n("RELEASE", .35)], [n("VEL AMT", .6), n("GLIDE", 0), n("SPREAD", .3), n("LEVEL", .8)], [n("M ATTACK", .05), n("M DECAY", .4), L("M LOOP", ["OFF", "ON"])], [L("MODE", VOICE_MODES), n("DETUNE", .15, { mod: false }), n("VINTAGE", 0, { mod: false })]] };
+const A_MODE = 11, A_DETUNE = 12, A_VINTAGE = 13;
 const LFO_SHAPES = ["SINE", "TRI", "SAW", "SQUARE", "S&H", "DRIFT"], LFO_SYNC = ["FREE", "1/16", "1/8", "1/4", "1/2", "1 BAR", "2 BARS"];
 const lfoPage = (i, shape, rate, sync) => [L(`SHAPE ${i}`, LFO_SHAPES, shape), n(`RATE ${i}`, rate), L(`SYNC ${i}`, LFO_SYNC, sync), L(`RETRIG ${i}`, ["OFF", "ON"])];
 const LFOS = { kind: "lfo", pages: [lfoPage(1, 0, .35, 0), lfoPage(2, 1, .2, 5), lfoPage(3, 5, .5, 0)] };
 const ANIM_MODES = ["FULL", "CALM", "STILL"];
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)]] };
-const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6;
-const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10] };
 const KEYS12 = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+// tunings: [name, cents of each degree from the root, notes per period]; 12-note ones keep the keyboard's layout
+const TUNINGS = [
+  ["EQUAL", [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100]],
+  ["JUST", [0, 111.73, 203.91, 315.64, 386.31, 498.04, 590.22, 701.96, 813.69, 884.36, 1017.6, 1088.27]],
+  ["PYTHAG", [0, 90.22, 203.91, 294.13, 407.82, 498.04, 611.73, 701.96, 792.18, 905.87, 996.09, 1109.78]],
+  ["MEANTONE", [0, 76.05, 193.16, 310.26, 386.31, 503.42, 579.47, 696.58, 772.63, 889.74, 1006.84, 1082.89]],
+  ["WERCK III", [0, 90.22, 192.18, 294.13, 390.22, 498.04, 588.27, 696.09, 792.18, 888.27, 996.09, 1092.18]],
+  ["KIRNB III", [0, 90.22, 193.16, 294.13, 386.31, 498.04, 590.22, 696.58, 792.18, 889.74, 996.09, 1088.27]],
+  ["RAST", [0, 100, 200, 300, 350, 500, 600, 700, 800, 900, 1000, 1050]],
+  ["BAYATI", [0, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100]],
+  ["SLENDRO", [0, 240, 480, 720, 960]],
+  ["PELOG", [0, 120, 270, 540, 670, 785, 950]],
+  ["19-EDO", Array.from({ length: 19 }, (_, i) => i * 1200 / 19)],
+  ["24-EDO", Array.from({ length: 24 }, (_, i) => i * 50)],
+  ["31-EDO", Array.from({ length: 31 }, (_, i) => i * 1200 / 31)],
+];
+const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)], [L("TUNING", TUNINGS.map((t) => t[0])), L("T ROOT", KEYS12), I("A4 HZ", 400, 480, 440), I("BEND", 0, 24, 2)], [L("PROG CHG", ["OFF", "ON"], 1), L("MIDI OUT", ["OFF", "NOTES", "+CC"]), L("OUT CH", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]), L("LOCAL", ["ON", "OFF"])], [b("LOW EQ", 0), b("MID EQ", 0), b("HIGH EQ", 0), n("COMP", 0)], []] };
+const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6, G_TUNE = 7, G_TROOT = 8, G_A4 = 9, G_BEND = 10, G_PROG = 11, G_MOUT = 12, G_OUTCH = 13, G_LOCAL = 14, G_LOW = 15, G_MID = 16, G_HIGH = 17, G_COMP = 18;
+const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10] };
 // CHORD (SCL key): scale chords, with scale lock on its second page
 const CHORD_TYPES = ["OFF", "TRIAD", "7TH", "SUS2", "SUS4", "ADD9", "6TH", "9TH", "POWER", "QUARTAL"];
 const CHORD = { kind: "chd", pages: [[L("CHORD", CHORD_TYPES), L("INVERT", ["ROOT", "1ST", "2ND", "3RD"]), n("SPREAD", 0), n("STRUM", 0)], [L("LOCK", ["OFF", "ON"]), L("KEY", KEYS12), L("SCALE", Object.keys(SCALES))]] };
@@ -43,8 +61,8 @@ const SEQ_RATES = ["1/8", "1/16", "1/16T", "1/32"], RATE_MUL = [2, 1, 2 / 3, .5]
 const STEP_LENS = ["1/8", "1/4", "1/2", "3/4", "FULL", "TIE"], STEP_LEN_F = [.125, .25, .5, .75, .97, 1];
 const SEQDEF = { kind: "seq", pages: [[L("RUN", ["STOP", "PLAY"]), I("LENGTH", 1, 16, 16), L("RATE", SEQ_RATES, 1), n("SWING", 0)]] };
 const STEPDEF = { kind: "seq", pages: [[L("TRIG", ["OFF", "ON"], 1), n("VELO", .75), L("LENGTH", STEP_LENS, 2), n("CHANCE", 1)]] };
-const blankStep = () => ({ trig: 0, notes: [], vel: .75, len: 2, chance: 1, locks: {} });
-const blankSeq = () => ({ p: [0, 16, 1, 0], steps: Array.from({ length: 16 }, blankStep) });
+const blankStep = () => ({ trig: 0, notes: [], vel: .75, len: 2, chance: 1, ratchet: 1, nudge: 0, locks: {} });
+const blankSeq = () => ({ p: [0, 16, 1, 0], spice: 0, dice: 0, steps: Array.from({ length: 16 }, blankStep) });
 const POOL = 256, BUDGET = 80, MAXV = 6;
 
 const SLOTS = [
@@ -55,7 +73,7 @@ const SLOTS = [
   { id: "FX1", kind: "fx", name: "FX 1", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
   { id: "FX2", kind: "fx", name: "FX 2", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
 ];
-const KC = { src: "#ffb347", shp: "#4fd1c5", mod: "#b48cff", fx: "#6aa9ff", amp: "#ff7a6b", glo: "#d8d7d3", lfo: "#c9a7ff", chd: "#9be37a", seq: "#ff8fc8", mx: "#ffd27a" };
+const KC = { src: "#ffb347", shp: "#4fd1c5", mod: "#b48cff", fx: "#6aa9ff", amp: "#ff7a6b", glo: "#d8d7d3", lfo: "#c9a7ff", chd: "#9be37a", seq: "#ff8fc8", mx: "#ffd27a", arp: "#7fd6ff", tool: "#f2c14e" };
 
 // ---------------------------------------------------------------- state
 const blankParams = (mod) => mod ? mod.pages.flat().map((p) => p.def) : [];
@@ -66,10 +84,10 @@ const chd = { p: blankParams(CHORD) };
 let seq = blankSeq();
 const lfo = { p: blankParams(LFOS) };
 const BUILT_SRC = ["—", "M1", "M2", "M3", "M4", "VELO", "KEY TRK", "RANDOM", "AMP ENV"];
-const EXTRA_SRC = ["LFO 1", "LFO 2", "LFO 3", "MOD ENV"];
+const EXTRA_SRC = ["LFO 1", "LFO 2", "LFO 3", "MOD ENV", "SEQ 1", "SEQ 2", "SEQ 3", "SEQ 4", "WHEEL", "PRESS"];
 let matrix = [];
 let macros = [0.5, 0.5, 0.5, 0.5];
-try { const sg = JSON.parse(localStorage.getItem("fm1rack.global.v1") || "null"); if (sg && sg.length === glo.p.length) glo.p = sg; } catch { /* defaults */ }
+try { const sg = JSON.parse(localStorage.getItem("fm1rack.global.v1") || "null"); if (sg && sg.length <= glo.p.length) sg.forEach((v, i) => { glo.p[i] = v; }); } catch { /* defaults */ }
 function storeGlobal() { try { localStorage.setItem("fm1rack.global.v1", JSON.stringify(glo.p)); } catch { /* this visit only */ } }
 try { const sc = JSON.parse(localStorage.getItem("fm1rack.chord.v1") || "null"); if (sc && sc.length === chd.p.length) chd.p = sc; } catch { /* defaults */ }
 function storeChord() { try { localStorage.setItem("fm1rack.chord.v1", JSON.stringify(chd.p)); } catch { /* this visit only */ } }
@@ -80,19 +98,12 @@ const USER_SLOTS = 16, STORE_KEY = "fm1rack.user.v1";
 let userPatches = (() => { try { const v = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); return Array.from({ length: USER_SLOTS }, (_, i) => v[i] || null); } catch { return Array(USER_SLOTS).fill(null); } })();
 function storeUser() { try { localStorage.setItem(STORE_KEY, JSON.stringify(userPatches)); return true; } catch { return false; } }
 // the PRESETS encoder walks the factory patches, then the user slots that hold something
-function patchList() { return [...PRESETS.map((p, i) => ({ f: i, name: p.name })), ...userPatches.map((p, i) => p && { u: i, name: `U${String(i + 1).padStart(2, "0")} ${p.name}` }).filter(Boolean)]; }
+function patchList(raw = false) { const all = [...PRESETS.map((p, i) => ({ f: i, name: p.name })), ...userPatches.map((p, i) => p && { u: i, name: `U${String(i + 1).padStart(2, "0")} ${p.name}` }).filter(Boolean)]; if (raw || typeof filterList !== "function") return all; const f = filterList(all); return f.length ? f : all; }
 function fitParams(def, arr) { const d = blankParams(def); return d.map((v, i) => (arr && arr[i] !== undefined ? arr[i] : v)); }
 function loadPreset(i) {
   const entry = patchList()[i] || { f: 0, name: PRESETS[0].name };
   patchName = entry.name;
-  if (entry.u !== undefined) {
-    const u = userPatches[entry.u];
-    for (const s of SLOTS) { const st = u.slots[s.id] || { mod: null, p: [] }; rack[s.id] = { mod: st.mod, p: fitParams(MODULES[st.mod], st.p) }; }
-    amp.p = fitParams(AMP, u.amp); lfo.p = fitParams(LFOS, u.lfo);
-    matrix = u.matrix.map((r) => ({ ...r })); macros = [...u.macros];
-    loadSeq(u.seq ? JSON.parse(JSON.stringify(u.seq)) : blankSeq());
-    return;
-  }
+  if (entry.u !== undefined) { restoreSnap(userPatches[entry.u]); histReset(`LOADED ${patchName}`); return; }
   const pr = PRESETS[entry.f];
   for (const s of SLOTS) { const m = pr.slots[s.id]; rack[s.id] = { mod: m, p: blankParams(MODULES[m]) }; if (m) applyOver(MODULES[m], rack[s.id].p, pr.p && pr.p[s.id]); }
   amp.p = blankParams(AMP); applyOver(AMP, amp.p, pr.amp);
@@ -103,6 +114,15 @@ function loadPreset(i) {
   });
   macros = [...(pr.macros || [0.5, 0.5, 0.5, 0.5])];
   loadSeq(factorySeq(pr.seq));
+  mseq = blankMseq();
+  histReset(`LOADED ${patchName}`);
+}
+function restoreSnap(u) {
+  for (const s of SLOTS) { const st = u.slots[s.id] || { mod: null, p: [] }; rack[s.id] = { mod: st.mod, p: fitParams(MODULES[st.mod], st.p) }; }
+  amp.p = fitParams(AMP, u.amp); lfo.p = fitParams(LFOS, u.lfo);
+  matrix = u.matrix.map((r) => ({ ...r })); macros = [...u.macros];
+  loadSeq(u.seq ? JSON.parse(JSON.stringify(u.seq)) : blankSeq());
+  mseq = u.mseq ? JSON.parse(JSON.stringify(u.mseq)) : blankMseq();
 }
 // a new pattern keeps the transport running
 function loadSeq(sq) { const run = seq.p[0]; seq = sq; seq.p[0] = run; for (const st of seq.steps) st.locks = st.locks || {}; }
@@ -142,7 +162,7 @@ function applyOver(def, values, over) {
 }
 function snapshot(name) {
   return { name, slots: Object.fromEntries(SLOTS.map((s) => [s.id, { mod: rack[s.id].mod, p: [...rack[s.id].p] }])),
-           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros], seq: { ...JSON.parse(JSON.stringify(seq)), p: [0, ...seq.p.slice(1)] } };
+           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros], seq: { ...JSON.parse(JSON.stringify(seq)), p: [0, ...seq.p.slice(1)] }, mseq: JSON.parse(JSON.stringify(mseq)) };
 }
 const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 let saveState = null;
@@ -158,7 +178,9 @@ function commitSave() {
   const ok = storeUser();
   const list = patchList();
   presetIx = list.findIndex((e) => e.u === saveState.slot);
-  patchName = list[presetIx].name;
+  if (presetIx < 0) { lib.filter = 0; storeLib(); presetIx = patchList().findIndex((e) => e.u === saveState.slot); }
+  patchName = patchList()[presetIx].name;
+  histReset(`SAVED ${name}`);
   say(ok ? `SAVED TO U${String(saveState.slot + 1).padStart(2, "0")}` : "SAVED FOR THIS VISIT ONLY", "SAVE");
   saveState = null; page = "PERFORM";
 }
@@ -172,7 +194,7 @@ function budgetFor(ids) {
     if (m.poly) poly += m.cpu; else shared += m.cpu;
     ram += m.ram;
   }
-  const cap = glo.p[G_VOICES] ? glo.p[G_VOICES] : MAXV;
+  const cap = amp.p[A_MODE] === 1 || amp.p[A_MODE] === 2 ? 1 : glo.p[G_VOICES] ? glo.p[G_VOICES] : MAXV;
   const voices = Math.min(cap, Math.floor((BUDGET - shared) / poly));
   return { shared, poly, ram, voices, cpu: shared + poly * Math.max(voices, 0) };
 }

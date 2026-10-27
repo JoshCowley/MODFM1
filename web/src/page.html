@@ -10,7 +10,7 @@
   /* the instrument: one physical object, identical in both themes */
   --body: #1d1d1f; --tray: #141415; --part: #2a2a2d; --edge: #3b3b3f; --label: #d8d7d3; --label-dim: #8d8c88;
   --lit: #fff1cf; --hold: #5fe08a;
-  --k-src: #ffb347; --k-shp: #4fd1c5; --k-mod: #b48cff; --k-fx: #6aa9ff; --k-amp: #ff7a6b; --k-chd: #9be37a; --k-seq: #ff8fc8;
+  --k-src: #ffb347; --k-shp: #4fd1c5; --k-mod: #b48cff; --k-fx: #6aa9ff; --k-amp: #ff7a6b; --k-chd: #9be37a; --k-seq: #ff8fc8; --k-arp: #7fd6ff;
   --f-dot: "DotGothic16", ui-monospace, monospace;
   --f-body: "Barlow", system-ui, sans-serif;
   --f-label: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
@@ -77,7 +77,7 @@ a { color: var(--link); }
 .btn:focus-visible { outline: 2px solid var(--lit); outline-offset: 2px; }
 .btn[data-kind] { box-shadow: inset 0 -3px 0 var(--kc); }
 .btn[data-kind="src"] { --kc: var(--k-src); } .btn[data-kind="shp"] { --kc: var(--k-shp); }
-.btn[data-kind="mod"] { --kc: var(--k-mod); } .btn[data-kind="fx"] { --kc: var(--k-fx); } .btn[data-kind="amp"] { --kc: var(--k-amp); } .btn[data-kind="chd"] { --kc: var(--k-chd); } .btn[data-kind="seq"] { --kc: var(--k-seq); } .btn[data-kind="glo"] { --kc: var(--label-dim); }
+.btn[data-kind="mod"] { --kc: var(--k-mod); } .btn[data-kind="fx"] { --kc: var(--k-fx); } .btn[data-kind="amp"] { --kc: var(--k-amp); } .btn[data-kind="chd"] { --kc: var(--k-chd); } .btn[data-kind="seq"] { --kc: var(--k-seq); } .btn[data-kind="arp"] { --kc: var(--k-arp); } .btn[data-kind="glo"] { --kc: var(--label-dim); }
 .bezel { background: #0b0b0c; border-radius: 18px; padding: 10px; width: 100%; max-width: 312px; position: relative; box-shadow: inset 0 0 0 1px #1d1d20; }
 .power { position: absolute; inset: 10px; border: 0; border-radius: 4px; background: rgba(0,0,0,.66); color: #f2efe6; cursor: pointer;
   display: grid; place-content: center; justify-items: center; gap: 8px; }
@@ -124,7 +124,7 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
 <main>
   <div class="top">
     <div>
-      <h1>FM1 Rack <span>1.1</span></h1>
+      <h1>FM1 Rack <span>1.2</span></h1>
       <p>A sound-design firmware for the M-VAVE FM-1: open-source eurorack modules in swappable slots, a 12-row mod matrix and four performance macros. This is the browser build, running the original module code.</p>
     </div>
     <a class="manual" href="/*MANUAL*/" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h4.5A1.5 1.5 0 0 1 8 4v10a1.5 1.5 0 0 0-1.5-1.5H2zM14 2.5H9.5A1.5 1.5 0 0 0 8 4v10a1.5 1.5 0 0 1 1.5-1.5H14z"/></svg>Open the manual</a>
@@ -164,8 +164,9 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
         <li><b>REC</b> records keys and knob moves into a loop of 1, 2, 4 or 8 bars.</li>
         <li><b>SCL</b> turns each key into a chord in your key and scale, with scale lock on its second page. <b>PLAY</b> holds notes.</li>
         <li><b>SEQ</b> is a 16-step sequencer: play keys to fill steps, <kbd>Space</kbd> starts it. Hold <b>SEQ</b> and turn any knob to lock a value to a step.</li>
+        <li><b>HOME</b> three times opens TOOLS: undo and compare, morph A↔B, randomize, favourites. <b>ARP</b> twice is the arpeggiator.</li>
         <li><b>SAVE</b> names a patch into one of 16 user slots, kept in this browser.</li>
-        <li>A MIDI keyboard works where the browser allows it: notes, CC 1 and 21–24 to the macros, sustain, clock.</li>
+        <li>Full MIDI over USB where the browser allows it: notes, bend, pressure, program changes, clock in and out, CC 70–73 for the four knobs, and notes out from the keys, sequencer and arp.</li>
       </ul>
     </div>
     <div>
