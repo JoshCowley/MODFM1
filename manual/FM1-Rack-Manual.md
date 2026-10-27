@@ -1,8 +1,8 @@
-# FM1 Rack 1.3 Manual
+# FM1 Rack 1.4 Manual
 
 Oct 26, 2026 · Josh Cowley
 
-FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.3 browser build, which runs the original module code.
+FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.4 browser build, which runs the original module code.
 
 ## Quick start
 
@@ -399,6 +399,75 @@ The fastest way to build a patch. Hold **HOME** for half a second (or Shift-clic
 ### Gate bus
 
 Peaks, Tides and Marbles need something to fire them. Their GATE or CLOCK parameter chooses from the gate bus: **NOTE** (high while any key is held), **GRID** (each Grids hit), or **1/16**, **1/8**, **1/4** and **BAR**, which tick at the GLOBAL tempo.
+
+## Deeper editing pages
+
+1.4 adds pages after the existing ones on almost every menu: press the button again, or turn SELECT, to reach them. They are modelled on the hidden settings of the Mutable modules themselves (Braids' setup menu, Plaits' attenuverters and LPG settings, Rings' internal exciter, Clouds' quality button) and on the edit menus of current pro synths (Sequential's Prophet, ASM's Hydrasynth, Korg's minilogue xd, Arturia's MiniFreak).
+
+Every new control starts at a setting that leaves the sound as it was, so your saved patches and the factory patches sound the same as in 1.3. They are ordinary parameters: the matrix, macros, locks, undo, morph and the randomizer all reach them. The randomizer leaves the structural ones alone (octave, tune, quality, sync, VCA and exciter switches, gain).
+
+### ENV (AMP) pages 5 and 6
+
+| Page | Control | What it does |
+| --- | --- | --- |
+| ENV SHAPE | DELAY | Waits up to 4 s before the attack starts |
+|  | HOLD | Holds the peak up to 4 s before the decay |
+|  | A CURVE | Attack shape: left is straighter (linear), right is punchier. The attack time stays the same |
+|  | D CURVE | Decay and release shape: left is straighter, right drops faster at first (snappier) |
+| TRACKING | VEL>ATK | Harder notes get a shorter attack (or longer, turned left) |
+|  | KEY>TIME | Higher notes get shorter attack, decay and release, as on an acoustic instrument |
+|  | M SUST | Gives the mod envelope a sustain level: it holds there while the key is down, then falls at M DECAY. Ignored when M LOOP is on |
+|  | PITCH ENV | The mod envelope bends the pitch, up to two octaves either way: a quick blip for drums and plucks, a slow rise for swells |
+
+The ADSR band now draws DELAY, HOLD and both curves as the engine plays them.
+
+### LFO pages 4 to 6
+
+LFO 1 +, LFO 2 + and LFO 3 + add four controls to each LFO: **FADE** (fades the LFO in after each new phrase, up to about 8 s, for delayed vibrato), **PHASE** (where the cycle starts), **POLAR** (BI swings both ways, UNI only upward, as a tremolo or filter opener should) and **1SHOT** (with a free rate, runs one cycle from each new phrase and stops, an extra envelope).
+
+### Sources
+
+| Module | New page | Controls |
+| --- | --- | --- |
+| PLAITS | 3 | OCTAVE (±3), FINE (±1 semitone), ENV>TIMB, ENV>MRPH: how far Plaits' own decay envelope moves TIMBRE and MORPH, as its attenuverters do with TRIG patched |
+| PLAITS | 4 | ENV>FM (the same envelope on pitch), AUX MIX (fades to Plaits' AUX output: the sub-oscillator in FM, the hard-synced pair in VA, the raw exciter in the physical models) |
+| BRAIDS | 3 | OCTAVE, FINE, AD ATK, AD DEC: Braids' internal AD envelope from its setup menu |
+| BRAIDS | 4 | AD>TIMB, AD>COLR, AD>PTCH (the envelope's amount on each), AD VCA (ON: the envelope also shapes the level, for plucks and drums) |
+| ELEMENTS | 4 | OCTAVE, FINE, BLOW TMB and STRK TMB (the blow and strike exciters' timbre, which were fixed before) |
+
+### Shapers
+
+**FILTER** has three new types on page 1 (LP24, a steeper 24 dB low-pass; NOTCH; PEAK) and three new pages:
+
+| Page | Controls |
+| --- | --- |
+| 2 | ENV AMT, KEY TRK, **VEL AMT** (velocity opens or closes the cutoff), **ENV SRC** (AMP, the filter's OWN envelope, or the MOD envelope) |
+| 3 | F ATK, F DEC, F SUS, F REL: the filter's own ADSR, used when ENV SRC is OWN |
+| 4 | **SAT** (the drive stage: SOFT as before, HARD clipping, FOLD wavefolding, ASYM tube-like), **AUDIO FM** (the source moves the cutoff at audio rate, for growl and clang), **GAIN** (±12 dB after the filter) |
+
+**RINGS** page 3: TUNE (±24 semitones), FINE, **INT EXC** (Rings' own pluck, so it rings with or without a source) and **CHORD** (the chord the SYM QNT model's strings are tuned to, 0–10).
+
+**WARPS** page 2: **CAR TUNE** transposes the carrier against the note.
+
+### Modulators
+
+| Module | Added |
+| --- | --- |
+| PEAKS | Page 2: SUSTAIN (the envelope gets a sustain level) and INVERT |
+| TIDES | RANGE gains HI (fast cycles, up to the low audio range); INVERT on page 2 |
+| MARBLES | Page 3: SCALE (major, minor, pentatonic, pelog, Raag Bhairav, Raag Shri), T MODEL (the seven rhythm models of the T section), X RANGE (2 V as before, 5 V, ±5 V) and GATE LEN |
+| GRIDS | Page 2: DECAY of the trigger envelopes |
+
+### Effects
+
+| Module | Added |
+| --- | --- |
+| DELAY | TIME gains 1/8T, 1/4T, 1/4D and 1/2D. Page 2: WIDTH (narrower or wider repeats), DUCK (the repeats dip while you play). Page 3: LO CUT (thins the repeats), SYNC (TEMPO, or FREE time), FREE MS (10 ms to 2 s) |
+| REVERB | Page 2: LO CUT. Page 3: WIDTH and DUCK |
+| CHORUS | Page 2: MODE (CHORUS, FLANGER, VIBRATO), FEEDBACK and DELAY |
+| CLOUDS | Page 3: QUALITY (16-bit or 8-bit, stereo or mono, as the hardware's button; 8-bit is lo-fi). Page 4: IN GAIN, NOTE TRG (a grain on each new note) and PITCH TRK (grains follow the note you play) |
+
+The CPU and RAM figures in **Voices and the budget** are unchanged. LP24 and AUDIO FM cost a little more than the other filter types; that will show up when the costs are measured on the FM-1.
 
 ## Playing
 
