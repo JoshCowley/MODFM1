@@ -2,7 +2,8 @@
 function liveFor(slotIdx, count) {
   // the engine reports modulated values for the slot the screen is watching
   if (!audio.on || watchSlot !== slotIdx) return null;
-  return Array.from(mon.subarray(0, count));
+  // params 0-15 sit at the start of the monitor, 16-31 at 168 (1.4 added pages past the 16th parameter)
+  return [...Array.from(mon.subarray(0, 16)), ...Array.from(mon.subarray(168, 184))].slice(0, count);
 }
 function drawSlot(slot) {
   const si = SLOTS.indexOf(slot), st = rack[slot.id], m = MODULES[st.mod], c = KC[slot.kind];
@@ -18,7 +19,7 @@ function drawSlot(slot) {
   }
   subpage = Math.min(subpage, m.pages.length - 1);
   header(slot.name, c, st.mod, st.mod, m.pages.length, subpage);
-  const live = liveFor(si, 16);
+  const live = liveFor(si, 32);
   const Pv = (i) => (live ? live[i] : st.p[i]);
   well(VX, VY, VW, VH);
   clipTo(VX, VY, VW, VH, () => VIS[st.mod](VX, VY, VW, VH, Pv, c, slot.id === "MODB" ? 1 : 0));
@@ -34,7 +35,7 @@ function drawFixed(def, st, tag, titles, iconName, slotIdx, band) {
   well(VX, VY, VW, VH);
   clipTo(VX, VY, VW, VH, () => band(VX, VY, VW, VH, c));
   const off = def.pages.slice(0, subpage).flat().length, params = def.pages[subpage];
-  const live = slotIdx >= 0 ? liveFor(slotIdx, 16) : null;
+  const live = slotIdx >= 0 ? liveFor(slotIdx, 32) : null;
   const base = params.map((_, i) => st.p[off + i]);
   const lv = tag === "AMP" || tag === "LFO" ? lockView((i) => ({ w: tag === "AMP" ? "AMP" : "LFOS", idx: off + i }), params.length, base) : { vals: base, marks: null };
   cells(params, lv.vals, live && params.map((_, i) => live[off + i]), c, 96, 55, lv.marks);
@@ -201,7 +202,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.3", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.4", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -211,8 +212,8 @@ function render() {
   if (bootAt >= 0 && performance.now() - bootAt < 1500) { drawBoot((performance.now() - bootAt) / 1000); return; }
   const slot = SLOTS.find((s) => s.id === page);
   if (slot) drawSlot(slot);
-  else if (page === "AMP") drawFixed(AMP, amp, "AMP", ["ADSR", "VOICE", "MOD ENV", `MODE ${VOICE_MODES[amp.p[A_MODE]]}`], "AMP", 6, [visAdsr, visVoices, visModEnv, visVoices][Math.min(subpage, 3)]);
-  else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3"], "LFO", 8, visLfos);
+  else if (page === "AMP") drawFixed(AMP, amp, "AMP", ["ADSR", "VOICE", "MOD ENV", `MODE ${VOICE_MODES[amp.p[A_MODE]]}`, "ENV SHAPE", "TRACKING"], "AMP", 6, [visAdsr, visVoices, visModEnv, visVoices, visAdsr, visModEnv][Math.min(subpage, 5)]);
+  else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3", "LFO 1 +", "LFO 2 +", "LFO 3 +"], "LFO", 8, visLfos);
   else if (page === "SAVE") drawSave();
   else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem][Math.min(subpage, 5)]);
   else if (page === "CHORD") drawFixed(CHORD, chd, "CHORD", [CHORD_TYPES[chd.p[C_TYPE]] === "OFF" ? "SINGLE NOTES" : `${CHORD_TYPES[chd.p[C_TYPE]]} CHORDS`, chd.p[C_LOCK] ? "SCALE LOCKED" : "SCALE LOCK OFF"], "CHORD", -1, visChord);

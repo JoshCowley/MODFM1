@@ -139,7 +139,12 @@ const VIS = {
     const type = Math.round(P(0)), cut = P(1), reso = P(2), drive = P(3), envAmt = P(4);
     const fc = Math.min(20000, Math.max(20, 440 * 2 ** ((cut * 120 - 30 + envAmt * envMax() * 60 - 9) / 12))), Q = .5 + reso * reso * 25;
     const fx = (x) => 20 * 1000 ** (x / W);
-    const mag = (f) => { const r = f / fc, d = Math.sqrt((1 - r * r) ** 2 + (r / Q) ** 2); return type === 0 ? 1 / d : type === 1 ? (r / Q) / d * Math.min(Q, 3) : (r * r) / d; };
+    const dq = (r, q) => Math.sqrt((1 - r * r) ** 2 + (r / q) ** 2);
+    const mag = (f) => { const r = f / fc, d = dq(r, Q);
+      if (type === 3) return 1 / (dq(r, .5 + reso * reso * 4) * dq(r, .6 + reso * reso * 20));   // LP24
+      if (type === 4) return Math.abs(1 - r * r) / d;                                              // NOTCH
+      if (type === 5) return (1 + r * r) / d / 2;                                                  // PEAK
+      return type === 0 ? 1 / d : type === 1 ? (r / Q) / d * Math.min(Q, 3) : (r * r) / d; };
     const yOf = (m) => { const db = Math.max(-36, Math.min(18, 20 * Math.log10(m + 1e-6))); return Y + 14 + (18 - db) / 54 * (H - 18); };
     // drifting spectrum under the curve
     const st = vs.filt || (vs.filt = Array.from({ length: 28 }, () => Math.random()));
@@ -155,7 +160,7 @@ const VIS = {
     glow(pts, c, 1.4 + drive);
     const cx = X + Math.log(fc / 20) / Math.log(1000) * W;
     if (cx > X && cx < X + W) { g.fillStyle = rgba(C.gold, .5); for (let y = Y + 4; y < Y + H - 2; y += 4) g.fillRect(cx, y, 1, 2); }
-    label(X + 6, Y + 11, `${["LP", "BP", "HP"][type]} ${fc >= 1000 ? (fc / 1000).toFixed(1) + "K" : Math.round(fc)}HZ`);
+    label(X + 6, Y + 11, `${MODULES.FILTER.pages[0][0].opts[type]} ${fc >= 1000 ? (fc / 1000).toFixed(1) + "K" : Math.round(fc)}HZ`);
   },
   PEAKS(X, Y, W, H, P, c, k) {
     const func = Math.round(P(0));
@@ -223,7 +228,7 @@ const VIS = {
     label(X + 6, Y + 11, ["GRANULAR", "STRETCH", "LOOP DELAY", "SPECTRAL"][Math.round(P(9))] + (freeze ? " · FROZEN" : ""));
   },
   DELAY(X, Y, W, H, P, c) {
-    const time = [.25, .5, .75, 1, 2][Math.round(P(0))], fb = P(1), tone = P(2), mix = P(3);
+    const free = Math.round(P(9)) === 1, time = free ? .01 * 200 ** P(10) * glo.p[G_TEMPO] / 60 : [.25, .5, .75, 1, 2, 1 / 3, 2 / 3, 1.5, 3][Math.round(P(0))] || .5, fb = P(1), tone = P(2), mix = P(3);
     const period = time * 60 / glo.p[G_TEMPO], spacing = Math.min(70, 14 + time * 34), fade = period * 1.2 + .2;
     for (let i = 0; i < 9; i++) { const x = X + 10 + i * spacing; if (x > X + W - 6) break; const h = (H - 18) * fb ** i; rect(x, Y + H - 4 - h, 3, h, rgba(c, .14), 1); }
     // a beat marker sweeping across the taps
@@ -238,7 +243,7 @@ const VIS = {
         dot(x + 1.5, i % 2 ? Y + 16 : Y + 22, 2, rgba(i % 2 ? "#a0c4ff" : c, a));
       }
     }
-    label(X + 6, Y + 11, `${["1/16", "1/8", "1/8D", "1/4", "1/2"][Math.round(P(0))]} · MIX ${Math.round(mix * 100)}`);
+    label(X + 6, Y + 11, `${free ? Math.round(10 * 200 ** P(10)) + " MS" : MODULES.DELAY.pages[0][0].opts[Math.round(P(0))]} · MIX ${Math.round(mix * 100)}`);
   },
   REVERB(X, Y, W, H, P, c) {
     const size = P(0), damp = P(1), diff = P(2), mix = P(3);
@@ -270,12 +275,25 @@ const VIS = {
 };
 // bands for the fixed pages
 function visAdsr(X, Y, W, H, c) {
-  const [a, d, s, r] = [0, 1, 2, 3].map((i) => amp.p[i]);
-  const wa = 6 + a * 50, wd = 6 + d * 50, ws = 34, wr = 6 + r * 50, sc = (W - 16) / (wa + wd + ws + wr);
-  const x0 = X + 8, yb = Y + H - 6, top = Y + 14;
-  const P = [[x0, yb], [x0 + wa * sc, top], [x0 + (wa + wd) * sc, yb - (yb - top) * s], [x0 + (wa + wd + ws) * sc, yb - (yb - top) * s], [x0 + (wa + wd + ws + wr) * sc, yb]];
-  g.fillStyle = rgba(c, .1); g.beginPath(); g.moveTo(...P[0]); P.forEach((p) => g.lineTo(...p)); g.fill();
-  glow(P, c);
+  // ADSR with 1.4's DELAY, HOLD and curves drawn in: the line is what the engine does, not a sketch
+  const [a, d, s, r] = [0, 1, 2, 3].map((i) => amp.p[i]), dly = amp.p[14] || 0, hold = amp.p[15] || 0, ac = amp.p[16] || 0, dc = amp.p[17] || 0;
+  const wdl = dly * 40, wa = 6 + a * 50, wh = hold * 40, wd = 6 + d * 50, ws = 30, wr = 6 + r * 50, sc = (W - 16) / (wdl + wa + wh + wd + ws + wr);
+  const x0 = X + 8, yb = Y + H - 6, top = Y + 14, Yv = (v) => yb - (yb - top) * v;
+  const lam = ac >= 0 ? 2 + ac * 5 : 2 * (1 + ac), mu = dc >= 0 ? 5 + dc * 8 : 5 * (1 + dc);
+  const rise = (t) => (lam < .05 ? t : (1 - Math.exp(-lam * t)) / (1 - Math.exp(-lam)));
+  const fall = (t) => (mu < .05 ? 1 - t : (Math.exp(-mu * t) - Math.exp(-mu)) / (1 - Math.exp(-mu)));
+  const xs = [x0, x0 + wdl * sc]; xs.push(xs[1] + wa * sc); xs.push(xs[2] + wh * sc); xs.push(xs[3] + wd * sc); xs.push(xs[4] + ws * sc); xs.push(xs[5] + wr * sc);
+  const line = [[xs[0], yb], [xs[1], yb]];
+  for (let k = 1; k <= 12; k++) line.push([xs[1] + (xs[2] - xs[1]) * k / 12, Yv(rise(k / 12))]);
+  line.push([xs[3], top]);
+  for (let k = 1; k <= 12; k++) line.push([xs[3] + (xs[4] - xs[3]) * k / 12, Yv(s + (1 - s) * fall(k / 12))]);
+  line.push([xs[5], Yv(s)]);
+  for (let k = 1; k <= 12; k++) line.push([xs[5] + (xs[6] - xs[5]) * k / 12, Yv(s * fall(k / 12))]);
+  const P = [[xs[1], yb], [xs[2], top], [xs[4], Yv(s)], [xs[5], Yv(s)], [xs[6], yb]];
+  g.fillStyle = rgba(c, .1); g.beginPath(); g.moveTo(...line[0]); line.forEach((p) => g.lineTo(...p)); g.fill();
+  if (wdl > 1) T((xs[0] + xs[1]) / 2, yb - 3, "DLY", { a: "center", size: 7, c: C.dim });
+  if (wh > 1) T((xs[2] + xs[3]) / 2, top + 9, "HOLD", { a: "center", size: 7, c: C.dim });
+  glow(line, c);
   // each voice as a dot riding the envelope
   for (let i = 0; i < MAXV; i++) {
     const gt = mon[28 + i], e = mon[16 + i]; if (gt <= 0 || e < .005) continue;

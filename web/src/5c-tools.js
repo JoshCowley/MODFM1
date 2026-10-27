@@ -60,7 +60,7 @@ function morphTo(x) {
 const RAND_WHAT = ["SRC", "SHP", "AMP", "MOD", "FX", "MATRIX", "ALL"];
 const rnd = { what: 0, amt: .35, t: -9, changed: [] };
 function randomize() {
-  const what = RAND_WHAT[rnd.what], amt = rnd.amt, keep = /LEVEL|FREEZE|MODE$/;
+  const what = RAND_WHAT[rnd.what], amt = rnd.amt, keep = /LEVEL|FREEZE|MODE$|VCA|INT EXC|QUALITY|OCTAVE|TUNE|SYNC|1SHOT|NOTE TRG|PITCH TRK|GAIN|ENV SRC/;
   const jiggle = (def, arr) => def.pages.flat().forEach((p, i) => {
     if (keep.test(p.l) && !(def === AMP && p.l === "MODE" && false)) return;
     if (p.t === "list") { if (Math.random() < amt * .6) arr[i] = Math.floor(Math.random() * p.opts.length); }
