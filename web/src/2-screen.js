@@ -73,9 +73,13 @@ const ICONS = {
   OUT: ["......#.....", ".....##.....", "....#.#..#..", "####..#...#.", "#.#...#.#..#", "#.#...#.#..#", "#.#...#.#..#", "####..#...#.", "....#.#..#..", ".....##.....", "......#.....", "............"],
   MIDI: ["...######...", "..#......#..", ".#.#....#.#.", "#..........#", "#.#......#.#", "#..........#", "#....##....#", ".#........#.", "..#......#..", "...######...", "............", "............"],
   HOLD: ["............", "...######...", "..#......#..", "..#......#..", "..#......#..", "############", "############", "####.##.####", "#####..#####", "############", "############", "............"],
+  CHORD: ["............", "....######..", "....#....#..", "....#....#..", "..###..###..", ".####.####..", ".####.####..", "..##...##...", "......###...", ".....####...", ".....####...", "......##...."],
+  SEQ: ["............", "##.##.##.##.", "##.##.##.##.", "............", "##.##.##.##.", "##.##.##.##.", "............", "............", "#..........#", "############", "#..........#", "............"],
+  STEP: ["............", ".##########.", "#..........#", "#..######..#", "#..######..#", "#..######..#", "#..######..#", "#..........#", ".##########.", "............", "....####....", "............"],
+  LOCK: ["............", "....####....", "...#....#...", "...#....#...", "..########..", "..########..", "..###..###..", "..###..###..", "..########..", "..########..", "............", "............"],
   LEARN: ["....####....", "..##....##..", ".#...#....#.", ".#...#....#.", "#....#.....#", "#....####..#", "#..........#", ".#........#.", ".#........#.", "..##....##..", "....####....", ".....##....."],
 };
-const ICON_OF = { src: "PLAITS", shp: "FILTER", mod: "PEAKS", fx: "CLOUDS", amp: "AMP", lfo: "LFO", glo: "GLOBAL", scl: "SCALE" };
+const ICON_OF = { src: "PLAITS", shp: "FILTER", mod: "PEAKS", fx: "CLOUDS", amp: "AMP", lfo: "LFO", glo: "GLOBAL", chd: "CHORD", seq: "SEQ" };
 const _iconPaths = {};
 function icon(name, x, y, c, s = 1) {
   const rows = ICONS[name]; if (!rows) return;
@@ -121,12 +125,15 @@ function footer() {
     g.strokeStyle = C.faint; g.lineWidth = 2; g.beginPath(); g.arc(165, 228, 5, 0, 7); g.stroke();
     g.strokeStyle = C.ok; g.beginPath(); g.arc(165, 228, 5, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); g.stroke();
     T(174, 232, `${phrase.bars}BAR`, { size: 9, c: C.ok });
+  } else if (ss.run) {
+    for (let i = 0; i < seqLen(); i++) rect(150 + i * 4.3, 226, 3, 6, i === ss.cur ? KC.seq : seq.steps[i].trig ? "#4a3a42" : C.faint, 1);
+    if (ss.rec && Math.floor(animT * 3) % 2) dot(145, 229, 2, C.warn, false);
   } else if (held.size || latched.size) { const k = [...new Set([...held, ...latched])].pop(); T(222, 232, noteName(k), { size: 10, a: "right", c: C.ok }); }
   else if (midiState.last && performance.now() - midiState.last < 400) icon("MIDI", 200, 222, C.dim);
 }
 
 // parameter cells: base value, plus a live marker where modulation has moved it
-function cells(params, base, live, color, y0 = 96, hgt = 55) {
+function cells(params, base, live, color, y0 = 96, hgt = 55, marks = null) {
   const pos = [[6, y0], [122, y0], [6, y0 + hgt + 3], [122, y0 + hgt + 3]];
   for (let i = 0; i < 4; i++) {
     const [x, y] = pos[i], p = params[i];
@@ -134,6 +141,7 @@ function cells(params, base, live, color, y0 = 96, hgt = 55) {
     T(x + 6, y + 13, String(i + 1), { size: 9, c: C.dim });
     if (!p) { T(x + 56, y + 34, "—", { a: "center", c: C.faint, size: 14 }); continue; }
     T(x + 15, y + 13, p.l, { size: 10, c: C.dim });
+    if (marks && marks[i]) { rect(x + 88, y + 4, 19, 11, C.gold, 3); T(x + 97.5, y + 13, "L", { a: "center", size: 9, c: "#111" }); }
     const v = base[i], lv = live ? live[i] : v;
     const s = fmt(p, v);
     T(x + 6, y + 36, s, { size: s.length > 7 ? 12 : s.length > 5 ? 15 : 18 });

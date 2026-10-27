@@ -23,7 +23,8 @@ function drawSlot(slot) {
   well(VX, VY, VW, VH);
   clipTo(VX, VY, VW, VH, () => VIS[st.mod](VX, VY, VW, VH, Pv, c, slot.id === "MODB" ? 1 : 0));
   const off = m.pages.slice(0, subpage).flat().length, params = m.pages[subpage];
-  cells(params, params.map((_, i) => st.p[off + i]), live && params.map((_, i) => live[off + i]), c);
+  const lv = lockView((i) => ({ w: "slot", slot: slot.id, mod: st.mod, idx: off + i }), params.length, params.map((_, i) => st.p[off + i]));
+  cells(params, lv.vals, live && params.map((_, i) => live[off + i]), c, 96, 55, lv.marks);
   footer();
 }
 function drawFixed(def, st, tag, titles, iconName, slotIdx, band) {
@@ -34,7 +35,9 @@ function drawFixed(def, st, tag, titles, iconName, slotIdx, band) {
   clipTo(VX, VY, VW, VH, () => band(VX, VY, VW, VH, c));
   const off = def.pages.slice(0, subpage).flat().length, params = def.pages[subpage];
   const live = slotIdx >= 0 ? liveFor(slotIdx, 16) : null;
-  cells(params, params.map((_, i) => st.p[off + i]), live && params.map((_, i) => live[off + i]), c);
+  const base = params.map((_, i) => st.p[off + i]);
+  const lv = tag === "AMP" || tag === "LFO" ? lockView((i) => ({ w: tag === "AMP" ? "AMP" : "LFOS", idx: off + i }), params.length, base) : { vals: base, marks: null };
+  cells(params, lv.vals, live && params.map((_, i) => live[off + i]), c, 96, 55, lv.marks);
   footer();
 }
 function drawPerform() {
@@ -197,7 +200,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.0", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.1", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -211,7 +214,8 @@ function render() {
   else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3"], "LFO", 8, visLfos);
   else if (page === "SAVE") drawSave();
   else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING"], "GLOBAL", -1, visGlobal);
-  else if (page === "SCALE") drawFixed(SCALE, scl, "SCALE", [scl.p[0] ? "LOCKED" : "OFF"], "SCALE", -1, visScale);
+  else if (page === "CHORD") drawFixed(CHORD, chd, "CHORD", [CHORD_TYPES[chd.p[C_TYPE]] === "OFF" ? "SINGLE NOTES" : `${CHORD_TYPES[chd.p[C_TYPE]]} CHORDS`, chd.p[C_LOCK] ? "SCALE LOCKED" : "SCALE LOCK OFF"], "CHORD", -1, visChord);
+  else if (page === "SEQ" || page === "STEP") drawSeq();
   else if (page === "RACK") drawRack();
   else if (page === "MATRIX") drawMatrix();
   else drawPerform();
@@ -219,6 +223,12 @@ function render() {
     rect(0, 26, 240, 15, C.gold); icon("LEARN", 4, 28, "#111");
     T(124, 37, `LEARN M${learnMacro + 1} · TURN ANY KNOB`, { a: "center", size: 10, c: "#111" });
     if (Math.floor(animT * 3) % 2) dot(232, 33, 2.5, C.warn, false);
+  }
+  if (ss.lock) {
+    rect(0, 26, 240, 15, C.gold); icon("LOCK", 4, 28, "#111");
+    T(124, 37, `LOCK STEP ${ss.cursor + 1} · TURN ANY KNOB`, { a: "center", size: 10, c: "#111" });
+  } else if (ss.rec && ss.run && page !== "SEQ" && page !== "STEP" && lockRefFor(SLOTS.find((s) => s.id === page), 0)) {
+    rect(0, 26, 240, 3, Math.floor(animT * 3) % 2 ? C.warn : "#6a2a22");
   }
   if (picker) drawPicker();
   drawToast();

@@ -331,20 +331,3 @@ function visGlobal(X, Y, W, H, c) {
   icon("MIDI", X + W - 18, Y + 6, ma ? C.ok : midiState.inputs ? C.dim : C.faint);
   label(X + 6, Y + 11, midiState.inputs ? `MIDI · ${midiState.inputs} IN` : midiState.denied ? "MIDI BLOCKED HERE" : "NO MIDI INPUT");
 }
-function visScale(X, Y, W, H, c) {
-  const deg = SCALES[Object.keys(SCALES)[scl.p[2]]], root = scl.p[1], on = scl.p[0] === 1;
-  const whites = [0, 2, 4, 5, 7, 9, 11], blacks = [1, 3, 6, 8, 10], kw = (W - 20) / 7, x0 = X + 10, y0 = Y + 8;
-  const inScale = (pc) => deg.includes((pc - root + 12) % 12);
-  const lastPulse = pulses[pulses.length - 1], lastPc = lastPulse && animT - lastPulse.t < .5 ? lastPulse.note % 12 : -1;
-  whites.forEach((pc, i) => {
-    const lit = inScale(pc);
-    rect(x0 + i * kw + 1, y0, kw - 2, H - 14, lit ? rgba(pc === root ? C.gold : c, on ? .85 : .35) : "#1d1d1b", 3);
-    if (pc === lastPc) frame(x0 + i * kw + 1, y0, kw - 2, H - 14, "#fff", 3);
-    T(x0 + i * kw + kw / 2, y0 + H - 18, KEYS12[pc], { size: 9, a: "center", c: lit ? "#111" : C.dim });
-  });
-  blacks.forEach((pc) => {
-    const i = [0, 1, 3, 4, 5][blacks.indexOf(pc)], x = x0 + (i + 1) * kw - kw * .3, lit = inScale(pc);
-    rect(x, y0, kw * .6, (H - 14) * .55, lit ? rgba(pc === root ? C.gold : c, on ? 1 : .45) : "#0a0a09", 2);
-    if (pc === lastPc) frame(x, y0, kw * .6, (H - 14) * .55, "#fff", 2);
-  });
-}

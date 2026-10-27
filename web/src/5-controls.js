@@ -37,7 +37,7 @@ function stepParam(p, v, k) {
   return clamp(v + k * .01 * (Math.abs(k) > 1 ? 2 : 1), 0, 1);
 }
 function cycle(list, cur, k) { const i = Math.max(0, list.indexOf(cur)); return list[(i + k + list.length * 8) % list.length]; }
-const FIXED = { AMP: [AMP, amp], GLOBAL: [GLOBAL, glo], SCALE: [SCALE, scl], LFOS: [LFOS, lfo] };
+const FIXED = { AMP: [AMP, amp], GLOBAL: [GLOBAL, glo], CHORD: [CHORD, chd], LFOS: [LFOS, lfo] };
 
 function encoder(role, k) {
   if (role === "presets") {
@@ -53,6 +53,7 @@ function encoder(role, k) {
     else if (role === 1) st.slot = clamp(st.slot + Math.sign(k), 0, USER_SLOTS - 1);
     draw(); return;
   }
+  if (page === "SEQ" || page === "STEP") { seqEncoder(role, k); draw(); return; }
   const slot = SLOTS.find((s) => s.id === page);
   if (role === "algo") {
     if (!slot) { say("GO TO A SLOT TO SWAP MODULES"); return; }
@@ -69,6 +70,7 @@ function encoder(role, k) {
   }
   const i = role;   // knob 0..3
   if (learn && (slot || page === "AMP" || page === "LFOS")) { learnTurn(slot, i, k); draw(); return; }
+  if (lockTarget() >= 0) { const ref = lockRefFor(slot, i); if (ref) { lockTurn(ref, k); draw(); return; } }
   if (page === "PERFORM") {
     learnMacro = i;
     if (!learn) setRef({ w: "macro", i }, clamp(macros[i] + k * .01, 0, 1));
@@ -94,7 +96,7 @@ function setRef(ref, v, record = true) {
   if (ref.w === "macro") macros[ref.i] = v;
   else if (ref.w === "AMP") amp.p[ref.idx] = v;
   else if (ref.w === "GLOBAL") { glo.p[ref.idx] = v; storeGlobal(); applyGlobal(); return; }
-  else if (ref.w === "SCALE") { scl.p[ref.idx] = v; return; }
+  else if (ref.w === "CHORD") { chd.p[ref.idx] = v; storeChord(); return; }
   else if (ref.w === "LFOS") lfo.p[ref.idx] = v;
   else if (ref.w === "slot") { if (rack[ref.slot].mod !== ref.mod) return; rack[ref.slot].p[ref.idx] = v; }
   if (record) recEvent({ type: "set", ref, v });
@@ -164,6 +166,8 @@ const SVG = {
   SAVE: '<path d="M2 2h9l3 3v9H2z"/><path d="M5 2v4h5V2M5 14v-4h6v4"/>',
   MATRIX: '<circle cx="3.5" cy="4" r="2"/><circle cx="12.5" cy="4" r="2"/><path d="M3.5 6c0 7 9 7 9 0"/>',
   SCALE: '<path d="M2 3h12v10H2zM5.5 13V8.5M8 13V8.5M10.5 13V8.5"/><path d="M4.5 3v5h2V3M9.5 3v5h2V3" fill="currentColor" stroke="none"/>',
+  CHORD: '<ellipse cx="5" cy="12.5" rx="2.6" ry="1.8"/><ellipse cx="5" cy="8.5" rx="2.6" ry="1.8"/><ellipse cx="5" cy="4.5" rx="2.6" ry="1.8"/><path d="M7.6 12.5V2h5"/>',
+  SEQ: '<rect x="1.5" y="5" width="3" height="6" rx=".8"/><rect x="6.5" y="5" width="3" height="6" rx=".8" fill="currentColor"/><rect x="11.5" y="5" width="3" height="6" rx=".8"/><path d="M1.5 13.5h13"/>',
   HOLD: '<rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/>',
   REC: '<circle cx="8" cy="8" r="4.5" fill="currentColor"/>',
   DN: '<path d="M4 6l4 4 4-4"/>', UP: '<path d="M4 10l4-4 4 4"/>',
@@ -173,8 +177,8 @@ document.getElementById("octDn").innerHTML = `${svg("DN")}<span>Oct −</span><s
 document.getElementById("octUp").innerHTML = `${svg("UP")}<span>Oct +</span><small>OCT+</small>`;
 // [rack label, printed label, action, colour kind, icon]
 const BTNS = [
-  ["FX 1·2", "FX", "FXBTN", "fx", "FX"], ["Shaper", "SCL", "SHP", "shp", "SHP"], ["Amp", "ENV", "AMP", "amp", "AMP"], ["Mod · LFO", "LFO", "MODBTN", "mod", "LFO"], ["Source", "EDIT", "SRC", "src", "SRC"], ["Global", "GLO", "GLOBAL", "glo", "GLO"],
-  ["Home", "HOME", "HOME", null, "HOME"], ["Save", "SAVE", "SAVE", null, "SAVE"], ["Matrix", "ARP", "MATRIX", null, "MATRIX"], ["Scale", "SEQ", "SCALE", null, "SCALE"], ["Hold", "PLAY", "HOLD", null, "HOLD"], ["Rec", "REC", "REC", null, "REC"],
+  ["FX 1·2", "FX", "FXBTN", "fx", "FX"], ["Chord", "SCL", "CHORD", "chd", "CHORD"], ["Amp · Shp", "ENV", "AMPBTN", "amp", "AMP"], ["Mod · LFO", "LFO", "MODBTN", "mod", "LFO"], ["Source", "EDIT", "SRC", "src", "SRC"], ["Global", "GLO", "GLOBAL", "glo", "GLO"],
+  ["Home", "HOME", "HOME", null, "HOME"], ["Save", "SAVE", "SAVE", null, "SAVE"], ["Matrix", "ARP", "MATRIX", null, "MATRIX"], ["Seq", "SEQ", "SEQBTN", "seq", "SEQ"], ["Hold", "PLAY", "HOLD", null, "HOLD"], ["Rec", "REC", "REC", null, "REC"],
 ];
 const btnEls = {};
 const bwrap = document.getElementById("btns");
@@ -183,7 +187,13 @@ for (const [lab, printed, act, kind, ic] of BTNS) {
   el.type = "button"; el.className = "btn"; if (kind) el.dataset.kind = kind;
   el.innerHTML = `${svg(ic)}<span>${lab}</span><small>${printed}</small>`;
   el.setAttribute("aria-label", `${lab} (printed ${printed})`);
-  if (act === "HOME") {
+  if (act === "SEQBTN") {
+    let timer = 0, long = false;
+    el.addEventListener("pointerdown", (e) => { long = false; if (e.shiftKey) return; timer = setTimeout(() => { long = true; if (!ss.lock) setSeqLock(true); }, 500); });
+    const cancel = () => clearTimeout(timer);
+    el.addEventListener("pointerup", cancel); el.addEventListener("pointerleave", cancel); el.addEventListener("pointercancel", cancel);
+    el.addEventListener("click", (e) => { if (long) return; if (e.shiftKey) { setSeqLock(!ss.lock); return; } if (ss.lock) { setSeqLock(false); return; } press("SEQBTN"); });
+  } else if (act === "HOME") {
     let timer = 0, long = false;
     el.addEventListener("pointerdown", (e) => { long = false; if (e.shiftKey) return; timer = setTimeout(() => { long = true; if (!learn) setLearn(true); }, 500); });
     const cancel = () => clearTimeout(timer);
@@ -193,7 +203,7 @@ for (const [lab, printed, act, kind, ic] of BTNS) {
   bwrap.appendChild(el); btnEls[act] = el;
 }
 function resolve(act) {
-  const cyc = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"] }[act];
+  const cyc = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP"] }[act];
   if (!cyc) return act;
   if (picker && cyc.includes(picker.slot)) return picker.slot;
   const i = cyc.indexOf(page);
@@ -217,8 +227,14 @@ function press(act) {
   if (act === "HOME") { if (page === "SAVE") { saveState = null; page = "PERFORM"; say("SAVE CANCELLED", "SAVE"); } else page = page === "PERFORM" ? "RACK" : "PERFORM"; }
   else if (FIXED[act]) { if (page !== act) subpage = 0; page = act; }
   else if (act === "MATRIX") page = "MATRIX";
+  else if (act === "SEQ" || act === "STEP") page = act;
   else if (act === "SAVE") { if (page === "SAVE") commitSave(); else openSave(); }
   else if (act === "HOLD") { hold = !hold; if (!hold) latched.clear(); say(hold ? "HOLD ON" : "HOLD OFF", "HOLD"); refreshKeys(); }
+  else if (act === "REC" && (page === "SEQ" || page === "STEP")) {
+    ss.rec = !ss.rec; ss.recGroup = null;
+    if (ss.rec && !ss.run) seqStart();
+    say(ss.rec ? "SEQ REC · PLAY OR TURN" : "SEQ REC OFF", "REC");
+  }
   else if (act === "REC") {
     if (phrase.state === "idle") { phrase.state = "armed"; say("REC ARMED · PLAY OR TURN", "REC"); }
     else if (phrase.state === "armed") { phrase.state = "idle"; say("REC CANCELLED", "REC"); }
@@ -231,14 +247,14 @@ document.getElementById("octDn").addEventListener("click", () => { octave = clam
 document.getElementById("octUp").addEventListener("click", () => { octave = clamp(octave + 1, -3, 3); say(`OCTAVE ${octave >= 0 ? "+" : ""}${octave}`); });
 
 function syncLeds() {
-  const pairOn = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"] };
+  const pairOn = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP"] };
   for (const [act, el] of Object.entries(btnEls)) {
     let on = act === page || (act === "HOME" && (page === "PERFORM" || page === "RACK")) || (pairOn[act] && pairOn[act].includes(page));
     if (act === "HOLD" || act === "REC") on = false;
     el.classList.toggle("lit", !!on);
-    el.classList.toggle("hold", (act === "HOLD" && hold) || (act === "REC" && phrase.state === "loop") || (act === "SCALE" && !on && scl.p[0] === 1));
-    el.classList.toggle("rec", act === "REC" && (phrase.state === "rec" || phrase.state === "armed"));
-    el.classList.toggle("blink", (act === "REC" && phrase.state === "armed") || (act === "HOME" && learn));
+    el.classList.toggle("hold", (act === "HOLD" && hold) || (act === "REC" && phrase.state === "loop") || (act === "CHORD" && !on && (chd.p[C_TYPE] > 0 || chd.p[C_LOCK] === 1)) || (act === "SEQBTN" && !on && ss.run));
+    el.classList.toggle("rec", act === "REC" && (phrase.state === "rec" || phrase.state === "armed" || (ss.rec && ss.run)));
+    el.classList.toggle("blink", (act === "REC" && phrase.state === "armed") || (act === "HOME" && learn) || (act === "SEQBTN" && ss.lock));
     el.setAttribute("aria-pressed", act === "HOLD" ? String(hold) : String(!!on));
   }
   document.getElementById("octDn").classList.toggle("lit", octave < 0);
@@ -250,7 +266,7 @@ const WHITE = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26];
 const BLACK = [1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25];
 const BLACK_AFTER = [0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14];
 const noteNameMidi = (m) => KEYS12[((Math.round(m) % 12) + 12) % 12] + (Math.floor(Math.round(m) / 12) - 1);
-const noteName = (k) => noteNameMidi(keyToNote(k));
+const noteName = (k) => noteNameMidi(quantize(keyToNote(k)));
 const bed = document.getElementById("keybed"), keyEls = [];
 function placeKey(k, leftPct, topPct) {
   const el = document.createElement("button");
@@ -265,26 +281,19 @@ function placeKey(k, leftPct, topPct) {
 WHITE.forEach((k, i) => placeKey(k, (i + .5) / 16 * 100, 74));
 BLACK_AFTER.forEach((a, j) => placeKey(BLACK[j], (a + 1) / 16 * 100, 28));
 const velCurve = (v) => clamp(v, 0, 1) ** (2 ** ((0.5 - glo.p[G_VEL]) * 3));
-function keyDown(k, vel = 0.75) { vel = velCurve(vel); keyVel[k] = vel; held.add(k); if (hold) { if (latched.has(k)) latched.delete(k); else latched.add(k); } recEvent({ type: "key", k, on: true, vel }); refreshKeys(); }
-function keyUp(k) { if (!held.has(k)) return; held.delete(k); recEvent({ type: "key", k, on: false }); refreshKeys(); }
+function keyDown(k, vel = 0.75) { vel = velCurve(vel); keyVel[k] = vel; held.add(k); if (hold) { if (latched.has(k)) latched.delete(k); else latched.add(k); } seqInput(chordNotes(keyToNote(k)), vel); recEvent({ type: "key", k, on: true, vel }); refreshKeys(); }
+function keyUp(k) { if (!held.has(k)) return; held.delete(k); recEvent({ type: "key", k, on: false }); refreshKeys(); seqRelease(); }
 const keyVel = [], sounding = new Map();
 function refreshKeys() {
   const midiLit = new Set([...midiNotes.keys()].map((nn) => nn - 53 - 12 * octave));
   keyEls.forEach((el, k) => { if (!el) return; el.classList.toggle("on", held.has(k) || latched.has(k) || playKeys.has(k) || midiLit.has(k)); el.classList.toggle("held", held.has(k)); });
   // what should sound: held, latched or replayed keys
   const want = new Set([...held, ...latched, ...playKeys]);
-  for (const [k, note] of sounding) if (!want.has(k)) { sounding.delete(k); engine(["note_off", note]); }
-  for (const k of want) if (!sounding.has(k)) { const note = keyToNote(k); sounding.set(k, note); engine(["note_on", note, keyVel[k] ?? 0.75]); onNote(note, keyVel[k] ?? 0.75); }
+  for (const [k, e] of sounding) if (!want.has(k)) { sounding.delete(k); notesOff(e); }
+  for (const k of want) if (!sounding.has(k)) sounding.set(k, notesOn(chordNotes(keyToNote(k)), keyVel[k] ?? 0.75));
   draw();
 }
-function quantize(note) {
-  if (scl.p[0] !== 1) return note;
-  const deg = SCALES[Object.keys(SCALES)[scl.p[2]]], root = scl.p[1];
-  let best = note, dist = 99;
-  for (let o = -1; o <= 1; o++) for (const d of deg) { const c = Math.floor((note - root) / 12 + o) * 12 + root + d; const dd = Math.abs(c - note); if (dd < dist || (dd === dist && c < best)) { dist = dd; best = c; } }
-  return best;
-}
-const keyToNote = (k) => quantize(53 + k + 12 * octave);                     // key 0 is F3
+const keyToNote = (k) => 53 + k + 12 * octave;                               // key 0 is F3 (before scale lock and chords)
 const KEYMAP = {};
 ["KeyZ", "KeyX", "KeyC", "KeyV", "KeyB", "KeyN", "KeyM", "Comma", "Period", "Slash"].forEach((c, i) => KEYMAP[c] = WHITE[i]);
 [["KeyS", 1], ["KeyD", 3], ["KeyF", 5], ["KeyH", 8], ["KeyJ", 10], ["KeyL", 13], ["Semicolon", 15], ["Quote", 17]].forEach(([c, k]) => KEYMAP[c] = k);
@@ -292,6 +301,7 @@ const KEYMAP = {};
 addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
   if (e.target.closest?.(".knob") || e.target.closest?.("input,textarea")) return;
+  if (e.code === "Space") { e.preventDefault(); if (ss.run) seqStop(); else seqStart(); draw(); return; }
   if (e.code === "Minus" || e.code === "Equal") { e.preventDefault(); document.getElementById(e.code === "Minus" ? "octDn" : "octUp").click(); return; }
   const k = KEYMAP[e.code]; if (k !== undefined) { e.preventDefault(); keyDown(k); }
 });

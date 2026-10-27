@@ -61,19 +61,20 @@ const midiState = { inputs: 0, denied: false, last: 0, clock: [], clockLock: fal
 const midiNotes = new Map(), midiPlay = new Map();
 function midiOn(nn, vel, fromLoop = false) {
   vel = fromLoop ? vel : velCurve(vel);
-  const note = quantize(nn);
-  if (midiNotes.has(nn)) engine(["note_off", midiNotes.get(nn)]);
-  midiNotes.set(nn, note); midiState.deferred.delete(nn);
-  engine(["note_on", note, vel]); onNote(note, vel);
+  const notes = chordNotes(nn);
+  if (midiNotes.has(nn)) notesOff(midiNotes.get(nn));
+  midiState.deferred.delete(nn);
+  if (!fromLoop) seqInput(notes, vel);
+  midiNotes.set(nn, notesOn(notes, vel));
   if (!fromLoop) recEvent({ type: "midi", n: nn, on: true, vel });
   refreshKeys();
 }
 function midiOff(nn, fromLoop = false) {
   if (!midiNotes.has(nn)) return;
   if (midiState.sustain && !fromLoop) { midiState.deferred.add(nn); return; }
-  engine(["note_off", midiNotes.get(nn)]); midiNotes.delete(nn);
+  notesOff(midiNotes.get(nn)); midiNotes.delete(nn);
   if (!fromLoop) recEvent({ type: "midi", n: nn, on: false });
-  refreshKeys();
+  refreshKeys(); if (!fromLoop) seqRelease();
 }
 function onMidi(e) {
   const d = e.data, st = d[0];
@@ -88,7 +89,8 @@ function onMidi(e) {
     }
     return;
   }
-  if (st === 0xFA) { engine(["reset_clock"]); return; }
+  if (st === 0xFA) { engine(["reset_clock"]); if (seq.steps.some((x) => x.trig)) { if (ss.run) seqStop(); seqStart(); } return; }
+  if (st === 0xFC) { if (ss.run) seqStop(); draw(); return; }
   if (st >= 0xF0) return;
   const type = st & 0xF0, ch = (st & 0x0F) + 1, want = glo.p[G_MIDICH];
   if (want && ch !== want) return;

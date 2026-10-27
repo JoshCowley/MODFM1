@@ -34,7 +34,17 @@ const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["
 const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6;
 const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10] };
 const KEYS12 = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const SCALE = { kind: "scl", pages: [[L("LOCK", ["OFF", "ON"]), L("KEY", KEYS12), L("SCALE", Object.keys(SCALES))]] };
+// CHORD (SCL key): scale chords, with scale lock on its second page
+const CHORD_TYPES = ["OFF", "TRIAD", "7TH", "SUS2", "SUS4", "ADD9", "6TH", "9TH", "POWER", "QUARTAL"];
+const CHORD = { kind: "chd", pages: [[L("CHORD", CHORD_TYPES), L("INVERT", ["ROOT", "1ST", "2ND", "3RD"]), n("SPREAD", 0), n("STRUM", 0)], [L("LOCK", ["OFF", "ON"]), L("KEY", KEYS12), L("SCALE", Object.keys(SCALES))]] };
+const C_TYPE = 0, C_INV = 1, C_SPREAD = 2, C_STRUM = 3, C_LOCK = 4, C_KEY = 5, C_SCALE = 6;
+// SEQ key: 16-step sequencer. Pattern settings, then (press SEQ again) the step under the cursor
+const SEQ_RATES = ["1/8", "1/16", "1/16T", "1/32"], RATE_MUL = [2, 1, 2 / 3, .5];
+const STEP_LENS = ["1/8", "1/4", "1/2", "3/4", "FULL", "TIE"], STEP_LEN_F = [.125, .25, .5, .75, .97, 1];
+const SEQDEF = { kind: "seq", pages: [[L("RUN", ["STOP", "PLAY"]), I("LENGTH", 1, 16, 16), L("RATE", SEQ_RATES, 1), n("SWING", 0)]] };
+const STEPDEF = { kind: "seq", pages: [[L("TRIG", ["OFF", "ON"], 1), n("VELO", .75), L("LENGTH", STEP_LENS, 2), n("CHANCE", 1)]] };
+const blankStep = () => ({ trig: 0, notes: [], vel: .75, len: 2, chance: 1, locks: {} });
+const blankSeq = () => ({ p: [0, 16, 1, 0], steps: Array.from({ length: 16 }, blankStep) });
 const POOL = 256, BUDGET = 80, MAXV = 6;
 
 const SLOTS = [
@@ -45,14 +55,15 @@ const SLOTS = [
   { id: "FX1", kind: "fx", name: "FX 1", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
   { id: "FX2", kind: "fx", name: "FX 2", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
 ];
-const KC = { src: "#ffb347", shp: "#4fd1c5", mod: "#b48cff", fx: "#6aa9ff", amp: "#ff7a6b", glo: "#d8d7d3", lfo: "#c9a7ff", scl: "#9be37a", mx: "#ffd27a" };
+const KC = { src: "#ffb347", shp: "#4fd1c5", mod: "#b48cff", fx: "#6aa9ff", amp: "#ff7a6b", glo: "#d8d7d3", lfo: "#c9a7ff", chd: "#9be37a", seq: "#ff8fc8", mx: "#ffd27a" };
 
 // ---------------------------------------------------------------- state
 const blankParams = (mod) => mod ? mod.pages.flat().map((p) => p.def) : [];
 const rack = {};                    // slot id -> { mod: name|null, p: [] }
 const amp = { p: blankParams(AMP) };
 const glo = { p: blankParams(GLOBAL) };
-const scl = { p: blankParams(SCALE) };
+const chd = { p: blankParams(CHORD) };
+let seq = blankSeq();
 const lfo = { p: blankParams(LFOS) };
 const BUILT_SRC = ["—", "M1", "M2", "M3", "M4", "VELO", "KEY TRK", "RANDOM", "AMP ENV"];
 const EXTRA_SRC = ["LFO 1", "LFO 2", "LFO 3", "MOD ENV"];
@@ -60,6 +71,8 @@ let matrix = [];
 let macros = [0.5, 0.5, 0.5, 0.5];
 try { const sg = JSON.parse(localStorage.getItem("fm1rack.global.v1") || "null"); if (sg && sg.length === glo.p.length) glo.p = sg; } catch { /* defaults */ }
 function storeGlobal() { try { localStorage.setItem("fm1rack.global.v1", JSON.stringify(glo.p)); } catch { /* this visit only */ } }
+try { const sc = JSON.parse(localStorage.getItem("fm1rack.chord.v1") || "null"); if (sc && sc.length === chd.p.length) chd.p = sc; } catch { /* defaults */ }
+function storeChord() { try { localStorage.setItem("fm1rack.chord.v1", JSON.stringify(chd.p)); } catch { /* this visit only */ } }
 
 const PRESETS = /*PRESETS*/[];
 let presetIx = 0, patchName = PRESETS[0].name;
@@ -77,6 +90,7 @@ function loadPreset(i) {
     for (const s of SLOTS) { const st = u.slots[s.id] || { mod: null, p: [] }; rack[s.id] = { mod: st.mod, p: fitParams(MODULES[st.mod], st.p) }; }
     amp.p = fitParams(AMP, u.amp); lfo.p = fitParams(LFOS, u.lfo);
     matrix = u.matrix.map((r) => ({ ...r })); macros = [...u.macros];
+    loadSeq(u.seq ? JSON.parse(JSON.stringify(u.seq)) : blankSeq());
     return;
   }
   const pr = PRESETS[entry.f];
@@ -88,7 +102,34 @@ function loadPreset(i) {
     return r ? { src: r[0], dst: r[1], amt: r[2], via: r[3] || "—" } : { src: "—", dst: "—", amt: 0, via: "—" };
   });
   macros = [...(pr.macros || [0.5, 0.5, 0.5, 0.5])];
+  loadSeq(factorySeq(pr.seq));
 }
+// a new pattern keeps the transport running
+function loadSeq(sq) { const run = seq.p[0]; seq = sq; seq.p[0] = run; for (const st of seq.steps) st.locks = st.locks || {}; }
+// factory patterns: { len, rate, swing, steps: [ { n: [notes], v, l: "1/2", c, lock: { "SHP.CUTOFF": 0.7 } } | null ] }
+function factorySeq(f) {
+  const sq = blankSeq(); if (!f) return sq;
+  sq.p[1] = f.len || 16; sq.p[2] = Math.max(0, SEQ_RATES.indexOf(f.rate || "1/16")); sq.p[3] = f.swing || 0;
+  (f.steps || []).forEach((x, i) => {
+    if (!x || i > 15) return;
+    const st = sq.steps[i];
+    Object.assign(st, { trig: 1, notes: x.n || [], vel: x.v ?? .75, len: Math.max(0, STEP_LENS.indexOf(x.l || "1/2")), chance: x.c ?? 1 });
+    for (const [name, v] of Object.entries(x.lock || {})) { const ref = refByName(name); if (ref) st.locks[lockKey(ref)] = { ref, v }; }
+  });
+  return sq;
+}
+// "SHP.CUTOFF", "AMP.DECAY", "LFO.RATE 1", "M2" to a knob reference
+function refByName(name) {
+  if (/^M[1-4]$/.test(name)) return { w: "macro", i: +name[1] - 1 };
+  const [head, label] = [name.slice(0, name.indexOf(".")), name.slice(name.indexOf(".") + 1)];
+  if (head === "AMP") { const j = AMP.pages.flat().findIndex((p) => p.l === label); return j < 0 ? null : { w: "AMP", idx: j }; }
+  if (head === "LFO") { const j = LFOS.pages.flat().findIndex((p) => p.l === label); return j < 0 ? null : { w: "LFOS", idx: j }; }
+  const s = SLOTS.find((x) => x.name === head || x.id === head); if (!s) return null;
+  const m = MODULES[rack[s.id].mod]; if (!m) return null;
+  const j = m.pages.flat().findIndex((p) => p.l === label);
+  return j < 0 ? null : { w: "slot", slot: s.id, mod: rack[s.id].mod, idx: j };
+}
+const lockKey = (r) => r.w === "macro" ? `m${r.i}` : r.w === "slot" ? `${r.slot}.${r.mod}.${r.idx}` : `${r.w}.${r.idx}`;
 // factory patches name their values by label, and list values by option
 function applyOver(def, values, over) {
   if (!over) return;
@@ -101,7 +142,7 @@ function applyOver(def, values, over) {
 }
 function snapshot(name) {
   return { name, slots: Object.fromEntries(SLOTS.map((s) => [s.id, { mod: rack[s.id].mod, p: [...rack[s.id].p] }])),
-           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros] };
+           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros], seq: { ...JSON.parse(JSON.stringify(seq)), p: [0, ...seq.p.slice(1)] } };
 }
 const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 let saveState = null;
@@ -162,7 +203,7 @@ function destinations() {
 }
 
 // ---------------------------------------------------------------- UI state
-let page = "PERFORM";           // PERFORM | RACK | slot id | AMP | LFOS | MATRIX | SCALE | GLOBAL | SAVE
+let page = "PERFORM";           // PERFORM | RACK | slot id | AMP | LFOS | MATRIX | CHORD | SEQ | STEP | GLOBAL | SAVE
 let subpage = 0, mxRow = 0, octave = 0, master = 0.7, hold = false;
 let picker = null;              // { slot, ix }
 let toast = null, toastIcon = null, toastT = 0;
