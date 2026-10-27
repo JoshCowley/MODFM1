@@ -40,6 +40,9 @@ function cycle(list, cur, k) { const i = Math.max(0, list.indexOf(cur)); return 
 const FIXED = { AMP: [AMP, amp], GLOBAL: [GLOBAL, glo], CHORD: [CHORD, chd], LFOS: [LFOS, lfo] };
 
 function encoder(role, k) {
+  if (ss.layer) { layerEncoder(role, k); draw(); return; }
+  if ((ss.armed || (ss.free && !ss.free.t0)) && !ss.run && typeof role === "number") { recEncoder(role, k); draw(); return; }
+  if (role === "presets" && page === "NOTES") { seqEncoder(role, k); draw(); return; }
   if (role === "presets") {
     if (page === "SAVE") return;
     const list = patchList();
@@ -101,11 +104,12 @@ function setRef(ref, v, record = true) {
   else if (ref.w === "AMP") amp.p[ref.idx] = v;
   else if (ref.w === "GLOBAL") { glo.p[ref.idx] = v; storeGlobal(); applyGlobal(); return; }
   else if (ref.w === "CHORD") { chd.p[ref.idx] = v; storeChord(); return; }
-  else if (ref.w === "ARP") { arpS.p[ref.idx] = v; storeArp(); if (ref.idx === 0 || ref.idx === 4) refreshKeys(); return; }
+  else if (ref.w === "ARP") { arpS.p[ref.idx] = v; storeArp(); if (ref.idx === 0 || ref.idx === 4) { if (!kbdHold()) latched.clear(); refreshKeys(); } return; }
   else if (ref.w === "LFOS") lfo.p[ref.idx] = v;
   else if (ref.w === "slot") { if (rack[ref.slot].mod !== ref.mod) return; rack[ref.slot].p[ref.idx] = v; }
   if (record) recEvent({ type: "set", ref, v });
   if (ref.w === "macro") { ccOut(21 + ref.i, v); if (morph.via === ref.i + 1) morphTo(v); }
+  if (record && (ref.w === "slot" || ref.w === "AMP" || ref.w === "LFOS")) ss.lockRef = ref;
   if (record && (ref.w === "slot" || ref.w === "AMP" || ref.w === "LFOS" || ref.w === "macro")) { noteEdit(refLabel(ref)); if (ref.w !== "macro") knobCcOut(ref, v); }
 }
 function learnTurn(slot, i, k) {
@@ -176,6 +180,7 @@ const SVG = {
   CHORD: '<ellipse cx="5" cy="12.5" rx="2.6" ry="1.8"/><ellipse cx="5" cy="8.5" rx="2.6" ry="1.8"/><ellipse cx="5" cy="4.5" rx="2.6" ry="1.8"/><path d="M7.6 12.5V2h5"/>',
   SEQ: '<rect x="1.5" y="5" width="3" height="6" rx=".8"/><rect x="6.5" y="5" width="3" height="6" rx=".8" fill="currentColor"/><rect x="11.5" y="5" width="3" height="6" rx=".8"/><path d="M1.5 13.5h13"/>',
   HOLD: '<rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/>',
+  PLAY: '<path d="M4.5 2.5v11l9-5.5z" fill="currentColor"/>',
   REC: '<circle cx="8" cy="8" r="4.5" fill="currentColor"/>',
   DN: '<path d="M4 6l4 4 4-4"/>', UP: '<path d="M4 10l4-4 4 4"/>',
 };
@@ -185,8 +190,9 @@ document.getElementById("octUp").innerHTML = `${svg("UP")}<span>Oct +</span><sma
 // [rack label, printed label, action, colour kind, icon]
 const BTNS = [
   ["FX 1·2", "FX", "FXBTN", "fx", "FX"], ["Chord", "SCL", "CHORD", "chd", "CHORD"], ["Amp · Shp", "ENV", "AMPBTN", "amp", "AMP"], ["Mod · LFO", "LFO", "MODBTN", "mod", "LFO"], ["Source", "EDIT", "SRC", "src", "SRC"], ["Global", "GLO", "GLOBAL", "glo", "GLO"],
-  ["Home", "HOME", "HOME", null, "HOME"], ["Save", "SAVE", "SAVE", null, "SAVE"], ["Matrix · Arp", "ARP", "ARPBTN", "arp", "MATRIX"], ["Seq", "SEQ", "SEQBTN", "seq", "SEQ"], ["Hold", "PLAY", "HOLD", null, "HOLD"], ["Rec", "REC", "REC", null, "REC"],
+  ["Home", "HOME", "HOME", null, "HOME"], ["Save", "SAVE", "SAVE", null, "SAVE"], ["Matrix · Arp", "ARP", "ARPBTN", "arp", "MATRIX"], ["Seq", "SEQ", "SEQBTN", "seq", "SEQ"], ["Play", "PLAY", "PLAY", null, "PLAY"], ["Rec", "REC", "REC", null, "REC"],
 ];
+const LAYER_OF = { SEQBTN: "SEQ", SRC: "EDIT", ARPBTN: "ARP", GLOBAL: "GLO", CHORD: "SEL" };
 const btnEls = {};
 const bwrap = document.getElementById("btns");
 for (const [lab, printed, act, kind, ic] of BTNS) {
@@ -194,29 +200,42 @@ for (const [lab, printed, act, kind, ic] of BTNS) {
   el.type = "button"; el.className = "btn"; if (kind) el.dataset.kind = kind;
   el.innerHTML = `${svg(ic)}<span>${lab}</span><small>${printed}</small>`;
   el.setAttribute("aria-label", `${lab} (printed ${printed})`);
-  if (act === "SEQBTN") {
+  if (LAYER_OF[act]) {
+    // tap: its pages · hold: its layer (Shift-click, or hold + HOME, keeps the layer open)
     let timer = 0, long = false;
-    el.addEventListener("pointerdown", (e) => { long = false; if (e.shiftKey) return; timer = setTimeout(() => { long = true; if (!ss.lock) setSeqLock(true); }, 500); });
-    const cancel = () => clearTimeout(timer);
+    el.addEventListener("pointerdown", (e) => {
+      long = false; if (e.shiftKey) return;
+      if (ss.layer && ss.latched) { long = true; const mine = ss.layer === LAYER_OF[act]; layerExit(); if (!mine) press(act); return; }
+      timer = setTimeout(() => { long = true; layerEnter(LAYER_OF[act]); }, 220);
+    });
+    const up = () => { clearTimeout(timer); if (long && ss.layer === LAYER_OF[act] && !ss.latched) layerExit(); };
+    el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+    el.addEventListener("click", (e) => { if (long) return; if (e.shiftKey) { if (ss.layer) layerExit(); else { layerEnter(LAYER_OF[act]); ss.latched = true; } return; } press(act); });
+  } else if (act === "REC") {
+    let timer = 0, long = false;
+    el.addEventListener("pointerdown", (e) => { long = false; ss.clearT = performance.now(); timer = setTimeout(() => { long = true; ss.clearT = 0; clearPattern(); }, 1200); });
+    const cancel = () => { clearTimeout(timer); ss.clearT = 0; };
     el.addEventListener("pointerup", cancel); el.addEventListener("pointerleave", cancel); el.addEventListener("pointercancel", cancel);
-    el.addEventListener("click", (e) => { if (long) return; if (e.shiftKey) { setSeqLock(!ss.lock); return; } if (ss.lock) { setSeqLock(false); return; } press("SEQBTN"); });
+    el.addEventListener("click", () => { if (long) return; press("REC"); });
   } else if (act === "HOME") {
     let timer = 0, long = false;
     el.addEventListener("pointerdown", (e) => { long = false; if (e.shiftKey) return; timer = setTimeout(() => { long = true; if (!learn) setLearn(true); }, 500); });
     const cancel = () => clearTimeout(timer);
     el.addEventListener("pointerup", cancel); el.addEventListener("pointerleave", cancel); el.addEventListener("pointercancel", cancel);
-    el.addEventListener("click", (e) => { if (long) return; if (e.shiftKey) { setLearn(!learn); return; } if (learn) { setLearn(false); return; } press("HOME"); });
+    el.addEventListener("click", (e) => { if (long) return; if (ss.layer && !ss.latched) { ss.latched = true; say(`${ss.layer} LAYER LOCKED`, "LOCK"); draw(); return; } if (e.shiftKey) { setLearn(!learn); return; } if (learn) { setLearn(false); return; } press("HOME"); });
   } else el.addEventListener("click", () => press(act));
   bwrap.appendChild(el); btnEls[act] = el;
 }
 function resolve(act) {
-  const cyc = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS", "MSEQ"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP", "STEP2", "GEN"], ARPBTN: ["MATRIX", "ARP"] }[act];
+  const cyc = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS", "MSEQ"], AMPBTN: ["AMP", "SHP"], SEQBTN: SEQ_PAGES, ARPBTN: ["MATRIX", "ARP"] }[act];
   if (!cyc) return act;
   if (picker && cyc.includes(picker.slot)) return picker.slot;
   const i = cyc.indexOf(page);
   return i < 0 ? cyc[0] : cyc[(i + 1) % cyc.length];
 }
 function press(act) {
+  if (ss.layer && ss.latched && act !== "PLAY" && act !== "REC") layerExit();
+  if (act === "SRC" && page === "NOTES" && !ss.layer) { deleteSelNote(); draw(); return; }     // EDIT tapped on NOTES deletes the note
   act = resolve(act);
   const slot = SLOTS.find((s) => s.id === act);
   if (slot) {
@@ -234,35 +253,39 @@ function press(act) {
   if (act === "HOME") { if (page === "SAVE") { saveState = null; page = "PERFORM"; say("SAVE CANCELLED", "SAVE"); } else { page = page === "PERFORM" ? "RACK" : page === "RACK" ? "TOOLS" : "PERFORM"; subpage = 0; } }
   else if (FIXED[act]) { if (page !== act) subpage = 0; page = act; }
   else if (act === "MATRIX") page = "MATRIX";
-  else if (["SEQ", "STEP", "STEP2", "GEN", "MSEQ"].includes(act)) page = act;
+  else if ([...SEQ_PAGES, "MSEQ"].includes(act)) { page = act; ss.sheet = null; }
   else if (act === "SAVE") { if (page === "SAVE") commitSave(); else openSave(); }
-  else if (act === "HOLD") { hold = !hold; if (!hold) latched.clear(); say(hold ? "HOLD ON" : "HOLD OFF", "HOLD"); refreshKeys(); }
-  else if (act === "REC" && isSeqPage()) {
-    ss.rec = !ss.rec; ss.recGroup = null;
-    if (ss.rec && !ss.run) seqStart();
-    say(ss.rec ? "SEQ REC · PLAY OR TURN" : "SEQ REC OFF", "REC");
-  }
-  else if (act === "REC") {
-    if (phrase.state === "idle") { phrase.state = "armed"; say("REC ARMED · PLAY OR TURN", "REC"); }
-    else if (phrase.state === "armed") { phrase.state = "idle"; say("REC CANCELLED", "REC"); }
-    else if (phrase.state === "rec") closeLoop();
-    else { clearPhrase(); say("PHRASE CLEARED", "REC"); }
-  }
+  else if (act === "PLAY") { if (ss.free) closeFreeTake(); else seqToggle(); }
+  else if (act === "REC") recPress();
   draw();
 }
-document.getElementById("octDn").addEventListener("click", () => { octave = clamp(octave - 1, -3, 3); say(`OCTAVE ${octave >= 0 ? "+" : ""}${octave}`); });
-document.getElementById("octUp").addEventListener("click", () => { octave = clamp(octave + 1, -3, 3); say(`OCTAVE ${octave >= 0 ? "+" : ""}${octave}`); });
+// OCT- / OCT+: the octave; inside a layer, its job there; OCT+ held on NOTES opens the note's sheet, OCT+ / OCT- work it
+function octPress(dir) {
+  if (ss.layer && layerOct(dir)) { draw(); return; }
+  if (ss.sheet) { if (dir > 0) sheetDo(); else ss.sheet = null; draw(); return; }
+  octave = clamp(octave + dir, -3, 3); say(`OCTAVE ${octave >= 0 ? "+" : ""}${octave}`);
+}
+document.getElementById("octDn").addEventListener("click", () => octPress(-1));
+{
+  const el = document.getElementById("octUp"); let timer = 0, long = false;
+  el.addEventListener("pointerdown", () => { long = false; if (page !== "NOTES" || ss.sheet || ss.layer) return; timer = setTimeout(() => { long = true; ss.sheet = { row: 0 }; draw(); }, 500); });
+  const cancel = () => clearTimeout(timer);
+  el.addEventListener("pointerup", cancel); el.addEventListener("pointerleave", cancel); el.addEventListener("pointercancel", cancel);
+  el.addEventListener("click", () => { if (long) return; octPress(1); });
+}
 
 function syncLeds() {
-  const pairOn = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS", "MSEQ"], AMPBTN: ["AMP", "SHP"], SEQBTN: ["SEQ", "STEP", "STEP2", "GEN"], ARPBTN: ["MATRIX", "ARP"] };
+  const pairOn = { FXBTN: ["FX1", "FX2"], MODBTN: ["MODA", "MODB", "LFOS", "MSEQ"], AMPBTN: ["AMP", "SHP"], SEQBTN: SEQ_PAGES, ARPBTN: ["MATRIX", "ARP"] };
+  const beat = ss.run && ss.cur >= 0 && Math.floor(ss.pos16 / 4) !== undefined && ((audioNow() - ss.curT) < .09) && Math.round((ss.cur * DIV_16THS[seq.div]) % 4) === 0;
   for (const [act, el] of Object.entries(btnEls)) {
     let on = act === page || (act === "HOME" && (page === "PERFORM" || page === "RACK" || page === "TOOLS")) || (pairOn[act] && pairOn[act].includes(page));
-    if (act === "HOLD" || act === "REC") on = false;
+    if (act === "PLAY" || act === "REC") on = false;
+    if (LAYER_OF[act] && ss.layer === LAYER_OF[act]) on = true;
     el.classList.toggle("lit", !!on);
-    el.classList.toggle("hold", (act === "HOLD" && hold) || (act === "REC" && phrase.state === "loop") || (act === "CHORD" && !on && (chd.p[C_TYPE] > 0 || chd.p[C_LOCK] === 1)) || (act === "SEQBTN" && !on && ss.run) || (act === "ARPBTN" && !on && arpOn()));
-    el.classList.toggle("rec", act === "REC" && (phrase.state === "rec" || phrase.state === "armed" || (ss.rec && ss.run)));
-    el.classList.toggle("blink", (act === "REC" && phrase.state === "armed") || (act === "HOME" && learn) || (act === "SEQBTN" && ss.lock));
-    el.setAttribute("aria-pressed", act === "HOLD" ? String(hold) : String(!!on));
+    el.classList.toggle("hold", (act === "PLAY" && ss.run && !beat) || (act === "CHORD" && !on && (chd.p[C_TYPE] > 0 || chd.p[C_LOCK] === 1)) || (act === "SEQBTN" && !on && ss.run) || (act === "ARPBTN" && !on && arpOn()));
+    el.classList.toggle("rec", act === "REC" && ((ss.rec && ss.run) || ss.armed || !!ss.free));
+    el.classList.toggle("blink", (act === "REC" && (ss.armed || (ss.free && !ss.free.t0))) || (act === "HOME" && learn) || (!!LAYER_OF[act] && ss.layer === LAYER_OF[act] && ss.latched));
+    el.setAttribute("aria-pressed", act === "PLAY" ? String(ss.run) : String(!!on));
   }
   document.getElementById("octDn").classList.toggle("lit", octave < 0);
   document.getElementById("octUp").classList.toggle("lit", octave > 0);
@@ -288,8 +311,18 @@ function placeKey(k, leftPct, topPct) {
 WHITE.forEach((k, i) => placeKey(k, (i + .5) / 16 * 100, 74));
 BLACK_AFTER.forEach((a, j) => placeKey(BLACK[j], (a + 1) / 16 * 100, 28));
 const velCurve = (v) => clamp(v, 0, 1) ** (2 ** ((0.5 - glo.p[G_VEL]) * 3));
-function keyDown(k, vel = 0.75) { vel = velCurve(vel); keyVel[k] = vel; held.add(k); if (hold) { if (latched.has(k)) latched.delete(k); else latched.add(k); } seqInput(chordNotes(keyToNote(k)), vel); recEvent({ type: "key", k, on: true, vel }); refreshKeys(); }
-function keyUp(k) { if (!held.has(k)) return; held.delete(k); recEvent({ type: "key", k, on: false }); refreshKeys(); seqRelease(); }
+const kbdHold = () => arpS.p[4] === 1 && !arpOn();          // KBD HOLD: the notes go on sounding, the next chord replaces them
+function keyDown(k, vel = 0.75) {
+  vel = velCurve(vel); keyVel[k] = vel;
+  if (ss.layer) { layerKey(k, true, vel); keyEls[k]?.classList.add("held"); return; }
+  if (kbdHold()) { if (!held.size) latched.clear(); latched.add(k); }
+  held.add(k); seqNoteOn(`k${k}`, chordNotes(keyToNote(k)), vel); refreshKeys();
+}
+function keyUp(k) {
+  keyEls[k]?.classList.remove("held");
+  if (!held.has(k)) { layerKey(k, false); return; }          // a key pressed inside a layer
+  held.delete(k); refreshKeys(); seqNoteOff(`k${k}`);
+}
 const keyVel = [], sounding = new Map();
 function refreshKeys() {
   const midiLit = new Set([...midiNotes.keys()].map((nn) => nn - 53 - 12 * octave));

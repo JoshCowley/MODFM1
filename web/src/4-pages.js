@@ -201,7 +201,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.2", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.3", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -228,11 +228,14 @@ function render() {
     T(124, 37, `LEARN M${learnMacro + 1} · TURN ANY KNOB`, { a: "center", size: 10, c: "#111" });
     if (Math.floor(animT * 3) % 2) dot(232, 33, 2.5, C.warn, false);
   }
-  if (ss.lock) {
-    rect(0, 26, 240, 15, C.gold); icon("LOCK", 4, 28, "#111");
-    T(124, 37, `LOCK STEP ${ss.cursor + 1} · TURN ANY KNOB`, { a: "center", size: 10, c: "#111" });
-  } else if (ss.rec && ss.run && !isSeqPage() && lockRefFor(SLOTS.find((s) => s.id === page), 0)) {
-    rect(0, 26, 240, 3, Math.floor(animT * 3) % 2 ? C.warn : "#6a2a22");
+  if (ss.rec && ss.run && !isSeqPage() && lockRefFor(SLOTS.find((s) => s.id === page), 0)) rect(0, 26, 240, 3, Math.floor(animT * 3) % 2 ? C.warn : "#6a2a22");
+  if ((ss.armed || ss.free) && !ss.run) drawRecScreen();
+  if (layerShown()) drawLayer();
+  if (ss.clearT && performance.now() - ss.clearT > 300) {        // hold REC: a ring fills, then the pattern clears
+    const f = clamp((performance.now() - ss.clearT) / 1200, 0, 1);
+    rect(70, 80, 100, 70, "#0d0d0c", 8); g.strokeStyle = C.faint; g.lineWidth = 4; g.beginPath(); g.arc(120, 108, 16, 0, TAU); g.stroke();
+    g.strokeStyle = C.warn; g.beginPath(); g.arc(120, 108, 16, -Math.PI / 2, -Math.PI / 2 + f * TAU); g.stroke();
+    T(120, 142, "CLEAR PATTERN", { a: "center", size: 9, c: C.warn }); dirty = true;
   }
   if (picker) drawPicker();
   drawToast();

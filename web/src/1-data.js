@@ -49,21 +49,48 @@ const TUNINGS = [
   ["24-EDO", Array.from({ length: 24 }, (_, i) => i * 50)],
   ["31-EDO", Array.from({ length: 31 }, (_, i) => i * 1200 / 31)],
 ];
-const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)], [L("TUNING", TUNINGS.map((t) => t[0])), L("T ROOT", KEYS12), I("A4 HZ", 400, 480, 440), I("BEND", 0, 24, 2)], [L("PROG CHG", ["OFF", "ON"], 1), L("MIDI OUT", ["OFF", "NOTES", "+CC"]), L("OUT CH", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]), L("LOCAL", ["ON", "OFF"])], [b("LOW EQ", 0), b("MID EQ", 0), b("HIGH EQ", 0), n("COMP", 0)], []] };
-const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6, G_TUNE = 7, G_TROOT = 8, G_A4 = 9, G_BEND = 10, G_PROG = 11, G_MOUT = 12, G_OUTCH = 13, G_LOCAL = 14, G_LOW = 15, G_MID = 16, G_HIGH = 17, G_COMP = 18;
+const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)], [L("TUNING", TUNINGS.map((t) => t[0])), L("T ROOT", KEYS12), I("A4 HZ", 400, 480, 440), I("BEND", 0, 24, 2)], [L("PROG CHG", ["OFF", "ON"], 1), L("MIDI OUT", ["OFF", "NOTES", "+CC"]), L("OUT CH", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]), L("LOCAL", ["ON", "OFF"])], [b("LOW EQ", 0), b("MID EQ", 0), b("HIGH EQ", 0), n("COMP", 0)], [L("STEP ADV", ["ON", "OFF"])]] };
+const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6, G_TUNE = 7, G_TROOT = 8, G_A4 = 9, G_BEND = 10, G_PROG = 11, G_MOUT = 12, G_OUTCH = 13, G_LOCAL = 14, G_LOW = 15, G_MID = 16, G_HIGH = 17, G_COMP = 18, G_ADV = 19;
 const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10] };
 // CHORD (SCL key): scale chords, with scale lock on its second page
 const CHORD_TYPES = ["OFF", "TRIAD", "7TH", "SUS2", "SUS4", "ADD9", "6TH", "9TH", "POWER", "QUARTAL"];
 const CHORD = { kind: "chd", pages: [[L("CHORD", CHORD_TYPES), L("INVERT", ["ROOT", "1ST", "2ND", "3RD"]), n("SPREAD", 0), n("STRUM", 0)], [L("LOCK", ["OFF", "ON"]), L("KEY", KEYS12), L("SCALE", Object.keys(SCALES))]] };
 const C_TYPE = 0, C_INV = 1, C_SPREAD = 2, C_STRUM = 3, C_LOCK = 4, C_KEY = 5, C_SCALE = 6;
-// SEQ key: 16-step sequencer. Pattern settings, then (press SEQ again) the step under the cursor
-const SEQ_RATES = ["1/8", "1/16", "1/16T", "1/32"], RATE_MUL = [2, 1, 2 / 3, .5];
-const STEP_LENS = ["1/8", "1/4", "1/2", "3/4", "FULL", "TIE"], STEP_LEN_F = [.125, .25, .5, .75, .97, 1];
-const SEQDEF = { kind: "seq", pages: [[L("RUN", ["STOP", "PLAY"]), I("LENGTH", 1, 16, 16), L("RATE", SEQ_RATES, 1), n("SWING", 0)]] };
-const STEPDEF = { kind: "seq", pages: [[L("TRIG", ["OFF", "ON"], 1), n("VELO", .75), L("LENGTH", STEP_LENS, 2), n("CHANCE", 1)]] };
-const blankStep = () => ({ trig: 0, notes: [], vel: .75, len: 2, chance: 1, ratchet: 1, nudge: 0, locks: {} });
-const blankSeq = () => ({ p: [0, 16, 1, 0], spice: 0, dice: 0, steps: Array.from({ length: 16 }, blankStep) });
-const POOL = 256, BUDGET = 80, MAXV = 6;
+// SEQ key: the sequencer, after Clipper / SLOOP 2.7.2: up to 64 steps, each with up to 6 notes of their own length and force,
+// a ratchet, a nudge, a fill condition, a slide and parameter locks
+const SEQ_DIVS = ["1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1BAR", "2BAR"], DIV_16THS = [4, 2, 1, .5, 4 / 3, 2 / 3, 8, 16, 32];
+const LEVELS = ["GHOST", "SOFT", "NORM", "HARD", "ACC"], LEVEL_VEL = [.32, .55, null, .9, 1];
+const FILLS = ["—", "FILL", "NO FILL"];
+const MAXSTEPS = 64;
+const blankStep = () => ({ notes: [], ratchet: 1, nudge: 0, locks: {}, fill: 0, slide: false, chance: 1 });
+const blankSeq = () => ({ len: 16, div: 2, swing: 0, gate: .5, spice: 0, dice: 0, steps: Array.from({ length: MAXSTEPS }, blankStep) });
+// earlier formats: 1.1 / 1.2 patterns had 16 steps of { trig, notes: [numbers], vel, len (index), chance, ratchet, nudge, locks }
+const OLD_LEN_F = [.125, .25, .5, .75, .97, 1], OLD_DIV = [1, 2, 5, 3];
+function upgradeSeq(sq) {
+  if (!sq) return blankSeq();
+  if (sq.p) {
+    const out = blankSeq(); out.len = sq.p[1] || 16; out.div = OLD_DIV[sq.p[2]] ?? 2; out.swing = sq.p[3] || 0; out.spice = sq.spice || 0; out.dice = sq.dice || 0;
+    (sq.steps || []).forEach((x, i) => {
+      if (i >= MAXSTEPS || !x) return;
+      const st = out.steps[i];
+      st.locks = x.trig ? x.locks || {} : {}; st.ratchet = x.ratchet || 1; st.nudge = Math.round((x.nudge || 0) * 32); st.chance = x.chance ?? 1;
+      if (x.trig && x.notes && x.notes.length) st.notes = x.notes.map((nn) => ({ n: nn, len: OLD_LEN_F[x.len ?? 2] ?? .5, lvl: 2, vel: x.vel ?? .75 }));
+    });
+    tieLengths(out, sq.steps || [], (x) => x && x.trig && x.len === 5);
+    return out;
+  }
+  while (sq.steps.length < MAXSTEPS) sq.steps.push(blankStep());
+  for (const st of sq.steps) { st.locks = st.locks || {}; st.notes = st.notes || []; }
+  return sq;
+}
+// a tied step holds on until the next step that plays
+function tieLengths(out, src, isTie) {
+  const L = out.len;
+  for (let i = 0; i < L; i++) if (isTie(src[i])) {
+    let j = 1; while (j < L && !(out.steps[(i + j) % L].notes.length)) j++;
+    for (const nt of out.steps[i].notes) nt.len = Math.min(j, MAXSTEPS);
+  }
+}const POOL = 256, BUDGET = 80, MAXV = 6;
 
 const SLOTS = [
   { id: "SRC", kind: "src", name: "SRC", choices: ["PLAITS", "BRAIDS", "ELEMENTS"] },
@@ -125,17 +152,19 @@ function restoreSnap(u) {
   mseq = u.mseq ? JSON.parse(JSON.stringify(u.mseq)) : blankMseq();
 }
 // a new pattern keeps the transport running
-function loadSeq(sq) { const run = seq.p[0]; seq = sq; seq.p[0] = run; for (const st of seq.steps) st.locks = st.locks || {}; }
-// factory patterns: { len, rate, swing, steps: [ { n: [notes], v, l: "1/2", c, lock: { "SHP.CUTOFF": 0.7 } } | null ] }
+function loadSeq(sq) { seq = upgradeSeq(sq); }
+// factory patterns: { len, rate, swing, steps: [ { n: [notes], v, l: "1/2" | "TIE", c, lock: { "SHP.CUTOFF": 0.7 } } | null ] }
 function factorySeq(f) {
   const sq = blankSeq(); if (!f) return sq;
-  sq.p[1] = f.len || 16; sq.p[2] = Math.max(0, SEQ_RATES.indexOf(f.rate || "1/16")); sq.p[3] = f.swing || 0;
+  sq.len = f.len || 16; sq.div = Math.max(0, SEQ_DIVS.indexOf(f.rate === "1/16T" ? "16T" : f.rate || "1/16")); sq.swing = f.swing || 0;
   (f.steps || []).forEach((x, i) => {
-    if (!x || i > 15) return;
-    const st = sq.steps[i];
-    Object.assign(st, { trig: 1, notes: x.n || [], vel: x.v ?? .75, len: Math.max(0, STEP_LENS.indexOf(x.l || "1/2")), chance: x.c ?? 1 });
+    if (!x || i >= MAXSTEPS) return;
+    const st = sq.steps[i], li = Math.max(0, ["1/8", "1/4", "1/2", "3/4", "FULL", "TIE"].indexOf(x.l || "1/2"));
+    st.notes = (x.n || []).map((nn) => ({ n: nn, len: OLD_LEN_F[li], lvl: (x.v ?? .75) >= .95 ? 4 : 2, vel: x.v ?? .75 }));
+    st.chance = x.c ?? 1;
     for (const [name, v] of Object.entries(x.lock || {})) { const ref = refByName(name); if (ref) st.locks[lockKey(ref)] = { ref, v }; }
   });
+  tieLengths(sq, f.steps || [], (x) => x && x.l === "TIE");
   return sq;
 }
 // "SHP.CUTOFF", "AMP.DECAY", "LFO.RATE 1", "M2" to a knob reference
@@ -162,7 +191,7 @@ function applyOver(def, values, over) {
 }
 function snapshot(name) {
   return { name, slots: Object.fromEntries(SLOTS.map((s) => [s.id, { mod: rack[s.id].mod, p: [...rack[s.id].p] }])),
-           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros], seq: { ...JSON.parse(JSON.stringify(seq)), p: [0, ...seq.p.slice(1)] }, mseq: JSON.parse(JSON.stringify(mseq)) };
+           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros], seq: JSON.parse(JSON.stringify(seq)), mseq: JSON.parse(JSON.stringify(mseq)) };
 }
 const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 let saveState = null;
@@ -226,7 +255,7 @@ function destinations() {
 
 // ---------------------------------------------------------------- UI state
 let page = "PERFORM";           // PERFORM | RACK | slot id | AMP | LFOS | MATRIX | CHORD | SEQ | STEP | GLOBAL | SAVE
-let subpage = 0, mxRow = 0, octave = 0, master = 0.7, hold = false;
+let subpage = 0, mxRow = 0, octave = 0, master = 0.7;
 let picker = null;              // { slot, ix }
 let toast = null, toastIcon = null, toastT = 0;
 let learn = false, learnMacro = 0;

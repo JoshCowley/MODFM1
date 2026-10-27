@@ -70,7 +70,7 @@ function midiOn(nn, vel, fromLoop = false) {
   const notes = chordNotes(nn);
   if (midiNotes.has(nn)) notesOff(midiNotes.get(nn));
   midiState.deferred.delete(nn);
-  if (!fromLoop) seqInput(notes, vel);
+  if (!fromLoop) seqNoteOn(`m${nn}`, notes, vel);
   midiNotes.set(nn, arpOn() ? { notes, voices: [], at: [], out: false } : notesOn(notes, vel, fromLoop ? "loop" : "midi"));
   if (!fromLoop) recEvent({ type: "midi", n: nn, on: true, vel });
   refreshKeys();
@@ -80,7 +80,7 @@ function midiOff(nn, fromLoop = false) {
   if (midiState.sustain && !fromLoop) { midiState.deferred.add(nn); return; }
   notesOff(midiNotes.get(nn)); midiNotes.delete(nn);
   if (!fromLoop) recEvent({ type: "midi", n: nn, on: false });
-  refreshKeys(); if (!fromLoop) seqRelease();
+  refreshKeys(); if (!fromLoop) seqNoteOff(`m${nn}`);
 }
 // the knob under Knob 1-4 on the page on screen, for CC 70-73 in and out
 function pageRef(i) {
@@ -114,8 +114,8 @@ function onMidi(e) {
     }
     return;
   }
-  if (st === 0xFA) { engine(["reset_clock"]); if (seq.steps.some((x) => x.trig)) { if (ss.run) seqStop(); seqStart(); } return; }
-  if (st === 0xFB) { if (!ss.run && seq.steps.some((x) => x.trig)) seqStart(); return; }
+  if (st === 0xFA) { engine(["reset_clock"]); if (hasNotes()) { if (ss.run) seqStop(); seqStart(); } return; }
+  if (st === 0xFB) { if (!ss.run && hasNotes()) seqStart(); return; }
   if (st === 0xFC) { if (ss.run) seqStop(); draw(); return; }
   if (st >= 0xF0) return;
   const type = st & 0xF0, ch = (st & 0x0F) + 1, want = glo.p[G_MIDICH];
@@ -208,7 +208,7 @@ let lastT = performance.now(), lastFrame = 0;
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = Math.min(.1, (now - lastT) / 1000); lastT = now;
-  phraseTick();
+  if (ss.run || ss.free) syncLeds();
   const mode = glo.p[G_ANIM] || 0;
   animT += dt * [1, .45, 0][mode];
   const interval = [1000 / 30, 1000 / 20, 1000 / 6][mode];

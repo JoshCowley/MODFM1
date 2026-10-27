@@ -182,7 +182,7 @@ function visLibrary(X, Y, W, H, c) {
 // ---------------------------------------------------------------- arpeggiator (ARP pressed twice), with a Turing machine
 const ARP_MODES = ["OFF", "UP", "DOWN", "UPDN", "DNUP", "RANDOM", "ORDER", "CHORD", "REPEAT", "UP+8", "CONV", "DIVG", "PINKY", "THUMB", "TURING"];
 const ARP_RATES = ["1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32"], ARP_BEATS = [1, .5, 1 / 3, .25, 1 / 6, .125];
-const ARPDEF = { kind: "arp", pages: [[L("MODE", ARP_MODES), L("RATE", ARP_RATES, 3), I("OCTAVE", 1, 4, 1), n("GATE", .5)], [L("LATCH", ["OFF", "ON"]), n("MUTATE", .1), I("LOOP", 1, 16, 8), n("SWING", 0)]] };
+const ARPDEF = { kind: "arp", pages: [[L("MODE", ARP_MODES), L("RATE", ARP_RATES, 3), I("OCTAVE", 1, 4, 1), n("GATE", .5)], [L("HOLD", ["OFF", "ON"]), n("MUTATE", .1), I("LOOP", 1, 16, 8), n("SWING", 0)]] };
 const arpS = { p: blankParams(ARPDEF) };
 try { const v = JSON.parse(localStorage.getItem("fm1rack.arp.v1") || "null"); if (v && v.length === arpS.p.length) arpS.p = v; } catch { /* defaults */ }
 function storeArp() { try { localStorage.setItem("fm1rack.arp.v1", JSON.stringify(arpS.p)); } catch { /* this visit only */ } }

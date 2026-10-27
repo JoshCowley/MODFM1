@@ -131,7 +131,8 @@ function footer() {
     g.strokeStyle = C.ok; g.beginPath(); g.arc(165, 228, 5, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); g.stroke();
     T(174, 232, `${phrase.bars}BAR`, { size: 9, c: C.ok });
   } else if (ss.run) {
-    for (let i = 0; i < seqLen(); i++) rect(150 + i * 4.3, 226, 3, 6, i === ss.cur ? KC.seq : seq.steps[i].trig ? "#4a3a42" : C.faint, 1);
+    const pg = Math.floor(Math.max(0, ss.cur) / 16) * 16;
+    for (let j = 0; j < 16 && pg + j < seq.len; j++) { const i = pg + j; rect(150 + j * 4.3, 226, 3, 6, i === ss.cur ? KC.seq : seq.steps[i].notes.length ? "#4a3a42" : C.faint, 1); }
     if (ss.rec && Math.floor(animT * 3) % 2) dot(145, 229, 2, C.warn, false);
   } else if (held.size || latched.size) { const k = [...new Set([...held, ...latched])].pop(); T(222, 232, noteName(k), { size: 10, a: "right", c: C.ok }); }
   else if (midiState.last && performance.now() - midiState.last < 400) icon("MIDI", 200, 222, C.dim);
