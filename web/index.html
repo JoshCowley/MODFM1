@@ -128,7 +128,7 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
 <main>
   <div class="top">
     <div>
-      <h1>FM1 Rack <span>1.4</span></h1>
+      <h1>FM1 Rack <span>1.5</span></h1>
       <p>A sound-design firmware for the M-VAVE FM-1: open-source eurorack modules in swappable slots, a 12-row mod matrix and four performance macros. This is the browser build, running the original module code.</p>
     </div>
     <a class="manual" href="https://claude.ai/artifact/8cELcnQ8vCjJQCCqp3HngM" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h4.5A1.5 1.5 0 0 1 8 4v10a1.5 1.5 0 0 0-1.5-1.5H2zM14 2.5H9.5A1.5 1.5 0 0 0 8 4v10a1.5 1.5 0 0 1 1.5-1.5H14z"/></svg>Open the manual</a>
@@ -207,11 +207,12 @@ const MODULES = {
   TIDES:    { kind: "mod", poly: false, cpu: 1, ram: 1, blurb: "SLOPE GENERATOR", outs: ["TIDES", "TIDE+"], pages: [[L("MODE", ["AD", "LOOP", "AR"], 1), n("FREQ", .3), n("SHAPE", .5), b("SLOPE", -.3)], [b("SMOOTH", .3), L("RANGE", ["LO", "MID", "HI"]), L("GATE", GATES, 4), L("INVERT", ["OFF", "ON"])]] },
   MARBLES:  { kind: "mod", poly: false, cpu: 3, ram: 4, blurb: "RANDOM NOTES · GATES", outs: ["MARB X", "MARB T"], pages: [[n("RATE", .5), n("SPREAD", .4), n("BIAS", .5), n("STEPS", .7)], [n("DEJA VU", .5), L("LENGTH", ["1", "2", "3", "4", "5", "6", "8", "16"], 6), n("JITTER", .1), L("CLOCK", ["FREE", "1/16", "1/8", "1/4"], 2)], [L("SCALE", ["MAJOR", "MINOR", "PENTA", "PELOG", "BHAIRAV", "SHRI"]), L("T MODEL", ["COMPLEM", "CLUSTER", "DRUMS", "INDEP", "DIVIDER", "3 STATE", "MARKOV"]), L("X RANGE", ["2V", "5V", "±5V"]), b("GATE LEN")]] },
   GRIDS:    { kind: "mod", poly: false, cpu: 1, ram: 2, blurb: "TOPOGRAPHIC DRUM MAP", outs: ["GRID", "ACCENT"], pages: [[n("X", .4), n("Y", .8), n("FILL", .8), L("OUT", ["BD", "SD", "HH", "KIT"], 3)], [n("CHAOS", 0), b("DECAY")]] },
-  CLOUDS:   { kind: "fx", poly: false, cpu: 22, ram: 118, blurb: "GRANULAR TEXTURES", pages: [[n("POSITION", .2), n("SIZE", .6), b("PITCH"), n("DENSITY", .5)], [n("TEXTURE", .4), n("BLEND", .3), n("SPREAD", .5), n("FEEDBACK", .2)], [n("REVERB", .3), L("MODE", ["GRANULR", "STRETCH", "LOOPDLY", "SPECTRL"]), L("FREEZE", ["OFF", "ON"]), L("QUALITY", ["16 ST", "16 MONO", "8 ST", "8 MONO"])], [b("IN GAIN"), L("NOTE TRG", ["OFF", "ON"]), L("PITCH TRK", ["OFF", "ON"])]] },
+  CLOUDS:   { kind: "fx", poly: false, cpu: 22, ram: 118, blurb: "GRANULAR TEXTURES", pages: [[n("POSITION", .2), n("SIZE", .6), b("PITCH"), n("DENSITY", .5)], [n("TEXTURE", .4), n("BLEND", .3), n("SPREAD", .5), n("FEEDBACK", .2)], [n("REVERB", .3), L("MODE", ["GRANULR", "STRETCH", "LOOPDLY", "SPECTRL"]), L("FREEZE", ["OFF", "ON"]), L("QUALITY", ["16 ST", "16 MONO", "8 ST", "8 MONO"])], [b("IN GAIN"), L("NOTE TRG", ["OFF", "ON"]), L("PITCH TRK", ["OFF", "ON"]), L("GRN SYNC", ["OFF", "1/16", "1/8", "1/4", "1/2"])], [n("SPRAY", 0), n("PITCH RND", 0), L("PITCH QNT", ["FREE", "SEMI", "5TH+OCT", "OCT"]), n("SIZE RND", 0)], [b("SCAN"), b("TONE")]] },
   DELAY:    { kind: "fx", poly: false, cpu: 3, ram: 64, blurb: "PING · MONO · TAPE", pages: [[L("TIME", ["1/16", "1/8", "1/8D", "1/4", "1/2", "1/8T", "1/4T", "1/4D", "1/2D"], 2), n("FEEDBACK", .4), n("TONE", .5), n("MIX", .3)], [L("MODE", ["PING", "MONO", "TAPE"]), n("WOW", .4), b("WIDTH"), n("DUCK", 0)], [n("LO CUT", 0), L("SYNC", ["TEMPO", "FREE"]), n("FREE MS", .5)]] },
   REVERB:   { kind: "fx", poly: false, cpu: 8, ram: 72, blurb: "PLATE · HALL · SHIMMER", pages: [[n("SIZE", .6), n("DAMP", .5), n("DIFFUSE", .55), n("MIX", .3)], [L("TYPE", ["PLATE", "HALL", "SHIMMER"]), n("PRE", 0), n("SHIMMER", .4), n("LO CUT", 0)], [b("WIDTH"), n("DUCK", 0)]] },
   CHORUS:   { kind: "fx", poly: false, cpu: 2, ram: 4, blurb: "STEREO CHORUS", pages: [[n("RATE", .3), n("DEPTH", .5), n("WIDTH", .7), n("MIX", .4)], [L("MODE", ["CHORUS", "FLANGER", "VIBRATO"]), n("FEEDBACK", 0), b("DELAY")]] },
 };
+for (const m of Object.values(MODULES)) if (m.kind === "fx") m.pages.flat().forEach((p) => { p.mod = true; });
 const VOICE_MODES = ["POLY", "MONO", "LEGATO", "UNI 2", "UNI 4"];
 const AMP = { kind: "amp", poly: true, cpu: 1, ram: 0, pages: [[n("ATTACK", .02), n("DECAY", .4), n("SUSTAIN", .7), n("RELEASE", .35)], [n("VEL AMT", .6), n("GLIDE", 0), n("SPREAD", .3), n("LEVEL", .8)], [n("M ATTACK", .05), n("M DECAY", .4), L("M LOOP", ["OFF", "ON"])], [L("MODE", VOICE_MODES), n("DETUNE", .15, { mod: false }), n("VINTAGE", 0, { mod: false })], [n("DELAY", 0), n("HOLD", 0), b("A CURVE"), b("D CURVE")], [b("VEL>ATK"), b("KEY>TIME"), n("M SUST", 0), b("PITCH ENV")]] };
 const A_MODE = 11, A_DETUNE = 12, A_VINTAGE = 13;
@@ -303,6 +304,9 @@ const lfo = { p: blankParams(LFOS) };
 const BUILT_SRC = ["—", "M1", "M2", "M3", "M4", "VELO", "KEY TRK", "RANDOM", "AMP ENV"];
 const EXTRA_SRC = ["LFO 1", "LFO 2", "LFO 3", "MOD ENV", "SEQ 1", "SEQ 2", "SEQ 3", "SEQ 4", "WHEEL", "PRESS"];
 let matrix = [];
+// each LFO's two direct targets (1.5): LFO 1 A, LFO 1 B, LFO 2 A, ... sent to the engine as routes 12-17
+const blankLfoTgt = () => Array.from({ length: 6 }, () => ({ dst: "—", amt: 0 }));
+let lfoTgt = blankLfoTgt();
 let macros = [0.5, 0.5, 0.5, 0.5];
 try { const sg = JSON.parse(localStorage.getItem("fm1rack.global.v1") || "null"); if (sg && sg.length <= glo.p.length) sg.forEach((v, i) => { glo.p[i] = v; }); } catch { /* defaults */ }
 function storeGlobal() { try { localStorage.setItem("fm1rack.global.v1", JSON.stringify(glo.p)); } catch { /* this visit only */ } }
@@ -330,6 +334,7 @@ function loadPreset(i) {
     return r ? { src: r[0], dst: r[1], amt: r[2], via: r[3] || "—" } : { src: "—", dst: "—", amt: 0, via: "—" };
   });
   macros = [...(pr.macros || [0.5, 0.5, 0.5, 0.5])];
+  lfoTgt = blankLfoTgt();
   loadSeq(factorySeq(pr.seq));
   mseq = blankMseq();
   histReset(`LOADED ${patchName}`);
@@ -338,6 +343,7 @@ function restoreSnap(u) {
   for (const s of SLOTS) { const st = u.slots[s.id] || { mod: null, p: [] }; rack[s.id] = { mod: st.mod, p: fitParams(MODULES[st.mod], st.p) }; }
   amp.p = fitParams(AMP, u.amp); lfo.p = fitParams(LFOS, u.lfo);
   matrix = u.matrix.map((r) => ({ ...r })); macros = [...u.macros];
+  lfoTgt = u.lfoTgt ? u.lfoTgt.map((t) => ({ ...t })) : blankLfoTgt();
   loadSeq(u.seq ? JSON.parse(JSON.stringify(u.seq)) : blankSeq());
   mseq = u.mseq ? JSON.parse(JSON.stringify(u.mseq)) : blankMseq();
 }
@@ -381,7 +387,7 @@ function applyOver(def, values, over) {
 }
 function snapshot(name) {
   return { name, slots: Object.fromEntries(SLOTS.map((s) => [s.id, { mod: rack[s.id].mod, p: [...rack[s.id].p] }])),
-           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), macros: [...macros], seq: JSON.parse(JSON.stringify(seq)), mseq: JSON.parse(JSON.stringify(mseq)) };
+           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), lfoTgt: lfoTgt.map((t) => ({ ...t })), macros: [...macros], seq: JSON.parse(JSON.stringify(seq)), mseq: JSON.parse(JSON.stringify(mseq)) };
 }
 const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 let saveState = null;
@@ -1021,10 +1027,27 @@ function drawSlot(slot) {
   cells(params, lv.vals, live && params.map((_, i) => live[off + i]), c, 96, 55, lv.marks);
   footer();
 }
+// LFO n TARGET: two destinations of its own, effects listed first, without using a matrix row
+function drawLfoTgt(l) {
+  const c = KC.lfo, dst = destinations();
+  header("LFO", c, `LFO ${l + 1} TARGET`, "LFO", LFOS.pages.length + 3, LFOS.pages.length + l);
+  well(VX, VY, VW, VH);
+  clipTo(VX, VY, VW, VH, () => visLfos(VX, VY, VW, VH, c));
+  [0, 1].forEach((k) => {
+    const t = lfoTgt[l * 2 + k], y = 98 + k * 58, dormant = t.dst !== "—" && !dst.includes(t.dst);
+    rect(6, y, 228, 54, "#121211", 6);
+    T(12, y + 13, `${2 * k + 1} DEST ${k ? "B" : "A"}`, { size: 9, c: C.dim });
+    T(12, y + 38, t.dst.length > 14 ? t.dst.slice(0, 13) + "…" : t.dst, { size: 15, c: dormant ? C.warn : t.dst === "—" ? C.dim : C.fg });
+    T(228, y + 13, `${2 * k + 2} AMT`, { size: 9, c: C.dim, a: "right" });
+    T(228, y + 38, `${t.amt >= 0 ? "+" : ""}${Math.round(t.amt * 100)}`, { size: 15, c: t.amt ? c : C.dim, a: "right" });
+    const w = 60 * Math.abs(t.amt); rect(t.amt >= 0 ? 168 : 168 - w, y + 46, w, 3, c, 1);
+  });
+  footer();
+}
 function drawFixed(def, st, tag, titles, iconName, slotIdx, band) {
   subpage = Math.min(subpage, def.pages.length - 1);
   const c = KC[def.kind];
-  header(tag, c, titles[subpage], iconName, def.pages.length, subpage);
+  header(tag, c, titles[subpage], iconName, def.pages.length + (def === LFOS ? 3 : 0), subpage);
   well(VX, VY, VW, VH);
   clipTo(VX, VY, VW, VH, () => band(VX, VY, VW, VH, c));
   const off = def.pages.slice(0, subpage).flat().length, params = def.pages[subpage];
@@ -1195,7 +1218,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.4", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.5", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -1206,6 +1229,7 @@ function render() {
   const slot = SLOTS.find((s) => s.id === page);
   if (slot) drawSlot(slot);
   else if (page === "AMP") drawFixed(AMP, amp, "AMP", ["ADSR", "VOICE", "MOD ENV", `MODE ${VOICE_MODES[amp.p[A_MODE]]}`, "ENV SHAPE", "TRACKING"], "AMP", 6, [visAdsr, visVoices, visModEnv, visVoices, visAdsr, visModEnv][Math.min(subpage, 5)]);
+  else if (page === "LFOS" && subpage >= LFOS.pages.length) drawLfoTgt(Math.min(2, subpage - LFOS.pages.length));
   else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3", "LFO 1 +", "LFO 2 +", "LFO 3 +"], "LFO", 8, visLfos);
   else if (page === "SAVE") drawSave();
   else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem][Math.min(subpage, 5)]);
@@ -1307,11 +1331,12 @@ function encoder(role, k) {
   if (role === "select") {
     if (page === "MATRIX") mxRow = clamp(mxRow + Math.sign(k), 0, 11);
     else if (slot && MODULES[rack[slot.id].mod]) subpage = clamp(subpage + Math.sign(k), 0, MODULES[rack[slot.id].mod].pages.length - 1);
-    else if (FIXED[page]) subpage = clamp(subpage + Math.sign(k), 0, FIXED[page][0].pages.length - 1);
+    else if (FIXED[page]) subpage = clamp(subpage + Math.sign(k), 0, FIXED[page][0].pages.length - 1 + (page === "LFOS" ? 3 : 0));
     else if (page === "PERFORM" || page === "RACK") { page = page === "PERFORM" ? "RACK" : "PERFORM"; }
     draw(); return;
   }
   const i = role;   // knob 0..3
+  if (page === "LFOS" && subpage >= LFOS.pages.length) { lfoTgtEncoder(subpage - LFOS.pages.length, i, k); draw(); return; }
   if (learn && (slot || page === "AMP" || page === "LFOS")) { learnTurn(slot, i, k); draw(); return; }
   if (lockTarget() >= 0) { const ref = lockRefFor(slot, i); if (ref) { lockTurn(ref, k); draw(); return; } }
   if (page === "PERFORM") {
@@ -1336,6 +1361,18 @@ function encoder(role, k) {
   draw();
 }
 
+// LFO TARGET pages: Knob 1 / 3 pick a destination (effects first), Knob 2 / 4 set its amount
+function tgtDestinations() {
+  const all = destinations(), fx = all.filter((d) => d.startsWith("FX "));
+  return ["—", ...fx, ...all.filter((d) => d !== "—" && !d.startsWith("FX "))];
+}
+function lfoTgtEncoder(l, i, k) {
+  const t = lfoTgt[l * 2 + (i >= 2 ? 1 : 0)];
+  if (i % 2 === 0) t.dst = cycle(tgtDestinations(), t.dst, Math.sign(k));
+  else t.amt = clamp(Math.round((t.amt + k * .01) * 100) / 100, -1, 1);
+  say(`LFO ${l + 1} → ${t.dst} ${t.amt >= 0 ? "+" : ""}${Math.round(t.amt * 100)}`, "LFO");
+  noteEdit(`LFO ${l + 1} TARGET`);
+}
 function setRef(ref, v, record = true) {
   if (ref.w === "macro") macros[ref.i] = v;
   else if (ref.w === "AMP") amp.p[ref.idx] = v;
@@ -1352,7 +1389,7 @@ function setRef(ref, v, record = true) {
 function learnTurn(slot, i, k) {
   let p, dst;
   if (page === "AMP") { p = AMP.pages[subpage][i]; dst = p && `AMP.${p.l}`; }
-  else if (page === "LFOS") { p = LFOS.pages[subpage][i]; dst = p && `LFO.${p.l}`; }
+  else if (page === "LFOS") { p = (LFOS.pages[subpage] || [])[i]; dst = p && `LFO.${p.l}`; }
   else if (slot) { const m = MODULES[rack[slot.id].mod]; p = m && m.pages[subpage][i]; dst = p && `${slot.name}.${p.l}`; }
   if (!p) return;
   if (p.mod === false) { say(`${p.l} CAN'T BE MODULATED`); return; }
@@ -2880,6 +2917,10 @@ function syncEngine() {
   matrix.forEach((r, i) => {
     const d = r.dst === "—" ? null : dstIndex(r.dst), sidx = srcIndex(r.src);
     put(`r${i}`, ["set_route", i, d ? sidx : 0, d ? d[0] : 0, d ? d[1] : 0, r.amt, srcIndex(r.via)]);
+  });
+  lfoTgt.forEach((t, j) => {
+    const d = t.dst === "—" ? null : dstIndex(t.dst);
+    put(`r${12 + j}`, ["set_route", 12 + j, d ? srcIndex(`LFO ${Math.floor(j / 2) + 1}`) : 0, d ? d[0] : 0, d ? d[1] : 0, t.amt, 0]);
   });
   macros.forEach((v, i) => put(`m${i}`, ["set_macro", i, v]));
   put("master", ["set_master", master * midiState.expr]);
