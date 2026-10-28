@@ -1,8 +1,8 @@
-# FM1 Rack 1.6 Manual
+# FM1 Rack 1.7 Manual
 
 Oct 26, 2026 · Josh Cowley
 
-FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.6 browser build, which runs the original module code.
+FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.7 browser build, which runs the original module code.
 
 ## Quick start
 
@@ -20,7 +20,7 @@ Turn **PRESETS** at any time to step through the 12 factory patches and your own
 
 FM1 Rack uses the FM-1 exactly as printed: four encoders on the left, the screen, four knobs and twelve buttons on the right, and two rows of keys. Coloured buttons open a slot; the colour matches that slot's pages on screen.
 
-*Diagram: the FM-1 panel map (8 encoders, 14 buttons, 27 keys). It's interactive in the live manual.*
+*Diagram: the FM-1 panel map (8 encoders, 14 buttons, 27 keys).*
 
 | Control | Turn or tap | Press again, or hold |
 | --- | --- | --- |
@@ -65,7 +65,7 @@ A white message box slides up for a moment after loading a module, changing patc
 
 Each note runs through its own SRC → SHP → AMP chain. The voices are mixed, then pass through FX 1 and FX 2 to the output. Two MOD slots and the built-in sources feed the matrix, which can reach any parameter in the chain.
 
-*Diagram: the FM1 Rack signal chain (6 slots, 1 matrix). It's interactive in the live manual.*
+*Diagram: the FM1 Rack signal chain (6 slots, 1 matrix).*
 
 The dashed line is the matrix reaching back into every slot. Every slot except SRC can be empty. The gate bus decides when Peaks, Tides and Marbles fire: on each note, on Grids hits, or on a division of the GLOBAL tempo.
 
@@ -702,6 +702,43 @@ Twelve patches, each built to show off a pairing. Their levels were balanced by 
 | INIT | Plaits virtual analog, nothing else | Timbre · Morph | A blank start |
 
 ACID DRIFT (a 16th-note acid line with cutoff and resonance locks) and STRING MACH (four slow chords) also come with a sequencer pattern: load one and press **PLAY**.
+
+### The preset library (1.7)
+
+Thirty more presets follow the twelve above, in five categories named by their first two letters. On the TOOLS LIBRARY page, set **FILTER** to BASS, PADS, LEAD, CHORD or FX to step through one category with PRESETS. Every preset has its four macros on Knobs 1–4 of HOME, and the levels are balanced to sit with the factory patches. Bass and Chord presets come with a pattern: press **PLAY** to hear it.
+
+| Preset | Built from | Macros (M1 · M2 · M3 · M4) |
+| --- | --- | --- |
+| BS SUB MONO | Plaits VA, 24 dB filter with its own envelope, legato glide | Cutoff · Resonance · Env amount · Timbre |
+| BS ACID 303 | Braids saw, resonant filter with a short own envelope, asymmetric drive, legato slides and accent locks | Cutoff · Resonance · Filter decay · Drive |
+| BS FM PLUCK | Plaits 2-op FM through its gate, envelope on timbre | Timbre · Ratio · Decay · Morph |
+| BS REESE | Braids triple saw, two detuned voices per note, 24 dB filter, chorus | Cutoff · Timbre · Drift · Drive |
+| BS WOBBLE | Braids saw + sub, 24 dB filter opened by LFO 1 synced to 1/8 (the pattern locks it to other rates) | Cutoff · Resonance · LFO rate · Drive |
+| BS FOLD GRIT | Braids wavefolder with its AD envelope, folding filter drive, Grids accents | Timbre · Cutoff · Drive · Fold envelope |
+| PD GLASSWASH | Plaits additive into Clouds and a hall | Timbre · Clouds blend · Texture · Reverb |
+| PD STRINGS | Plaits string machine, filter, ensemble chorus, hall; vibrato fades in | Cutoff · Morph · Chorus depth · Attack |
+| PD SHIMMER | Plaits wavetable, ping-pong delay, shimmer reverb, slow sweeps | Timbre · Shimmer · Cutoff · Reverb |
+| PD SYMPATH | Braids saw swarm exciting Rings' sympathetic strings, hall | Structure · Rings mix · Brightness · Reverb |
+| PD DARK DRONE | Plaits swarm an octave down, 24 dB filter on a two-bar LFO, tape delay | Cutoff · Morph · Delay feedback · Resonance |
+| PD VOX CHOIR | Plaits formant, chorus, hall, slow vowel movement and late vibrato | Vowel · Timbre · Formant · Reverb |
+| LD SYNC SCRM | Braids sync saw, driven filter, ducking ping-pong delay, vibrato that fades in; the mod wheel adds colour | Timbre · Cutoff · Delay · Sync envelope |
+| LD CHIP SQ | Plaits chiptune, mono glide, ping-pong delay | Timbre · Morph · Delay · Harmonics |
+| LD BREATH | Elements blown tube, plate reverb; aftertouch (PRESS) blows harder | Breath · Flow · Brightness · Geometry |
+| LD PWM SOLO | Plaits classic waves with LFO pulse-width movement, filter with its own envelope, legato glide | Cutoff · Width · Glide · Delay |
+| LD PHASE D | Plaits phase distortion swept by the mod envelope | Timbre · Harmonics · Morph · Reverb |
+| LD UNISON | Braids CSAW, four detuned voices per note with VINTAGE, 24 dB filter | Cutoff · Color · Resonance · Reverb |
+| CH FM EP | Plaits 2-op FM through its gate, chorus, plate; a ii–V–iii–vi pattern | Timbre · Decay · Chorus · Ratio |
+| CH POLY STAB | Braids CSAW, short own filter envelope, dotted delay; offbeat stabs | Cutoff · Filter decay · Delay · Resonance |
+| CH ORGAN | Plaits additive drawbars through a vibrato chorus | Drawbars · Vibrato rate · Harmonics · Vibrato mix |
+| CH PLUCK HARP | Plaits plucked string, delay, hall; four five-note chords | Timbre · Morph · Harmonics · Reverb |
+| CH GLASS PNO | Plaits modal resonator, plate | Timbre · Harmonics · Morph · Reverb |
+| CH DUSTY KEYS | Braids FM at 8 bits and 22 kHz, filter, wobbling tape delay, VINTAGE | Cutoff · Wow · Timbre · Delay |
+| FX RISER | Plaits noise through a band-pass opened by a slow mod envelope that also lifts the pitch | Resonance · Rise time · Delay · Reverb |
+| FX GRAINSTORM | Plaits particles into Clouds with tempo-synced grains, spray and fifth/octave scatter | Spray · Pitch scatter · Grain size · Blend |
+| FX ROBOT TALK | Plaits speech with Marbles choosing the words | Voice · Déjà vu · Timbre · Delay |
+| FX LASER ZAP | Plaits FM with a fast falling pitch envelope into delay | Pitch drop · Drop time · Timbre · Delay |
+| FX DRONESPACE | Plaits wave terrain into Clouds scanning backwards and a shimmer reverb | Scan · Morph · Feedback · Shimmer |
+| FX SAMPLEHOLD | Braids sync square at 6 bits, random pitch and cutoff steps on 1/16s | S&H rate · Resonance · Delay · Timbre |
 
 ### Saving your own
 
