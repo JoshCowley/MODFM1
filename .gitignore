@@ -1,3 +1,5 @@
 engine/obj/
 engine/rack.wasm
 .DS_Store
+.wrangler/
+node_modules/
