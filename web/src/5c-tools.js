@@ -77,7 +77,8 @@ function randomize() {
 }
 
 // ---------------------------------------------------------------- library: favourites and a filter for PRESETS
-const LIB_FILTERS = ["ALL", "FAVS", "USER", "PLAITS", "BRAIDS", "ELEMENTS"];
+const LIB_FILTERS = ["ALL", "FAVS", "USER", "BASS", "PADS", "LEAD", "CHORD", "FX", "PLAITS", "BRAIDS", "ELEMENTS"];
+const LIB_CATS = { BASS: "BS ", PADS: "PD ", LEAD: "LD ", CHORD: "CH ", FX: "FX " };   // the categories are the name prefixes
 const lib = { filter: 0, favs: new Set() };
 try { const v = JSON.parse(localStorage.getItem("fm1rack.lib.v1") || "null"); if (v) { lib.filter = v.filter || 0; lib.favs = new Set(v.favs || []); } } catch { /* defaults */ }
 function storeLib() { try { localStorage.setItem("fm1rack.lib.v1", JSON.stringify({ filter: lib.filter, favs: [...lib.favs] })); } catch { /* this visit only */ } }
@@ -85,7 +86,7 @@ const entryKey = (e) => (e.u !== undefined ? `U${e.u}` : `F:${PRESETS[e.f].name}
 function entrySrc(e) { return e.u !== undefined ? userPatches[e.u].slots.SRC.mod : PRESETS[e.f].slots.SRC; }
 function filterList(list) {
   const f = LIB_FILTERS[lib.filter];
-  const out = f === "ALL" ? list : f === "FAVS" ? list.filter((e) => lib.favs.has(entryKey(e))) : f === "USER" ? list.filter((e) => e.u !== undefined) : list.filter((e) => entrySrc(e) === f);
+  const out = f === "ALL" ? list : f === "FAVS" ? list.filter((e) => lib.favs.has(entryKey(e))) : f === "USER" ? list.filter((e) => e.u !== undefined) : LIB_CATS[f] ? list.filter((e) => e.name.replace(/^U\d\d /, "").startsWith(LIB_CATS[f])) : list.filter((e) => entrySrc(e) === f);
   // favourites first
   return [...out.filter((e) => lib.favs.has(entryKey(e))), ...out.filter((e) => !lib.favs.has(entryKey(e)))];
 }
