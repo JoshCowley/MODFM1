@@ -1,0 +1,11 @@
+# Cloudflare Pages headers for FM1 Rack
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/rack.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/worklet.js
+  Cache-Control: public, max-age=3600, must-revalidate
