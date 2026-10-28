@@ -130,7 +130,7 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
 <main>
   <div class="top">
     <div>
-      <h1>FM1 Rack <span>1.7</span></h1>
+      <h1>FM1 Rack <span>1.8</span></h1>
       <p>A sound-design firmware for the M-VAVE FM-1: open-source eurorack modules in swappable slots, a 12-row mod matrix and four performance macros. This is the browser build, running the original module code.</p>
     </div>
     <a class="manual" href="manual/" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h4.5A1.5 1.5 0 0 1 8 4v10a1.5 1.5 0 0 0-1.5-1.5H2zM14 2.5H9.5A1.5 1.5 0 0 0 8 4v10a1.5 1.5 0 0 1 1.5-1.5H14z"/></svg>Open the manual</a>
@@ -171,7 +171,7 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
         <li><b>SEQ</b> tapped: NOTES, a piano roll of up to 64 steps. Further presses: PATTERN, SPICE, GEN, BANKS (eight patterns A–H) and SONG. <b>Hold</b> SEQ, EDIT, ARP, GLO or SEL for their layers: steps, erase, note repeat, fills and tap tempo, key and chords. Hold + <b>HOME</b> (or Shift-click) keeps a layer open.</li>
         <li><b>SEL</b> sets the scale and root, and turns each key into a chord with its voicing. While chords are on, the lowest seven keys change the chord you hold: DIM, MIN, MAJ (MIN+MAJ for SUS) and 6, m7, M7, 9.</li>
         <li><b>HOME</b> three times opens TOOLS: undo and compare, morph A↔B, randomize, favourites. <b>ARP</b> twice is the arpeggiator.</li>
-        <li><b>SAVE</b> names a patch into one of 16 user slots, kept in this browser.</li>
+        <li><b>SAVE</b> names a patch into one of 64 user slots (4 pages of 16) with a category. OCT+ on SAVE opens the library of every preset: Knob 1 scrolls, Knob 2 picks the tab, Knob 3 picks LOAD, COPY, RENAME or DELETE, OCT+ does it.</li>
         <li>Full MIDI over USB where the browser allows it: notes, bend, pressure, program changes, clock in and out, CC 70–73 for the four knobs, and notes out from the keys, sequencer and arp.</li>
       </ul>
     </div>
@@ -4831,14 +4831,52 @@ const PRESETS = [
  }
 ];
 let presetIx = 0, patchName = PRESETS[0].name;
-const USER_SLOTS = 16, STORE_KEY = "fm1rack.user.v1";
-let userPatches = (() => { try { const v = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); return Array.from({ length: USER_SLOTS }, (_, i) => v[i] || null); } catch { return Array(USER_SLOTS).fill(null); } })();
-function storeUser() { try { localStorage.setItem(STORE_KEY, JSON.stringify(userPatches)); return true; } catch { return false; } }
+// 64 user slots, 4 pages of 16. Saved compactly: empty banks and steps are left out, and the duplicate pattern is dropped.
+const USER_SLOTS = 64, STORE_KEY = "fm1rack.user.v2", OLD_STORE_KEY = "fm1rack.user.v1";
+const CATS = ["—", "BS", "PD", "LD", "CH", "FX"], CAT_NAMES = ["NONE", "BASS", "PADS", "LEAD", "CHORD", "FX"], CAT_COL = ["#7d7a72", "#ffb347", "#6aa9ff", "#ff8fc8", "#9be37a", "#b48cff"];
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+function packSnap(u) {
+  const o = { ...u, fmt: 2 }; delete o.seq;
+  o.banks = (u.banks || []).map((b) => {
+    if (!b || same(b, blankSeq())) return null;
+    const blank = blankStep(), sp = [];
+    b.steps.forEach((st, i) => { if (!same(st, blank)) sp.push([i, st]); });
+    const out = { ...b, sp }; delete out.steps; return out;
+  });
+  while (o.banks.length && o.banks[o.banks.length - 1] === null) o.banks.pop();
+  if (same(o.song, blankSong())) delete o.song;
+  if (typeof blankMseq === "function" && same(o.mseq, blankMseq())) delete o.mseq;
+  if (same(o.lfoTgt, blankLfoTgt())) delete o.lfoTgt;
+  return o;
+}
+function unpackSnap(o) {
+  if (!o || o.fmt !== 2) return o;
+  const u = { ...o };
+  u.banks = Array.from({ length: 8 }, (_, i) => {
+    const b = o.banks[i]; if (!b) return null;
+    const sq = { ...b, steps: Array.from({ length: MAXSTEPS }, blankStep) }; delete sq.sp;
+    for (const [i2, st] of b.sp) sq.steps[i2] = { ...blankStep(), ...st };
+    return sq;
+  });
+  return u;
+}
+let userPatches = (() => {
+  try {
+    let v = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    if (!v) v = JSON.parse(localStorage.getItem(OLD_STORE_KEY) || "[]");   // 1.7 and earlier: 16 slots, kept as U01–U16
+    return Array.from({ length: USER_SLOTS }, (_, i) => unpackSnap(v[i]) || null);
+  } catch { return Array(USER_SLOTS).fill(null); }
+})();
+function storeUser() { try { localStorage.setItem(STORE_KEY, JSON.stringify(userPatches.map((p) => p && packSnap(p)))); return true; } catch { return false; } }
+const slotName = (i) => `U${String(i + 1).padStart(2, "0")}`;
+// a patch's category: chosen when saved, or read from the name's prefix (BS, PD, LD, CH, FX)
+function catOfName(nm) { const k = CATS.indexOf(String(nm).replace(/^U\d\d /, "").slice(0, 2)); return k > 0 && /^.. /.test(String(nm).replace(/^U\d\d /, "")) ? k : 0; }
+function entryCat(e) { if (e.u !== undefined) { const p = userPatches[e.u]; return p && p.cat ? p.cat : catOfName(p ? p.name : ""); } return catOfName(PRESETS[e.f].name); }
 // the PRESETS encoder walks the factory patches, then the user slots that hold something
-function patchList(raw = false) { const all = [...PRESETS.map((p, i) => ({ f: i, name: p.name })), ...userPatches.map((p, i) => p && { u: i, name: `U${String(i + 1).padStart(2, "0")} ${p.name}` }).filter(Boolean)]; if (raw || typeof filterList !== "function") return all; const f = filterList(all); return f.length ? f : all; }
+function patchList(raw = false) { const all = [...PRESETS.map((p, i) => ({ f: i, name: p.name })), ...userPatches.map((p, i) => p && { u: i, name: `${slotName(i)} ${p.name}` }).filter(Boolean)]; if (raw || typeof filterList !== "function") return all; const f = filterList(all); return f.length ? f : all; }
 function fitParams(def, arr) { const d = blankParams(def); return d.map((v, i) => (arr && arr[i] !== undefined ? arr[i] : v)); }
-function loadPreset(i) {
-  const entry = patchList()[i] || { f: 0, name: PRESETS[0].name };
+function loadPreset(i) { loadEntry(patchList()[i] || { f: 0, name: PRESETS[0].name }); }
+function loadEntry(entry) {
   patchName = entry.name;
   if (entry.u !== undefined) { restoreSnap(userPatches[entry.u]); histReset(`LOADED ${patchName}`); return; }
   const pr = PRESETS[entry.f];
@@ -4912,23 +4950,77 @@ function snapshot(name) {
 }
 const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 let saveState = null;
+// SAVE page 1 names the patch and picks a slot and category; page 2 is the library of every preset
 function openSave() {
   const base = patchName.replace(/^U\d\d /, "").slice(0, 10).padEnd(10, " ");
+  const cur = typeof currentEntry === "function" ? currentEntry() : null;
   const free = userPatches.findIndex((p) => !p);
-  saveState = { name: base.split(""), cursor: 0, slot: free < 0 ? 0 : free, t0: animT };
+  saveState = { name: base.split(""), cursor: 0, slot: free < 0 ? 0 : free, cat: cur ? entryCat(cur) : catOfName(patchName), t0: animT, view: "NAME", rename: -1,
+                lib: { tab: 0, ix: 0, act: 0, arm: -1 } };
   page = "SAVE";
 }
 function commitSave() {
-  const name = saveState.name.join("").trim() || "UNTITLED";
-  userPatches[saveState.slot] = snapshot(name);
+  const st = saveState, name = st.name.join("").trim() || "UNTITLED";
+  if (st.rename >= 0) {   // renaming keeps the sound
+    const p = userPatches[st.rename]; const was = p.name; p.name = name; p.cat = st.cat;
+    if (patchName === `${slotName(st.rename)} ${was}`) patchName = `${slotName(st.rename)} ${name}`;
+    const ok = storeUser(); say(ok ? `RENAMED ${slotName(st.rename)}` : "RENAMED FOR THIS VISIT ONLY", "SAVE");
+    st.rename = -1; st.view = "LIB"; return;
+  }
+  userPatches[st.slot] = { ...snapshot(name), cat: st.cat };
   const ok = storeUser();
   const list = patchList();
-  presetIx = list.findIndex((e) => e.u === saveState.slot);
-  if (presetIx < 0) { lib.filter = 0; storeLib(); presetIx = patchList().findIndex((e) => e.u === saveState.slot); }
+  presetIx = list.findIndex((e) => e.u === st.slot);
+  if (presetIx < 0) { lib.filter = 0; storeLib(); presetIx = patchList().findIndex((e) => e.u === st.slot); }
   patchName = patchList()[presetIx].name;
   histReset(`SAVED ${name}`);
-  say(ok ? `SAVED TO U${String(saveState.slot + 1).padStart(2, "0")}` : "SAVED FOR THIS VISIT ONLY", "SAVE");
+  say(ok ? `SAVED TO ${slotName(st.slot)}` : "STORAGE FULL: SAVED FOR THIS VISIT ONLY", "SAVE");
   saveState = null; page = "PERFORM";
+}
+// the library: every factory and user preset, in category tabs
+const LIB_TABS = ["ALL", "USER", "BASS", "PADS", "LEAD", "CHORD", "FX", "OTHER"];
+const LIB_ACTS = ["LOAD", "COPY", "RENAME", "DELETE"];
+function libList() {
+  const t = LIB_TABS[saveState.lib.tab], all = patchList(true);
+  if (t === "ALL") return all;
+  if (t === "USER") return all.filter((e) => e.u !== undefined);
+  if (t === "OTHER") return all.filter((e) => entryCat(e) === 0);
+  return all.filter((e) => CAT_NAMES[entryCat(e)] === t);
+}
+function libEntry() { const l = libList(); const L = saveState.lib; L.ix = clamp(L.ix, 0, Math.max(0, l.length - 1)); return l[L.ix]; }
+function libSelectLoaded(e) {
+  let ix = patchList().findIndex((x) => (e.u !== undefined ? x.u === e.u : x.f === e.f));
+  if (ix < 0) { lib.filter = 0; storeLib(); ix = patchList().findIndex((x) => (e.u !== undefined ? x.u === e.u : x.f === e.f)); }
+  presetIx = Math.max(0, ix);
+}
+function libDo() {
+  const L = saveState.lib, e = libEntry(), act = LIB_ACTS[L.act];
+  if (!e) { say("NOTHING HERE", "SAVE"); return; }
+  if (act !== "DELETE") L.arm = -1;
+  if (act === "LOAD") {
+    loadEntry(e); libSelectLoaded(e); engine(["all_off"]); sounding.clear(); refreshKeys();
+    if (glo.p[G_MOUT] === 2) midiSend([0xC0 | (glo.p[G_OUTCH] & 15), presetIx & 127]);
+    say(patchName, "HOME"); return;
+  }
+  if (act === "COPY") {
+    const free = userPatches.findIndex((p) => !p);
+    if (free < 0) { say("ALL 64 SLOTS ARE FULL", "SAVE"); return; }
+    let snap;
+    if (e.u !== undefined) snap = JSON.parse(JSON.stringify(userPatches[e.u]));
+    else { loadEntry(e); libSelectLoaded(e); engine(["all_off"]); sounding.clear(); snap = { ...snapshot(PRESETS[e.f].name.slice(0, 10)), cat: entryCat(e) }; }   // a factory copy loads it first
+    userPatches[free] = snap;
+    const ok = storeUser(); say(ok ? `COPIED TO ${slotName(free)}` : "STORAGE FULL: COPY FOR THIS VISIT ONLY", "SAVE"); return;
+  }
+  if (e.u === undefined) { say("FACTORY: COPY IT FIRST", "SAVE"); return; }
+  if (act === "RENAME") {
+    const p = userPatches[e.u];
+    saveState.name = p.name.slice(0, 10).padEnd(10, " ").split(""); saveState.cursor = 0; saveState.slot = e.u; saveState.cat = entryCat(e);
+    saveState.rename = e.u; saveState.view = "NAME"; say(`RENAME ${slotName(e.u)}: SAVE TO KEEP`, "SAVE"); return;
+  }
+  if (L.arm !== e.u) { L.arm = e.u; say(`OCT+ AGAIN TO DELETE ${slotName(e.u)}`, "SAVE"); return; }
+  const gone = userPatches[e.u].name; userPatches[e.u] = null; L.arm = -1;
+  if (patchName === `${slotName(e.u)} ${gone}`) { const l = patchList(); presetIx = Math.min(presetIx, l.length - 1); }
+  const ok = storeUser(); say(ok ? `DELETED ${slotName(e.u)}` : "DELETED FOR THIS VISIT ONLY", "SAVE");
 }
 
 // ---------------------------------------------------------------- budget
@@ -5685,27 +5777,61 @@ function drawMatrix() {
 }
 function drawSave() {
   const st = saveState;
-  header("SAVE", C.fg, "NAME THIS PATCH", "SAVE");
+  if (st.view === "LIB") { drawLibrary(); return; }
+  header("SAVE", C.fg, st.rename >= 0 ? "RENAME" : "NAME + SLOT", "SAVE", 2, 0);
   const bob = Math.sin(animT * 3) * 2;
-  icon("SAVE", 10, 36 + bob, C.gold, 2);
-  const tgt = userPatches[st.slot];
-  T(40, 48, `TO U${String(st.slot + 1).padStart(2, "0")}`, { size: 14, c: C.gold });
-  T(40, 60, tgt ? `REPLACES ${tgt.name}`.slice(0, 26) : "EMPTY SLOT", { size: 9, c: tgt ? C.warn : C.dim });
+  icon("SAVE", 10, 34 + bob, C.gold, 2);
+  const tgt = userPatches[st.slot], pg = Math.floor(st.slot / 16);
+  T(40, 45, `${st.rename >= 0 ? "" : "TO "}${slotName(st.slot)}`, { size: 14, c: C.gold });
+  T(98, 45, `PAGE ${"ABCD"[pg]}`, { size: 9, c: C.dim });
+  rect(150, 34, 84, 15, CAT_COL[st.cat], 3); T(192, 45, CAT_NAMES[st.cat], { a: "center", size: 10, c: "#000" });
+  T(40, 58, st.rename >= 0 ? "SOUND IS KEPT" : tgt ? `REPLACES ${tgt.name}`.slice(0, 26) : "EMPTY SLOT", { size: 9, c: tgt && st.rename < 0 ? C.warn : C.dim });
   for (let i = 0; i < 10; i++) {
     const x = 11 + i * 22, on = i === st.cursor;
-    rect(x, 72, 19, 34, on ? "#2a2924" : "#141412", 3);
-    T(x + 9.5, 98, st.name[i] === " " ? "·" : st.name[i], { a: "center", size: 20, c: on ? C.gold : C.fg });
-    if (on) rect(x, 108, 19, 2, Math.floor(animT * 3) % 2 ? C.gold : "#7a6a3a");
+    rect(x, 64, 19, 30, on ? "#2a2924" : "#141412", 3);
+    T(x + 9.5, 87, st.name[i] === " " ? "·" : st.name[i], { a: "center", size: 18, c: on ? C.gold : C.fg });
+    if (on) rect(x, 96, 19, 2, Math.floor(animT * 3) % 2 ? C.gold : "#7a6a3a");
   }
-  // the 16 user slots
-  for (let i = 0; i < USER_SLOTS; i++) {
-    const x = 12 + (i % 8) * 28, y = 120 + Math.floor(i / 8) * 22, used = !!userPatches[i], sel = i === st.slot;
-    rect(x, y, 24, 18, used ? "#2b2a26" : "#121211", 3);
-    if (sel) frame(x - 1, y - 1, 26, 20, C.gold, 4);
-    T(x + 12, y + 13, String(i + 1).padStart(2, "0"), { size: 9, a: "center", c: used ? C.fg : C.dim });
+  // this page's 16 slots, with names and categories
+  for (let k = 0; k < 16; k++) {
+    const i = pg * 16 + k, p = userPatches[i], x = 4 + (k % 4) * 58, y = 104 + Math.floor(k / 4) * 22, sel = i === st.slot;
+    rect(x, y, 56, 20, p ? "#22211d" : "#111110", 3);
+    if (p) rect(x, y + 3, 2, 14, CAT_COL[p.cat || catOfName(p.name)]);
+    if (sel) frame(x - 1, y - 1, 58, 22, C.gold, 4);
+    T(x + 5, y + 9, String(i + 1).padStart(2, "0"), { size: 7, c: C.dim });
+    T(x + 5, y + 17, p ? p.name.replace(/^(BS|PD|LD|CH|FX) /, "").slice(0, 8) : "—", { size: 8, c: p ? C.fg : C.faint });
   }
-  T(8, 180, "SELECT MOVE · K1/ALGO LETTER · K2 SLOT", { size: 9, c: C.dim });
-  T(8, 198, "SAVE TO STORE · HOME TO CANCEL", { size: 10 });
+  T(120, 202, st.rename >= 0 ? "K1 LETTER · K3 CAT · SAVE KEEPS · HOME BACK" : "K1 LETTER K2 SLOT K3 CAT K4 PAGE · OCT+ LIB", { a: "center", size: 8, c: C.dim });
+  T(120, 211, st.rename >= 0 ? "" : "SAVE TO STORE · HOME TO CLOSE", { a: "center", size: 8, c: C.fg });
+  footer();
+}
+function drawLibrary() {
+  const st = saveState, L = st.lib, list = libList(), e = libEntry();
+  header("SAVE", C.fg, "LIBRARY", "SAVE", 2, 1);
+  const short = ["ALL", "USR", "BS", "PD", "LD", "CH", "FX", "OTH"];
+  short.forEach((t, i) => {
+    const x = 3 + i * 29.25, on = i === L.tab;
+    rect(x, 30, 27, 14, on ? (i >= 2 && i <= 6 ? CAT_COL[i - 1] : C.fg) : "#161614", 3);
+    T(x + 13.5, 40, t, { a: "center", size: 8, c: on ? "#000" : C.dim });
+  });
+  const rows = 7, top = clamp(L.ix - 3, 0, Math.max(0, list.length - rows));
+  if (!list.length) T(120, 110, L.tab === 1 ? "NO USER PRESETS YET" : "NOTHING IN THIS TAB", { a: "center", size: 11, c: C.dim });
+  for (let k = 0; k < rows && top + k < list.length; k++) {
+    const it = list[top + k], y = 48 + k * 20, sel = top + k === L.ix, cat = entryCat(it);
+    if (sel) { rect(3, y, 234, 18, "#25241f", 4); rect(3, y, 2, 18, C.gold); }
+    rect(9, y + 4, 3, 10, CAT_COL[cat]);
+    const loaded = it.name === patchName;
+    T(16, y + 13, (loaded ? "▸ " : "") + it.name.slice(0, 19), { size: 10, c: sel ? C.fg : loaded ? C.gold : "#bdbab1" });
+    if (lib.favs.has(entryKey(it))) T(196, y + 13, "★", { size: 9, c: C.gold });
+    T(232, y + 13, it.u !== undefined ? "USER" : "FACT", { a: "right", size: 8, c: it.u !== undefined ? C.gold : C.dim });
+  }
+  // scroll bar
+  if (list.length > rows) { rect(237, 48, 2, rows * 20, C.faint, 1); rect(237, 48 + (top / list.length) * rows * 20, 2, Math.max(6, rows / list.length * rows * 20), C.dim, 1); }
+  const act = LIB_ACTS[L.act], armed = act === "DELETE" && e && L.arm === e.u, can = !e ? false : (act === "LOAD" || act === "COPY" || e.u !== undefined);
+  rect(4, 190, 76, 18, armed ? C.warn : can ? "#2a2924" : "#151513", 4);
+  T(42, 203, armed ? "CONFIRM" : act, { a: "center", size: 11, c: armed ? "#000" : can ? C.gold : C.faint });
+  T(86, 198, `${list.length ? L.ix + 1 : 0}/${list.length} · ${userPatches.filter(Boolean).length}/64 USER`, { size: 8, c: C.dim });
+  T(86, 208, "K1 ROW K2 TAB K3 ACTION · OCT+ GO", { size: 8, c: C.dim });
   footer();
 }
 function drawPicker() {
@@ -5739,7 +5865,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.7", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.8", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -5752,7 +5878,7 @@ function render() {
   else if (page === "AMP") drawFixed(AMP, amp, "AMP", ["ADSR", "VOICE", "MOD ENV", `MODE ${VOICE_MODES[amp.p[A_MODE]]}`, "ENV SHAPE", "TRACKING"], "AMP", 6, [visAdsr, visVoices, visModEnv, visVoices, visAdsr, visModEnv][Math.min(subpage, 5)]);
   else if (page === "LFOS" && subpage >= LFOS.pages.length) drawLfoTgt(Math.min(2, subpage - LFOS.pages.length));
   else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3", "LFO 1 +", "LFO 2 +", "LFO 3 +"], "LFO", 8, visLfos);
-  else if (page === "SAVE") drawSave();
+  else if (page === "SAVE") { if (saveState) drawSave(); else page = "PERFORM"; }
   else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem][Math.min(subpage, 5)]);
   else if (page === "CHORD") drawFixed(CHORD, chd, "CHORD", [CHORD_TYPES[chd.p[C_TYPE]] === "OFF" ? "SCALE + KEY" : `${CHORD_TYPES[chd.p[C_TYPE]]} · ${VOICINGS[chd.p[C_VOICE]]}`, `QNT ${QNT_MODES[chd.p[C_QNT]]}${zoneOn() ? " · ZONE" : ""}`], "CHORD", -1, visChord);
   else if (isSeqPage()) drawSeq();
@@ -5826,17 +5952,27 @@ function encoder(role, k) {
   if ((ss.armed || (ss.free && !ss.free.t0)) && !ss.run && typeof role === "number") { recEncoder(role, k); draw(); return; }
   if (role === "presets" && page === "NOTES") { seqEncoder(role, k); draw(); return; }
   if (role === "presets") {
-    if (page === "SAVE") return;
+    if (page === "SAVE") { if (saveState.view === "LIB") { saveState.lib.ix += Math.sign(k); saveState.lib.arm = -1; libEntry(); draw(); } return; }
     const list = patchList();
     presetIx = (presetIx + k + list.length * 8) % list.length; loadPreset(presetIx); picker = null; engine(["all_off"]); sounding.clear(); refreshKeys();
     if (glo.p[G_MOUT] === 2) midiSend([0xC0 | (glo.p[G_OUTCH] & 15), presetIx & 127]);
     say(patchName, "HOME"); return;
   }
   if (page === "SAVE") {
-    const st = saveState;
-    if (role === "select") st.cursor = clamp(st.cursor + Math.sign(k), 0, 9);
-    else if (role === "algo" || role === 0) { const c = CHARS.indexOf(st.name[st.cursor]); st.name[st.cursor] = CHARS[(Math.max(0, c) + Math.sign(k) + CHARS.length) % CHARS.length]; }
-    else if (role === 1) st.slot = clamp(st.slot + Math.sign(k), 0, USER_SLOTS - 1);
+    const st = saveState, d = Math.sign(k);
+    if (st.view === "LIB") {
+      const L = st.lib;
+      if (role === "select") { if (d < 0) { st.view = "NAME"; st.cursor = 9; } }
+      else if (role === 0 || role === "algo") { L.ix += d; L.arm = -1; libEntry(); }
+      else if (role === 1) { L.tab = clamp(L.tab + d, 0, LIB_TABS.length - 1); L.ix = 0; L.arm = -1; }
+      else if (role === 2) { L.act = clamp(L.act + d, 0, LIB_ACTS.length - 1); L.arm = -1; }
+      draw(); return;
+    }
+    if (role === "select") { if (st.cursor === 9 && d > 0 && st.rename < 0) st.view = "LIB"; else st.cursor = clamp(st.cursor + d, 0, 9); }
+    else if (role === "algo" || role === 0) { const c = CHARS.indexOf(st.name[st.cursor]); st.name[st.cursor] = CHARS[(Math.max(0, c) + d + CHARS.length) % CHARS.length]; }
+    else if (role === 1 && st.rename < 0) st.slot = clamp(st.slot + d, 0, USER_SLOTS - 1);
+    else if (role === 2) st.cat = clamp(st.cat + d, 0, CATS.length - 1);
+    else if (role === 3 && st.rename < 0) st.slot = clamp((Math.floor(st.slot / 16) + d) * 16 + (st.slot % 16), st.slot % 16, USER_SLOTS - 16 + (st.slot % 16));
     draw(); return;
   }
   if (isSeqPage()) { seqEncoder(role, k); noteEdit(`SEQ ${page}`); draw(); return; }
@@ -6045,11 +6181,11 @@ function press(act) {
     picker = null; if (page !== slot.id) subpage = 0; page = slot.id; draw(); return;
   }
   picker = null;
-  if (act === "HOME") { if (page === "SAVE") { saveState = null; page = "PERFORM"; say("SAVE CANCELLED", "SAVE"); } else { page = page === "PERFORM" ? "RACK" : page === "RACK" ? "TOOLS" : "PERFORM"; subpage = 0; } }
+  if (act === "HOME") { if (page === "SAVE" && saveState.rename >= 0) { saveState.rename = -1; saveState.view = "LIB"; say("RENAME CANCELLED", "SAVE"); } else if (page === "SAVE") { saveState = null; page = "PERFORM"; say("SAVE CLOSED", "SAVE"); } else { page = page === "PERFORM" ? "RACK" : page === "RACK" ? "TOOLS" : "PERFORM"; subpage = 0; } }
   else if (FIXED[act]) { if (page !== act) subpage = 0; page = act; }
   else if (act === "MATRIX") page = "MATRIX";
   else if ([...SEQ_PAGES, "MSEQ"].includes(act)) { page = act; ss.sheet = null; }
-  else if (act === "SAVE") { if (page === "SAVE") commitSave(); else openSave(); }
+  else if (act === "SAVE") { if (page !== "SAVE") openSave(); else if (saveState.view === "LIB") { saveState.view = "NAME"; } else commitSave(); }
   else if (act === "PLAY") { if (ss.free) closeFreeTake(); else seqToggle(); }
   else if (act === "REC") recPress();
   draw();
@@ -6057,6 +6193,11 @@ function press(act) {
 // OCT- / OCT+: the octave; inside a layer, its job there; OCT+ held on NOTES opens the note's sheet, OCT+ / OCT- work it
 function octPress(dir) {
   if (ss.layer && layerOct(dir)) { draw(); return; }
+  if (page === "SAVE" && saveState) {   // OCT+ opens the library and does its action there; OCT- goes back to naming
+    if (saveState.view === "LIB") { if (dir > 0) libDo(); else { saveState.view = "NAME"; saveState.lib.arm = -1; } }
+    else if (dir > 0 && saveState.rename < 0) saveState.view = "LIB";
+    draw(); return;
+  }
   if (ss.sheet) { if (dir > 0) sheetDo(); else ss.sheet = null; draw(); return; }
   octave = clamp(octave + dir, -3, 3); say(`OCTAVE ${octave >= 0 ? "+" : ""}${octave}`);
 }
@@ -6457,7 +6598,7 @@ const entryKey = (e) => (e.u !== undefined ? `U${e.u}` : `F:${PRESETS[e.f].name}
 function entrySrc(e) { return e.u !== undefined ? userPatches[e.u].slots.SRC.mod : PRESETS[e.f].slots.SRC; }
 function filterList(list) {
   const f = LIB_FILTERS[lib.filter];
-  const out = f === "ALL" ? list : f === "FAVS" ? list.filter((e) => lib.favs.has(entryKey(e))) : f === "USER" ? list.filter((e) => e.u !== undefined) : LIB_CATS[f] ? list.filter((e) => e.name.replace(/^U\d\d /, "").startsWith(LIB_CATS[f])) : list.filter((e) => entrySrc(e) === f);
+  const out = f === "ALL" ? list : f === "FAVS" ? list.filter((e) => lib.favs.has(entryKey(e))) : f === "USER" ? list.filter((e) => e.u !== undefined) : LIB_CATS[f] ? list.filter((e) => CAT_NAMES[entryCat(e)] === f) : list.filter((e) => entrySrc(e) === f);
   // favourites first
   return [...out.filter((e) => lib.favs.has(entryKey(e))), ...out.filter((e) => !lib.favs.has(entryKey(e)))];
 }
