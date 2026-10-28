@@ -16,13 +16,13 @@ img{max-width:100%;height:auto;border-radius:6px}code,kbd{background:var(--code)
 </style>
 <div class="top"><a href="../">← Back to FM1 Rack</a></div>
 <main>
-<h1>FM1 Rack 1.7 Manual</h1>
+<h1>FM1 Rack 1.8 Manual</h1>
 <p>Oct 26, 2026 · Josh Cowley</p>
-<p>FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.7 browser build, which runs the original module code.</p>
+<p>FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.8 browser build, which runs the original module code.</p>
 <h2>Quick start</h2>
 <p>You can go from switch-on to a saved patch of your own in five steps.</p>
 <ol>
-<li><strong>Switch on.</strong> Open the <a href="../">FM1 Rack browser build</a> and tap <strong>Switch on</strong> on the screen. The FM1 RACK logo plays, then the HOME page opens on the factory patch GLASS BELLS.</li>
+<li><strong>Switch on.</strong> Open the <a href="https://claude.ai/artifact/9mWJtyZhwxNKFmqPwhjQ3t">FM1 Rack browser build</a> and tap <strong>Switch on</strong> on the screen. The FM1 RACK logo plays, then the HOME page opens on the factory patch GLASS BELLS.</li>
 <li><strong>Play.</strong> Tap the keys; tapping lower on a key plays louder. On a computer, the bottom letter row (Z to /) plays the lower keys and Q to O plays the top octave.</li>
 <li><strong>Shape the sound.</strong> On HOME, Knobs 1–4 are the four macros. Each macro dial shows where it is routed underneath.</li>
 <li><strong>Look inside.</strong> Press <strong>EDIT</strong> to see the source module moving, <strong>ENV</strong> twice for the shaper, <strong>LFO</strong> for modulation, <strong>FX</strong> for effects. Turn <strong>ALGORITHM</strong> to browse other modules for that slot, then press the same button again to load one.</li>
@@ -31,7 +31,7 @@ img{max-width:100%;height:auto;border-radius:6px}code,kbd{background:var(--code)
 <p>Turn <strong>PRESETS</strong> at any time to step through the 12 factory patches and your own.</p>
 <h2>The panel</h2>
 <p>FM1 Rack uses the FM-1 exactly as printed: four encoders on the left, the screen, four knobs and twelve buttons on the right, and two rows of keys. Coloured buttons open a slot; the colour matches that slot's pages on screen.</p>
-<p><em>Diagram: the FM-1 panel map (8 encoders, 14 buttons, 27 keys).</em></p>
+<p>&#91;embedded content: FM-1 panel map · 8 encoders, 14 buttons, 27 keys]</p>
 <table>
 <thead>
 <tr>
@@ -152,7 +152,7 @@ img{max-width:100%;height:auto;border-radius:6px}code,kbd{background:var(--code)
 <p><em>This picture shows 1.0. Since 1.1, SEL opens CHORD, SEQ opens the sequencer, and the shaper moved under ENV.</em></p>
 <h2>Signal chain</h2>
 <p>Each note runs through its own SRC → SHP → AMP chain. The voices are mixed, then pass through FX 1 and FX 2 to the output. Two MOD slots and the built-in sources feed the matrix, which can reach any parameter in the chain.</p>
-<p><em>Diagram: the FM1 Rack signal chain (6 slots, 1 matrix).</em></p>
+<p>&#91;embedded content: FM1 Rack signal chain · 6 slots, 1 matrix]</p>
 <p>The dashed line is the matrix reaching back into every slot. Every slot except SRC can be empty. The gate bus decides when Peaks, Tides and Marbles fire: on each note, on Grids hits, or on a division of the GLOBAL tempo.</p>
 <h2>Pages</h2>
 <p>There are eleven kinds of page. Every one is reached from a single button, and the button lights while you're on it.</p>
@@ -1785,11 +1785,20 @@ img{max-width:100%;height:auto;border-radius:6px}code,kbd{background:var(--code)
 </table>
 <h3>Saving your own</h3>
 <ol>
-<li>Press <strong>SAVE</strong>. The naming screen shows the patch's current name, a row of letter tiles and the 16 user slots.</li>
+<li>Press <strong>SAVE</strong>. The naming screen shows the patch's current name, its category, a row of letter tiles and one page of 16 user slots, each with its name and a category colour.</li>
 <li>Turn <strong>SELECT</strong> to move between letters, and <strong>Knob 1</strong> or <strong>ALGORITHM</strong> to change the letter under the cursor (space, A–Z, 0–9, −, #, .).</li>
-<li>Turn <strong>Knob 2</strong> to pick a user slot. It starts on the first empty one; a filled slot shows “REPLACES” and the name you'd overwrite.</li>
-<li>Press <strong>SAVE</strong> again to store, or <strong>HOME</strong> to cancel.</li>
+<li>Turn <strong>Knob 2</strong> to pick one of the 64 user slots, or <strong>Knob 4</strong> to jump a page (A–D, 16 slots each). It starts on the first empty slot; a filled slot shows “REPLACES” and the name you'd overwrite.</li>
+<li>Turn <strong>Knob 3</strong> to choose the category: NONE, BASS, PADS, LEAD, CHORD or FX. It starts on the current patch's category.</li>
+<li>Press <strong>SAVE</strong> again to store, or <strong>HOME</strong> to close.</li>
 </ol>
+<p><strong>The library (SAVE page 2).</strong> On the naming screen, press <strong>OCT+</strong> (or turn SELECT past the last letter) to open a list of every factory and user preset.</p>
+<ul>
+<li><strong>Knob 1</strong> (or PRESETS) scrolls; <strong>Knob 2</strong> picks the tab: ALL, USER, BASS, PADS, LEAD, CHORD, FX or OTHER.</li>
+<li><strong>Knob 3</strong> picks what OCT+ does: <strong>LOAD</strong>, <strong>COPY</strong> (into the first empty user slot; copying a factory preset loads it first), <strong>RENAME</strong> (back to the naming screen; SAVE keeps the new name and the sound) or <strong>DELETE</strong> (press OCT+ twice).</li>
+<li>Factory presets can be loaded and copied, but not renamed or deleted.</li>
+<li><strong>OCT−</strong> or <strong>SAVE</strong> goes back to the naming screen; <strong>HOME</strong> closes.</li>
+</ul>
+<p>User presets are stored compactly in this browser (empty patterns and steps are left out). Patches saved in 1.7 or earlier appear in slots U01–U16.</p>
 <p>User patches appear after the factory ones as U01 to U16 when you turn PRESETS. Factory patches are never overwritten: saving always writes to a user slot. In the browser, user patches and GLOBAL settings are kept by this browser on this device, the way the FM-1 keeps them in its flash. A private window forgets them when it closes.</p>
 <h2>Voices and the budget</h2>
 <p>The FM-1's chip can only do so much arithmetic per second, so the rack keeps a running budget and tells you what each choice costs before you make it.</p>
