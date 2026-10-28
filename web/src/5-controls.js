@@ -116,7 +116,7 @@ function setRef(ref, v, record = true) {
   if (ref.w === "macro") macros[ref.i] = v;
   else if (ref.w === "AMP") amp.p[ref.idx] = v;
   else if (ref.w === "GLOBAL") { glo.p[ref.idx] = v; storeGlobal(); applyGlobal(); return; }
-  else if (ref.w === "CHORD") { chd.p[ref.idx] = v; storeChord(); return; }
+  else if (ref.w === "CHORD") { chd.p[ref.idx] = v; storeChord(); if (!zoneOn()) zoneHeld.clear(); refreshKeys(); return; }
   else if (ref.w === "ARP") { arpS.p[ref.idx] = v; storeArp(); if (ref.idx === 0 || ref.idx === 4) { if (!kbdHold()) latched.clear(); refreshKeys(); } return; }
   else if (ref.w === "LFOS") lfo.p[ref.idx] = v;
   else if (ref.w === "slot") { if (rack[ref.slot].mod !== ref.mod) return; rack[ref.slot].p[ref.idx] = v; }
@@ -202,7 +202,7 @@ document.getElementById("octDn").innerHTML = `${svg("DN")}<span>Oct −</span><s
 document.getElementById("octUp").innerHTML = `${svg("UP")}<span>Oct +</span><small>OCT+</small>`;
 // [rack label, printed label, action, colour kind, icon]
 const BTNS = [
-  ["FX 1·2", "FX", "FXBTN", "fx", "FX"], ["Chord", "SCL", "CHORD", "chd", "CHORD"], ["Amp · Shp", "ENV", "AMPBTN", "amp", "AMP"], ["Mod · LFO", "LFO", "MODBTN", "mod", "LFO"], ["Source", "EDIT", "SRC", "src", "SRC"], ["Global", "GLO", "GLOBAL", "glo", "GLO"],
+  ["FX 1·2", "FX", "FXBTN", "fx", "FX"], ["Scale · Chord", "SEL", "CHORD", "chd", "CHORD"], ["Amp · Shp", "ENV", "AMPBTN", "amp", "AMP"], ["Mod · LFO", "LFO", "MODBTN", "mod", "LFO"], ["Source", "EDIT", "SRC", "src", "SRC"], ["Global", "GLO", "GLOBAL", "glo", "GLO"],
   ["Home", "HOME", "HOME", null, "HOME"], ["Save", "SAVE", "SAVE", null, "SAVE"], ["Matrix · Arp", "ARP", "ARPBTN", "arp", "MATRIX"], ["Seq", "SEQ", "SEQBTN", "seq", "SEQ"], ["Play", "PLAY", "PLAY", null, "PLAY"], ["Rec", "REC", "REC", null, "REC"],
 ];
 const LAYER_OF = { SEQBTN: "SEQ", SRC: "EDIT", ARPBTN: "ARP", GLOBAL: "GLO", CHORD: "SEL" };
@@ -226,7 +226,7 @@ for (const [lab, printed, act, kind, ic] of BTNS) {
     el.addEventListener("click", (e) => { if (long) return; if (e.shiftKey) { if (ss.layer) layerExit(); else { layerEnter(LAYER_OF[act]); ss.latched = true; } return; } press(act); });
   } else if (act === "REC") {
     let timer = 0, long = false;
-    el.addEventListener("pointerdown", (e) => { long = false; ss.clearT = performance.now(); timer = setTimeout(() => { long = true; ss.clearT = 0; clearPattern(); }, 1200); });
+    el.addEventListener("pointerdown", (e) => { long = false; ss.clearT = performance.now(); timer = setTimeout(() => { long = true; ss.clearT = 0; capture(); }, 1200); });
     const cancel = () => { clearTimeout(timer); ss.clearT = 0; };
     el.addEventListener("pointerup", cancel); el.addEventListener("pointerleave", cancel); el.addEventListener("pointercancel", cancel);
     el.addEventListener("click", () => { if (long) return; press("REC"); });
@@ -295,7 +295,7 @@ function syncLeds() {
     if (act === "PLAY" || act === "REC") on = false;
     if (LAYER_OF[act] && ss.layer === LAYER_OF[act]) on = true;
     el.classList.toggle("lit", !!on);
-    el.classList.toggle("hold", (act === "PLAY" && ss.run && !beat) || (act === "CHORD" && !on && (chd.p[C_TYPE] > 0 || chd.p[C_LOCK] === 1)) || (act === "SEQBTN" && !on && ss.run) || (act === "ARPBTN" && !on && arpOn()));
+    el.classList.toggle("hold", (act === "PLAY" && ss.run && !beat) || (act === "CHORD" && !on && (chd.p[C_TYPE] > 0 || chd.p[C_QNT] > 0)) || (act === "SEQBTN" && !on && ss.run) || (act === "ARPBTN" && !on && arpOn()));
     el.classList.toggle("rec", act === "REC" && ((ss.rec && ss.run) || ss.armed || !!ss.free));
     el.classList.toggle("blink", (act === "REC" && (ss.armed || (ss.free && !ss.free.t0))) || (act === "HOME" && learn) || (!!LAYER_OF[act] && ss.layer === LAYER_OF[act] && ss.latched));
     el.setAttribute("aria-pressed", act === "PLAY" ? String(ss.run) : String(!!on));
@@ -328,30 +328,41 @@ const kbdHold = () => arpS.p[4] === 1 && !arpOn();          // KBD HOLD: the not
 function keyDown(k, vel = 0.75) {
   vel = velCurve(vel); keyVel[k] = vel;
   if (ss.layer) { layerKey(k, true, vel); keyEls[k]?.classList.add("held"); return; }
+  if (page === "BANKS" && WHITE.indexOf(k) >= 0 && WHITE.indexOf(k) < 8) { keyEls[k]?.classList.add("held"); selectBank(WHITE.indexOf(k)); return; }
+  if (zoneOn() && ZONE[k]) { zoneHeld.add(k); keyEls[k]?.classList.add("held"); revoice(); return; }   // the chord zone: quality and extensions
   if (kbdHold()) { if (!held.size) latched.clear(); latched.add(k); }
-  held.add(k); seqNoteOn(`k${k}`, chordNotes(keyToNote(k)), vel); refreshKeys();
+  keyChord[k] = chordNotes(keyToNote(k), zoneMods());
+  held.add(k); seqNoteOn(`k${k}`, keyChord[k], vel); refreshKeys();
 }
 function keyUp(k) {
   keyEls[k]?.classList.remove("held");
+  if (zoneHeld.has(k)) { zoneHeld.delete(k); draw(); return; }   // letting go of a zone key keeps the chord that is sounding
   if (!held.has(k)) { layerKey(k, false); return; }          // a key pressed inside a layer
   held.delete(k); refreshKeys(); seqNoteOff(`k${k}`);
 }
-const keyVel = [], sounding = new Map();
+// a zone key pressed while a chord is held changes that chord at once
+function revoice() {
+  for (const k of held) { keyChord[k] = chordNotes(keyToNote(k), zoneMods()); const e = sounding.get(k); if (e) { sounding.delete(k); notesOff(e); } }
+  refreshKeys();
+}
+const keyVel = [], sounding = new Map(), keyChord = [];
+const chordOfKey = (k) => keyChord[k] ?? chordNotes(keyToNote(k));
 function refreshKeys() {
   const midiLit = new Set([...midiNotes.keys()].map((nn) => nn - 53 - 12 * octave));
-  keyEls.forEach((el, k) => { if (!el) return; el.classList.toggle("on", held.has(k) || latched.has(k) || playKeys.has(k) || midiLit.has(k)); el.classList.toggle("held", held.has(k)); });
+  const zon = zoneOn();
+  keyEls.forEach((el, k) => { if (!el) return; el.classList.toggle("on", held.has(k) || latched.has(k) || playKeys.has(k) || midiLit.has(k) || zoneHeld.has(k)); el.classList.toggle("held", held.has(k) || zoneHeld.has(k)); el.classList.toggle("zone", zon && !!ZONE[k]); if (ZONE[k]) el.dataset.z = zon ? ZONE[k][1] : ""; });
   // what should sound: held, latched or replayed keys
   const want = new Set([...held, ...latched, ...playKeys]);
   if (arpOn()) {
     for (const [k, e] of sounding) { sounding.delete(k); notesOff(e); }
-    const pool = []; for (const k of want) for (const x of chordNotes(keyToNote(k))) if (!pool.includes(x)) pool.push(x);
+    const pool = []; for (const k of want) for (const x of chordOfKey(k)) if (!pool.includes(x)) pool.push(x);
     for (const [, e] of midiNotes) for (const x of e.notes) if (!pool.includes(x)) pool.push(x);
     const lastK = [...want].pop();
     arpUpdate(pool, lastK !== undefined ? keyVel[lastK] : 0);
     draw(); return;
   }
   for (const [k, e] of sounding) if (!want.has(k)) { sounding.delete(k); notesOff(e); }
-  for (const k of want) if (!sounding.has(k)) sounding.set(k, notesOn(chordNotes(keyToNote(k)), keyVel[k] ?? 0.75, "key"));
+  for (const k of want) if (!sounding.has(k)) sounding.set(k, notesOn(chordOfKey(k), keyVel[k] ?? 0.75, "key"));
   draw();
 }
 const keyToNote = (k) => 53 + k + 12 * octave;                               // key 0 is F3 (before scale lock and chords)

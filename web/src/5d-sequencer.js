@@ -2,7 +2,7 @@
 // SEQ tapped: NOTES (a piano roll), PATTERN, SPICE, GEN. Held buttons are layers: SEQ steps, EDIT erase, ARP note repeat,
 // GLO fills and tap tempo, SEL (the SCL key) key and chords. PLAY starts and stops; REC records into the pattern.
 
-const SEQ_PAGES = ["NOTES", "PATTERN", "SPICE", "GEN"];
+const SEQ_PAGES = ["NOTES", "PATTERN", "SPICE", "GEN", "BANKS", "SONG"];
 const isSeqPage = () => SEQ_PAGES.includes(page);
 const REP_RATES = ["1/8", "1/16", "1/32", "32T", "1/64"], REP_16THS = [2, 1, .5, 1 / 3, .25];
 const SHEET_ROWS = ["SLIDE", "NUDGE", "FILL", "MOVE", "COPY", "DELETE"];
@@ -13,6 +13,9 @@ const ss = {
   layer: null, latched: false, layerT: 0, heldSteps: new Set(), stepEdited: false, seqPage: 0, setNotes: [60],
   fillHeld: false, fillBar: -1, fillPending: false, taps: [], repeat: null, repRate: 1, repNext: 0, erase: null,
   lockRef: null, gen: { tool: 0, a: .5, b: .3, seed: 1 },
+  // 1.6 (after Melodee): banks, a queued bank, the song, the jam log, capture and quantize-on-take
+  queue: null, queueArm: false, loopFirst: true, songOn: false, songRow: 0, songRep: 0, songCur: 0, trn: 0, jam: [],
+  bankAct: 0, bankTgt: 1, queueNow: false, recQ: true, cap: [],
 };
 const seqLen = () => seq.len;
 const s16 = () => 60 / glo.p[G_TEMPO] / 4;
@@ -25,6 +28,8 @@ function seqStart(at) {
   if (!audio.on) { say("SWITCH ON FIRST", "SEQ"); return; }
   ss.run = true; ss.step = 0; ss.pos16 = 0; ss.fillBar = -1;
   ss.gridT = at ?? audioNow() + .06;
+  ss.loopFirst = true; ss.jam = [];
+  if (ss.songOn) songRow(firstSongRow());
   ss.cur = 0; ss.curT = ss.curGridT = ss.gridT; ss.dur = stepDur();
   engineAt(ss.gridT, [["reset_clock"]], "seq");          // Grids, the gate bus and the mod lanes start on step 1 too
   msRealign(ss.gridT); midiSend([0xFA], ss.gridT);
@@ -49,6 +54,7 @@ function seqTick() {
   if (ss.step >= seq.len) ss.step = 0;
   const ahead = audioNow() + .12;
   while (ss.gridT < ahead) {
+    if (ss.step === 0) { if (ss.loopFirst) ss.loopFirst = false; else loopEnd(); }
     const d = stepDur(), i = ss.step, sw = !triplet() && i % 2 ? seq.swing * .5 * d : 0;
     if (ss.fillPending && ss.pos16 % 16 < DIV_16THS[seq.div] - 1e-6) { ss.fillBar = Math.floor(ss.pos16 / 16); ss.fillPending = false; }
     scheduleStep(i, ss.gridT, ss.gridT + sw, d, fillActive(ss.pos16));
@@ -56,6 +62,80 @@ function seqTick() {
   }
 }
 setInterval(seqTick, 25);
+// ---------------------------------------------------------------- banks and song (1.6)
+const BANK_ACTS = ["COPY TO", "CLEAR", "DOUBLE", "HALVE"];
+const bankEmpty = (i) => !banks[i].steps.slice(0, banks[i].len).some((x) => x.notes.length || Object.keys(x.locks).length);
+const firstSongRow = () => Math.max(0, song.rows.findIndex((r) => r.bank >= 0));
+function songRow(r) { const row = song.rows[r]; ss.songRow = r; ss.songRep = 0; ss.trn = row.trn; if (row.bank >= 0) useBank(row.bank); }
+// the end of each pass: log it, then follow the song or take the queued bank
+function loopEnd() {
+  ss.jam.push(bankIx); if (ss.jam.length > 128) ss.jam.shift();
+  if (ss.songOn) {
+    if (++ss.songRep >= song.rows[ss.songRow].rep) {
+      let r = ss.songRow + 1; while (r < 16 && song.rows[r].bank < 0) r++;
+      songRow(r < 16 ? r : firstSongRow());
+    }
+    return;
+  }
+  if (ss.queue !== null) { useBank(ss.queue); ss.queue = null; if (ss.queueArm) { ss.rec = true; ss.queueArm = false; } dirty = true; }
+}
+// a bank key or Knob 1 on BANKS: now when stopped (an empty bank arms REC, as Melodee), else at the end of the pass
+function selectBank(i) {
+  const empty = bankEmpty(i);
+  if (ss.songOn) { ss.songOn = false; ss.trn = 0; say("SONG OFF", "SEQ"); }
+  if (!ss.run || ss.queueNow) {
+    useBank(i); ss.step = ss.step % seq.len; ss.cursor = Math.min(ss.cursor, seq.len - 1);
+    if (empty && !ss.run) { ss.armed = true; say(`BANK ${BANK_NAMES[i]} · EMPTY · REC READY`, "REC"); } else say(`BANK ${BANK_NAMES[i]}`, "SEQ");
+  } else { ss.queue = i === bankIx ? null : i; ss.queueArm = empty; say(ss.queue === null ? "QUEUE CLEARED" : `BANK ${BANK_NAMES[i]} NEXT${empty ? " · REC" : ""}`, "SEQ"); }
+  draw();
+}
+function bankAction() {
+  const act = BANK_ACTS[ss.bankAct], b = banks[bankIx];
+  if (act === "COPY TO") { if (ss.bankTgt === bankIx) { say("PICK ANOTHER BANK", "SEQ"); return; } banks[ss.bankTgt] = JSON.parse(JSON.stringify(b)); say(`${BANK_NAMES[bankIx]} COPIED TO ${BANK_NAMES[ss.bankTgt]}`, "SEQ"); }
+  if (act === "CLEAR") { const L = b.len; b.steps = Array.from({ length: MAXSTEPS }, blankStep); b.len = L; say(`BANK ${BANK_NAMES[bankIx]} CLEARED`, "SEQ"); }
+  if (act === "DOUBLE") { if (b.len * 2 > MAXSTEPS) { say("64 STEPS AT MOST", "SEQ"); return; } for (let i = 0; i < b.len; i++) b.steps[b.len + i] = JSON.parse(JSON.stringify(b.steps[i])); b.len *= 2; say(`LENGTH ×2 · ${b.len}`, "SEQ"); }
+  if (act === "HALVE") { b.len = Math.max(1, Math.floor(b.len / 2)); say(`LENGTH ½ · ${b.len}`, "SEQ"); }
+  noteEdit(`BANK ${act}`); draw();
+}
+// the jam log (each pass's bank) into song rows, repeats folded together
+function jamToSong() {
+  if (!ss.jam.length) { say("PLAY SOME BANKS FIRST", "SEQ"); return; }
+  const rows = [];
+  for (const b of ss.jam) { const last = rows[rows.length - 1]; if (last && last.bank === b && last.rep < 16) last.rep++; else rows.push({ bank: b, rep: 1, trn: 0 }); }
+  song = blankSong(); rows.slice(0, 16).forEach((r, i) => { song.rows[i] = r; });
+  noteEdit("JAM TO SONG"); say(`SONG FROM JAM · ${Math.min(16, rows.length)} ROWS`, "SEQ"); draw();
+}
+function songToggle() {
+  if (song.rows.every((r) => r.bank < 0)) { say("SONG IS EMPTY", "SEQ"); return; }
+  ss.songOn = !ss.songOn; ss.queue = null;
+  if (ss.songOn) { songRow(firstSongRow()); if (ss.run) { seqStop(); seqStart(); } } else ss.trn = 0;
+  say(ss.songOn ? "SONG ON" : "SONG OFF", "SEQ"); draw();
+}
+// CAPTURE (hold REC): what you just played without recording goes into the pattern
+function capNote(id, notes, vel) { ss.cap.push({ id, notes, vel, t: audioNow(), off: null, pos: ss.run ? nowPos() : null }); if (ss.cap.length > 400) ss.cap.shift(); }
+function capOff(id) { const e = [...ss.cap].reverse().find((x) => x.id === id && x.off === null); if (e) e.off = audioNow(); }
+function capture() {
+  const now = audioNow();
+  if (ss.run) {
+    const win = seq.len * stepDur(), ev = ss.cap.filter((e) => e.pos !== null && e.t >= now - win);
+    if (!ev.length) { say("NOTHING TO CAPTURE", "REC"); return; }
+    const L = seq.len;
+    for (const e of ev) {
+      const raw = Math.round(e.pos), i = ((raw % L) + L) % L, st = seq.steps[i];
+      const len = clamp(Math.round(((e.off ?? now) - e.t) / stepDur() * 4) / 4, .25, MAXSTEPS);
+      for (const x of e.notes) if (st.notes.length < 6 && !st.notes.some((o) => o.n === x)) st.notes.push({ n: x, len, lvl: 2, vel: e.vel });
+      if (!ss.recQ) st.nudge = clamp(Math.round((e.pos - raw) * 64), -32, 31);
+      st.notes.sort((a, b) => a.n - b.n);
+    }
+    noteEdit("CAPTURE"); say(`CAPTURED ${ev.length} NOTES`, "REC"); ss.cap = []; draw(); return;
+  }
+  // stopped: the last phrase (back to a 2 s gap) becomes a loop, as a free take does
+  const ev = []; for (let j = ss.cap.length - 1; j >= 0; j--) { const e = ss.cap[j]; if (ev.length && ev[0].t - (e.off ?? e.t) > 2) break; ev.unshift(e); }
+  if (!ev.length) { say("NOTHING TO CAPTURE", "REC"); return; }
+  const on = ev.map((e) => e.t), gap = on.length > 1 ? (on[on.length - 1] - on[0]) / (on.length - 1) : .5;
+  ss.cap = [];
+  closeFreeTake({ t0: on[0], events: ev }, on[on.length - 1] + gap);
+}
 function hash01(a, b) { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
 // SPICE: the same variation each time round, until DICE is turned; what is recorded never changes
 function spiceFor(i) {
@@ -90,7 +170,7 @@ function scheduleStep(i, tg, t0, d, fill) {
   if (!s.notes.length || skip || sp.rest || Math.random() >= s.chance) return;
   const t = t0 + (s.nudge || 0) / 64 * d, r = Math.max(1, s.ratchet || 1), outNotes = [];
   for (const nt of s.notes) {
-    const vel = clamp((LEVEL_VEL[nt.lvl] ?? nt.vel) + sp.vel, .05, 1), pitch = nt.n + sp.oct;
+    const vel = clamp((LEVEL_VEL[nt.lvl] ?? nt.vel) + sp.vel, .05, 1), pitch = nt.n + sp.oct + (ss.songOn ? ss.trn : 0);
     for (let k = 0; k < r; k++) {
       const tr = t + k * d / r;
       let len = r > 1 ? d / r * .55 : Math.max(.02, nt.len * d * (1 + sp.gate * .5));
@@ -114,6 +194,7 @@ function nowPos() { return ss.cur < 0 ? 0 : ss.cur + (audioNow() - .012 - ss.cur
 
 // ---------------------------------------------------------------- notes coming in: step entry, recording, the free take
 function seqNoteOn(id, notes, vel) {
+  if (!ss.free && !(ss.rec && ss.run)) capNote(id, notes, vel);
   if (ss.free) { ss.free.t0 ??= audioNow(); ss.free.events.push({ id, notes, vel, t: audioNow(), off: null }); dirty = true; return; }
   if (ss.armed && !ss.run) seqStart(audioNow() + .005);
   if (ss.rec && ss.run) { recNoteOn(id, notes, vel); return; }
@@ -124,6 +205,7 @@ function seqNoteOn(id, notes, vel) {
   st.notes.sort((a, b) => a.n - b.n); ss.noteIx = 0; ss.entryHeld.add(id); dirty = true;
 }
 function seqNoteOff(id) {
+  capOff(id);
   if (ss.free) { const e = [...ss.free.events].reverse().find((x) => x.id === id && x.off === null); if (e) e.off = audioNow(); return; }
   if (ss.recNotes.has(id)) recNoteOff(id);
   ss.entryHeld.delete(id);
@@ -144,6 +226,7 @@ function recNoteOn(id, notes, vel) {
     const o = { n: x, len: seq.gate, lvl: 2, vel }; st.notes.push(o); objs.push(o);
   }
   st.notes.sort((a, b) => a.n - b.n);
+  if (!ss.recQ) st.nudge = clamp(Math.round((pos - raw) * 64), -32, 31);     // QNT OFF: the timing you played, as a nudge
   ss.recNotes.set(id, { objs, start: pos, step: i });
   ss.flash[i] = animT; dirty = true;
 }
@@ -164,23 +247,23 @@ function recPress() {
   draw();
 }
 // the loop follows you: 1, 2 or 4 bars at the tempo nearest the one set
-function closeFreeTake() {
-  const F = ss.free; ss.free = null;
+function closeFreeTake(given, endT) {
+  const F = given || ss.free; if (!given) ss.free = null;
   if (!F.t0 || !F.events.length) { say("NOTHING PLAYED", "REC"); draw(); return; }
-  const raw = Math.max(.5, audioNow() - F.t0), cur = glo.p[G_TEMPO];
+  const raw = Math.max(.5, (endT ?? audioNow()) - F.t0), cur = glo.p[G_TEMPO];
   let best = null;
   for (const bars of [1, 2, 4]) { const bpm = bars * 240 / raw; if (bpm < 50 || bpm > 200) continue; const d = Math.abs(bpm - cur); if (!best || d < best.d) best = { bars, bpm, d }; }
   if (!best) best = { bars: 2, bpm: clamp(480 / raw, 60, 180) };
   const bpm = Math.abs(best.bpm - cur) / cur < .03 ? cur : clamp(Math.round(best.bpm), 60, 180);
   glo.p[G_TEMPO] = bpm; storeGlobal();
-  seq = blankSeq(); seq.div = 2; seq.len = best.bars * 16;
+  banks[bankIx] = blankSeq(); seq = banks[bankIx]; seq.div = 2; seq.len = best.bars * 16;
   const q = 60 / bpm / 4;
   for (const e of F.events) {
     const i = ((Math.round((e.t - F.t0) / q) % seq.len) + seq.len) % seq.len, st = seq.steps[i];
-    const len = clamp(Math.round(((e.off ?? audioNow()) - e.t) / q * 4) / 4, .25, MAXSTEPS);
+    const len = clamp(Math.round(((e.off ?? (endT ?? audioNow())) - e.t) / q * 4) / 4, .25, MAXSTEPS);
     for (const x of e.notes) if (st.notes.length < 6 && !st.notes.some((o) => o.n === x)) st.notes.push({ n: x, len, lvl: 2, vel: e.vel });
   }
-  noteEdit("FREE TAKE"); say(`${best.bars} BAR${best.bars > 1 ? "S" : ""} · ${bpm} BPM`, "REC");
+  noteEdit(given ? "CAPTURE" : "FREE TAKE"); say(`${given ? "CAPTURED · " : ""}${best.bars} BAR${best.bars > 1 ? "S" : ""} · ${bpm} BPM`, "REC");
   seqStart(audioNow() + .02);
 }
 function clearPattern() { const L = seq.len; seq.steps = Array.from({ length: MAXSTEPS }, blankStep); seq.len = L; noteEdit("CLEAR PATTERN"); say("PATTERN CLEARED", "REC"); draw(); }
@@ -325,8 +408,8 @@ function layerEncoder(role, k) {
   if (L === "SEL") {
     if (role === 0) chd.p[C_TYPE] = clamp(chd.p[C_TYPE] + d, 0, CHORD_TYPES.length - 1);
     if (role === 1) chd.p[C_SCALE] = clamp(chd.p[C_SCALE] + d, 0, Object.keys(SCALES).length - 1);
-    if (role === 2) chd.p[C_LOCK] = d > 0 ? 1 : 0;
-    if (role === 3) chd.p[C_INV] = clamp(chd.p[C_INV] + d, 0, 3);
+    if (role === 2) chd.p[C_QNT] = clamp(chd.p[C_QNT] + d, 0, QNT_MODES.length - 1);
+    if (role === 3) chd.p[C_VOICE] = clamp(chd.p[C_VOICE] + d, 0, VOICINGS.length - 1);
     storeChord();
   }
 }
@@ -443,6 +526,8 @@ function genApply() {
 function seqEncoder(role, k) {
   const d = Math.sign(k);
   if (ss.sheet) { sheetEncoder(role, k); return; }
+  if (role === "select" && page === "SONG") { ss.songCur = clamp(ss.songCur + d, 0, 15); return; }
+  if (role === "select" && page === "BANKS") { selectBank(clamp((ss.queue ?? bankIx) + d, 0, 7)); return; }
   if (role === "select") { ss.cursor = clamp(ss.cursor + d, 0, seq.len - 1); ss.noteIx = seq.steps[ss.cursor].notes.length ? 0 : -1; return; }
   if (page === "NOTES") {
     if (role === "presets") { const Z = [8, 16, 32, 64]; ss.zoom = Z[clamp(Z.indexOf(ss.zoom) + d, 0, 3)]; say(`ZOOM ${ss.zoom} STEPS`, "SEQ"); return; }
@@ -459,6 +544,24 @@ function seqEncoder(role, k) {
     if (role === 2) o.len = clamp(Math.round((o.len + k * .25) * 4) / 4, .25, MAXSTEPS);
     if (role === 3) o.lvl = clamp(o.lvl + d, 0, 4);
     noteEdit(`NOTE ${["", "PITCH", "LENGTH", "FORCE"][role]}`); return;
+  }
+  if (page === "BANKS") {
+    if (role === "algo") { if (d > 0) bankAction(); else histGo(-1); return; }
+    if (role === 0) selectBank(clamp((ss.queue ?? bankIx) + d, 0, 7));
+    if (role === 1) ss.bankAct = clamp(ss.bankAct + d, 0, BANK_ACTS.length - 1);
+    if (role === 2) ss.bankTgt = clamp(ss.bankTgt + d, 0, 7);
+    if (role === 3) ss.queueNow = d > 0;
+    return;
+  }
+  if (page === "SONG") {
+    const row = song.rows[ss.songCur];
+    if (role === "algo") { if (d > 0) songToggle(); else jamToSong(); return; }
+    if (role === 0) ss.songCur = clamp(ss.songCur + d, 0, 15);
+    if (role === 1) row.bank = clamp(row.bank + d, -1, 7);
+    if (role === 2) row.rep = clamp(row.rep + d, 1, 16);
+    if (role === 3) row.trn = clamp(row.trn + d, -12, 12);
+    if (role !== 0) noteEdit(`SONG ROW ${ss.songCur + 1}`);
+    return;
   }
   if (role === "algo") { if (page === "GEN") { if (d > 0) genApply(); else histGo(-1); } return; }
   if (role === "presets") return;
@@ -486,6 +589,7 @@ function seqEncoder(role, k) {
 function recEncoder(role, k) {
   const d = Math.sign(k);
   if (role === 0) ss.recMode = d > 0 ? 1 : 0;
+  if (role === 2) { ss.recQ = d < 0 ? false : true; say(`QNT ${ss.recQ ? "ON" : "OFF"}`, "REC"); }
   if (role === 1) { const B = [1, 2, 4]; ss.recBars = B[clamp(B.indexOf(ss.recBars) + d, 0, 2)]; if (!hasNotes()) seq.len = Math.min(MAXSTEPS, Math.round(ss.recBars * 16 / DIV_16THS[seq.div])); }
   if (ss.recMode === 1 && !hasNotes() && ss.armed) { ss.armed = false; ss.free = { t0: null, events: [] }; }
   else if (ss.recMode === 0 && ss.free && !ss.free.t0) { ss.free = null; ss.armed = true; }
@@ -558,30 +662,73 @@ function drawSeq() {
   const status = ss.free ? "FREE TAKE" : ss.rec && ss.run ? "REC" : ss.armed ? "REC READY" : ss.run ? "PLAY" : "STOP";
   if (page === "NOTES") {
     const o = selNote();
-    header("NOTES", c, `${status} · ${ss.cursor + 1}${o ? " · " + noteNameMidi(o.n) : ""}`, "SEQ", 4, pi);
+    header(`NOTES ${BANK_NAMES[bankIx]}`, c, `${status} · ${ss.cursor + 1}${o ? " · " + noteNameMidi(o.n) : ""}`, "SEQ", SEQ_PAGES.length, pi);
     drawRoll(VX, VY, VW, VH);
     const nj = st.notes.length;
     cells([{ l: "NOTE", t: "list", opts: [o ? `${ss.noteIx + 1}/${nj}` : "EMPTY"] }, { l: "PITCH", t: "list", opts: [o ? noteNameMidi(o.n) : "—"] }, { l: "LENGTH", t: "list", opts: [o ? `${o.len}` : "—"] }, { l: "FORCE", t: "list", opts: LEVELS }],
       [0, 0, 0, o ? o.lvl : 2], null, c);
     if (ss.sheet) drawSheet();
   } else if (page === "PATTERN") {
-    header("PATTERN", c, `${status} · ${seq.len} × ${SEQ_DIVS[seq.div]}`, "SEQ", 4, pi);
+    header("PATTERN", c, `${status} · ${seq.len} × ${SEQ_DIVS[seq.div]}`, "SEQ", SEQ_PAGES.length, pi);
     drawOverview(VX, VY, VW, VH);
     cells([I("LENGTH", 1, MAXSTEPS, 16), L("DIV", SEQ_DIVS), n("SWING"), n("GATE")], [seq.len, seq.div, seq.swing, seq.gate], null, c);
   } else if (page === "SPICE") {
-    header("SPICE", c, `STEP ${ss.cursor + 1} · ${st.notes.length ? stepLabel(st) : "EMPTY"}`, "SEQ", 4, pi);
+    header("SPICE", c, `STEP ${ss.cursor + 1} · ${st.notes.length ? stepLabel(st) : "EMPTY"}`, "SEQ", SEQ_PAGES.length, pi);
     drawOverview(VX, VY, VW, VH);
     if (seq.spice) for (let i = 0; i < seq.len; i++) { const sp = spiceFor(i), x = VX + (i + .5) * (VW / MAXSTEPS); if (seq.steps[i].notes.length && sp.rest) rect(x - 1, VY + VH / 2, 2, 2, C.warn); else if (seq.steps[i].notes.length && sp.oct) T(x, VY + 12, sp.oct > 0 ? "+" : "−", { a: "center", size: 8, c: C.gold }); }
     cells([n("SPICE"), I("DICE", 0, 99, 0), n("CHANCE"), L("FILL", FILLS)], [seq.spice, seq.dice, st.chance, st.fill], null, c);
+  } else if (page === "BANKS") {
+    header("BANKS", c, `${status} · ${BANK_NAMES[bankIx]}${ss.queue !== null ? " → " + BANK_NAMES[ss.queue] : ""}${ss.songOn ? " · SONG" : ""}`, "SEQ", SEQ_PAGES.length, pi);
+    drawBanks(VX, VY, VW, VH);
+    cells([{ l: "BANK", t: "list", opts: BANK_NAMES }, { l: "ACTION", t: "list", opts: BANK_ACTS }, { l: "TARGET", t: "list", opts: BANK_NAMES }, { l: "SWITCH", t: "list", opts: ["LOOP END", "NOW"] }],
+      [ss.queue ?? bankIx, ss.bankAct, ss.bankTgt, ss.queueNow ? 1 : 0], null, c);
+  } else if (page === "SONG") {
+    const row = song.rows[ss.songCur];
+    header("SONG", c, `${ss.songOn ? `ROW ${ss.songRow + 1} · ${ss.songRep + 1}/${song.rows[ss.songRow].rep}` : "OFF · ALGO → ON"}`, "SEQ", SEQ_PAGES.length, pi);
+    drawSong(VX, VY, VW, VH);
+    cells([{ l: "ROW", t: "int", min: 1, max: 16 }, { l: "BANK", t: "list", opts: ["END", ...BANK_NAMES] }, { l: "REPEATS", t: "int", min: 1, max: 16 }, { l: "TRANSPOSE", t: "int", min: -12, max: 12 }],
+      [ss.songCur + 1, row.bank + 1, row.rep, row.trn], null, c);
   } else {
     const G = ss.gen, tool = GEN_TOOLS[G.tool], ab = GEN_AB[tool], Ln = seq.len, eu = tool === "EUCLID";
-    header("GEN", c, `${tool} · ALGO → APPLY`, "SEQ", 4, pi);
+    header("GEN", c, `${tool} · ALGO → APPLY`, "SEQ", SEQ_PAGES.length, pi);
     drawOverview(VX, VY, VW, VH);
     const pa = ab ? (eu ? { l: ab[0], t: "int", min: 1, max: Ln } : { l: ab[0], t: "num" }) : null, pb = ab ? (eu ? { l: ab[1], t: "int", min: 0, max: Math.max(1, Ln - 1) } : { l: ab[1], t: "num" }) : null;
     cells([{ l: "TOOL", t: "list", opts: GEN_TOOLS }, pa, pb, { l: "SEED", t: "int", min: 0, max: 99 }], [G.tool, eu ? 1 + Math.round(G.a * (Ln - 1)) : G.a, eu ? Math.round(G.b * (Ln - 1)) : G.b, G.seed], null, c);
   }
   if ((ss.rec && ss.run || ss.free) && Math.floor(animT * 3) % 2) dot(214, 13, 3, C.warn, false);
   footer();
+}
+// BANKS: the eight banks as tiles with their notes in miniature; the playing one lit, the queued one blinking
+function drawBanks(X, Y, W, H) {
+  const c = KC.seq, tw = W / 8;
+  rect(X, Y, W, H, C.well, 6);
+  for (let b = 0; b < 8; b++) {
+    const x = X + b * tw + 2, bk = banks[b], cur = b === bankIx, q = b === ss.queue && Math.floor(animT * 4) % 2;
+    rect(x, Y + 4, tw - 4, H - 8, cur ? "#2a2026" : "#141413", 4);
+    if (cur || q) frame(x, Y + 4, tw - 4, H - 8, cur ? c : "#fff", 4);
+    const all = bk.steps.slice(0, bk.len).flatMap((s, i) => s.notes.map((o) => [i, o.n]));
+    if (all.length) { const lo = Math.min(...all.map((a) => a[1])), hi = Math.max(lo + 6, ...all.map((a) => a[1])); for (const [i, nn] of all) rect(x + 2 + i / bk.len * (tw - 8), Y + H - 14 - (nn - lo) / (hi - lo) * (H - 30), 2, 2, rgba(c, cur ? 1 : .55)); }
+    if (cur && ss.run && ss.cur >= 0) rect(x + 2 + ss.cur / bk.len * (tw - 8), Y + 8, 1, H - 16, rgba(c, .7));
+    T(x + (tw - 4) / 2, Y + H - 4, BANK_NAMES[b], { a: "center", size: 9, c: cur ? c : C.dim });
+    T(x + (tw - 4) / 2, Y + 14, bankEmpty(b) ? "·" : String(bk.len), { a: "center", size: 7, c: C.dim });
+  }
+}
+// SONG: the rows as blocks as long as their repeats; the row playing lit, the cursor framed
+function drawSong(X, Y, W, H) {
+  const c = KC.seq; rect(X, Y, W, H, C.well, 6);
+  const rows = song.rows, used = rows.map((r) => (r.bank >= 0 ? r.rep : 1)), tot = used.reduce((a, b) => a + b, 0);
+  let x = X + 3; const scale = (W - 6) / tot;
+  rows.forEach((r, i) => {
+    const w = used[i] * scale, on = ss.songOn && i === ss.songRow;
+    rect(x + .5, Y + 14, w - 1, H - 26, r.bank < 0 ? "#0c0c0b" : on ? rgba(c, .75) : rgba(c, .25), 2);
+    if (r.bank >= 0 && w > 9) T(x + w / 2, Y + 30, BANK_NAMES[r.bank], { a: "center", size: 9, c: on ? "#111" : C.fg });
+    if (r.bank >= 0 && r.trn && w > 14) T(x + w / 2, Y + 42, `${r.trn > 0 ? "+" : ""}${r.trn}`, { a: "center", size: 7, c: C.gold });
+    if (i === ss.songCur) frame(x, Y + 12, w, H - 22, "#fff", 2);
+    if (on && ss.run) rect(x + (ss.songRep + (ss.cur >= 0 ? ss.cur / seq.len : 0)) / r.rep * w, Y + 12, 1, H - 22, "#fff");
+    x += w;
+  });
+  T(X + 4, Y + 10, `JAM ${ss.jam.length} PASSES · ALGO ← TO SONG`, { size: 7, c: C.dim });
+  if (rows.every((r) => r.bank < 0)) T(X + W / 2, Y + H / 2 + 8, "EMPTY · KNOB 2 GIVES A ROW A BANK", { a: "center", size: 8, c: C.dim });
 }
 function drawSheet() {
   const st = seq.steps[ss.cursor], o = selNote();
@@ -609,6 +756,7 @@ function drawRecScreen() {
     T(30, 112, free ? "REC ON THE 1 CLOSES THE LOOP" : "PLAY ALSO STARTS IT", { size: 9, c: C.dim });
     T(30, 140, `K1 MODE ${ss.recMode ? "FREE" : "TEMPO"}${hasNotes() ? " (PATTERN HAS NOTES)" : ""}`, { size: 9, c: C.fg });
     T(30, 156, `K2 LENGTH ${ss.recBars} BAR${ss.recBars > 1 ? "S" : ""} · ${glo.p[G_TEMPO]} BPM`, { size: 9, c: C.fg });
+    T(30, 166, `K3 QNT ${ss.recQ ? "ON (ON THE GRID)" : "OFF (AS PLAYED)"}`, { size: 8, c: C.dim });
   }
 }
 // a held layer: the 16 white keys as tiles, the knobs as dials
@@ -622,7 +770,7 @@ function layerDials() {
   if (L === "EDIT") return [["SHIFT", "◀ ▶"], ["LENGTH", "½ ×2"], ["TRANSPOSE", "− +"], ["UNDO", "OCT− / +"]];
   if (L === "ARP") return [["RATE", REP_RATES[ss.repRate]], ["", ""], ["", ""], ["", ""]];
   if (L === "GLO") return [["LEVEL", fmt(AMP.pages[1][3], amp.p[7])], ["TEMPO", `${glo.p[G_TEMPO]}`], ["", ""], ["", ""]];
-  return [["CHORD", CHORD_TYPES[chd.p[C_TYPE]]], ["SCALE", Object.keys(SCALES)[chd.p[C_SCALE]]], ["LOCK", chd.p[C_LOCK] ? "ON" : "OFF"], ["INVERT", ["ROOT", "1ST", "2ND", "3RD"][chd.p[C_INV]]]];
+  return [["CHORD", CHORD_TYPES[chd.p[C_TYPE]]], ["SCALE", Object.keys(SCALES)[chd.p[C_SCALE]]], ["QNT", QNT_MODES[chd.p[C_QNT]]], ["VOICING", VOICINGS[chd.p[C_VOICE]]]];
 }
 function drawLayer() {
   const L = ss.layer, c = LAYER_COL[L]();

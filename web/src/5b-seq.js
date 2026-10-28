@@ -1,28 +1,90 @@
 // ================================================================ 5b. chords (SCL), step sequencer with parameter locks (SEQ)
 
-// ---------------------------------------------------------------- scale and chords
-const CH_STEPS = { TRIAD: [0, 2, 4], "7TH": [0, 2, 4, 6], SUS2: [0, 1, 4], SUS4: [0, 3, 4], ADD9: [0, 2, 4, 8], "6TH": [0, 2, 4, 5], "9TH": [0, 2, 4, 6, 8], QUARTAL: [0, 3, 6] };
+// ---------------------------------------------------------------- scale, QNT and chords (SEL)
 const scaleDegs = () => SCALES[Object.keys(SCALES)[chd.p[C_SCALE]]];
-function snapToScale(note) {
-  const deg = scaleDegs(), root = chd.p[C_KEY];
-  let best = note, dist = 99;
-  for (let o = -1; o <= 1; o++) for (const d of deg) { const c = Math.floor((note - root) / 12 + o) * 12 + root + d; const dd = Math.abs(c - note); if (dd < dist || (dd === dist && c < best)) { dist = dd; best = c; } }
-  return best;
+const pcOf = (x) => ((x % 12) + 12) % 12;
+// QNT: SNAP rounds down to the scale, ALL moves up to the next scale note, WHITE plays the scale on the white keys only
+function snapDown(note) { const deg = scaleDegs(), root = chd.p[C_KEY]; for (let x = note; x > note - 12; x--) if (deg.includes(pcOf(x - root))) return x; return note; }
+function snapUp(note) { const deg = scaleDegs(), root = chd.p[C_KEY]; for (let x = note; x < note + 12; x++) if (deg.includes(pcOf(x - root))) return x; return note; }
+const snapToScale = snapDown;
+const WHITE_IX = [0, -1, 1, -1, 2, 3, -1, 4, -1, 5, -1, 6];
+function whiteToScale(note) {
+  const wi = WHITE_IX[pcOf(note)]; if (wi < 0) return null;
+  const deg = scaleDegs(), N = deg.length, d = (Math.floor(note / 12) - 5) * 7 + wi;      // C4 plays the root
+  return 60 + chd.p[C_KEY] + 12 * Math.floor(d / N) + deg[((d % N) + N) % N];
 }
-const quantize = (note) => chd.p[C_LOCK] === 1 ? snapToScale(note) : note;
-// one key in, a chord out: the root is snapped into KEY + SCALE and the chord is stacked from scale degrees
-function chordNotes(raw) {
+function quantize(note) {
+  const q = QNT_MODES[chd.p[C_QNT]];
+  return q === "SNAP" ? snapDown(note) : q === "ALL" ? snapUp(note) : q === "WHITE" ? whiteToScale(note) : note;
+}
+// the lowest keys of the keybed, while chords are on: hold them with a chord key to change its quality or add a note
+const ZONE = { 0: ["ext", "6", 9], 1: ["type", "DIM"], 2: ["ext", "m7", 10], 3: ["type", "MIN"], 4: ["ext", "M7", 11], 5: ["type", "MAJ"], 6: ["ext", "9", 14] };
+const QUAL = { MAJ: [0, 4, 7], MIN: [0, 3, 7], DIM: [0, 3, 6], SUS: [0, 5, 7] };
+const zoneHeld = new Set();
+const zoneOn = () => chd.p[C_ZONE] === 0 && CHORD_TYPES[chd.p[C_TYPE]] !== "OFF";
+// scale-degree stacks per chord type (as the ChordForms engine); 11TH and 9TH fall back to 7TH over a flat 9
+const TYPE_STEPS = { TRIAD: [0, 2, 4], "7TH": [0, 2, 4, 6], "9TH": [0, 2, 4, 6, 8], "11TH": [0, 2, 4, 6, 8, 10], SUS4: [0, 3, 4], "6TH": [0, 2, 4, 5] };
+const CHROMA = { TRIAD: [0, 4, 7], "7TH": [0, 4, 7, 11], "9TH": [0, 4, 7, 11, 14], "11TH": [0, 4, 7, 11, 14, 17], SUS4: [0, 5, 7], "6TH": [0, 4, 7, 9] };
+const CHROMA_MIN = { TRIAD: [0, 3, 7], "7TH": [0, 3, 7, 10], "9TH": [0, 3, 7, 10, 14], "11TH": [0, 3, 7, 10, 14, 17], SUS4: [0, 5, 7], "6TH": [0, 3, 7, 9] };
+function stepOf(s) { const deg = scaleDegs(), N = deg.length; return deg[((s % N) + N) % N] + 12 * Math.floor(s / N); }
+// intervals above the root for one key: the diatonic chord in KEY harmony, a borrowed (or FREE) chromatic chord otherwise
+function chordIntervals(root, type, mods) {
+  if (type === "POWER") return [0, 7, 12];
+  const types = mods.types, exts = mods.exts;
+  let q = types.includes("MIN") && types.includes("MAJ") ? "SUS" : types[types.length - 1];
+  let base;
+  if (q) base = QUAL[q].slice();
+  else {
+    const t = exts.length ? "TRIAD" : type, rel = pcOf(root - chd.p[C_KEY]), deg = scaleDegs(), i = deg.indexOf(rel);
+    if (chd.p[C_HARM] === 0 && i >= 0 && deg.length === 7) {
+      let steps = TYPE_STEPS[t];
+      if ((t === "9TH" || t === "11TH") && stepOf(i + 8) - stepOf(i) === 13) steps = TYPE_STEPS["7TH"];     // no flat 9
+      base = steps.map((s) => stepOf(i + s) - stepOf(i));
+      if (t === "SUS4" && base[1] === 6) base[1] = stepOf(i + 1) - stepOf(i);                               // augmented 4th: sus2
+    } else {
+      const minorKey = chd.p[C_HARM] === 1 && scaleDegs().includes(3) && !scaleDegs().includes(4);
+      base = (minorKey ? CHROMA_MIN : CHROMA)[t].slice();
+    }
+  }
+  return [...new Set([...base, ...exts.map((e) => e[2])])].sort((a, b) => a - b);
+}
+let lastVoiced = null;
+function voice(notes, preview = false) {
+  const v = VOICINGS[chd.p[C_VOICE]];
+  notes = notes.slice().sort((a, b) => a - b);
+  if (v === "INV1" || v === "INV2") for (let k = 0; k < (v === "INV1" ? 1 : 2) && k < notes.length - 1; k++) { notes[0] += 12; notes.sort((a, b) => a - b); }
+  if (v === "OPEN" && notes.length >= 3) { notes[notes.length - 2] -= 12; notes.sort((a, b) => a - b); }
+  if (v === "+OCT") notes.unshift(notes[0] - 12);
+  if (v === "LEAD" && lastVoiced && notes.length > 1) {   // (a preview reads the last chord but leaves it alone)
+    // the inversion, shifted by octaves, that moves least from the last chord (close position)
+    const near = (x, set) => Math.min(...set.map((y) => Math.abs(x - y)));
+    let best = notes, bc = Infinity;
+    for (let r = 0; r < notes.length; r++) {
+      const c = notes.map((x, i) => x + (i < r ? 12 : 0)).sort((a, b) => a - b);
+      for (let o = -2; o <= 2; o++) {
+        const cand = c.map((x) => x + 12 * o);
+        const cost = cand.reduce((a, x) => a + near(x, lastVoiced), 0) + lastVoiced.reduce((a, x) => a + near(x, cand), 0);
+        if (cost < bc) { bc = cost; best = cand; }
+      }
+    }
+    notes = best;
+  }
+  if (notes.length > 1 && !preview) lastVoiced = notes.slice();
+  return notes;
+}
+// one key in, a chord out
+function chordNotes(raw, mods = { types: [], exts: [] }, preview = false) {
   const type = CHORD_TYPES[chd.p[C_TYPE]];
-  if (type === "OFF") return [quantize(raw)];
-  const r = snapToScale(raw), deg = scaleDegs(), key = chd.p[C_KEY], N = deg.length;
-  const rel = r - key, o = Math.floor(rel / 12), i = deg.indexOf(((rel % 12) + 12) % 12);
-  const dn = (k) => key + 12 * (o + Math.floor((i + k) / N)) + deg[(((i + k) % N) + N) % N];
-  let notes = type === "POWER" ? [r, r + 7, r + 12] : CH_STEPS[type].map(dn);
-  for (let k = 0; k < Math.min(chd.p[C_INV], notes.length - 1); k++) { notes.sort((a, b) => a - b); notes[0] += 12; }
-  notes.sort((a, b) => a - b);
-  if (chd.p[C_SPREAD] > .33 && notes.length >= 3) { notes[notes.length - 2] -= 12; notes.sort((a, b) => a - b); }   // drop 2
-  if (chd.p[C_SPREAD] > .66) notes[notes.length - 1] += 12;                                                        // open the top
-  return [...new Set(notes)].filter((x) => x >= 12 && x <= 120).sort((a, b) => a - b);
+  if (type === "OFF" && !mods.types.length && !mods.exts.length) { const q = quantize(raw); return q === null ? [] : [q]; }
+  const r = chd.p[C_QNT] ? quantize(raw) : raw;      // with QNT on, the root follows the scale; off, a key outside it borrows a chord
+  if (r === null) return [];
+  const notes = chordIntervals(r, type === "OFF" ? "TRIAD" : type, mods).map((x) => r + x);
+  return [...new Set(voice(notes, preview))].filter((x) => x >= 12 && x <= 120).sort((a, b) => a - b);
+}
+function zoneMods() {
+  const m = { types: [], exts: [] };
+  for (const k of zoneHeld) { const z = ZONE[k]; if (z[0] === "type") m.types.push(z[1]); else m.exts.push(z); }
+  return m;
 }
 function chordQuality(iv) {
   const h = (x) => iv.has(x), third = h(4) ? 4 : h(3) ? 3 : 0, used = new Set([0]);
@@ -114,7 +176,7 @@ function visChord(X, Y, W, H, c) {
   const deg = scaleDegs(), key = chd.p[C_KEY], type = CHORD_TYPES[chd.p[C_TYPE]];
   const inScale = (pc) => deg.includes((pc - key + 12) % 12);
   const fresh = animT - lastChord.t < 1.2 && lastChord.notes.length;
-  const show = fresh ? lastChord.notes : type === "OFF" ? [] : chordNotes(60 + key);
+  const show = fresh ? lastChord.notes : type === "OFF" ? [] : chordNotes(60 + key, undefined, true);
   const lit = new Map();
   for (const p of recentPulses(.7)) lit.set(((p.note % 12) + 12) % 12, Math.max(lit.get(p.note % 12) || 0, 1 - (animT - p.t) / .7));
   const pcsShown = new Set(show.map((x) => ((x % 12) + 12) % 12));
@@ -135,9 +197,10 @@ function visChord(X, Y, W, H, c) {
   // the chord's name, with a ring that pulses on each new chord
   const nx = X + kb + 12, cx = nx + (W - kb - 16) / 2, age = animT - lastChord.t;
   if (age < .6) { g.strokeStyle = rgba(c, (.6 - age) * 1.4); g.lineWidth = 1.5; g.beginPath(); g.arc(cx, Y + H / 2 - 4, 14 + age * 40, 0, TAU); g.stroke(); }
-  const name = type === "OFF" ? "SINGLE" : type === "QUARTAL" && show.length ? `${KEYS12[((show[0] % 12) + 12) % 12]} 4THS` : chordName(show);
+  const name = type === "OFF" && !fresh ? "SINGLE" : chordName(show);
   T(cx, Y + H / 2 + 2, name.length > 7 ? name.slice(0, 7) : name, { a: "center", size: name.length > 5 ? 13 : 17, c: type === "OFF" ? C.dim : C.fg });
-  T(cx, Y + H / 2 + 16, `${KEYS12[key]} ${Object.keys(SCALES)[chd.p[C_SCALE]]}`, { a: "center", size: 8, c: chd.p[C_LOCK] ? c : C.dim });
+  T(cx, Y + H / 2 + 16, `${KEYS12[key]} ${Object.keys(SCALES)[chd.p[C_SCALE]]}`, { a: "center", size: 8, c: chd.p[C_QNT] ? c : C.dim });
+  if (zoneOn()) T(cx, Y + 10, `${VOICINGS[chd.p[C_VOICE]]}${zoneHeld.size ? " · " + [...zoneHeld].map((k) => ZONE[k][1]).join(" ") : ""}`, { a: "center", size: 8, c: zoneHeld.size ? C.gold : C.dim });
   const nv = budget().voices;
   if (show.length > nv) T(cx, Y + 12, `${nv} VOICE${nv > 1 ? "S" : ""}!`, { a: "center", size: 8, c: C.warn });
 }

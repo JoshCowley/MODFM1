@@ -54,14 +54,17 @@ const TUNINGS = [
 ];
 const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)], [L("TUNING", TUNINGS.map((t) => t[0])), L("T ROOT", KEYS12), I("A4 HZ", 400, 480, 440), I("BEND", 0, 24, 2)], [L("PROG CHG", ["OFF", "ON"], 1), L("MIDI OUT", ["OFF", "NOTES", "+CC"]), L("OUT CH", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]), L("LOCAL", ["ON", "OFF"])], [b("LOW EQ", 0), b("MID EQ", 0), b("HIGH EQ", 0), n("COMP", 0)], [L("STEP ADV", ["ON", "OFF"])]] };
 const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6, G_TUNE = 7, G_TROOT = 8, G_A4 = 9, G_BEND = 10, G_PROG = 11, G_MOUT = 12, G_OUTCH = 13, G_LOCAL = 14, G_LOW = 15, G_MID = 16, G_HIGH = 17, G_COMP = 18, G_ADV = 19;
-const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10] };
-// CHORD (SCL key): scale chords, with scale lock on its second page
-const CHORD_TYPES = ["OFF", "TRIAD", "7TH", "SUS2", "SUS4", "ADD9", "6TH", "9TH", "POWER", "QUARTAL"];
-const CHORD = { kind: "chd", pages: [[L("CHORD", CHORD_TYPES), L("INVERT", ["ROOT", "1ST", "2ND", "3RD"]), n("SPREAD", 0), n("STRUM", 0)], [L("LOCK", ["OFF", "ON"]), L("KEY", KEYS12), L("SCALE", Object.keys(SCALES))]] };
-const C_TYPE = 0, C_INV = 1, C_SPREAD = 2, C_STRUM = 3, C_LOCK = 4, C_KEY = 5, C_SCALE = 6;
+const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10], LYDIAN: [0, 2, 4, 6, 7, 9, 11] };
+// SEL (CHORD): scale, root, chords and voicing on page 1; how the keys follow the scale on page 2.
+// After ChordStep FM-1 (one key per chord, the lowest keys force the quality and add extensions) and Melodee's CHRD/VOIC/QNT.
+const CHORD_TYPES = ["OFF", "TRIAD", "7TH", "9TH", "11TH", "SUS4", "6TH", "POWER"];
+const VOICINGS = ["CLOSE", "LEAD", "OPEN", "INV1", "INV2", "+OCT"];
+const QNT_MODES = ["OFF", "SNAP", "ALL", "WHITE"];
+const CHORD = { kind: "chd", pages: [[L("SCALE", Object.keys(SCALES)), L("ROOT", KEYS12), L("CHORD", CHORD_TYPES), L("VOICING", VOICINGS)], [L("QNT", QNT_MODES), L("HARMONY", ["KEY", "FREE"]), L("ZONE", ["ON", "OFF"]), n("STRUM", 0)]] };
+const C_SCALE = 0, C_KEY = 1, C_TYPE = 2, C_VOICE = 3, C_QNT = 4, C_HARM = 5, C_ZONE = 6, C_STRUM = 7;
 // SEQ key: the sequencer, after Clipper / SLOOP 2.7.2: up to 64 steps, each with up to 6 notes of their own length and force,
 // a ratchet, a nudge, a fill condition, a slide and parameter locks
-const SEQ_DIVS = ["1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1BAR", "2BAR"], DIV_16THS = [4, 2, 1, .5, 4 / 3, 2 / 3, 8, 16, 32];
+const SEQ_DIVS = ["1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1BAR", "2BAR", "4BAR"], DIV_16THS = [4, 2, 1, .5, 4 / 3, 2 / 3, 8, 16, 32, 64];
 const LEVELS = ["GHOST", "SOFT", "NORM", "HARD", "ACC"], LEVEL_VEL = [.32, .55, null, .9, 1];
 const FILLS = ["—", "FILL", "NO FILL"];
 const MAXSTEPS = 64;
@@ -111,7 +114,13 @@ const rack = {};                    // slot id -> { mod: name|null, p: [] }
 const amp = { p: blankParams(AMP) };
 const glo = { p: blankParams(GLOBAL) };
 const chd = { p: blankParams(CHORD) };
-let seq = blankSeq();
+// 1.6, after Melodee: eight pattern banks (A-H) and a song of 16 rows (bank, repeats, transpose)
+const BANK_NAMES = ["A", "B", "C", "D", "E", "F", "G", "H"];
+let banks = Array.from({ length: 8 }, blankSeq), bankIx = 0;
+let seq = banks[0];
+const blankSong = () => ({ rows: Array.from({ length: 16 }, () => ({ bank: -1, rep: 1, trn: 0 })) });
+let song = blankSong();
+function useBank(i) { bankIx = i; seq = banks[i]; }
 const lfo = { p: blankParams(LFOS) };
 const BUILT_SRC = ["—", "M1", "M2", "M3", "M4", "VELO", "KEY TRK", "RANDOM", "AMP ENV"];
 const EXTRA_SRC = ["LFO 1", "LFO 2", "LFO 3", "MOD ENV", "SEQ 1", "SEQ 2", "SEQ 3", "SEQ 4", "WHEEL", "PRESS"];
@@ -122,8 +131,8 @@ let lfoTgt = blankLfoTgt();
 let macros = [0.5, 0.5, 0.5, 0.5];
 try { const sg = JSON.parse(localStorage.getItem("fm1rack.global.v1") || "null"); if (sg && sg.length <= glo.p.length) sg.forEach((v, i) => { glo.p[i] = v; }); } catch { /* defaults */ }
 function storeGlobal() { try { localStorage.setItem("fm1rack.global.v1", JSON.stringify(glo.p)); } catch { /* this visit only */ } }
-try { const sc = JSON.parse(localStorage.getItem("fm1rack.chord.v1") || "null"); if (sc && sc.length === chd.p.length) chd.p = sc; } catch { /* defaults */ }
-function storeChord() { try { localStorage.setItem("fm1rack.chord.v1", JSON.stringify(chd.p)); } catch { /* this visit only */ } }
+try { const sc = JSON.parse(localStorage.getItem("fm1rack.chord.v2") || "null"); if (sc && sc.length === chd.p.length) chd.p = sc; } catch { /* defaults */ }
+function storeChord() { try { localStorage.setItem("fm1rack.chord.v2", JSON.stringify(chd.p)); } catch { /* this visit only */ } }
 
 const PRESETS = /*PRESETS*/[];
 let presetIx = 0, patchName = PRESETS[0].name;
@@ -147,6 +156,7 @@ function loadPreset(i) {
   });
   macros = [...(pr.macros || [0.5, 0.5, 0.5, 0.5])];
   lfoTgt = blankLfoTgt();
+  banks = Array.from({ length: 8 }, blankSeq); song = blankSong(); bankIx = 0;
   loadSeq(factorySeq(pr.seq));
   mseq = blankMseq();
   histReset(`LOADED ${patchName}`);
@@ -156,11 +166,15 @@ function restoreSnap(u) {
   amp.p = fitParams(AMP, u.amp); lfo.p = fitParams(LFOS, u.lfo);
   matrix = u.matrix.map((r) => ({ ...r })); macros = [...u.macros];
   lfoTgt = u.lfoTgt ? u.lfoTgt.map((t) => ({ ...t })) : blankLfoTgt();
-  loadSeq(u.seq ? JSON.parse(JSON.stringify(u.seq)) : blankSeq());
+  banks = Array.from({ length: 8 }, (_, i) => (u.banks && u.banks[i] ? upgradeSeq(JSON.parse(JSON.stringify(u.banks[i]))) : blankSeq()));
+  bankIx = u.banks ? u.bankIx || 0 : 0;
+  if (!u.banks) banks[0] = upgradeSeq(u.seq ? JSON.parse(JSON.stringify(u.seq)) : blankSeq());   // patches before 1.6 had one pattern
+  seq = banks[bankIx];
+  song = u.song ? JSON.parse(JSON.stringify(u.song)) : blankSong();
   mseq = u.mseq ? JSON.parse(JSON.stringify(u.mseq)) : blankMseq();
 }
 // a new pattern keeps the transport running
-function loadSeq(sq) { seq = upgradeSeq(sq); }
+function loadSeq(sq) { banks[bankIx] = upgradeSeq(sq); seq = banks[bankIx]; }
 // factory patterns: { len, rate, swing, steps: [ { n: [notes], v, l: "1/2" | "TIE", c, lock: { "SHP.CUTOFF": 0.7 } } | null ] }
 function factorySeq(f) {
   const sq = blankSeq(); if (!f) return sq;
@@ -199,7 +213,7 @@ function applyOver(def, values, over) {
 }
 function snapshot(name) {
   return { name, slots: Object.fromEntries(SLOTS.map((s) => [s.id, { mod: rack[s.id].mod, p: [...rack[s.id].p] }])),
-           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), lfoTgt: lfoTgt.map((t) => ({ ...t })), macros: [...macros], seq: JSON.parse(JSON.stringify(seq)), mseq: JSON.parse(JSON.stringify(mseq)) };
+           amp: [...amp.p], lfo: [...lfo.p], matrix: matrix.map((r) => ({ ...r })), lfoTgt: lfoTgt.map((t) => ({ ...t })), macros: [...macros], seq: JSON.parse(JSON.stringify(seq)), banks: JSON.parse(JSON.stringify(banks)), bankIx, song: JSON.parse(JSON.stringify(song)), mseq: JSON.parse(JSON.stringify(mseq)) };
 }
 const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 let saveState = null;

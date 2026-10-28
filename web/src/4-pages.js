@@ -219,7 +219,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.5", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.6", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -234,7 +234,7 @@ function render() {
   else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3", "LFO 1 +", "LFO 2 +", "LFO 3 +"], "LFO", 8, visLfos);
   else if (page === "SAVE") drawSave();
   else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem][Math.min(subpage, 5)]);
-  else if (page === "CHORD") drawFixed(CHORD, chd, "CHORD", [CHORD_TYPES[chd.p[C_TYPE]] === "OFF" ? "SINGLE NOTES" : `${CHORD_TYPES[chd.p[C_TYPE]]} CHORDS`, chd.p[C_LOCK] ? "SCALE LOCKED" : "SCALE LOCK OFF"], "CHORD", -1, visChord);
+  else if (page === "CHORD") drawFixed(CHORD, chd, "CHORD", [CHORD_TYPES[chd.p[C_TYPE]] === "OFF" ? "SCALE + KEY" : `${CHORD_TYPES[chd.p[C_TYPE]]} · ${VOICINGS[chd.p[C_VOICE]]}`, `QNT ${QNT_MODES[chd.p[C_QNT]]}${zoneOn() ? " · ZONE" : ""}`], "CHORD", -1, visChord);
   else if (isSeqPage()) drawSeq();
   else if (page === "TOOLS") drawTools();
   else if (page === "MSEQ") drawMseq();
@@ -250,11 +250,11 @@ function render() {
   if (ss.rec && ss.run && !isSeqPage() && lockRefFor(SLOTS.find((s) => s.id === page), 0)) rect(0, 26, 240, 3, Math.floor(animT * 3) % 2 ? C.warn : "#6a2a22");
   if ((ss.armed || ss.free) && !ss.run) drawRecScreen();
   if (layerShown()) drawLayer();
-  if (ss.clearT && performance.now() - ss.clearT > 300) {        // hold REC: a ring fills, then the pattern clears
+  if (ss.clearT && performance.now() - ss.clearT > 300) {        // hold REC: a ring fills, then what you just played is captured
     const f = clamp((performance.now() - ss.clearT) / 1200, 0, 1);
     rect(70, 80, 100, 70, "#0d0d0c", 8); g.strokeStyle = C.faint; g.lineWidth = 4; g.beginPath(); g.arc(120, 108, 16, 0, TAU); g.stroke();
     g.strokeStyle = C.warn; g.beginPath(); g.arc(120, 108, 16, -Math.PI / 2, -Math.PI / 2 + f * TAU); g.stroke();
-    T(120, 142, "CLEAR PATTERN", { a: "center", size: 9, c: C.warn }); dirty = true;
+    T(120, 142, "CAPTURE", { a: "center", size: 9, c: C.warn }); dirty = true;
   }
   if (picker) drawPicker();
   drawToast();
