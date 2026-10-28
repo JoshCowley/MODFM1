@@ -1,8 +1,8 @@
-# FM1 Rack 1.7 Manual
+# FM1 Rack 1.8 Manual
 
 Oct 26, 2026 · Josh Cowley
 
-FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.7 browser build, which runs the original module code.
+FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.8 browser build, which runs the original module code.
 
 ## Quick start
 
@@ -20,7 +20,7 @@ Turn **PRESETS** at any time to step through the 12 factory patches and your own
 
 FM1 Rack uses the FM-1 exactly as printed: four encoders on the left, the screen, four knobs and twelve buttons on the right, and two rows of keys. Coloured buttons open a slot; the colour matches that slot's pages on screen.
 
-*Diagram: the FM-1 panel map (8 encoders, 14 buttons, 27 keys).*
+&#91;embedded content: FM-1 panel map · 8 encoders, 14 buttons, 27 keys\]
 
 | Control | Turn or tap | Press again, or hold |
 | --- | --- | --- |
@@ -48,7 +48,7 @@ FM1 Rack uses the FM-1 exactly as printed: four encoders on the left, the screen
 
 Every slot page has the same four parts, so once you can read one module you can read them all.
 
-![The FILTER page with its four parts numbered](img/anatomy.png)
+![The FILTER page with its four parts numbered](../web/manual/img/anatomy.png)
 
 1. **Header.** The module's pixel icon, the slot tag in the slot's colour (SRC, SHP, MOD A, MOD B, FX 1, FX 2), the module name, and a dot for each page. The bright dot is the page you're on; turn **SELECT** to move between pages.
 2. **Live band.** An animation of what the module is doing right now, driven by the engine: waveforms for sources, ripples for Rings, a frequency curve for the filter, grains for Clouds, rolling marbles, the Grids drum map with its playhead. Each module's band is pictured in the Modules section.
@@ -57,7 +57,7 @@ Every slot page has the same four parts, so once you can read one module you can
 
 A white message box slides up for a moment after loading a module, changing patch or saving. On HOME the band is an output scope instead, and the cells are the four macro dials.
 
-![Every page, labelled with the button that opens it](img/g-pages.png)
+![Every page, labelled with the button that opens it](../web/manual/img/g-pages.png)
 
 *This picture shows 1.0. Since 1.1, SEL opens CHORD, SEQ opens the sequencer, and the shaper moved under ENV.*
 
@@ -65,7 +65,7 @@ A white message box slides up for a moment after loading a module, changing patc
 
 Each note runs through its own SRC → SHP → AMP chain. The voices are mixed, then pass through FX 1 and FX 2 to the output. Two MOD slots and the built-in sources feed the matrix, which can reach any parameter in the chain.
 
-*Diagram: the FM1 Rack signal chain (6 slots, 1 matrix).*
+&#91;embedded content: FM1 Rack signal chain · 6 slots, 1 matrix\]
 
 The dashed line is the matrix reaching back into every slot. Every slot except SRC can be empty. The gate bus decides when Peaks, Tides and Marbles fire: on each note, on Grids hits, or on a division of the GLOBAL tempo.
 
@@ -136,7 +136,7 @@ Fourteen modules fill the six slots. Ten are Mutable Instruments designs running
 
 ### Sources (SRC, press EDIT)
 
-![Plaits, Braids and Elements on screen](img/g-sources.png)
+![Plaits, Braids and Elements on screen](../web/manual/img/g-sources.png)
 
 #### Plaits
 
@@ -203,7 +203,7 @@ A full modal voice: a bow, a breath and a mallet exciting a resonating body. Ric
 
 The source plays into the shaper, one copy per voice. The slot can be left empty.
 
-![Rings, Warps and Filter on screen](img/g-shapers.png)
+![Rings, Warps and Filter on screen](../web/manual/img/g-shapers.png)
 
 #### Rings
 
@@ -251,7 +251,7 @@ A resonant state-variable filter with drive, opened by the AMP envelope. **Anima
 
 Modulators make no sound. Their outputs appear in the matrix as sources named after the slot: “A TIDES” is Tides in MOD A, “B PEAKS” is Peaks in MOD B. Their GATE or CLOCK setting picks a trigger from the gate bus: NOTE (any key), GRID (Grids hits), or 1/16, 1/8, 1/4, BAR of the GLOBAL tempo.
 
-![Peaks, Tides, Marbles and Grids on screen](img/g-mod.png)
+![Peaks, Tides, Marbles and Grids on screen](../web/manual/img/g-mod.png)
 
 #### Peaks
 
@@ -308,7 +308,7 @@ The topographic drum map: a library of rhythms you move through with X and Y. **
 
 The voices are mixed, then run through FX 1 and then FX 2. Either can be empty. Each effect can be loaded in only one of the two at a time; the module list marks the one already in use.
 
-![Clouds, Delay, Reverb and Chorus on screen](img/g-fx.png)
+![Clouds, Delay, Reverb and Chorus on screen](../web/manual/img/g-fx.png)
 
 #### Clouds
 
@@ -742,10 +742,20 @@ Thirty more presets follow the twelve above, in five categories named by their f
 
 ### Saving your own
 
-1. Press **SAVE**. The naming screen shows the patch's current name, a row of letter tiles and the 16 user slots.
+1. Press **SAVE**. The naming screen shows the patch's current name, its category, a row of letter tiles and one page of 16 user slots, each with its name and a category colour.
 2. Turn **SELECT** to move between letters, and **Knob 1** or **ALGORITHM** to change the letter under the cursor (space, A–Z, 0–9, −, #, .).
-3. Turn **Knob 2** to pick a user slot. It starts on the first empty one; a filled slot shows “REPLACES” and the name you'd overwrite.
-4. Press **SAVE** again to store, or **HOME** to cancel.
+3. Turn **Knob 2** to pick one of the 64 user slots, or **Knob 4** to jump a page (A–D, 16 slots each). It starts on the first empty slot; a filled slot shows “REPLACES” and the name you'd overwrite.
+4. Turn **Knob 3** to choose the category: NONE, BASS, PADS, LEAD, CHORD or FX. It starts on the current patch's category.
+5. Press **SAVE** again to store, or **HOME** to close.
+
+**The library (SAVE page 2).** On the naming screen, press **OCT+** (or turn SELECT past the last letter) to open a list of every factory and user preset.
+
+- **Knob 1** (or PRESETS) scrolls; **Knob 2** picks the tab: ALL, USER, BASS, PADS, LEAD, CHORD, FX or OTHER.
+- **Knob 3** picks what OCT+ does: **LOAD**, **COPY** (into the first empty user slot; copying a factory preset loads it first), **RENAME** (back to the naming screen; SAVE keeps the new name and the sound) or **DELETE** (press OCT+ twice).
+- Factory presets can be loaded and copied, but not renamed or deleted.
+- **OCT−** or **SAVE** goes back to the naming screen; **HOME** closes.
+
+User presets are stored compactly in this browser (empty patterns and steps are left out). Patches saved in 1.7 or earlier appear in slots U01–U16.
 
 User patches appear after the factory ones as U01 to U16 when you turn PRESETS. Factory patches are never overwritten: saving always writes to a user slot. In the browser, user patches and GLOBAL settings are kept by this browser on this device, the way the FM-1 keeps them in its flash. A private window forgets them when it closes.
 
