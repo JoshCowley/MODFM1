@@ -86,7 +86,7 @@ const entryKey = (e) => (e.u !== undefined ? `U${e.u}` : `F:${PRESETS[e.f].name}
 function entrySrc(e) { return e.u !== undefined ? userPatches[e.u].slots.SRC.mod : PRESETS[e.f].slots.SRC; }
 function filterList(list) {
   const f = LIB_FILTERS[lib.filter];
-  const out = f === "ALL" ? list : f === "FAVS" ? list.filter((e) => lib.favs.has(entryKey(e))) : f === "USER" ? list.filter((e) => e.u !== undefined) : LIB_CATS[f] ? list.filter((e) => e.name.replace(/^U\d\d /, "").startsWith(LIB_CATS[f])) : list.filter((e) => entrySrc(e) === f);
+  const out = f === "ALL" ? list : f === "FAVS" ? list.filter((e) => lib.favs.has(entryKey(e))) : f === "USER" ? list.filter((e) => e.u !== undefined) : LIB_CATS[f] ? list.filter((e) => CAT_NAMES[entryCat(e)] === f) : list.filter((e) => entrySrc(e) === f);
   // favourites first
   return [...out.filter((e) => lib.favs.has(entryKey(e))), ...out.filter((e) => !lib.favs.has(entryKey(e)))];
 }

@@ -165,27 +165,61 @@ function drawMatrix() {
 }
 function drawSave() {
   const st = saveState;
-  header("SAVE", C.fg, "NAME THIS PATCH", "SAVE");
+  if (st.view === "LIB") { drawLibrary(); return; }
+  header("SAVE", C.fg, st.rename >= 0 ? "RENAME" : "NAME + SLOT", "SAVE", 2, 0);
   const bob = Math.sin(animT * 3) * 2;
-  icon("SAVE", 10, 36 + bob, C.gold, 2);
-  const tgt = userPatches[st.slot];
-  T(40, 48, `TO U${String(st.slot + 1).padStart(2, "0")}`, { size: 14, c: C.gold });
-  T(40, 60, tgt ? `REPLACES ${tgt.name}`.slice(0, 26) : "EMPTY SLOT", { size: 9, c: tgt ? C.warn : C.dim });
+  icon("SAVE", 10, 34 + bob, C.gold, 2);
+  const tgt = userPatches[st.slot], pg = Math.floor(st.slot / 16);
+  T(40, 45, `${st.rename >= 0 ? "" : "TO "}${slotName(st.slot)}`, { size: 14, c: C.gold });
+  T(98, 45, `PAGE ${"ABCD"[pg]}`, { size: 9, c: C.dim });
+  rect(150, 34, 84, 15, CAT_COL[st.cat], 3); T(192, 45, CAT_NAMES[st.cat], { a: "center", size: 10, c: "#000" });
+  T(40, 58, st.rename >= 0 ? "SOUND IS KEPT" : tgt ? `REPLACES ${tgt.name}`.slice(0, 26) : "EMPTY SLOT", { size: 9, c: tgt && st.rename < 0 ? C.warn : C.dim });
   for (let i = 0; i < 10; i++) {
     const x = 11 + i * 22, on = i === st.cursor;
-    rect(x, 72, 19, 34, on ? "#2a2924" : "#141412", 3);
-    T(x + 9.5, 98, st.name[i] === " " ? "·" : st.name[i], { a: "center", size: 20, c: on ? C.gold : C.fg });
-    if (on) rect(x, 108, 19, 2, Math.floor(animT * 3) % 2 ? C.gold : "#7a6a3a");
+    rect(x, 64, 19, 30, on ? "#2a2924" : "#141412", 3);
+    T(x + 9.5, 87, st.name[i] === " " ? "·" : st.name[i], { a: "center", size: 18, c: on ? C.gold : C.fg });
+    if (on) rect(x, 96, 19, 2, Math.floor(animT * 3) % 2 ? C.gold : "#7a6a3a");
   }
-  // the 16 user slots
-  for (let i = 0; i < USER_SLOTS; i++) {
-    const x = 12 + (i % 8) * 28, y = 120 + Math.floor(i / 8) * 22, used = !!userPatches[i], sel = i === st.slot;
-    rect(x, y, 24, 18, used ? "#2b2a26" : "#121211", 3);
-    if (sel) frame(x - 1, y - 1, 26, 20, C.gold, 4);
-    T(x + 12, y + 13, String(i + 1).padStart(2, "0"), { size: 9, a: "center", c: used ? C.fg : C.dim });
+  // this page's 16 slots, with names and categories
+  for (let k = 0; k < 16; k++) {
+    const i = pg * 16 + k, p = userPatches[i], x = 4 + (k % 4) * 58, y = 104 + Math.floor(k / 4) * 22, sel = i === st.slot;
+    rect(x, y, 56, 20, p ? "#22211d" : "#111110", 3);
+    if (p) rect(x, y + 3, 2, 14, CAT_COL[p.cat || catOfName(p.name)]);
+    if (sel) frame(x - 1, y - 1, 58, 22, C.gold, 4);
+    T(x + 5, y + 9, String(i + 1).padStart(2, "0"), { size: 7, c: C.dim });
+    T(x + 5, y + 17, p ? p.name.replace(/^(BS|PD|LD|CH|FX) /, "").slice(0, 8) : "—", { size: 8, c: p ? C.fg : C.faint });
   }
-  T(8, 180, "SELECT MOVE · K1/ALGO LETTER · K2 SLOT", { size: 9, c: C.dim });
-  T(8, 198, "SAVE TO STORE · HOME TO CANCEL", { size: 10 });
+  T(120, 202, st.rename >= 0 ? "K1 LETTER · K3 CAT · SAVE KEEPS · HOME BACK" : "K1 LETTER K2 SLOT K3 CAT K4 PAGE · OCT+ LIB", { a: "center", size: 8, c: C.dim });
+  T(120, 211, st.rename >= 0 ? "" : "SAVE TO STORE · HOME TO CLOSE", { a: "center", size: 8, c: C.fg });
+  footer();
+}
+function drawLibrary() {
+  const st = saveState, L = st.lib, list = libList(), e = libEntry();
+  header("SAVE", C.fg, "LIBRARY", "SAVE", 2, 1);
+  const short = ["ALL", "USR", "BS", "PD", "LD", "CH", "FX", "OTH"];
+  short.forEach((t, i) => {
+    const x = 3 + i * 29.25, on = i === L.tab;
+    rect(x, 30, 27, 14, on ? (i >= 2 && i <= 6 ? CAT_COL[i - 1] : C.fg) : "#161614", 3);
+    T(x + 13.5, 40, t, { a: "center", size: 8, c: on ? "#000" : C.dim });
+  });
+  const rows = 7, top = clamp(L.ix - 3, 0, Math.max(0, list.length - rows));
+  if (!list.length) T(120, 110, L.tab === 1 ? "NO USER PRESETS YET" : "NOTHING IN THIS TAB", { a: "center", size: 11, c: C.dim });
+  for (let k = 0; k < rows && top + k < list.length; k++) {
+    const it = list[top + k], y = 48 + k * 20, sel = top + k === L.ix, cat = entryCat(it);
+    if (sel) { rect(3, y, 234, 18, "#25241f", 4); rect(3, y, 2, 18, C.gold); }
+    rect(9, y + 4, 3, 10, CAT_COL[cat]);
+    const loaded = it.name === patchName;
+    T(16, y + 13, (loaded ? "▸ " : "") + it.name.slice(0, 19), { size: 10, c: sel ? C.fg : loaded ? C.gold : "#bdbab1" });
+    if (lib.favs.has(entryKey(it))) T(196, y + 13, "★", { size: 9, c: C.gold });
+    T(232, y + 13, it.u !== undefined ? "USER" : "FACT", { a: "right", size: 8, c: it.u !== undefined ? C.gold : C.dim });
+  }
+  // scroll bar
+  if (list.length > rows) { rect(237, 48, 2, rows * 20, C.faint, 1); rect(237, 48 + (top / list.length) * rows * 20, 2, Math.max(6, rows / list.length * rows * 20), C.dim, 1); }
+  const act = LIB_ACTS[L.act], armed = act === "DELETE" && e && L.arm === e.u, can = !e ? false : (act === "LOAD" || act === "COPY" || e.u !== undefined);
+  rect(4, 190, 76, 18, armed ? C.warn : can ? "#2a2924" : "#151513", 4);
+  T(42, 203, armed ? "CONFIRM" : act, { a: "center", size: 11, c: armed ? "#000" : can ? C.gold : C.faint });
+  T(86, 198, `${list.length ? L.ix + 1 : 0}/${list.length} · ${userPatches.filter(Boolean).length}/64 USER`, { size: 8, c: C.dim });
+  T(86, 208, "K1 ROW K2 TAB K3 ACTION · OCT+ GO", { size: 8, c: C.dim });
   footer();
 }
 function drawPicker() {
@@ -219,7 +253,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.7", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.8", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -232,7 +266,7 @@ function render() {
   else if (page === "AMP") drawFixed(AMP, amp, "AMP", ["ADSR", "VOICE", "MOD ENV", `MODE ${VOICE_MODES[amp.p[A_MODE]]}`, "ENV SHAPE", "TRACKING"], "AMP", 6, [visAdsr, visVoices, visModEnv, visVoices, visAdsr, visModEnv][Math.min(subpage, 5)]);
   else if (page === "LFOS" && subpage >= LFOS.pages.length) drawLfoTgt(Math.min(2, subpage - LFOS.pages.length));
   else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3", "LFO 1 +", "LFO 2 +", "LFO 3 +"], "LFO", 8, visLfos);
-  else if (page === "SAVE") drawSave();
+  else if (page === "SAVE") { if (saveState) drawSave(); else page = "PERFORM"; }
   else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem][Math.min(subpage, 5)]);
   else if (page === "CHORD") drawFixed(CHORD, chd, "CHORD", [CHORD_TYPES[chd.p[C_TYPE]] === "OFF" ? "SCALE + KEY" : `${CHORD_TYPES[chd.p[C_TYPE]]} · ${VOICINGS[chd.p[C_VOICE]]}`, `QNT ${QNT_MODES[chd.p[C_QNT]]}${zoneOn() ? " · ZONE" : ""}`], "CHORD", -1, visChord);
   else if (isSeqPage()) drawSeq();

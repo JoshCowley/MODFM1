@@ -44,17 +44,27 @@ function encoder(role, k) {
   if ((ss.armed || (ss.free && !ss.free.t0)) && !ss.run && typeof role === "number") { recEncoder(role, k); draw(); return; }
   if (role === "presets" && page === "NOTES") { seqEncoder(role, k); draw(); return; }
   if (role === "presets") {
-    if (page === "SAVE") return;
+    if (page === "SAVE") { if (saveState.view === "LIB") { saveState.lib.ix += Math.sign(k); saveState.lib.arm = -1; libEntry(); draw(); } return; }
     const list = patchList();
     presetIx = (presetIx + k + list.length * 8) % list.length; loadPreset(presetIx); picker = null; engine(["all_off"]); sounding.clear(); refreshKeys();
     if (glo.p[G_MOUT] === 2) midiSend([0xC0 | (glo.p[G_OUTCH] & 15), presetIx & 127]);
     say(patchName, "HOME"); return;
   }
   if (page === "SAVE") {
-    const st = saveState;
-    if (role === "select") st.cursor = clamp(st.cursor + Math.sign(k), 0, 9);
-    else if (role === "algo" || role === 0) { const c = CHARS.indexOf(st.name[st.cursor]); st.name[st.cursor] = CHARS[(Math.max(0, c) + Math.sign(k) + CHARS.length) % CHARS.length]; }
-    else if (role === 1) st.slot = clamp(st.slot + Math.sign(k), 0, USER_SLOTS - 1);
+    const st = saveState, d = Math.sign(k);
+    if (st.view === "LIB") {
+      const L = st.lib;
+      if (role === "select") { if (d < 0) { st.view = "NAME"; st.cursor = 9; } }
+      else if (role === 0 || role === "algo") { L.ix += d; L.arm = -1; libEntry(); }
+      else if (role === 1) { L.tab = clamp(L.tab + d, 0, LIB_TABS.length - 1); L.ix = 0; L.arm = -1; }
+      else if (role === 2) { L.act = clamp(L.act + d, 0, LIB_ACTS.length - 1); L.arm = -1; }
+      draw(); return;
+    }
+    if (role === "select") { if (st.cursor === 9 && d > 0 && st.rename < 0) st.view = "LIB"; else st.cursor = clamp(st.cursor + d, 0, 9); }
+    else if (role === "algo" || role === 0) { const c = CHARS.indexOf(st.name[st.cursor]); st.name[st.cursor] = CHARS[(Math.max(0, c) + d + CHARS.length) % CHARS.length]; }
+    else if (role === 1 && st.rename < 0) st.slot = clamp(st.slot + d, 0, USER_SLOTS - 1);
+    else if (role === 2) st.cat = clamp(st.cat + d, 0, CATS.length - 1);
+    else if (role === 3 && st.rename < 0) st.slot = clamp((Math.floor(st.slot / 16) + d) * 16 + (st.slot % 16), st.slot % 16, USER_SLOTS - 16 + (st.slot % 16));
     draw(); return;
   }
   if (isSeqPage()) { seqEncoder(role, k); noteEdit(`SEQ ${page}`); draw(); return; }
@@ -263,11 +273,11 @@ function press(act) {
     picker = null; if (page !== slot.id) subpage = 0; page = slot.id; draw(); return;
   }
   picker = null;
-  if (act === "HOME") { if (page === "SAVE") { saveState = null; page = "PERFORM"; say("SAVE CANCELLED", "SAVE"); } else { page = page === "PERFORM" ? "RACK" : page === "RACK" ? "TOOLS" : "PERFORM"; subpage = 0; } }
+  if (act === "HOME") { if (page === "SAVE" && saveState.rename >= 0) { saveState.rename = -1; saveState.view = "LIB"; say("RENAME CANCELLED", "SAVE"); } else if (page === "SAVE") { saveState = null; page = "PERFORM"; say("SAVE CLOSED", "SAVE"); } else { page = page === "PERFORM" ? "RACK" : page === "RACK" ? "TOOLS" : "PERFORM"; subpage = 0; } }
   else if (FIXED[act]) { if (page !== act) subpage = 0; page = act; }
   else if (act === "MATRIX") page = "MATRIX";
   else if ([...SEQ_PAGES, "MSEQ"].includes(act)) { page = act; ss.sheet = null; }
-  else if (act === "SAVE") { if (page === "SAVE") commitSave(); else openSave(); }
+  else if (act === "SAVE") { if (page !== "SAVE") openSave(); else if (saveState.view === "LIB") { saveState.view = "NAME"; } else commitSave(); }
   else if (act === "PLAY") { if (ss.free) closeFreeTake(); else seqToggle(); }
   else if (act === "REC") recPress();
   draw();
@@ -275,6 +285,11 @@ function press(act) {
 // OCT- / OCT+: the octave; inside a layer, its job there; OCT+ held on NOTES opens the note's sheet, OCT+ / OCT- work it
 function octPress(dir) {
   if (ss.layer && layerOct(dir)) { draw(); return; }
+  if (page === "SAVE" && saveState) {   // OCT+ opens the library and does its action there; OCT- goes back to naming
+    if (saveState.view === "LIB") { if (dir > 0) libDo(); else { saveState.view = "NAME"; saveState.lib.arm = -1; } }
+    else if (dir > 0 && saveState.rename < 0) saveState.view = "LIB";
+    draw(); return;
+  }
   if (ss.sheet) { if (dir > 0) sheetDo(); else ss.sheet = null; draw(); return; }
   octave = clamp(octave + dir, -3, 3); say(`OCTAVE ${octave >= 0 ? "+" : ""}${octave}`);
 }

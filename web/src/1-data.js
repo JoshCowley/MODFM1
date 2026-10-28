@@ -136,14 +136,52 @@ function storeChord() { try { localStorage.setItem("fm1rack.chord.v2", JSON.stri
 
 const PRESETS = /*PRESETS*/[];
 let presetIx = 0, patchName = PRESETS[0].name;
-const USER_SLOTS = 16, STORE_KEY = "fm1rack.user.v1";
-let userPatches = (() => { try { const v = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); return Array.from({ length: USER_SLOTS }, (_, i) => v[i] || null); } catch { return Array(USER_SLOTS).fill(null); } })();
-function storeUser() { try { localStorage.setItem(STORE_KEY, JSON.stringify(userPatches)); return true; } catch { return false; } }
+// 64 user slots, 4 pages of 16. Saved compactly: empty banks and steps are left out, and the duplicate pattern is dropped.
+const USER_SLOTS = 64, STORE_KEY = "fm1rack.user.v2", OLD_STORE_KEY = "fm1rack.user.v1";
+const CATS = ["—", "BS", "PD", "LD", "CH", "FX"], CAT_NAMES = ["NONE", "BASS", "PADS", "LEAD", "CHORD", "FX"], CAT_COL = ["#7d7a72", "#ffb347", "#6aa9ff", "#ff8fc8", "#9be37a", "#b48cff"];
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+function packSnap(u) {
+  const o = { ...u, fmt: 2 }; delete o.seq;
+  o.banks = (u.banks || []).map((b) => {
+    if (!b || same(b, blankSeq())) return null;
+    const blank = blankStep(), sp = [];
+    b.steps.forEach((st, i) => { if (!same(st, blank)) sp.push([i, st]); });
+    const out = { ...b, sp }; delete out.steps; return out;
+  });
+  while (o.banks.length && o.banks[o.banks.length - 1] === null) o.banks.pop();
+  if (same(o.song, blankSong())) delete o.song;
+  if (typeof blankMseq === "function" && same(o.mseq, blankMseq())) delete o.mseq;
+  if (same(o.lfoTgt, blankLfoTgt())) delete o.lfoTgt;
+  return o;
+}
+function unpackSnap(o) {
+  if (!o || o.fmt !== 2) return o;
+  const u = { ...o };
+  u.banks = Array.from({ length: 8 }, (_, i) => {
+    const b = o.banks[i]; if (!b) return null;
+    const sq = { ...b, steps: Array.from({ length: MAXSTEPS }, blankStep) }; delete sq.sp;
+    for (const [i2, st] of b.sp) sq.steps[i2] = { ...blankStep(), ...st };
+    return sq;
+  });
+  return u;
+}
+let userPatches = (() => {
+  try {
+    let v = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    if (!v) v = JSON.parse(localStorage.getItem(OLD_STORE_KEY) || "[]");   // 1.7 and earlier: 16 slots, kept as U01–U16
+    return Array.from({ length: USER_SLOTS }, (_, i) => unpackSnap(v[i]) || null);
+  } catch { return Array(USER_SLOTS).fill(null); }
+})();
+function storeUser() { try { localStorage.setItem(STORE_KEY, JSON.stringify(userPatches.map((p) => p && packSnap(p)))); return true; } catch { return false; } }
+const slotName = (i) => `U${String(i + 1).padStart(2, "0")}`;
+// a patch's category: chosen when saved, or read from the name's prefix (BS, PD, LD, CH, FX)
+function catOfName(nm) { const k = CATS.indexOf(String(nm).replace(/^U\d\d /, "").slice(0, 2)); return k > 0 && /^.. /.test(String(nm).replace(/^U\d\d /, "")) ? k : 0; }
+function entryCat(e) { if (e.u !== undefined) { const p = userPatches[e.u]; return p && p.cat ? p.cat : catOfName(p ? p.name : ""); } return catOfName(PRESETS[e.f].name); }
 // the PRESETS encoder walks the factory patches, then the user slots that hold something
-function patchList(raw = false) { const all = [...PRESETS.map((p, i) => ({ f: i, name: p.name })), ...userPatches.map((p, i) => p && { u: i, name: `U${String(i + 1).padStart(2, "0")} ${p.name}` }).filter(Boolean)]; if (raw || typeof filterList !== "function") return all; const f = filterList(all); return f.length ? f : all; }
+function patchList(raw = false) { const all = [...PRESETS.map((p, i) => ({ f: i, name: p.name })), ...userPatches.map((p, i) => p && { u: i, name: `${slotName(i)} ${p.name}` }).filter(Boolean)]; if (raw || typeof filterList !== "function") return all; const f = filterList(all); return f.length ? f : all; }
 function fitParams(def, arr) { const d = blankParams(def); return d.map((v, i) => (arr && arr[i] !== undefined ? arr[i] : v)); }
-function loadPreset(i) {
-  const entry = patchList()[i] || { f: 0, name: PRESETS[0].name };
+function loadPreset(i) { loadEntry(patchList()[i] || { f: 0, name: PRESETS[0].name }); }
+function loadEntry(entry) {
   patchName = entry.name;
   if (entry.u !== undefined) { restoreSnap(userPatches[entry.u]); histReset(`LOADED ${patchName}`); return; }
   const pr = PRESETS[entry.f];
@@ -217,23 +255,77 @@ function snapshot(name) {
 }
 const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 let saveState = null;
+// SAVE page 1 names the patch and picks a slot and category; page 2 is the library of every preset
 function openSave() {
   const base = patchName.replace(/^U\d\d /, "").slice(0, 10).padEnd(10, " ");
+  const cur = typeof currentEntry === "function" ? currentEntry() : null;
   const free = userPatches.findIndex((p) => !p);
-  saveState = { name: base.split(""), cursor: 0, slot: free < 0 ? 0 : free, t0: animT };
+  saveState = { name: base.split(""), cursor: 0, slot: free < 0 ? 0 : free, cat: cur ? entryCat(cur) : catOfName(patchName), t0: animT, view: "NAME", rename: -1,
+                lib: { tab: 0, ix: 0, act: 0, arm: -1 } };
   page = "SAVE";
 }
 function commitSave() {
-  const name = saveState.name.join("").trim() || "UNTITLED";
-  userPatches[saveState.slot] = snapshot(name);
+  const st = saveState, name = st.name.join("").trim() || "UNTITLED";
+  if (st.rename >= 0) {   // renaming keeps the sound
+    const p = userPatches[st.rename]; const was = p.name; p.name = name; p.cat = st.cat;
+    if (patchName === `${slotName(st.rename)} ${was}`) patchName = `${slotName(st.rename)} ${name}`;
+    const ok = storeUser(); say(ok ? `RENAMED ${slotName(st.rename)}` : "RENAMED FOR THIS VISIT ONLY", "SAVE");
+    st.rename = -1; st.view = "LIB"; return;
+  }
+  userPatches[st.slot] = { ...snapshot(name), cat: st.cat };
   const ok = storeUser();
   const list = patchList();
-  presetIx = list.findIndex((e) => e.u === saveState.slot);
-  if (presetIx < 0) { lib.filter = 0; storeLib(); presetIx = patchList().findIndex((e) => e.u === saveState.slot); }
+  presetIx = list.findIndex((e) => e.u === st.slot);
+  if (presetIx < 0) { lib.filter = 0; storeLib(); presetIx = patchList().findIndex((e) => e.u === st.slot); }
   patchName = patchList()[presetIx].name;
   histReset(`SAVED ${name}`);
-  say(ok ? `SAVED TO U${String(saveState.slot + 1).padStart(2, "0")}` : "SAVED FOR THIS VISIT ONLY", "SAVE");
+  say(ok ? `SAVED TO ${slotName(st.slot)}` : "STORAGE FULL: SAVED FOR THIS VISIT ONLY", "SAVE");
   saveState = null; page = "PERFORM";
+}
+// the library: every factory and user preset, in category tabs
+const LIB_TABS = ["ALL", "USER", "BASS", "PADS", "LEAD", "CHORD", "FX", "OTHER"];
+const LIB_ACTS = ["LOAD", "COPY", "RENAME", "DELETE"];
+function libList() {
+  const t = LIB_TABS[saveState.lib.tab], all = patchList(true);
+  if (t === "ALL") return all;
+  if (t === "USER") return all.filter((e) => e.u !== undefined);
+  if (t === "OTHER") return all.filter((e) => entryCat(e) === 0);
+  return all.filter((e) => CAT_NAMES[entryCat(e)] === t);
+}
+function libEntry() { const l = libList(); const L = saveState.lib; L.ix = clamp(L.ix, 0, Math.max(0, l.length - 1)); return l[L.ix]; }
+function libSelectLoaded(e) {
+  let ix = patchList().findIndex((x) => (e.u !== undefined ? x.u === e.u : x.f === e.f));
+  if (ix < 0) { lib.filter = 0; storeLib(); ix = patchList().findIndex((x) => (e.u !== undefined ? x.u === e.u : x.f === e.f)); }
+  presetIx = Math.max(0, ix);
+}
+function libDo() {
+  const L = saveState.lib, e = libEntry(), act = LIB_ACTS[L.act];
+  if (!e) { say("NOTHING HERE", "SAVE"); return; }
+  if (act !== "DELETE") L.arm = -1;
+  if (act === "LOAD") {
+    loadEntry(e); libSelectLoaded(e); engine(["all_off"]); sounding.clear(); refreshKeys();
+    if (glo.p[G_MOUT] === 2) midiSend([0xC0 | (glo.p[G_OUTCH] & 15), presetIx & 127]);
+    say(patchName, "HOME"); return;
+  }
+  if (act === "COPY") {
+    const free = userPatches.findIndex((p) => !p);
+    if (free < 0) { say("ALL 64 SLOTS ARE FULL", "SAVE"); return; }
+    let snap;
+    if (e.u !== undefined) snap = JSON.parse(JSON.stringify(userPatches[e.u]));
+    else { loadEntry(e); libSelectLoaded(e); engine(["all_off"]); sounding.clear(); snap = { ...snapshot(PRESETS[e.f].name.slice(0, 10)), cat: entryCat(e) }; }   // a factory copy loads it first
+    userPatches[free] = snap;
+    const ok = storeUser(); say(ok ? `COPIED TO ${slotName(free)}` : "STORAGE FULL: COPY FOR THIS VISIT ONLY", "SAVE"); return;
+  }
+  if (e.u === undefined) { say("FACTORY: COPY IT FIRST", "SAVE"); return; }
+  if (act === "RENAME") {
+    const p = userPatches[e.u];
+    saveState.name = p.name.slice(0, 10).padEnd(10, " ").split(""); saveState.cursor = 0; saveState.slot = e.u; saveState.cat = entryCat(e);
+    saveState.rename = e.u; saveState.view = "NAME"; say(`RENAME ${slotName(e.u)}: SAVE TO KEEP`, "SAVE"); return;
+  }
+  if (L.arm !== e.u) { L.arm = e.u; say(`OCT+ AGAIN TO DELETE ${slotName(e.u)}`, "SAVE"); return; }
+  const gone = userPatches[e.u].name; userPatches[e.u] = null; L.arm = -1;
+  if (patchName === `${slotName(e.u)} ${gone}`) { const l = patchList(); presetIx = Math.min(presetIx, l.length - 1); }
+  const ok = storeUser(); say(ok ? `DELETED ${slotName(e.u)}` : "DELETED FOR THIS VISIT ONLY", "SAVE");
 }
 
 // ---------------------------------------------------------------- budget
