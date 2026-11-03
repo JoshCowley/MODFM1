@@ -1,0 +1,3 @@
+#pragma once
+#include <stdlib.h>
+namespace std { using ::abs; using ::rand; using ::malloc; using ::free; }

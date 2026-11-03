@@ -1,0 +1,2396 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FM1 Rack Manual</title>
+<style>
+:root{--bg:#f4f2ec;--fg:#1d1d1b;--dim:#6b6a65;--line:#d9d6cc;--acc:#b5532a;--code:#e8e4da}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--fg:#ecebe6;--dim:#9b998f;--line:#2e2d2a;--acc:#f0a46e;--code:#24231f}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 80px}
+a{color:var(--acc)}h1{font-size:2rem;line-height:1.2}h2{margin-top:2.6em;padding-top:.6em;border-top:1px solid var(--line)}h3{margin-top:1.8em}
+table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}th{background:var(--code)}
+img{max-width:100%;height:auto;border-radius:6px}code,kbd{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+.top{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px;font-weight:600}
+</style>
+<div class="top"><a href="../">← Back to FM1 Rack</a></div>
+<main>
+<h1>FM1 Rack 1.9.2 Manual</h1>
+<p>Oct 26, 2026 · Josh Cowley</p>
+<p>FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.9.2 browser build, which runs the original module code.</p>
+<h2>Quick start</h2>
+<p>You can go from switch-on to a saved patch of your own in five steps.</p>
+<ol>
+<li><strong>Switch on.</strong> Open the <a href="https://claude.ai/artifact/9mWJtyZhwxNKFmqPwhjQ3t">FM1 Rack browser build</a> and tap <strong>Switch on</strong> on the screen. The FM1 RACK logo plays, then the HOME page opens on the factory patch GLASS BELLS.</li>
+<li><strong>Play.</strong> Tap the keys; tapping lower on a key plays louder. On a computer, the bottom letter row (Z to /) plays the lower keys and Q to O plays the top octave.</li>
+<li><strong>Shape the sound.</strong> On HOME, Knobs 1–4 are the four macros. Each macro dial shows where it is routed underneath.</li>
+<li><strong>Look inside.</strong> Press <strong>EDIT</strong> to see the source module moving, <strong>ENV</strong> twice for the shaper, <strong>LFO</strong> for modulation, <strong>FX</strong> for effects. Turn <strong>ALGORITHM</strong> to browse other modules for that slot, then press the same button again to load one.</li>
+<li><strong>Keep it.</strong> Press <strong>SAVE</strong>, spell a name with <strong>SELECT</strong> and <strong>Knob 1</strong>, choose a user slot with <strong>Knob 2</strong>, and press <strong>SAVE</strong> again.</li>
+</ol>
+<p>Turn <strong>PRESETS</strong> at any time to step through the 12 factory patches and your own.</p>
+<h2>The panel</h2>
+<p>FM1 Rack uses the FM-1 exactly as printed: four encoders on the left, the screen, four knobs and twelve buttons on the right, and two rows of keys. Coloured buttons open a slot; the colour matches that slot's pages on screen.</p>
+<p>&#91;embedded content: FM-1 panel map · 8 encoders, 14 buttons, 27 keys]</p>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Turn or tap</th>
+<th>Press again, or hold</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MASTER</td>
+<td>Output volume</td>
+<td>—</td>
+</tr>
+<tr>
+<td>SELECT</td>
+<td>Next or previous page of the current slot; matrix row; step cursor on NOTES; letter position when saving. On HOME it flips to the rack view</td>
+<td>—</td>
+</tr>
+<tr>
+<td>PRESETS</td>
+<td>Step through the 12 factory patches, then your user patches</td>
+<td>—</td>
+</tr>
+<tr>
+<td>ALGORITHM</td>
+<td>Open the module list for the slot on screen and browse it. On NOTES it moves the cursor four steps; on GEN, right applies the tool and left undoes it</td>
+<td>Press that slot's button to load the highlighted module</td>
+</tr>
+<tr>
+<td>KNOB 1–4</td>
+<td>The four values on screen. On HOME, the four macros</td>
+<td>Hold HOME first to assign the knob to a macro (macro learn)</td>
+</tr>
+<tr>
+<td>OCT − / OCT +</td>
+<td>Shift the keys down or up an octave (±3). The button lights when shifted</td>
+<td>Hold OCT + on NOTES for the note's sheet. Inside a hold layer they do that layer's job</td>
+</tr>
+<tr>
+<td>FX</td>
+<td>FX 1</td>
+<td>Again for FX 2</td>
+</tr>
+<tr>
+<td>SEL</td>
+<td>SCALE, ROOT, CHORD and VOICING; SELECT to page 2 for QNT, HARMONY, ZONE and STRUM</td>
+<td>Lit green while chords or QNT are on. Hold for the SEL layer (key, chord, scale)</td>
+</tr>
+<tr>
+<td>ENV</td>
+<td>Amp: ADSR, voice and mod envelope pages (SELECT pages)</td>
+<td>Again for the shaper slot (SHP)</td>
+</tr>
+<tr>
+<td>LFO</td>
+<td>MOD A</td>
+<td>Again for MOD B, again for LFO 1–3, again for MOD SEQ (the modulation lanes)</td>
+</tr>
+<tr>
+<td>EDIT</td>
+<td>Source slot</td>
+<td>On NOTES, deletes the selected note. Hold for the EDIT layer (erase, shift, undo)</td>
+</tr>
+<tr>
+<td>GLO</td>
+<td>Global settings</td>
+<td>Hold for the GLO layer (fills, tap tempo)</td>
+</tr>
+<tr>
+<td>HOME</td>
+<td>Perform page (macros and scope)</td>
+<td>Again for the rack overview, a third time for TOOLS. Hold for macro learn</td>
+</tr>
+<tr>
+<td>SAVE</td>
+<td>Open the naming screen</td>
+<td>Again to store</td>
+</tr>
+<tr>
+<td>ARP</td>
+<td>Mod matrix; press again for the arpeggiator</td>
+<td>Hold for the ARP layer (note repeat)</td>
+</tr>
+<tr>
+<td>SEQ</td>
+<td>Sequencer: NOTES, the piano roll</td>
+<td>Again for PATTERN, SPICE and GEN in turn. Hold for the SEQ layer (steps, ratchets, locks)</td>
+</tr>
+<tr>
+<td>PLAY</td>
+<td>Start the sequencer</td>
+<td>Again to stop it</td>
+</tr>
+<tr>
+<td>REC</td>
+<td>Record into the pattern. Stopped, the first note starts it</td>
+<td>Again to stop recording or close a free take. Hold 1.2 s to capture what you just played</td>
+</tr>
+<tr>
+<td>Keys</td>
+<td>Play. Tap lower on a key for more velocity</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2>The screen</h2>
+<p>Every slot page has the same four parts, so once you can read one module you can read them all.</p>
+<p><img alt="The FILTER page with its four parts numbered" src="img/anatomy.png" /></p>
+<ol>
+<li><strong>Header.</strong> The module's pixel icon, the slot tag in the slot's colour (SRC, SHP, MOD A, MOD B, FX 1, FX 2), the module name, and a dot for each page. The bright dot is the page you're on; turn <strong>SELECT</strong> to move between pages.</li>
+<li><strong>Live band.</strong> An animation of what the module is doing right now, driven by the engine: waveforms for sources, ripples for Rings, a frequency curve for the filter, grains for Clouds, rolling marbles, the Grids drum map with its playhead. Each module's band is pictured in the Modules section.</li>
+<li><strong>Cells.</strong> One cell per knob. The big number is the value you set. When the matrix or a macro is moving that parameter, a bright marker on the bar shows where it really is, and the small number on the right gives its live value.</li>
+<li><strong>Footer.</strong> CPU and RAM use, one light per voice (it glows with that voice's envelope), then the sequencer's 16 steps while it runs or the last note played, and a stereo output meter.</li>
+</ol>
+<p>A white message box slides up for a moment after loading a module, changing patch or saving. On HOME the band is an output scope instead, and the cells are the four macro dials.</p>
+<p><img alt="Every page, labelled with the button that opens it" src="img/g-pages.png" /></p>
+<p><em>This picture shows 1.0. Since 1.1, SEL opens CHORD, SEQ opens the sequencer, and the shaper moved under ENV.</em></p>
+<h2>Signal chain</h2>
+<p>Each note runs through its own SRC → SHP → AMP chain. The voices are mixed, then pass through FX 1 and FX 2 to the output. Two MOD slots and the built-in sources feed the matrix, which can reach any parameter in the chain.</p>
+<p>&#91;embedded content: FM1 Rack signal chain · 6 slots, 1 matrix]</p>
+<p>The dashed line is the matrix reaching back into every slot. Every slot except SRC can be empty. The gate bus decides when Peaks, Tides and Marbles fire: on each note, on Grids hits, or on a division of the GLOBAL tempo.</p>
+<h2>Pages</h2>
+<p>There are eleven kinds of page. Every one is reached from a single button, and the button lights while you're on it.</p>
+<h3>HOME: perform</h3>
+<p>The page FM1 Rack opens on. The top strip is a live output scope. Below it are the four macros M1–M4 as dials; under each dial is the first destination it drives, with “+2” if it drives more. The dial glows when it moves. Along the bottom, seven small meters show MOD A, MOD B and LFO 1–3 at work.</p>
+<p>Turn <strong>Knob 1–4</strong> to play the macros. The last macro you touched is the one macro learn will assign (see Modulation).</p>
+<h3>HOME again: rack</h3>
+<p>Press <strong>HOME</strong> a second time (or turn <strong>SELECT</strong> on HOME) for the whole rack at a glance: each slot as a tile with its module's icon, dots travelling along the audio path, a pulsing speaker at the output, and the MOD slots and matrix underneath with their route count. The AMP tile shows how many voices the patch has.</p>
+<h3>Slot pages</h3>
+<p><strong>EDIT</strong> (source), <strong>ENV</strong> pressed twice (shaper), <strong>LFO</strong> (MOD A, MOD B) and <strong>FX</strong> (FX 1, FX 2) open slot pages. Each has the four parts described in The screen. Modules with more than four parameters have more pages; turn <strong>SELECT</strong> to move through them.</p>
+<p><strong>Swapping a module:</strong> on a slot page, turn <strong>ALGORITHM</strong>. A list opens with every module that fits that slot, its icon, and how many voices you'd have with it loaded. Modules that won't fit show why (“✕ CPU” or the RAM they need). Turn to highlight one; the bottom line describes it. Press the slot's own button to load it. Turning any other control closes the list without changing anything, so you can browse safely while playing.</p>
+<h3>ENV: amp, then the shaper</h3>
+<p>Three pages for what every voice shares:</p>
+<ul>
+<li><strong>ADSR:</strong> attack, decay, sustain, release. The band draws the envelope, and each sounding voice rides it as a dot.</li>
+<li><strong>VOICE:</strong> VEL AMT (how much velocity changes level), GLIDE (portamento, mono patches only), SPREAD (stereo spread of the voices), LEVEL (patch volume; 50 is unity, 100 is +12 dB). The band shows six voice meters with the notes they're playing.</li>
+<li><strong>MOD ENV:</strong> M ATTACK, M DECAY, M LOOP. A second, attack–decay envelope per voice for the matrix. With M LOOP on, it cycles while the key is held.</li>
+</ul>
+<p>Press <strong>ENV</strong> a second time for the SHP slot (Rings, Warps or Filter, or empty), and again to come back to AMP. Turn <strong>ALGORITHM</strong> there to swap the shaper and press <strong>ENV</strong> to load it.</p>
+<h3>LFO: LFO 1–3</h3>
+<p>Press <strong>LFO</strong> a third time. Three free LFOs for the matrix, one page each (SELECT). The band shows all three: the shape on the left and the live trace on the right, with the selected LFO brighter.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SHAPE</td>
+<td>SINE, TRI, SAW, SQUARE, S&amp;H (stepped random) or DRIFT (smooth random)</td>
+</tr>
+<tr>
+<td>RATE</td>
+<td>0.03 to 30 Hz when SYNC is FREE</td>
+</tr>
+<tr>
+<td>SYNC</td>
+<td>FREE, or locked to 1/16, 1/8, 1/4, 1/2, 1 BAR or 2 BARS of the GLOBAL tempo</td>
+</tr>
+<tr>
+<td>RETRIG</td>
+<td>ON restarts the cycle when you play after all keys were up</td>
+</tr>
+</tbody>
+</table>
+<h3>ARP: matrix</h3>
+<p>Twelve rows, six on screen. <strong>SELECT</strong> picks a row; <strong>Knob 1</strong> source, <strong>Knob 2</strong> destination, <strong>Knob 3</strong> amount (−100 to +100), <strong>Knob 4</strong> via. A small meter on each row shows the route's live output; dots travel along active rows. A destination shown in red belongs to a module that's no longer loaded: the row sleeps until that module comes back.</p>
+<h3>SEL: chords</h3>
+<p>Page 1: SCALE, ROOT, CHORD, VOICING. Page 2: QNT, HARMONY, ZONE, STRUM. The band is a two-octave keyboard: scale notes are tinted, the chord you play lights up note by note, and its name appears beside it with a ring that pulses on each new chord. See <strong>SEL: scale and chords</strong> under Playing.</p>
+<h3>SEQ: sequencer</h3>
+<p>The first press shows NOTES, a piano roll of the pattern; further presses give PATTERN, SPICE and GEN. Hold SEQ for the SEQ layer. See <strong>The sequencer</strong> under Playing.</p>
+<h3>GLO: global</h3>
+<p>Settings that belong to the instrument, not the patch; they're remembered between visits. See MIDI and GLOBAL settings for each one. The band shows a four-beat metronome, the tempo, and MIDI status.</p>
+<h3>SAVE</h3>
+<p>See Patches.</p>
+<h2>Modules</h2>
+<p>Fourteen modules fill the six slots. Ten are Mutable Instruments designs running Emilie Gillet's original code; FILTER, DELAY, REVERB and CHORUS are FM1 Rack's own. Values run 0–100 unless a range is given; ± values run −100 to +100.</p>
+<h3>Sources (SRC, press EDIT)</h3>
+<p><img alt="Plaits, Braids and Elements on screen" src="img/g-sources.png" /></p>
+<h4>Plaits</h4>
+<p>The macro oscillator: 24 models from analog shapes to speech and drums, each played with three macro controls. <strong>Animation:</strong> the waveform, reshaped by HARMO, TIMBRE and MORPH; noise models show a drifting dust field, drum models a burst per note.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MODEL</td>
+<td>One of 24 models (below)</td>
+</tr>
+<tr>
+<td>HARMO</td>
+<td>Harmonics: the model's main timbral axis, such as detune, chord type or FM ratio</td>
+</tr>
+<tr>
+<td>TIMBRE</td>
+<td>Brightness or the model's second axis</td>
+</tr>
+<tr>
+<td>MORPH</td>
+<td>The model's third axis, such as waveform blend or decay</td>
+</tr>
+<tr>
+<td>LPG</td>
+<td>OFF: the AMP envelope shapes every note. ON: Plaits' low-pass gate plucks each note, shaped by DECAY and COLOUR</td>
+</tr>
+<tr>
+<td>DECAY</td>
+<td>Length of the low-pass gate pluck (LPG ON)</td>
+</tr>
+<tr>
+<td>COLOUR</td>
+<td>From a plain level fade to a closing low-pass filter (LPG ON)</td>
+</tr>
+<tr>
+<td>LEVEL</td>
+<td>Output level of the source</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Models</th>
+<th>Character</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VA VCF, PAIR VA</td>
+<td>Analog-style oscillators, filtered or as a pair of classic waveforms</td>
+</tr>
+<tr>
+<td>PHASE D, WAVESHP, TERRAIN</td>
+<td>Phase distortion, waveshaping and wave-terrain oscillators</td>
+</tr>
+<tr>
+<td>6OP FM 1–3, 2OP FM</td>
+<td>Six-operator FM in three banks of patches, and simple two-operator FM</td>
+</tr>
+<tr>
+<td>ADDITIVE, WAVETBL, FORMANT</td>
+<td>Harmonic, wavetable and granular formant oscillators</td>
+</tr>
+<tr>
+<td>CHORDS, STR MACH, CHIPTUNE</td>
+<td>Chords, string-machine ensemble and chip-style voices</td>
+</tr>
+<tr>
+<td>SPEECH</td>
+<td>Vowels, formants and words</td>
+</tr>
+<tr>
+<td>SWARM, NOISE, PARTICLE</td>
+<td>A swarm of detuned voices, filtered noise and dust</td>
+</tr>
+<tr>
+<td>STRING, MODAL</td>
+<td>Plucked string and struck modal resonator</td>
+</tr>
+<tr>
+<td>BASS DR, SNARE, HI-HAT</td>
+<td>Analog-style drum voices</td>
+</tr>
+</tbody>
+</table>
+<h4>Braids</h4>
+<p>The older macro oscillator: 47 shapes from classic saws to physical models, with a bit crusher. Cheap on CPU, so it allows the most voices. <strong>Animation:</strong> three braided strands; lower BITS steps them, lower RATE turns them into stairs.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MODEL</td>
+<td>47 shapes: analog (CSAW to //uu), digital filters (ZLPF–ZHPF), formants (VOSM, VOWL, VFOF), additive and FM (HARM, FM, FBFM, WTFM), physical models (PLUK, BOWD, BLOW, FLUT, BELL, DRUM), percussion (KICK, CYMB, SNAR), wavetables (WTBL–WTx4), noise (NOIS–PRTC) and QPSK</td>
+</tr>
+<tr>
+<td>TIMBRE</td>
+<td>The shape's first parameter</td>
+</tr>
+<tr>
+<td>COLOR</td>
+<td>The shape's second parameter</td>
+</tr>
+<tr>
+<td>DRIFT</td>
+<td>Slow random pitch wander, for an analog feel</td>
+</tr>
+<tr>
+<td>BITS</td>
+<td>Bit depth, 2 to 16</td>
+</tr>
+<tr>
+<td>RATE</td>
+<td>Sample rate, 4 kHz to 48 kHz</td>
+</tr>
+<tr>
+<td>SIGN</td>
+<td>Adds a soft, asymmetric drive</td>
+</tr>
+<tr>
+<td>LEVEL</td>
+<td>Output level of the source</td>
+</tr>
+</tbody>
+</table>
+<h4>Elements</h4>
+<p>A full modal voice: a bow, a breath and a mallet exciting a resonating body. Rich and heavy: most patches get one voice. <strong>Animation:</strong> a vibrating string between two bridges; the bow, breath and mallet appear when used.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BOW</td>
+<td>Bow level</td>
+</tr>
+<tr>
+<td>BLOW</td>
+<td>Breath level</td>
+</tr>
+<tr>
+<td>STRIKE</td>
+<td>Mallet level</td>
+</tr>
+<tr>
+<td>CONTOUR</td>
+<td>Shape of the exciter's envelope, from percussive to swelling</td>
+</tr>
+<tr>
+<td>GEOMETRY</td>
+<td>Shape of the resonator: string, bar, plate, bell</td>
+</tr>
+<tr>
+<td>BRIGHT</td>
+<td>Brightness of the resonator</td>
+</tr>
+<tr>
+<td>DAMPING</td>
+<td>How fast the body stops ringing</td>
+</tr>
+<tr>
+<td>POSITION</td>
+<td>Where on the body it's excited</td>
+</tr>
+<tr>
+<td>FLOW</td>
+<td>Turbulence of the breath</td>
+</tr>
+<tr>
+<td>MALLET</td>
+<td>Mallet character</td>
+</tr>
+<tr>
+<td>BOW TMB</td>
+<td>Roughness of the bow</td>
+</tr>
+<tr>
+<td>SPACE</td>
+<td>Stereo width, rising into reverb</td>
+</tr>
+</tbody>
+</table>
+<h3>Shapers (SHP, press ENV twice)</h3>
+<p>The source plays into the shaper, one copy per voice. The slot can be left empty.</p>
+<p><img alt="Rings, Warps and Filter on screen" src="img/g-shapers.png" /></p>
+<h4>Rings</h4>
+<p>A resonator the source excites: strings, modal bodies and FM voices that ring on after the note. <strong>Animation:</strong> ripples spread from each note; more STRUCT adds rings, more DAMPING lets them travel further.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MODEL</td>
+<td>MODAL, SYMPATH (sympathetic strings), STRING, FM VOICE, SYM QNT (quantised sympathetic strings), STR+VERB</td>
+</tr>
+<tr>
+<td>STRUCT</td>
+<td>Structure: the spread of the partials or the chord of the strings</td>
+</tr>
+<tr>
+<td>BRIGHT</td>
+<td>Brightness</td>
+</tr>
+<tr>
+<td>DAMPING</td>
+<td>Higher values ring longer</td>
+</tr>
+<tr>
+<td>POSITION</td>
+<td>Where the body is excited, from muted to hollow</td>
+</tr>
+<tr>
+<td>EXCITE</td>
+<td>How hard the source drives the resonator</td>
+</tr>
+<tr>
+<td>MIX</td>
+<td>Source alone (0) to resonator alone (100)</td>
+</tr>
+<tr>
+<td>SPREAD</td>
+<td>Stereo width, from Rings' odd and even outputs</td>
+</tr>
+</tbody>
+</table>
+<h4>Warps</h4>
+<p>A cross-modulator: two signals combined by one sweeping algorithm, up to a vocoder. <strong>Animation:</strong> the carrier above, the modulator below, the result between them.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ALGO</td>
+<td>Sweeps through Warps' algorithms: crossfade, folding, analog and digital ring modulation, XOR, comparator, and vocoder at the top</td>
+</tr>
+<tr>
+<td>TIMBRE</td>
+<td>The algorithm's parameter</td>
+</tr>
+<tr>
+<td>CARRIER</td>
+<td>SINE, TRI or SAW: the shape of Warps' own oscillator when MOD IN is OSC</td>
+</tr>
+<tr>
+<td>MOD IN</td>
+<td>OSC: Warps' oscillator plays the note and your source modulates it. NOISE: your source is the carrier and noise the modulator. USB IN: audio from a computer over USB, on the FM-1 only; in the browser the source passes through</td>
+</tr>
+<tr>
+<td>CAR LVL</td>
+<td>Level into the carrier input</td>
+</tr>
+<tr>
+<td>MOD LVL</td>
+<td>Level into the modulator input</td>
+</tr>
+<tr>
+<td>MIX</td>
+<td>Source alone (0) to Warps alone (100)</td>
+</tr>
+</tbody>
+</table>
+<h4>Filter</h4>
+<p>A resonant state-variable filter with drive, opened by the AMP envelope. <strong>Animation:</strong> the filter's frequency curve with a moving spectrum underneath; the dotted gold line marks the cutoff, live.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TYPE</td>
+<td>LP, BP or HP</td>
+</tr>
+<tr>
+<td>CUTOFF</td>
+<td>Cutoff frequency</td>
+</tr>
+<tr>
+<td>RESO</td>
+<td>Resonance</td>
+</tr>
+<tr>
+<td>DRIVE</td>
+<td>Saturation before the filter</td>
+</tr>
+<tr>
+<td>ENV AMT</td>
+<td>± How far the AMP envelope moves the cutoff</td>
+</tr>
+<tr>
+<td>KEY TRK</td>
+<td>How far the cutoff follows the keyboard</td>
+</tr>
+</tbody>
+</table>
+<h3>Modulators (MOD A and MOD B, press LFO)</h3>
+<p>Modulators make no sound. Their outputs appear in the matrix as sources named after the slot: “A TIDES” is Tides in MOD A, “B PEAKS” is Peaks in MOD B. Their GATE or CLOCK setting picks a trigger from the gate bus: NOTE (any key), GRID (Grids hits), or 1/16, 1/8, 1/4, BAR of the GLOBAL tempo.</p>
+<p><img alt="Peaks, Tides, Marbles and Grids on screen" src="img/g-mod.png" /></p>
+<h4>Peaks</h4>
+<p>An envelope or LFO. <strong>Animation:</strong> a scrolling trace of its output. Output: <strong>PEAKS</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FUNC</td>
+<td>ENV (attack–decay, fired by GATE), LFO, or TAP (an LFO whose speed follows the time between gates)</td>
+</tr>
+<tr>
+<td>K1</td>
+<td>ENV: attack. LFO: rate. TAP: shape</td>
+</tr>
+<tr>
+<td>K2</td>
+<td>ENV: decay. LFO and TAP: shape</td>
+</tr>
+<tr>
+<td>GATE</td>
+<td>What fires or syncs it</td>
+</tr>
+</tbody>
+</table>
+<h4>Tides</h4>
+<p>A slope generator from Tides 2: one-shot or looping shapes with a curve and a slope. <strong>Animation:</strong> one cycle of the shape on the left, the live output scrolling on the right. Outputs: <strong>TIDES</strong> (swings both ways) and <strong>TIDE+</strong> (positive only).</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MODE</td>
+<td>AD (rise and fall on each gate), LOOP (free-running), AR (rise, hold while the gate is high, fall)</td>
+</tr>
+<tr>
+<td>FREQ</td>
+<td>Speed</td>
+</tr>
+<tr>
+<td>SHAPE</td>
+<td>Curve, from exponential to logarithmic</td>
+</tr>
+<tr>
+<td>SLOPE</td>
+<td>± Balance between the rise and the fall</td>
+</tr>
+<tr>
+<td>SMOOTH</td>
+<td>± Below zero smooths the shape; above zero folds it</td>
+</tr>
+<tr>
+<td>RANGE</td>
+<td>LO (slow) or MID (faster)</td>
+</tr>
+<tr>
+<td>GATE</td>
+<td>What fires it in AD and AR</td>
+</tr>
+</tbody>
+</table>
+<h4>Marbles</h4>
+<p>Random notes and gates from Marbles' T and X sections, with déjà vu loops. <strong>Animation:</strong> each new note drops a marble at its pitch and rolls it left, so you can watch the melody. Outputs: <strong>MARB X</strong> (a random voltage of 0–2 V; on PITCH at +100 each volt is one octave) and <strong>MARB T</strong> (a pulse on each random gate).</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RATE</td>
+<td>Speed of the random gates when CLOCK is FREE</td>
+</tr>
+<tr>
+<td>SPREAD</td>
+<td>How widely the notes are spread</td>
+</tr>
+<tr>
+<td>BIAS</td>
+<td>Leans the gates and notes one way</td>
+</tr>
+<tr>
+<td>STEPS</td>
+<td>Low values glide; high values snap the notes to C major</td>
+</tr>
+<tr>
+<td>DEJA VU</td>
+<td>0 is fully random, 50 repeats the loop exactly, above 50 shuffles it</td>
+</tr>
+<tr>
+<td>LENGTH</td>
+<td>Loop length: 1 to 16 steps</td>
+</tr>
+<tr>
+<td>JITTER</td>
+<td>Timing randomness</td>
+</tr>
+<tr>
+<td>CLOCK</td>
+<td>FREE, or 1/16, 1/8, 1/4 of the GLOBAL tempo</td>
+</tr>
+</tbody>
+</table>
+<h4>Grids</h4>
+<p>The topographic drum map: a library of rhythms you move through with X and Y. <strong>Animation:</strong> the three lanes (BD, SD, HH) across 32 steps with a moving playhead; dot size is each step's weight and lit dots are the ones that fire at the current FILL. Outputs: <strong>GRID</strong> (a short trigger on each hit) and <strong>ACCENT</strong> (accented hits). Its hits also drive the GRID gate.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>X, Y</td>
+<td>Position on the drum map</td>
+</tr>
+<tr>
+<td>FILL</td>
+<td>Density: how many steps fire</td>
+</tr>
+<tr>
+<td>OUT</td>
+<td>Which lane drives the outputs: BD, SD, HH or KIT (all three)</td>
+</tr>
+<tr>
+<td>CHAOS</td>
+<td>Random variation</td>
+</tr>
+</tbody>
+</table>
+<h3>Effects (FX 1 and FX 2, press FX)</h3>
+<p>The voices are mixed, then run through FX 1 and then FX 2. Either can be empty. Each effect can be loaded in only one of the two at a time; the module list marks the one already in use.</p>
+<p><img alt="Clouds, Delay, Reverb and Chorus on screen" src="img/g-fx.png" /></p>
+<h4>Clouds</h4>
+<p>The granular texture processor: it records what you play and replays it as clouds of grains, stretched, pitched or frozen. <strong>Animation:</strong> each grain as a short bar, placed by POSITION, lengthened by SIZE and drifting with PITCH; frozen grains turn white and stop.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POSITION</td>
+<td>Where in the recent past the grains are taken from</td>
+</tr>
+<tr>
+<td>SIZE</td>
+<td>Grain length</td>
+</tr>
+<tr>
+<td>PITCH</td>
+<td>± Transposition, up to two octaves either way</td>
+</tr>
+<tr>
+<td>DENSITY</td>
+<td>How many grains</td>
+</tr>
+<tr>
+<td>TEXTURE</td>
+<td>Grain envelope, from hard to soft and smeared</td>
+</tr>
+<tr>
+<td>BLEND</td>
+<td>Dry (0) to wet (100)</td>
+</tr>
+<tr>
+<td>SPREAD</td>
+<td>Stereo spread of the grains</td>
+</tr>
+<tr>
+<td>FEEDBACK</td>
+<td>Feeds the output back into the buffer</td>
+</tr>
+<tr>
+<td>REVERB</td>
+<td>Clouds' own reverb</td>
+</tr>
+<tr>
+<td>MODE</td>
+<td>GRANULR, STRETCH (time stretch and pitch shift), LOOPDLY (looping delay), SPECTRL (spectral)</td>
+</tr>
+<tr>
+<td>FREEZE</td>
+<td>ON holds the buffer: play over a frozen texture</td>
+</tr>
+</tbody>
+</table>
+<h4>Delay</h4>
+<p>A stereo ping-pong delay locked to the GLOBAL tempo. <strong>Animation:</strong> the echo taps as bars, each lower by FEEDBACK; every note sends echoes bouncing between left and right.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TIME</td>
+<td>1/16, 1/8, dotted 1/8, 1/4 or 1/2 of the tempo</td>
+</tr>
+<tr>
+<td>FEEDBACK</td>
+<td>How many repeats</td>
+</tr>
+<tr>
+<td>TONE</td>
+<td>Darker to brighter repeats</td>
+</tr>
+<tr>
+<td>MIX</td>
+<td>Level of the echoes</td>
+</tr>
+</tbody>
+</table>
+<p>Page 2: <strong>MODE</strong> PING (ping-pong, as before), MONO (both sides together) or TAPE (wow and flutter swing the echoes, and the repeats saturate as they pile up), and <strong>WOW</strong>, how much TAPE wobbles.</p>
+<h4>Reverb</h4>
+<p>The Clouds reverb as its own effect. <strong>Animation:</strong> sound bouncing round a room; the dots dim faster with more DAMP.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SIZE</td>
+<td>Length of the tail</td>
+</tr>
+<tr>
+<td>DAMP</td>
+<td>Darkens the tail</td>
+</tr>
+<tr>
+<td>DIFFUSE</td>
+<td>From distinct echoes to a smooth wash</td>
+</tr>
+<tr>
+<td>MIX</td>
+<td>Level of the reverb</td>
+</tr>
+</tbody>
+</table>
+<p>Page 2: <strong>TYPE</strong> PLATE (as before), HALL (a longer, darker tail) or SHIMMER (the tail is fed back an octave up, for pitched halos), <strong>PRE</strong> (pre-delay up to 150 ms) and <strong>SHIMMER</strong> (how much of the octave goes back in). In 1.2 the reverb needs 72K of RAM and 8 CPU units.</p>
+<h4>Chorus</h4>
+<p>A stereo chorus. <strong>Animation:</strong> three waves drifting against each other.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RATE</td>
+<td>Speed of the sweep</td>
+</tr>
+<tr>
+<td>DEPTH</td>
+<td>How far it sweeps</td>
+</tr>
+<tr>
+<td>WIDTH</td>
+<td>Stereo width</td>
+</tr>
+<tr>
+<td>MIX</td>
+<td>Level of the chorus</td>
+</tr>
+</tbody>
+</table>
+<h2>Modulation</h2>
+<p>Everything that moves a sound goes through one 12-row matrix on the <strong>ARP</strong> page. Each row reads: <em>source</em> × <em>amount</em>, scaled by <em>via</em>, added to a <em>destination</em>. Rows that share a destination add together. The matrix runs about 2,000 times a second.</p>
+<h3>Sources</h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Range</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M1–M4</td>
+<td>0 to 1</td>
+<td>The four macros: Knob 1–4 on HOME, or MIDI CC</td>
+</tr>
+<tr>
+<td>VELO</td>
+<td>0 to 1</td>
+<td>Per voice: how hard the note was played</td>
+</tr>
+<tr>
+<td>KEY TRK</td>
+<td>−1 to +1</td>
+<td>Per voice: note pitch, centred on C4, two octaves to full scale</td>
+</tr>
+<tr>
+<td>RANDOM</td>
+<td>−1 to +1</td>
+<td>Per voice: a new random value for each note</td>
+</tr>
+<tr>
+<td>AMP ENV</td>
+<td>0 to 1</td>
+<td>Per voice: the ADSR</td>
+</tr>
+<tr>
+<td>MOD ENV</td>
+<td>0 to 1</td>
+<td>Per voice: the attack–decay envelope on ENV page 3</td>
+</tr>
+<tr>
+<td>LFO 1–3</td>
+<td>−1 to +1</td>
+<td>The three built-in LFOs</td>
+</tr>
+<tr>
+<td>A … / B …</td>
+<td>depends</td>
+<td>Outputs of the module in MOD A or MOD B (see Modulators)</td>
+</tr>
+</tbody>
+</table>
+<h3>Destinations</h3>
+<p>Every parameter that moves continuously can be a destination. They are named by slot and label, such as SRC.TIMBRE, SHP.CUTOFF or FX 1.BLEND, plus AMP.ATTACK to AMP.M DECAY, the LFO rates, <strong>PITCH</strong> (+100 = one octave up) and <strong>PAN</strong>. Switches and model choices (MODEL, LPG, MODE, FREEZE and so on) can't be modulated.</p>
+<p>The list follows the rack: load a different module and its parameters appear. A row whose destination belongs to a module you've removed turns red and sleeps; it wakes again if that module returns.</p>
+<h3>Amount and via</h3>
+<p>AMOUNT runs from −100 to +100; at 100 a full-scale source sweeps the whole range of the destination. VIA multiplies the row by a second source: route LFO 1 to PITCH at a small amount with VIA set to M1, and Knob 1 on HOME becomes the vibrato depth. Leave VIA at — for a plain route.</p>
+<h3>Macro learn</h3>
+<p>The fastest way to build a patch. Hold <strong>HOME</strong> for half a second (or Shift-click it): a gold LEARN bar appears, naming the last macro you touched. Go to any slot, ENV or LFO page and turn a knob: instead of changing the parameter, you set how far that macro moves it. A matrix row is created the first time. Turn more knobs to give the same macro more targets. Tap <strong>HOME</strong> to finish. To learn for a different macro, nudge its knob on HOME first.</p>
+<h3>Gate bus</h3>
+<p>Peaks, Tides and Marbles need something to fire them. Their GATE or CLOCK parameter chooses from the gate bus: <strong>NOTE</strong> (high while any key is held), <strong>GRID</strong> (each Grids hit), or <strong>1/16</strong>, <strong>1/8</strong>, <strong>1/4</strong> and <strong>BAR</strong>, which tick at the GLOBAL tempo.</p>
+<h2>Deeper editing pages</h2>
+<p>1.4 adds pages after the existing ones on almost every menu: press the button again, or turn SELECT, to reach them. They are modelled on the hidden settings of the Mutable modules themselves (Braids' setup menu, Plaits' attenuverters and LPG settings, Rings' internal exciter, Clouds' quality button) and on the edit menus of current pro synths (Sequential's Prophet, ASM's Hydrasynth, Korg's minilogue xd, Arturia's MiniFreak).</p>
+<p>Every new control starts at a setting that leaves the sound as it was, so your saved patches and the factory patches sound the same as in 1.3. They are ordinary parameters: the matrix, macros, locks, undo, morph and the randomizer all reach them. The randomizer leaves the structural ones alone (octave, tune, quality, sync, VCA and exciter switches, gain).</p>
+<h3>ENV (AMP) pages 5 and 6</h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ENV SHAPE</td>
+<td>DELAY</td>
+<td>Waits up to 4 s before the attack starts</td>
+</tr>
+<tr>
+<td></td>
+<td>HOLD</td>
+<td>Holds the peak up to 4 s before the decay</td>
+</tr>
+<tr>
+<td></td>
+<td>A CURVE</td>
+<td>Attack shape: left is straighter (linear), right is punchier. The attack time stays the same</td>
+</tr>
+<tr>
+<td></td>
+<td>D CURVE</td>
+<td>Decay and release shape: left is straighter, right drops faster at first (snappier)</td>
+</tr>
+<tr>
+<td>TRACKING</td>
+<td>VEL&gt;ATK</td>
+<td>Harder notes get a shorter attack (or longer, turned left)</td>
+</tr>
+<tr>
+<td></td>
+<td>KEY&gt;TIME</td>
+<td>Higher notes get shorter attack, decay and release, as on an acoustic instrument</td>
+</tr>
+<tr>
+<td></td>
+<td>M SUST</td>
+<td>Gives the mod envelope a sustain level: it holds there while the key is down, then falls at M DECAY. Ignored when M LOOP is on</td>
+</tr>
+<tr>
+<td></td>
+<td>PITCH ENV</td>
+<td>The mod envelope bends the pitch, up to two octaves either way: a quick blip for drums and plucks, a slow rise for swells</td>
+</tr>
+</tbody>
+</table>
+<p>The ADSR band now draws DELAY, HOLD and both curves as the engine plays them.</p>
+<h3>LFO pages 4 to 6</h3>
+<p>LFO 1 +, LFO 2 + and LFO 3 + add four controls to each LFO: <strong>FADE</strong> (fades the LFO in after each new phrase, up to about 8 s, for delayed vibrato), <strong>PHASE</strong> (where the cycle starts), <strong>POLAR</strong> (BI swings both ways, UNI only upward, as a tremolo or filter opener should) and <strong>1SHOT</strong> (with a free rate, runs one cycle from each new phrase and stops, an extra envelope).</p>
+<h3>Sources</h3>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>New page</th>
+<th>Controls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PLAITS</td>
+<td>3</td>
+<td>OCTAVE (±3), FINE (±1 semitone), ENV&gt;TIMB, ENV&gt;MRPH: how far Plaits' own decay envelope moves TIMBRE and MORPH, as its attenuverters do with TRIG patched</td>
+</tr>
+<tr>
+<td>PLAITS</td>
+<td>4</td>
+<td>ENV&gt;FM (the same envelope on pitch), AUX MIX (fades to Plaits' AUX output: the sub-oscillator in FM, the hard-synced pair in VA, the raw exciter in the physical models)</td>
+</tr>
+<tr>
+<td>BRAIDS</td>
+<td>3</td>
+<td>OCTAVE, FINE, AD ATK, AD DEC: Braids' internal AD envelope from its setup menu</td>
+</tr>
+<tr>
+<td>BRAIDS</td>
+<td>4</td>
+<td>AD&gt;TIMB, AD&gt;COLR, AD&gt;PTCH (the envelope's amount on each), AD VCA (ON: the envelope also shapes the level, for plucks and drums)</td>
+</tr>
+<tr>
+<td>ELEMENTS</td>
+<td>4</td>
+<td>OCTAVE, FINE, BLOW TMB and STRK TMB (the blow and strike exciters' timbre, which were fixed before)</td>
+</tr>
+</tbody>
+</table>
+<h3>Shapers</h3>
+<p><strong>FILTER</strong> has three new types on page 1 (LP24, a steeper 24 dB low-pass; NOTCH; PEAK) and three new pages:</p>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Controls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2</td>
+<td>ENV AMT, KEY TRK, <strong>VEL AMT</strong> (velocity opens or closes the cutoff), <strong>ENV SRC</strong> (AMP, the filter's OWN envelope, or the MOD envelope)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>F ATK, F DEC, F SUS, F REL: the filter's own ADSR, used when ENV SRC is OWN</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>SAT</strong> (the drive stage: SOFT as before, HARD clipping, FOLD wavefolding, ASYM tube-like), <strong>AUDIO FM</strong> (the source moves the cutoff at audio rate, for growl and clang), <strong>GAIN</strong> (±12 dB after the filter)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>RINGS</strong> page 3: TUNE (±24 semitones), FINE, <strong>INT EXC</strong> (Rings' own pluck, so it rings with or without a source) and <strong>CHORD</strong> (the chord the SYM QNT model's strings are tuned to, 0–10).</p>
+<p><strong>WARPS</strong> page 2: <strong>CAR TUNE</strong> transposes the carrier against the note.</p>
+<h3>Modulators</h3>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Added</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PEAKS</td>
+<td>Page 2: SUSTAIN (the envelope gets a sustain level) and INVERT</td>
+</tr>
+<tr>
+<td>TIDES</td>
+<td>RANGE gains HI (fast cycles, up to the low audio range); INVERT on page 2</td>
+</tr>
+<tr>
+<td>MARBLES</td>
+<td>Page 3: SCALE (major, minor, pentatonic, pelog, Raag Bhairav, Raag Shri), T MODEL (the seven rhythm models of the T section), X RANGE (2 V as before, 5 V, ±5 V) and GATE LEN</td>
+</tr>
+<tr>
+<td>GRIDS</td>
+<td>Page 2: DECAY of the trigger envelopes</td>
+</tr>
+</tbody>
+</table>
+<h3>Effects</h3>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Added</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DELAY</td>
+<td>TIME gains 1/8T, 1/4T, 1/4D and 1/2D. Page 2: WIDTH (narrower or wider repeats), DUCK (the repeats dip while you play). Page 3: LO CUT (thins the repeats), SYNC (TEMPO, or FREE time), FREE MS (10 ms to 2 s)</td>
+</tr>
+<tr>
+<td>REVERB</td>
+<td>Page 2: LO CUT. Page 3: WIDTH and DUCK</td>
+</tr>
+<tr>
+<td>CHORUS</td>
+<td>Page 2: MODE (CHORUS, FLANGER, VIBRATO), FEEDBACK and DELAY</td>
+</tr>
+<tr>
+<td>CLOUDS</td>
+<td>Page 3: QUALITY (16-bit or 8-bit, stereo or mono, as the hardware's button; 8-bit is lo-fi). Page 4: IN GAIN, NOTE TRG (a grain on each new note) and PITCH TRK (grains follow the note you play), GRN SYNC. Pages 5 and 6: the granular controls below</td>
+</tr>
+</tbody>
+</table>
+<h3>Granular controls (Clouds, 1.5)</h3>
+<p>Clouds now has the controls of current granular instruments such as Make Noise's Morphagene, Hologram's Microcosm, the Tasty Chips GR-1 and Ableton's Granulator. They are made around Clouds' own engine, so they work best in GRANULR mode; in the other modes they add movement rather than shaping single grains.</p>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4</td>
+<td>GRN SYNC</td>
+<td>OFF, or fires a grain on every 1/16, 1/8, 1/4 or 1/2 note of the tempo. With DENSITY at 12 o'clock (no free grains) you get purely rhythmic grains</td>
+</tr>
+<tr>
+<td>5</td>
+<td>SPRAY</td>
+<td>Each grain starts at a random distance from POSITION</td>
+</tr>
+<tr>
+<td></td>
+<td>PITCH RND</td>
+<td>Each grain gets a random pitch, up to two octaves either way</td>
+</tr>
+<tr>
+<td></td>
+<td>PITCH QNT</td>
+<td>Keeps the random pitches musical: FREE, SEMI (semitones), 5TH+OCT (fifths and octaves) or OCT</td>
+</tr>
+<tr>
+<td></td>
+<td>SIZE RND</td>
+<td>Each grain is shortened by a random amount</td>
+</tr>
+<tr>
+<td>6</td>
+<td>SCAN</td>
+<td>The read position travels through the buffer by itself: right forwards, left backwards, faster further out. At 0 it stops and POSITION is in charge again</td>
+</tr>
+<tr>
+<td></td>
+<td>TONE</td>
+<td>Darkens (left) or thins (right) the granular signal only; the dry sound passes untouched. Just off zero the wet level can drop by about 1 dB, because the wet is taken out of Clouds and mixed again</td>
+</tr>
+</tbody>
+</table>
+<h3>Modulating the effects (1.5)</h3>
+<p>Every effect parameter can now be modulated, the switch-type ones too: DELAY TIME, MODE and SYNC, REVERB TYPE, CHORUS MODE, and Clouds' MODE, FREEZE, QUALITY, NOTE TRG, PITCH TRK, GRN SYNC and PITCH QNT. Modulation steps a switch through its options, so an LFO can flip FREEZE on and off or hop between delay times. Changing Clouds' QUALITY clears its buffer, so modulating it gives deliberate dropouts.</p>
+<p>Each LFO also has a <strong>TARGET</strong> page of its own (LFO pages 7, 8 and 9, after the LFO + pages): <strong>DEST A</strong> and <strong>DEST B</strong> (Knobs 1 and 3) and their <strong>AMT</strong> (Knobs 2 and 4). Turning DEST right goes through the effect parameters first, then everything else the matrix can reach. These targets don't use matrix rows, so the 12 rows stay free. They are saved with the patch; a destination whose module has been swapped out shows in orange and does nothing until the module returns.</p>
+<p>The CPU and RAM figures in <strong>Voices and the budget</strong> are unchanged. LP24 and AUDIO FM cost a little more than the other filter types; that will show up when the costs are measured on the FM-1.</p>
+<h2>Playing</h2>
+<h3>Keys, velocity and octave</h3>
+<p>The FM-1 has 27 keys, F to G across two rows. In the browser, how low you tap a key sets its velocity: near the top is soft, near the bottom is loud. <strong>VEL CURVE</strong> on the GLO page makes the response softer or harder. <strong>OCT −</strong> and <strong>OCT +</strong> shift the keys by up to three octaves either way; the button stays lit while shifted.</p>
+<p>How many notes play at once depends on the patch (see Voices and the budget). With one voice, playing legato glides from note to note at the AMP <strong>GLIDE</strong> setting.</p>
+<h3>Hold</h3>
+<p><strong>KBD HOLD</strong> is the HOLD setting on ARP page 2, with the arp's MODE on OFF. With it ON, notes keep sounding after you let go, and the next key or chord you play replaces them. Turn it OFF to release everything. Held notes keep playing while you change pages and turn knobs, which is the easiest way to sound-design with both hands free. With an arp mode on, the same setting keeps the arp playing the last notes.</p>
+<h3>SEL: scale and chords</h3>
+<p><strong>SEL</strong> sets the scale and turns each key into a chord. It follows ChordStep FM-1 (one key per chord, with the lowest keys changing the chord) and Melodee's CHRD, VOIC and QNT, made smaller to fit two pages.</p>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>SCALE</td>
+<td>Major, Minor, Dorian, Mixolydian, Pentatonic major and minor, Harmonic minor, Whole tone, Lydian</td>
+</tr>
+<tr>
+<td></td>
+<td>ROOT</td>
+<td>The key, C to B</td>
+</tr>
+<tr>
+<td></td>
+<td>CHORD</td>
+<td>OFF (single notes), TRIAD, 7TH, 9TH, 11TH, SUS4, 6TH or POWER</td>
+</tr>
+<tr>
+<td></td>
+<td>VOICING</td>
+<td>CLOSE (root position), LEAD (each chord moves as little as possible from the last, as a pianist's voice leading), OPEN (drop 2), INV1, INV2, +OCT (a low root added)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>QNT</td>
+<td>How the keys follow the scale: OFF (chromatic), SNAP (down to the scale), ALL (up to the next scale note) or WHITE (the white keys play the scale from C4 upward; black keys are silent)</td>
+</tr>
+<tr>
+<td></td>
+<td>HARMONY</td>
+<td>KEY: a key in the scale plays its own chord (in C major, C gives C, D gives Dm, B gives Bdim), and a key outside it borrows a major chord. FREE: every key plays the same quality (minor in a minor scale)</td>
+</tr>
+<tr>
+<td></td>
+<td>ZONE</td>
+<td>ON: while chords are on, the lowest seven keys change the chord (below)</td>
+</tr>
+<tr>
+<td></td>
+<td>STRUM</td>
+<td>Plays the chord's notes low to high, up to 80 ms apart</td>
+</tr>
+</tbody>
+</table>
+<p>With QNT on, the chord's root follows the scale as well. 9TH and 11TH fall back to a 7TH where the 9th would be flat, and SUS4 becomes SUS2 where the 4th would be augmented, as in the ChordForms engine.</p>
+<p><strong>The chord zone.</strong> While CHORD is on and ZONE is ON, the seven keys from F3 to B3 (the first seven on the keybed) don't play. Their labels show on the on-screen keys, and the chords play from C4 up. Hold them with a chord key:</p>
+<ul>
+<li><strong>Black keys force the quality:</strong> F#3 DIM, G#3 MIN, A#3 MAJ, and G#3 with A#3 together for SUS.</li>
+<li><strong>White keys add a note:</strong> F3 the 6th, G3 the minor 7th, A3 the major 7th, B3 the 9th. Added notes go on a plain triad, so G3 with B3 on G gives G9.</li>
+</ul>
+<p>Press a zone key while a chord is sounding and it changes straight away; letting go of the zone key keeps the chord. The CHORD band names the chord and shows the voicing and any zone keys held.</p>
+<p>Chords work from the keys, MIDI notes, the sequencer's step entry and REC recording. The SEL settings stay with the instrument, not the patch, and are remembered between visits. The SEL lamp stays green while chords or QNT are on. A chord needs a voice per note: if the patch has fewer, the CHORD page warns (for example “2 VOICES!”) and newer notes take over older voices.</p>
+<h3>The sequencer</h3>
+<p>Press <strong>SEQ</strong> for the sequencer's four pages in turn: <strong>NOTES</strong>, <strong>PATTERN</strong>, <strong>SPICE</strong> and <strong>GEN</strong>. A pattern has up to 64 steps. Each step holds up to six notes, each with its own length and level, plus a ratchet, a nudge, a chance, a fill condition, a slide and parameter locks. The pattern is part of the patch: SAVE stores it and loading a patch loads it.</p>
+<p><strong>PLAY</strong> starts and stops the sequencer from any page (<strong>Space</strong> on a computer). Its lamp is lit while the pattern runs and flashes on each beat. Starting restarts the gate bus and the modulation lanes, so Grids, the BAR gate and the lanes line up with step 1, and sends MIDI Start. MIDI Start, Continue and Stop from outside run it too.</p>
+<h3>Recording with REC</h3>
+<p><strong>REC</strong> records into the pattern.</p>
+<ul>
+<li><strong>Stopped:</strong> press REC and its lamp blinks. The first note you play (or PLAY) starts the sequencer, already recording.</li>
+<li><strong>Running:</strong> press REC to drop in, and again to drop out. The pattern keeps playing.</li>
+</ul>
+<p>Notes land where you play them, with the length you hold them, to a quarter of a step. Recording adds to what is there, so you can build a pattern in passes. On a MONO or LEGATO patch, notes played overlapping are written as slides. Knob turns on slot, AMP, LFO and HOME pages are written as locks on the step that is playing, so you can record a filter sweep step by step.</p>
+<p>While REC is waiting, the screen shows two take settings: <strong>MODE</strong> (Knob 1: TEMPO or FREE) and <strong>BARS</strong> (Knob 2: 1, 2 or 4, the length an empty pattern gets).</p>
+<p><strong>Free take.</strong> With MODE on FREE and an empty pattern, press REC and play freely, with no click and no grid. Press REC again to close the loop. The rack reads it as 1, 2 or 4 bars, whichever gives the tempo nearest the one set. If that is within 3% of the current tempo the tempo stays; otherwise the GLOBAL tempo changes to fit your playing, and the notes are placed on 16th steps.</p>
+<p><strong>Capture.</strong> Hold REC for 1.2 seconds (a ring fills on the screen) to keep what you just played without recording, as on Melodee. While the pattern runs, the notes you played in the last pass go into the current bank on the steps where you played them. While stopped, your last phrase (back to a two-second gap) becomes a loop of 1, 2 or 4 bars, as a free take does, and the tempo follows it. Undo takes it back. To clear a pattern, use CLEAR on the BANKS page.</p>
+<p><strong>Quantize.</strong> On the REC READY screen, Knob 3 sets <strong>QNT</strong>: ON places notes on the grid; OFF keeps your timing as each step's nudge.</p>
+<h3>The NOTES page</h3>
+<p>NOTES shows the pattern as a piano roll: pitch up the side, steps across, each note a bar as long as it lasts and as bright as it is loud. The cursor is a column; the selected note is outlined.</p>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>On NOTES</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SELECT</td>
+<td>Move the cursor a step</td>
+</tr>
+<tr>
+<td>ALGORITHM</td>
+<td>Move the cursor four steps</td>
+</tr>
+<tr>
+<td>PRESETS</td>
+<td>Zoom: 8, 16, 32 or 64 steps across</td>
+</tr>
+<tr>
+<td>Knob 1</td>
+<td>Walk from note to note through the pattern; each one plays as you reach it</td>
+</tr>
+<tr>
+<td>Knob 2</td>
+<td>The selected note's pitch</td>
+</tr>
+<tr>
+<td>Knob 3</td>
+<td>Its length, in quarter steps, up to 64 steps</td>
+</tr>
+<tr>
+<td>Knob 4</td>
+<td>Its level: GHOST, SOFT, NORM, HARD or ACC (accent)</td>
+</tr>
+<tr>
+<td>EDIT</td>
+<td>Delete the selected note</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step entry.</strong> When not recording, playing on NOTES writes into the cursor step, replacing what was there. Hold several keys before letting go to write a chord, or turn CHORD on and one key writes the whole chord. When you let go, the cursor moves on a step; set <strong>STEP ADV</strong> (GLOBAL page 6) to OFF to keep it in place.</p>
+<p><strong>The sheet.</strong> Hold <strong>OCT +</strong> for half a second on NOTES to open the selected note's sheet. Knob 1 picks a row and Knob 2 changes it: <strong>SLIDE</strong> (glide into the next step on a mono patch), <strong>NUDGE</strong> (early or late, up to half a step), <strong>FILL</strong> (see below) and <strong>MOVE</strong> (shift the note a step at a time). On <strong>COPY</strong> (puts a copy straight after the note) and <strong>DELETE</strong>, press OCT + to do it. OCT − closes the sheet.</p>
+<h3>PATTERN, SPICE and GEN</h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Knob 1</th>
+<th>Knob 2</th>
+<th>Knob 3</th>
+<th>Knob 4</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PATTERN</td>
+<td>LENGTH, 1–64 steps</td>
+<td>DIV: 1/4, 1/8, 1/16, 1/32, 8T, 16T, 1/2, 1 BAR or 2 BAR per step</td>
+<td>SWING: delays every second step (no effect on 8T or 16T)</td>
+<td>GATE: the length new notes get</td>
+</tr>
+<tr>
+<td>SPICE</td>
+<td>SPICE: how much the pattern varies</td>
+<td>DICE: another variation</td>
+<td>CHANCE: how often the cursor step plays</td>
+<td>FILL: the cursor step's fill condition</td>
+</tr>
+<tr>
+<td>GEN</td>
+<td>TOOL</td>
+<td>A</td>
+<td>B</td>
+<td>SEED</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SPICE</strong> adds rests, octave jumps and small changes of level and length to random steps; the more SPICE, the more steps change. The variation is fixed by <strong>DICE</strong>, so the same DICE number always gives the same pattern: turn it until you like one and leave it there. The PATTERN page's overview marks spiced steps.</p>
+<p><strong>Fills.</strong> A step's FILL condition is — (plays always), <strong>FILL</strong> (plays only during a fill) or <strong>NO FILL</strong> (rests during a fill). Fills are played from the GLO layer (below).</p>
+<p><strong>GEN</strong> builds or reworks the pattern in the CHORD KEY and SCALE. Pick a <strong>TOOL</strong>, set <strong>A</strong>, <strong>B</strong> and <strong>SEED</strong>, and turn <strong>ALGORITHM</strong> right to apply it; turn it left to undo. A and B are named on screen for each tool.</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>A / B</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EUCLID</td>
+<td>PULSES / ROTATE</td>
+<td>Spreads the pulses as evenly as possible across the length</td>
+</tr>
+<tr>
+<td>RANDOM</td>
+<td>DENSITY / LEAPS</td>
+<td>Random scale notes; LEAPS widens the jumps</td>
+</tr>
+<tr>
+<td>ACID</td>
+<td>DENSITY / SLIDES</td>
+<td>A 303-style line with accents and slides</td>
+</tr>
+<tr>
+<td>ARP UP, ARP UPDN</td>
+<td>OCTAVES / GATE</td>
+<td>Arpeggiates the scale chord</td>
+</tr>
+<tr>
+<td>BERLIN</td>
+<td>VARIANT / GATE</td>
+<td>A sequencer-school bass ostinato</td>
+</tr>
+<tr>
+<td>OCTAVES</td>
+<td>DENSITY / GATE</td>
+<td>Root and octave jumps</td>
+</tr>
+<tr>
+<td>OFFBEAT</td>
+<td>VARIANT / GATE</td>
+<td>Notes off the beat</td>
+</tr>
+<tr>
+<td>ROLLING</td>
+<td>DENSITY / GATE</td>
+<td>A rolling 16th bass line</td>
+</tr>
+<tr>
+<td>STABS</td>
+<td>DENSITY / 7THS</td>
+<td>Chord stabs</td>
+</tr>
+<tr>
+<td>PROGRESS</td>
+<td>VARIANT / 7THS</td>
+<td>A chord progression, one chord per bar</td>
+</tr>
+<tr>
+<td>GATES</td>
+<td>DENSITY / VARIANT</td>
+<td>Rhythm only: keeps the notes, changes which steps play</td>
+</tr>
+<tr>
+<td>SHIFT &gt;, SHIFT &lt;</td>
+<td>—</td>
+<td>Moves the pattern a step later or earlier</td>
+</tr>
+<tr>
+<td>REVERSE</td>
+<td>—</td>
+<td>Plays the pattern backwards</td>
+</tr>
+<tr>
+<td>DOUBLE, HALF</td>
+<td>—</td>
+<td>Doubles the pattern (up to 64 steps) or halves the length</td>
+</tr>
+<tr>
+<td>HUMANIZE</td>
+<td>VELO / NUDGE</td>
+<td>Small random changes of level and timing</td>
+</tr>
+<tr>
+<td>CLEAR</td>
+<td>—</td>
+<td>Empties the pattern</td>
+</tr>
+</tbody>
+</table>
+<h3>Banks and song</h3>
+<p>Modelled on Melodee's patterns and song, for the rack's single sound. The pattern you edit on NOTES, PATTERN, SPICE and GEN is one of eight <strong>banks</strong>, A to H; the NOTES title shows which one. DIV now reaches 4 BAR per step.</p>
+<p><strong>BANKS</strong> (the fifth press of SEQ) shows the eight banks with their notes in miniature: the playing bank is outlined, a queued one blinks.</p>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Knob 1, SELECT, or the first eight white keys</td>
+<td>Picks a bank. Stopped, it changes at once; running, it plays at the end of the current pass. Picking an empty bank arms REC on it</td>
+</tr>
+<tr>
+<td>Knob 2 ACTION</td>
+<td>COPY TO, CLEAR, DOUBLE (up to 64 steps) or HALVE, done by turning ALGORITHM right (left undoes)</td>
+</tr>
+<tr>
+<td>Knob 3 TARGET</td>
+<td>The bank COPY TO writes into</td>
+</tr>
+<tr>
+<td>Knob 4 SWITCH</td>
+<td>LOOP END (as above) or NOW</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SONG</strong> (the sixth press) chains banks in up to 16 rows. Knob 1 (or SELECT) picks the row; Knob 2 its BANK (END stops the song there); Knob 3 its REPEATS (1–16); Knob 4 a TRANSPOSE for that row (±12 semitones). Turn ALGORITHM right to switch the song on or off: PLAY then follows the rows and loops back to the first. Every pass you play is logged as you jam; turn ALGORITHM left to write that log into the song, with repeats of the same bank folded into one row.</p>
+<p>Banks and the song are saved with the patch. Patches from earlier versions load their pattern into bank A.</p>
+<h3>Hold layers</h3>
+<p>Hold <strong>SEQ</strong>, <strong>EDIT</strong>, <strong>ARP</strong>, <strong>GLO</strong> or <strong>SEL</strong> for a moment and its layer appears: a grid of tiles and dials over the page, and the keys, knobs and OCT buttons take on that layer's job while you hold it. Let go to leave. To keep a layer open, Shift-click its button, or tap <strong>HOME</strong> while holding it; the button blinks, and pressing any other button except PLAY and REC closes it. On every layer, <strong>SELECT</strong> changes the tempo.</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Keys</th>
+<th>Knobs</th>
+<th>OCT − / OCT +</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SEQ</td>
+<td>The 16 white keys are 16 steps. Tap one to add a step (with the layer's NOTE) or clear it. The first four black keys pick steps 1–16, 17–32, 33–48 or 49–64</td>
+<td>No step held: NOTE, DIV, SWING, LENGTH. Steps held: pitch, level, ratchet (1–4 hits) and nudge; PRESETS sets a lock on them and ALGORITHM picks the locked parameter (the last knob you turned to begin with)</td>
+<td>Page through the steps. With steps held, OCT + cycles their fill condition and OCT − clears their nudge, locks and fill</td>
+</tr>
+<tr>
+<td>EDIT</td>
+<td>Hold a key to erase that pitch: stopped, from the whole pattern; running, from each step it passes while you hold it</td>
+<td>Knob 1 shifts the pattern a step; Knob 2 doubles or halves the length; Knob 3 transposes it</td>
+<td>Undo and redo</td>
+</tr>
+<tr>
+<td>ARP</td>
+<td>Hold a key for note repeat, on the grid; while recording, the repeats are written as ratchets</td>
+<td>Knob 1: repeat rate (1/8, 1/16, 1/32, 32T, 1/64)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>GLO</td>
+<td>Hold the 9th white key for a fill; tap the 10th for a fill on the next bar; tap the last (16th) for tap tempo</td>
+<td>Knob 1: patch level</td>
+<td>—</td>
+</tr>
+<tr>
+<td>SEL</td>
+<td>A key sets the KEY</td>
+<td>CHORD, SCALE, QNT, VOICING</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>A step held on the SEQ layer and then released without turning anything toggles; once you turn a knob, the step is kept. Locks show with a gold L on the knob they sit on, and a step with locks but no notes changes the sound without playing a note.</p>
+<h2>Tools</h2>
+<p>Press <strong>HOME</strong> three times (HOME, the rack, then TOOLS). Turn <strong>SELECT</strong> for the four pages.</p>
+<p><strong>UNDO.</strong> Every change to the patch becomes a step once you stop turning: knobs, modules, the matrix, the sequencer and the mod lanes. Turn <strong>Knob 1</strong> left to go back through up to 16 steps and right to go forward; the band lists them. Turn <strong>Knob 2</strong> to ORIG to hear the patch as it was loaded, and back to EDIT for your changes. HOME shows a gold <strong>EDITED</strong> tag while your patch differs from what was loaded.</p>
+<p><strong>MORPH.</strong> Turn <strong>Knob 1</strong> right to store the current patch as A, change it, then turn <strong>Knob 2</strong> right to store B. <strong>Knob 3</strong> moves every parameter between them; switches and module choices change half way. <strong>Knob 4</strong> (VIA) hands the morph to a macro, so M1–M4 on HOME or a MIDI CC can sweep it. The band shows how far apart A and B are, parameter by parameter.</p>
+<p><strong>RANDOM.</strong> <strong>WHAT</strong> picks the section (SRC, SHP, AMP, MOD, FX, MATRIX or ALL) and <strong>AMOUNT</strong> how far it moves. Turn <strong>Knob 3</strong> right to roll; turn <strong>Knob 4</strong> left to go back. Levels and FREEZE are left alone.</p>
+<p><strong>LIBRARY.</strong> <strong>FILTER</strong> limits what PRESETS steps through: ALL, FAVS, USER, or the patches built on PLAITS, BRAIDS or ELEMENTS. <strong>FAVOURITE</strong> pins the current patch: favourites come first in every list and show a star. Both are remembered in this browser.</p>
+<h2>Arpeggiator</h2>
+<p>Press <strong>ARP</strong> twice (the matrix, then the arp). With MODE away from OFF, the keys and MIDI notes stop sounding directly and feed the arp instead; chords from SEL feed it too.</p>
+<table>
+<thead>
+<tr>
+<th>Page 1</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MODE</td>
+<td>OFF, UP, DOWN, UPDN, DNUP, RANDOM, ORDER (as played), CHORD (all together), REPEAT, UP+8, CONV (outside in), DIVG (inside out), PINKY (each note then the top), THUMB (the bottom then each note), TURING</td>
+</tr>
+<tr>
+<td>RATE</td>
+<td>1/4, 1/8, 1/8T, 1/16, 1/16T, 1/32 of the tempo</td>
+</tr>
+<tr>
+<td>OCTAVE</td>
+<td>1–4 octaves</td>
+</tr>
+<tr>
+<td>GATE</td>
+<td>Note length</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Page 2</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HOLD</td>
+<td>With an arp mode: the arp keeps playing the last notes after you let go; the next chord replaces them. With MODE on OFF this is KBD HOLD for the keys</td>
+</tr>
+<tr>
+<td>MUTATE</td>
+<td>TURING: how often a bit of the loop flips (0 locked, 100 wild)</td>
+</tr>
+<tr>
+<td>LOOP</td>
+<td>TURING: the loop's length, 1–16 steps</td>
+</tr>
+<tr>
+<td>SWING</td>
+<td>Delays every second note</td>
+</tr>
+</tbody>
+</table>
+<p><strong>TURING</strong> is a looping shift register in the spirit of Music Thing's Turing Machine: it picks notes from what you hold, repeats its loop, and changes it as often as MUTATE says. The band lights its bits. The ARP lamp stays lit while the arp is on. Arp settings belong to the instrument, not the patch.</p>
+<h2>Modulation sequencer</h2>
+<p>Press <strong>LFO</strong> four times for MOD SEQ: four lanes of 16 steps that run with the tempo, read by the matrix as <strong>SEQ 1</strong> to <strong>SEQ 4</strong>. <strong>SELECT</strong> moves the step cursor and <strong>ALGORITHM</strong> picks the lane.</p>
+<table>
+<thead>
+<tr>
+<th>Knob</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VALUE</td>
+<td>The cursor step's value, −100 to +100</td>
+</tr>
+<tr>
+<td>SHAPE</td>
+<td>Turn through RAMP+, RAMP−, TRI, SINE, SQR, RND, FLAT, INVERT and SHIFT to rewrite the lane; you hear each as you pass it</td>
+</tr>
+<tr>
+<td>RATE</td>
+<td>1/32 to 2 bars per step, for all lanes</td>
+</tr>
+<tr>
+<td>SMOOTH</td>
+<td>Glides between steps in this lane</td>
+</tr>
+</tbody>
+</table>
+<p>The lane being edited is drawn big with the playing step lit; the other three run underneath. The lanes are saved with the patch and restart with the sequencer, so they stay in time with it.</p>
+<h2>Patches</h2>
+<p>A patch is the whole rack: which module is in each slot, every parameter, the ENV and LFO pages, all 12 matrix rows, the four macro positions and the sequencer pattern with its locks. GLOBAL and CHORD settings stay with the instrument, not the patch.</p>
+<h3>Factory patches</h3>
+<p>Twelve patches, each built to show off a pairing. Their levels were balanced by rendering them through the engine, so you can switch between them without reaching for MASTER.</p>
+<table>
+<thead>
+<tr>
+<th>Patch</th>
+<th>Chain</th>
+<th>Macros M1 · M2 · M3 · M4</th>
+<th>Play it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GLASS BELLS</td>
+<td>Plaits 2-op FM → Rings modal → Clouds. Tides drifts the strike point; Peaks adds a velocity-scaled morph</td>
+<td>Timbre · Rings brightness · Clouds blend · Rings structure</td>
+<td>Chords</td>
+</tr>
+<tr>
+<td>ACID DRIFT</td>
+<td>Braids saw → resonant low-pass → Delay → Chorus. Grids accents drive the filter; Tides fires on Grids hits</td>
+<td>Cutoff · Resonance · Delay feedback · Timbre</td>
+<td>Low notes</td>
+</tr>
+<tr>
+<td>BOWED SPACE</td>
+<td>Elements bowed → Reverb. Marbles wanders the bow position</td>
+<td>Bow · Brightness · Reverb mix · Geometry</td>
+<td>Long single notes</td>
+</tr>
+<tr>
+<td>STRING MACH</td>
+<td>Plaits string machine → Chorus → Reverb. LFO 1 and LFO 2 move timbre and morph</td>
+<td>Timbre · Morph · Chorus depth · Reverb mix</td>
+<td>Slow chords</td>
+</tr>
+<tr>
+<td>SPEECH DUST</td>
+<td>Plaits speech → Clouds. Marbles picks the words</td>
+<td>Harmonics · Clouds density · Clouds blend · Marbles rate</td>
+<td>Hold one note (KBD HOLD helps)</td>
+</tr>
+<tr>
+<td>KARPLUS</td>
+<td>Braids pluck → Rings string → Delay. Velocity brightens</td>
+<td>Damping · Brightness · Delay feedback · Position</td>
+<td>Picked notes, soft and hard</td>
+</tr>
+<tr>
+<td>FOLDED BASS</td>
+<td>Braids wavefolder → low-pass. The mod envelope sweeps the fold</td>
+<td>Timbre · Color · Cutoff · Drive</td>
+<td>Low notes; set GLO VOICES to 1 for glide</td>
+</tr>
+<tr>
+<td>WARPED VOX</td>
+<td>Plaits formant → Warps vocoder → Reverb. Tides moves the vowel</td>
+<td>Warps algorithm · Warps timbre · Harmonics · Reverb mix</td>
+<td>Chords</td>
+</tr>
+<tr>
+<td>GRID GATE</td>
+<td>Braids wavetable → low-pass → Delay → Reverb. Grids chops the level</td>
+<td>Grids X · Grids Y · Grids fill · Timbre</td>
+<td>Hold a chord (KBD HOLD helps)</td>
+</tr>
+<tr>
+<td>FROZEN CLOUD</td>
+<td>Plaits chords → Clouds stretch. LFO 2 drifts the position over two bars</td>
+<td>Clouds size · Texture · Blend · Timbre</td>
+<td>Chords, then FREEZE on FX 1 page 3</td>
+</tr>
+<tr>
+<td>TIDAL FM</td>
+<td>Plaits 6-op FM → low-pass → Chorus → Delay. Tides sweeps the cutoff per note; Peaks pans</td>
+<td>Harmonics · Morph · Cutoff · Delay feedback</td>
+<td>Chords</td>
+</tr>
+<tr>
+<td>INIT</td>
+<td>Plaits virtual analog, nothing else</td>
+<td>Timbre · Morph</td>
+<td>A blank start</td>
+</tr>
+</tbody>
+</table>
+<p>ACID DRIFT (a 16th-note acid line with cutoff and resonance locks) and STRING MACH (four slow chords) also come with a sequencer pattern: load one and press <strong>PLAY</strong>.</p>
+<h3>The preset library (1.7)</h3>
+<p><strong>1.9.2 adds 25 presets</strong> across the electronic-music instrument types, with no drums, all built from the modules FM1 Rack Lite keeps (Plaits, Braids, Rings, the filter, Peaks, Tides, delay, reverb and chorus), so they play the same on the Lite page:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Presets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bass</td>
+<td>BS DEEP SUB, BS FM GROWL, BS PLUCKED, BS ROLLER, BS DUB ROUND</td>
+</tr>
+<tr>
+<td>Lead</td>
+<td>LD SAW SOLO, LD SYNC SWEEP, LD BREATH FLUT, LD SQUARE CHIP, LD RESO STRING</td>
+</tr>
+<tr>
+<td>Pads</td>
+<td>PD WARM ANALOG, PD CHOIR AAH, PD EVOLVING WT, PD SOFT STRING, PD GLASS AIR</td>
+</tr>
+<tr>
+<td>Keys, stabs, plucks, brass</td>
+<td>CH E-PIANO, CH DRAWBAR, CH HOUSE STAB, CH STRING PLK, CH MALLETS, CH SYNTH BRASS, CH PHASE KEYS</td>
+</tr>
+<tr>
+<td>FX and textures</td>
+<td>FX NOISE SWEEP, FX METAL RING, FX TIDAL DRONE</td>
+</tr>
+</tbody>
+</table>
+<p>CH HOUSE STAB plays a whole chord from one key (Plaits' CHORDS model). 1.9.2 also fixes shimmer tails that kept growing after a note ended (PD SHIMMER) and an FX DRONESPACE tail that never died away.</p>
+<p>Thirty more presets follow the twelve above, in five categories named by their first two letters. On the TOOLS LIBRARY page, set <strong>FILTER</strong> to BASS, PADS, LEAD, CHORD or FX to step through one category with PRESETS. Every preset has its four macros on Knobs 1–4 of HOME, and the levels are balanced to sit with the factory patches. Bass and Chord presets come with a pattern: press <strong>PLAY</strong> to hear it.</p>
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>Built from</th>
+<th>Macros (M1 · M2 · M3 · M4)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BS SUB MONO</td>
+<td>Plaits VA, 24 dB filter with its own envelope, legato glide</td>
+<td>Cutoff · Resonance · Env amount · Timbre</td>
+</tr>
+<tr>
+<td>BS ACID 303</td>
+<td>Braids saw, resonant filter with a short own envelope, asymmetric drive, legato slides and accent locks</td>
+<td>Cutoff · Resonance · Filter decay · Drive</td>
+</tr>
+<tr>
+<td>BS FM PLUCK</td>
+<td>Plaits 2-op FM through its gate, envelope on timbre</td>
+<td>Timbre · Ratio · Decay · Morph</td>
+</tr>
+<tr>
+<td>BS REESE</td>
+<td>Braids triple saw, two detuned voices per note, 24 dB filter, chorus</td>
+<td>Cutoff · Timbre · Drift · Drive</td>
+</tr>
+<tr>
+<td>BS WOBBLE</td>
+<td>Braids saw + sub, 24 dB filter opened by LFO 1 synced to 1/8 (the pattern locks it to other rates)</td>
+<td>Cutoff · Resonance · LFO rate · Drive</td>
+</tr>
+<tr>
+<td>BS FOLD GRIT</td>
+<td>Braids wavefolder with its AD envelope, folding filter drive, Grids accents</td>
+<td>Timbre · Cutoff · Drive · Fold envelope</td>
+</tr>
+<tr>
+<td>PD GLASSWASH</td>
+<td>Plaits additive into Clouds and a hall</td>
+<td>Timbre · Clouds blend · Texture · Reverb</td>
+</tr>
+<tr>
+<td>PD STRINGS</td>
+<td>Plaits string machine, filter, ensemble chorus, hall; vibrato fades in</td>
+<td>Cutoff · Morph · Chorus depth · Attack</td>
+</tr>
+<tr>
+<td>PD SHIMMER</td>
+<td>Plaits wavetable, ping-pong delay, shimmer reverb, slow sweeps</td>
+<td>Timbre · Shimmer · Cutoff · Reverb</td>
+</tr>
+<tr>
+<td>PD SYMPATH</td>
+<td>Braids saw swarm exciting Rings' sympathetic strings, hall</td>
+<td>Structure · Rings mix · Brightness · Reverb</td>
+</tr>
+<tr>
+<td>PD DARK DRONE</td>
+<td>Plaits swarm an octave down, 24 dB filter on a two-bar LFO, tape delay</td>
+<td>Cutoff · Morph · Delay feedback · Resonance</td>
+</tr>
+<tr>
+<td>PD VOX CHOIR</td>
+<td>Plaits formant, chorus, hall, slow vowel movement and late vibrato</td>
+<td>Vowel · Timbre · Formant · Reverb</td>
+</tr>
+<tr>
+<td>LD SYNC SCRM</td>
+<td>Braids sync saw, driven filter, ducking ping-pong delay, vibrato that fades in; the mod wheel adds colour</td>
+<td>Timbre · Cutoff · Delay · Sync envelope</td>
+</tr>
+<tr>
+<td>LD CHIP SQ</td>
+<td>Plaits chiptune, mono glide, ping-pong delay</td>
+<td>Timbre · Morph · Delay · Harmonics</td>
+</tr>
+<tr>
+<td>LD BREATH</td>
+<td>Elements blown tube, plate reverb; aftertouch (PRESS) blows harder</td>
+<td>Breath · Flow · Brightness · Geometry</td>
+</tr>
+<tr>
+<td>LD PWM SOLO</td>
+<td>Plaits classic waves with LFO pulse-width movement, filter with its own envelope, legato glide</td>
+<td>Cutoff · Width · Glide · Delay</td>
+</tr>
+<tr>
+<td>LD PHASE D</td>
+<td>Plaits phase distortion swept by the mod envelope</td>
+<td>Timbre · Harmonics · Morph · Reverb</td>
+</tr>
+<tr>
+<td>LD UNISON</td>
+<td>Braids CSAW, four detuned voices per note with VINTAGE, 24 dB filter</td>
+<td>Cutoff · Color · Resonance · Reverb</td>
+</tr>
+<tr>
+<td>CH FM EP</td>
+<td>Plaits 2-op FM through its gate, chorus, plate; a ii–V–iii–vi pattern</td>
+<td>Timbre · Decay · Chorus · Ratio</td>
+</tr>
+<tr>
+<td>CH POLY STAB</td>
+<td>Braids CSAW, short own filter envelope, dotted delay; offbeat stabs</td>
+<td>Cutoff · Filter decay · Delay · Resonance</td>
+</tr>
+<tr>
+<td>CH ORGAN</td>
+<td>Plaits additive drawbars through a vibrato chorus</td>
+<td>Drawbars · Vibrato rate · Harmonics · Vibrato mix</td>
+</tr>
+<tr>
+<td>CH PLUCK HARP</td>
+<td>Plaits plucked string, delay, hall; four five-note chords</td>
+<td>Timbre · Morph · Harmonics · Reverb</td>
+</tr>
+<tr>
+<td>CH GLASS PNO</td>
+<td>Plaits modal resonator, plate</td>
+<td>Timbre · Harmonics · Morph · Reverb</td>
+</tr>
+<tr>
+<td>CH DUSTY KEYS</td>
+<td>Braids FM at 8 bits and 22 kHz, filter, wobbling tape delay, VINTAGE</td>
+<td>Cutoff · Wow · Timbre · Delay</td>
+</tr>
+<tr>
+<td>FX RISER</td>
+<td>Plaits noise through a band-pass opened by a slow mod envelope that also lifts the pitch</td>
+<td>Resonance · Rise time · Delay · Reverb</td>
+</tr>
+<tr>
+<td>FX GRAINSTORM</td>
+<td>Plaits particles into Clouds with tempo-synced grains, spray and fifth/octave scatter</td>
+<td>Spray · Pitch scatter · Grain size · Blend</td>
+</tr>
+<tr>
+<td>FX ROBOT TALK</td>
+<td>Plaits speech with Marbles choosing the words</td>
+<td>Voice · Déjà vu · Timbre · Delay</td>
+</tr>
+<tr>
+<td>FX LASER ZAP</td>
+<td>Plaits FM with a fast falling pitch envelope into delay</td>
+<td>Pitch drop · Drop time · Timbre · Delay</td>
+</tr>
+<tr>
+<td>FX DRONESPACE</td>
+<td>Plaits wave terrain into Clouds scanning backwards and a shimmer reverb</td>
+<td>Scan · Morph · Feedback · Shimmer</td>
+</tr>
+<tr>
+<td>FX SAMPLEHOLD</td>
+<td>Braids sync square at 6 bits, random pitch and cutoff steps on 1/16s</td>
+<td>S&amp;H rate · Resonance · Delay · Timbre</td>
+</tr>
+</tbody>
+</table>
+<h3>Saving your own</h3>
+<ol>
+<li>Press <strong>SAVE</strong>. The naming screen shows the patch's current name, its category, a row of letter tiles and one page of 16 user slots, each with its name and a category colour.</li>
+<li>Turn <strong>SELECT</strong> to move between letters, and <strong>Knob 1</strong> or <strong>ALGORITHM</strong> to change the letter under the cursor (space, A–Z, 0–9, −, #, .).</li>
+<li>Turn <strong>Knob 2</strong> to pick one of the 64 user slots, or <strong>Knob 4</strong> to jump a page (A–D, 16 slots each). It starts on the first empty slot; a filled slot shows “REPLACES” and the name you'd overwrite.</li>
+<li>Turn <strong>Knob 3</strong> to choose the category: NONE, BASS, PADS, LEAD, CHORD or FX. It starts on the current patch's category.</li>
+<li>Press <strong>SAVE</strong> again to store, or <strong>HOME</strong> to close.</li>
+</ol>
+<p><strong>The library (SAVE page 2).</strong> On the naming screen, press <strong>OCT+</strong> (or turn SELECT past the last letter) to open a list of every factory and user preset.</p>
+<ul>
+<li><strong>Knob 1</strong> (or PRESETS) scrolls; <strong>Knob 2</strong> picks the tab: ALL, USER, BASS, PADS, LEAD, CHORD, FX or OTHER.</li>
+<li><strong>Knob 3</strong> picks what OCT+ does: <strong>LOAD</strong>, <strong>COPY</strong> (into the first empty user slot; copying a factory preset loads it first), <strong>RENAME</strong> (back to the naming screen; SAVE keeps the new name and the sound) or <strong>DELETE</strong> (press OCT+ twice).</li>
+<li>Factory presets can be loaded and copied, but not renamed or deleted.</li>
+<li><strong>OCT−</strong> or <strong>SAVE</strong> goes back to the naming screen; <strong>HOME</strong> closes.</li>
+</ul>
+<p>User presets are stored compactly in this browser (empty patterns and steps are left out). Patches saved in 1.7 or earlier appear in slots U01–U16.</p>
+<p>User patches appear after the factory ones as U01 to U16 when you turn PRESETS. Factory patches are never overwritten: saving always writes to a user slot. In the browser, user patches and GLOBAL settings are kept by this browser on this device, the way the FM-1 keeps them in its flash. A private window forgets them when it closes.</p>
+<h2>Voices and the budget</h2>
+<p>The FM-1's chip can only do so much arithmetic per second, so the rack keeps a running budget and tells you what each choice costs before you make it.</p>
+<h3>How the sums work</h3>
+<p>The budget is <strong>80 CPU units</strong> and a <strong>256K RAM pool</strong>. Every module has an estimated CPU cost and RAM need. The CPU figures are estimates; they'll stay estimates until each module is measured on the FM-1's chip.</p>
+<ul>
+<li><strong>Per-voice modules</strong> (SRC, SHP and the AMP's 1 unit) run once for every voice, so their cost is multiplied.</li>
+<li><strong>Shared modules</strong> (MOD A, MOD B, FX 1, FX 2) run once, whatever the voice count.</li>
+<li><strong>Voices</strong> = (80 − shared cost) ÷ per-voice cost, rounded down, capped at 6 (or at the GLOBAL <strong>VOICES</strong> setting).</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>CPU</th>
+<th>RAM</th>
+<th></th>
+<th>Module</th>
+<th>CPU</th>
+<th>RAM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plaits</td>
+<td>9 per voice</td>
+<td>8K</td>
+<td></td>
+<td>Peaks</td>
+<td>1</td>
+<td>1K</td>
+</tr>
+<tr>
+<td>Braids</td>
+<td>4 per voice</td>
+<td>2K</td>
+<td></td>
+<td>Tides</td>
+<td>1</td>
+<td>1K</td>
+</tr>
+<tr>
+<td>Elements</td>
+<td>40 per voice</td>
+<td>64K</td>
+<td></td>
+<td>Marbles</td>
+<td>3</td>
+<td>4K</td>
+</tr>
+<tr>
+<td>Rings</td>
+<td>14 per voice</td>
+<td>40K</td>
+<td></td>
+<td>Grids</td>
+<td>1</td>
+<td>2K</td>
+</tr>
+<tr>
+<td>Warps</td>
+<td>10 per voice</td>
+<td>8K</td>
+<td></td>
+<td>Clouds</td>
+<td>22</td>
+<td>118K</td>
+</tr>
+<tr>
+<td>Filter</td>
+<td>2 per voice</td>
+<td>1K</td>
+<td></td>
+<td>Delay</td>
+<td>3</td>
+<td>64K</td>
+</tr>
+<tr>
+<td>AMP</td>
+<td>1 per voice</td>
+<td>—</td>
+<td></td>
+<td>Reverb</td>
+<td>6</td>
+<td>32K</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>Chorus</td>
+<td>2</td>
+<td>4K</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Worked example, GLASS BELLS.</strong> Plaits 9 + Rings 14 + AMP 1 = 24 per voice. Tides 1 + Peaks 1 + Clouds 22 = 24 shared. (80 − 24) ÷ 24 = 2.3, so 2 voices, using 72 of 80 units and 168K of RAM.</p>
+<h3>What the factory patches get</h3>
+<table>
+<thead>
+<tr>
+<th>Voices</th>
+<th>Patches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>6</td>
+<td>ACID DRIFT, STRING MACH, FOLDED BASS, GRID GATE, TIDAL FM, INIT</td>
+</tr>
+<tr>
+<td>5</td>
+<td>SPEECH DUST, FROZEN CLOUD</td>
+</tr>
+<tr>
+<td>4</td>
+<td>KARPLUS</td>
+</tr>
+<tr>
+<td>3</td>
+<td>WARPED VOX</td>
+</tr>
+<tr>
+<td>2</td>
+<td>GLASS BELLS</td>
+</tr>
+<tr>
+<td>1</td>
+<td>BOWED SPACE (Elements is the heaviest module by far)</td>
+</tr>
+</tbody>
+</table>
+<h3>Where you see it</h3>
+<ul>
+<li><strong>Footer, on every page:</strong> a CPU bar and a RAM bar (they turn red above 72 units or 85% of the pool), six voice lamps (one for each voice you have, glowing with that voice's envelope) and the stereo output meter.</li>
+<li><strong>RACK page:</strong> the AMP tile shows the voice count, for example “AMP · 2V”.</li>
+<li><strong>Module picker:</strong> every candidate shows the voices you'd have after loading it, or ✕ with the reason it won't fit (“✕ CPU”, “✕ 118K RAM”). Modules that don't fit can't be loaded. Make room by emptying a slot or choosing a lighter module elsewhere.</li>
+<li><strong>AMP page 2 (VOICE):</strong> a larger view of the voices and the note each one is playing.</li>
+</ul>
+<h3>When you play more notes than there are voices</h3>
+<p>A new note takes a free voice first. If none are free it takes the voice that was released longest ago, and if every voice is still held it takes the oldest held note.</p>
+<p>With one voice (Elements patches, or VOICES set to 1) the rack plays <strong>mono legato</strong>: a note played while another is held changes pitch without restarting the envelopes, and <strong>GLIDE</strong> on AMP page 2 slides between them. Glide only works in mono.</p>
+<h3>Voice modes and VINTAGE</h3>
+<p>AMP page 4 (<strong>MODE</strong>):</p>
+<table>
+<thead>
+<tr>
+<th>MODE</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POLY</td>
+<td>As above</td>
+</tr>
+<tr>
+<td>MONO</td>
+<td>One voice; every note restarts the envelopes</td>
+</tr>
+<tr>
+<td>LEGATO</td>
+<td>One voice; overlapping notes glide without restarting (GLIDE works here and in MONO)</td>
+</tr>
+<tr>
+<td>UNI 2, UNI 4</td>
+<td>Each note plays 2 or 4 voices spread by <strong>DETUNE</strong> (up to 30 cents). A UNI 4 note uses four of your voices</td>
+</tr>
+</tbody>
+</table>
+<p><strong>VINTAGE</strong> makes the voices behave like an analog poly's: each voice gets its own small fixed tuning error (up to 6 cents), a slow drift (up to 5 cents), and each note a little of its own. At 0 it does nothing.</p>
+<h2>GLOBAL settings and MIDI</h2>
+<p>Press <strong>GLO</strong> for the instrument-wide settings. They aren't part of any patch, and they're remembered between visits. The visual on page 1 flashes the beat (gold on the downbeat), shows the tempo and reports MIDI: how many inputs are connected, “NO MIDI INPUT”, or “MIDI BLOCKED HERE” if the browser refused access. The MIDI icon lights green while messages arrive.</p>
+<h3>Page 1</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Range</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TEMPO</td>
+<td>60–180 BPM, default 112</td>
+<td>Drives the gate bus (GRID, 1/16, 1/8, 1/4, BAR), synced LFOs, Delay time, the Marbles clock, the arp and the sequencer</td>
+</tr>
+<tr>
+<td>MIDI CH</td>
+<td>OMNI, 1–16</td>
+<td>Which channel the rack listens to. OMNI takes every channel</td>
+</tr>
+<tr>
+<td>VOICES</td>
+<td>AUTO, 1–6</td>
+<td>AUTO gives as many voices as the budget allows, up to 6. A number caps it lower; 1 gives mono legato with glide</td>
+</tr>
+<tr>
+<td>CLOCK</td>
+<td>INT, MIDI</td>
+<td>INT uses TEMPO. MIDI follows incoming MIDI clock</td>
+</tr>
+</tbody>
+</table>
+<h3>Page 2</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Range</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VEL CURVE</td>
+<td>0–100, default 50</td>
+<td>50 is linear. Higher values make soft playing louder (a light touch); lower values need a firmer hit to get loud</td>
+</tr>
+<tr>
+<td>ANIMATION</td>
+<td>FULL, CALM, STILL</td>
+<td>FULL redraws at about 30 frames a second. CALM slows the motion to under half speed at 20 frames. STILL freezes the moving graphics and updates values only. If your system asks for reduced motion, the rack starts on CALM</td>
+</tr>
+<tr>
+<td>LED BRIGHT</td>
+<td>0–100</td>
+<td>Brightness of the button lamps</td>
+</tr>
+</tbody>
+</table>
+<h3>Page 3: TUNING</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TUNING</td>
+<td>EQUAL, JUST (5-limit), PYTHAG, MEANTONE (quarter-comma), WERCK III, KIRNB III, RAST and BAYATI (maqam neutral intervals), SLENDRO, PELOG, 19-EDO, 24-EDO, 31-EDO</td>
+</tr>
+<tr>
+<td>T ROOT</td>
+<td>The tonic the tuning is built on</td>
+</tr>
+<tr>
+<td>A4 HZ</td>
+<td>The reference pitch, 400–480 Hz (432, 415, 442…), under every tuning</td>
+</tr>
+<tr>
+<td>BEND</td>
+<td>The pitch bend range, 0–24 semitones</td>
+</tr>
+</tbody>
+</table>
+<p>Twelve-note tunings keep the keyboard as it is and retune each note. SLENDRO (5 notes), PELOG (7) and the EDOs map consecutive keys to consecutive steps, so a 19-EDO octave spans 19 keys. The band shows each degree against equal temperament.</p>
+<h3>Page 4: MIDI</h3>
+<p>PROG CHG (program changes load patches), MIDI OUT (OFF, NOTES, or +CC), OUT CH (1–16) and LOCAL (ON, or OFF so the keys only send MIDI). See <strong>MIDI over USB</strong> below.</p>
+<h3>Page 5: MASTER</h3>
+<p>LOW EQ (a shelf at 150 Hz), MID EQ (a peak at 1 kHz) and HIGH EQ (a shelf at 5 kHz), each ±12 dB (MID ±10), and <strong>COMP</strong>, one knob for a bus compressor that lowers the threshold from −6 to −30 dB and raises the ratio from 2:1 to 4:1, with make-up gain. After it, a limiter looks 1 ms ahead so loud attacks are already turned down when they arrive. The band draws the EQ curve and two meters for the compressor's and limiter's gain reduction. EQ and COMP are part of the instrument, not the patch.</p>
+<h3>Page 6: SYSTEM</h3>
+<p>A live readout of the audio engine: <strong>CPU</strong> (the share of real time spent rendering), <strong>PEAK</strong> (the slowest recent block) and <strong>LATE</strong> (blocks that took longer than real time, each a possible click), with a graph, beside the FM-1 budget estimate in units. These are browser measurements; on the FM-1 the same readout will tell us the real costs.</p>
+<p><strong>STEP ADV</strong> (ON or OFF): whether the NOTES cursor moves on a step after you enter a note.</p>
+<p><strong>HARDWARE (page 7, new in 1.9): the FM-1 preview.</strong> FM1 Rack is not FM-1 firmware yet. This page makes the browser version behave as closely as currently possible to what would fit on the real FM-1.</p>
+<ul>
+<li><strong>TARGET</strong>: FM-1 (the default) applies the limits below; BROWSER removes them (6 voices of anything, 2 s delay).</li>
+<li><strong>FREE RAM</strong> (256K, 384K or 512K): memory left for sound. The FM-1's RAM isn't published; about 578 KB of SRAM is unverified, and the firmware, a 240×240 screen buffer and audio buffers need some of it. 384K is the middle guess.</li>
+<li><strong>CPU SPEED</strong> (SLOW, MID or FAST): how fast the Mutable code runs on the FM-1's pi32v2 core, which no one has measured yet.</li>
+</ul>
+<p>In FM-1 mode each module's memory is its exact size in the firmware-ready engine (the repo's <code>firmware/</code> folder, measured as a 32-bit build): Plaits 24.7 KB per voice, Braids 16.6 KB, Rings 171.9 KB and Elements 174.9 KB per voice, Warps 71 KB per voice, Clouds 180 KB, the delay 187.5 KB, the reverb 72 KB, the chorus 16 KB, plus 44 KB for the engine itself. Each module's CPU cost is measured relative to the others. The voice count drops to what fits; the footer's CPU or RAM label turns gold when it is the limit. If a patch can't fit even one voice, the preview does what the FM-1 engine does: it unloads FX 2, then FX 1, then the shaper, then the source, and the footer says which (for example <strong>SHP OFF</strong>); the HARDWARE page names the module. A patch that runs out of CPU shows <strong>OVER CPU</strong>. The delay is capped at 1 s and stored at 16-bit. In the SAVE library, ✕ marks presets that won't fit and a gold voice count marks ones that fit with fewer voices.</p>
+<p>The page still runs at 48 kHz; the stock FM-1 reportedly runs at 44,118 Hz, and how a port handles that is an open question.</p>
+<h3>MIDI over USB</h3>
+<p>Plug in any class-compliant USB MIDI keyboard or controller. In the browser the rack asks for MIDI access when you switch it on; on the FM-1 it would arrive over the USB port.</p>
+<p>In 1.2 the rack speaks MIDI both ways over the same USB connection. Set the channel it listens on with <strong>MIDI CH</strong> (page 1) and what it sends on the <strong>MIDI</strong> page below.</p>
+<p><strong>MIDI in</strong></p>
+<table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Note on / off</td>
+<td>Plays notes, with velocity through VEL CURVE, CHORD and scale lock; feeds the arpeggiator when it is on, and the sequencer's step entry on NOTES or REC recording</td>
+</tr>
+<tr>
+<td>Pitch bend</td>
+<td>Bends every voice by up to the GLOBAL <strong>BEND</strong> range (0–24 semitones)</td>
+</tr>
+<tr>
+<td>Channel pressure, poly aftertouch, CC 2 (breath)</td>
+<td>The <strong>PRESS</strong> matrix source</td>
+</tr>
+<tr>
+<td>CC 1 (mod wheel)</td>
+<td>Macro M1, and the <strong>WHEEL</strong> matrix source</td>
+</tr>
+<tr>
+<td>CC 7</td>
+<td>MASTER volume</td>
+</tr>
+<tr>
+<td>CC 11</td>
+<td>Expression: scales the output level</td>
+</tr>
+<tr>
+<td>CC 16–19 and CC 21–24</td>
+<td>Macros M1–M4</td>
+</tr>
+<tr>
+<td>CC 70–73</td>
+<td>Knobs 1–4 of the page on screen, so one controller can edit any page</td>
+</tr>
+<tr>
+<td>CC 64</td>
+<td>Sustain</td>
+</tr>
+<tr>
+<td>CC 120 / 123</td>
+<td>All sound off / all notes off</td>
+</tr>
+<tr>
+<td>CC 121</td>
+<td>Reset controllers: bend, expression, wheel, pressure, sustain</td>
+</tr>
+<tr>
+<td>CC 122</td>
+<td>Local control on or off</td>
+</tr>
+<tr>
+<td>Program change, with bank select (CC 0)</td>
+<td>Loads patch bank × 128 + program from the full list (when PROG CHG is on)</td>
+</tr>
+<tr>
+<td>Clock</td>
+<td>With CLOCK = MIDI, the tempo follows, averaged over two beats</td>
+</tr>
+<tr>
+<td>Start / Continue / Stop</td>
+<td>Start restarts the gate bus and the sequencer from step 1; Continue starts a stopped sequence; Stop stops it</td>
+</tr>
+</tbody>
+</table>
+<p><strong>MIDI out</strong> (GLOBAL page 4, MIDI OUT set to NOTES or +CC)</p>
+<table>
+<thead>
+<tr>
+<th>What</th>
+<th>Sent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Notes</td>
+<td>From the keys (chords and strums included), the sequencer (ratchets included) and the arpeggiator, on <strong>OUT CH</strong>, timed against the audio clock</td>
+</tr>
+<tr>
+<td>Clock</td>
+<td>24 per beat while CLOCK = INT, with Start and Stop when the sequencer starts and stops</td>
+</tr>
+<tr>
+<td>+CC</td>
+<td>Macro moves as CC 21–24, the four knobs on screen as CC 70–73, and a program change when you turn PRESETS</td>
+</tr>
+</tbody>
+</table>
+<p>With <strong>LOCAL</strong> OFF the keys only send MIDI and don't play the rack, for a DAW that sends the track back. Notes that arrive over MIDI are never sent back out. On the FM-1 hardware the same messages would travel over its USB-C port through the Felucca USB-MIDI layer; that part isn't ported yet.</p>
+<h2>Computer keyboard and mouse</h2>
+<p>These apply to the browser build. On the FM-1 itself you'd use its keys and knobs.</p>
+<h3>Notes</h3>
+<p>The three letter rows cover all 27 keys of the FM-1's keybed, F3 to G5, laid out like a piano. Computer keys play at a fixed medium velocity; tap the on-screen keys lower down to play louder.</p>
+<table>
+<thead>
+<tr>
+<th>Row</th>
+<th>Keys</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bottom (white keys)</td>
+<td>Z X C V B N M , . /</td>
+<td>F3 G3 A3 B3 C4 D4 E4 F4 G4 A4</td>
+</tr>
+<tr>
+<td>Middle (black keys)</td>
+<td>S D F · H J · L ; '</td>
+<td>F♯3 G♯3 A♯3 · C♯4 D♯4 · F♯4 G♯4 A♯4</td>
+</tr>
+<tr>
+<td>Top (carries on upward)</td>
+<td>Q W E R T Y U I O</td>
+<td>B4 C5 C♯5 D5 D♯5 E5 F5 F♯5 G5</td>
+</tr>
+<tr>
+<td>Number row</td>
+<td>− =</td>
+<td>Octave down, octave up (±3)</td>
+</tr>
+</tbody>
+</table>
+<p>The gaps in the middle row (G and K) sit where a piano has no black key.</p>
+<p><strong>Space</strong> starts and stops the sequencer from any page, like PLAY.</p>
+<h3>Knobs</h3>
+<ul>
+<li><strong>Drag</strong> up or down on a knob to turn it.</li>
+<li><strong>Scroll</strong> over a knob with a mouse wheel or trackpad.</li>
+<li><strong>Tab</strong> to a knob, then use the <strong>arrow keys</strong>: up or right turns clockwise, down or left anticlockwise. While a knob has keyboard focus the letter keys don't play notes; click anywhere outside the knobs to play again.</li>
+</ul>
+<p>SELECT, PRESETS, ALGORITHM and Knobs 1–4 are endless encoders, as on the FM-1, so their pointer just spins. MASTER is a normal knob with a fixed range.</p>
+<h3>Buttons</h3>
+<ul>
+<li><strong>Click</strong> a button to press it.</li>
+<li><strong>Hold HOME</strong> for half a second, or <strong>Shift-click HOME</strong>, to start macro learn. Click HOME again to leave it.</li>
+<li>Ctrl, Alt and Cmd combinations are left alone, so browser shortcuts keep working.</li>
+</ul>
+<p><strong>Hold</strong> SEQ, EDIT, ARP, GLO or SCL with the mouse for its hold layer, or <strong>Shift-click</strong> it to keep the layer open. Hold REC for 1.2 seconds to capture what you just played.</p>
+<h2>Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>What's happening</th>
+<th>What to try</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No sound after <strong>Switch on</strong></td>
+<td>Turn <strong>MASTER</strong> up (a toast shows the volume). Check the tab isn't muted and the computer's output. Watch the output meter at the bottom right of the screen: if it moves, the rack is playing and the problem is further down the line</td>
+</tr>
+<tr>
+<td>The switch says “Couldn't start”</td>
+<td>The browser couldn't load the audio engine. Reload the page and try again; use a current Chrome, Edge, Firefox or Safari</td>
+</tr>
+<tr>
+<td>A patch is much quieter than the others</td>
+<td>Check <strong>LEVEL</strong> on SRC page 2 and AMP page 2, and <strong>VEL AMT</strong> if you're playing softly. Factory patches are balanced so this usually means a level was turned down</td>
+</tr>
+<tr>
+<td>Distortion</td>
+<td>The output meter turns red near full scale. Lower <strong>MASTER</strong> or the patch LEVEL, or reduce feedback on Delay, Clouds or Rings</td>
+</tr>
+<tr>
+<td>A module won't load</td>
+<td>The picker says why: “✕ CPU” (not enough processing for even one voice), “✕ 64K RAM” (not enough memory left) or “✕ IN FX 1” (that effect is already in the other FX slot; each effect can only be loaded once). Empty a slot or swap in something lighter</td>
+</tr>
+<tr>
+<td>Chords lose notes</td>
+<td>The patch has fewer voices than notes. See the voice lamps in the footer and <strong>Voices and the budget</strong>; lighter modules give more voices</td>
+</tr>
+<tr>
+<td>Notes keep sounding</td>
+<td><strong>KBD HOLD</strong> may be on (ARP page 2, HOLD): turn it OFF. The sequencer may be running (the PLAY lamp flashes): press PLAY. From MIDI, lift the sustain pedal or send CC 123</td>
+</tr>
+<tr>
+<td>Keys play the wrong notes</td>
+<td><strong>SEL</strong> chords or QNT may be on (the SEL lamp stays lit green), or the octave is shifted (an OCT lamp is lit). A running pattern also plays notes: press PLAY or Space to stop it</td>
+</tr>
+<tr>
+<td>Computer keys don't play</td>
+<td>A knob has keyboard focus. Click anywhere outside the knobs. Keys held with Ctrl, Alt or Cmd are ignored</td>
+</tr>
+<tr>
+<td>“NO MIDI INPUT”</td>
+<td>Connect the controller before switching on, or replug it; the count updates when devices appear</td>
+</tr>
+<tr>
+<td>“MIDI BLOCKED HERE”</td>
+<td>The browser, or the page the rack is shown in, refused MIDI access. Not every browser offers Web MIDI; a Chromium-based browser is the safest bet. The on-screen and computer keys still work</td>
+</tr>
+<tr>
+<td>MIDI clock is ignored</td>
+<td>Set GLOBAL <strong>CLOCK</strong> to MIDI. “BPM EXT” appears once a beat of clock has arrived. Tempos outside 60–180 BPM are clamped</td>
+</tr>
+<tr>
+<td>Marbles shows X 0 at first</td>
+<td>Normal. It needs a few clock ticks before its first random value</td>
+</tr>
+<tr>
+<td>Grids or BAR gates seem out of time with a sequencer</td>
+<td>Send MIDI Start; it restarts the gate bus at beat 1</td>
+</tr>
+<tr>
+<td>User patches have gone</td>
+<td>They live in this browser's site storage. A private window, cleared site data or a different browser or device won't have them. If a save shows “SAVED FOR THIS VISIT ONLY”, the browser blocked storage</td>
+</tr>
+<tr>
+<td>The graphics feel busy or the laptop runs warm</td>
+<td>Set GLOBAL <strong>ANIMATION</strong> to CALM or STILL. The sound is unaffected</td>
+</tr>
+<tr>
+<td>A button blinks and the keys do something else</td>
+<td>A hold layer is kept open. Press any button except PLAY or REC to leave it</td>
+</tr>
+<tr>
+<td>The pattern has gone</td>
+<td>Check the bank: the NOTES title shows its letter and BANKS shows all eight (a song can also have moved on). If a bank action cleared it, undo from the EDIT layer (OCT −) or on the TOOLS UNDO page</td>
+</tr>
+</tbody>
+</table>
+<h2>Hardware status, credits and licences</h2>
+<h3>Where 1.0 stands</h3>
+<p>This is the <strong>browser build</strong>. The sound engine is real: the same C++ module code that would run on the FM-1, compiled to WebAssembly and run in an AudioWorklet at 48 kHz in blocks of 24 samples. The screen, keys and knobs are a faithful stand-in for the FM-1's 240×240 display and controls, so the interface you learn here is the one the firmware would have.</p>
+<p>It has <strong>not yet been built for or run on the FM-1</strong>. What's still to do:</p>
+<ul>
+<li><strong>Port the engine</strong> onto the Felucca platform layer (audio driver, display, keybed, knobs, flash storage) as in the FM1 Modular plan.</li>
+<li><strong>Measure real costs.</strong> The CPU units in <strong>Voices and the budget</strong> are estimates. They need re-measuring on the AC791N, which the FM1 Modular notes record running at 240 MHz with 578 KB of SRAM and a 1 MB flash image. Clouds and Elements are the modules most likely to need trimming.</li>
+<li><strong>Fit the flash image.</strong> Plaits' wavetables and Braids' tables are the large items to check against the 1 MB image.</li>
+<li><strong>Move user patches</strong> from browser storage to the FM-1's flash.</li>
+</ul>
+<h3>Credits</h3>
+<ul>
+<li><strong>Plaits, Braids, Elements, Rings, Warps, Clouds, Peaks, Tides 2, Marbles and Grids</strong> are Émilie Gillet's original Mutable Instruments code from the open-source eurorack repository, with stmlib. The REVERB slot uses the reverb from Clouds and the FILTER uses stmlib's state-variable filter.</li>
+<li><strong>DELAY and CHORUS</strong>, the gate bus, mod matrix, macros, voice allocation and the whole interface were written for this rack.</li>
+<li><strong>Felucca</strong> is the open firmware platform the FM-1 port builds on, via FM1 Modular.</li>
+<li>The screen font is <strong>DotGothic16</strong> by Fontworks.</li>
+<li>Built with clang/LLVM, wasi-libc and libc++.</li>
+</ul>
+<p>Many 1.2 and 1.3 workflows follow ideas from <strong>Clipper</strong> (isod89's FM-1 firmware, after SLOOP and Felucca): undo and compare, morph, randomize by section, favourites, ratchets and nudge, spice and dice (after the Arturia MicroFreak), pattern generators, the sequencer's PLAY and REC workflow, piano roll, hold layers, free takes and fills, the Turing arp (after Music Thing Modular's Turing Machine), modulation lanes, VINTAGE, the tunings, the delay and reverb modes, the master section and the CPU readout. They were rebuilt here from Clipper's descriptions; no Clipper code is used. In 1.6, SEL's chord zone and diatonic chord rules come from your ChordStep FM-1 (its chord engine is a port of the ChordForms firmware, GPL-3), and the banks, song, capture and QNT modes follow Melodee (keremimo's FM-1 groovebox firmware), rebuilt from its README; no Melodee code is used.</p>
+<h3>Licences</h3>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Licence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mutable Instruments STM32 module code and stmlib</td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>Grids (an AVR project in the same repository)</td>
+<td>GPL-3.0</td>
+</tr>
+<tr>
+<td>Felucca platform</td>
+<td>GPL-3.0</td>
+</tr>
+<tr>
+<td>DotGothic16</td>
+<td>SIL Open Font License</td>
+</tr>
+<tr>
+<td>LLVM libc++</td>
+<td>Apache 2.0 with LLVM exception</td>
+</tr>
+</tbody>
+</table>
+<p>Because Grids and Felucca are GPL-3.0, the rack as a whole is distributed under GPL-3.0, with its source. The source pack (engine, interface and build scripts) accompanies this manual.</p>
+<h3>Names and trademarks</h3>
+<p>This project isn't affiliated with or endorsed by Mutable Instruments or M-VAVE. <strong>“Mutable Instruments” is a registered trademark</strong>, and the repository's guidelines for derivative works ask that the name not be used on derivative works and recommend against keeping the original module names. The module names are used in 1.0 so you can tell where each sound comes from. <strong>Before any public release, the modules should be renamed on screen</strong> (for example MACRO OSC for Plaits, RESONATOR for Rings) and the credit kept here, in the manual.</p>
+</main>
+</html>

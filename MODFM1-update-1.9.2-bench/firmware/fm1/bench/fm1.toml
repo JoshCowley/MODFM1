@@ -1,0 +1,22 @@
+# FM1 Rack's benchmark firmware, an fm1-base app (fm1-base's tools/build.py reads this). See README.md.
+name = "FM1BENCH"
+id_prefix = "FM-1_77"          # package identity: dev builds FM-1_7700 (chosen for this test; not registered anywhere)
+usb_manufacturer = "MODFM1"
+usb_product = "FM1 RACK BENCH"
+words = "words.tsv"
+ble = false
+# the engine and the Mutable modules as C++ units, at -O2 with the FM-1's float flags (build.py adds -mcpu=r3
+# -mfprev1 -ffp-contract=off): units/ is written by make_units.py before each build (gen below)
+gen = ["make_units.py"]
+o2 = ["units/*.cc"]
+o2_cflags = ["-std=gnu++11", "-w", "-fbuiltin", "-fno-exceptions", "-fno-rtti", "-DTEST", "-DRACK_FM1", "-DRACK_LITE",
+             "-DRACK_ARENA_KB=308", "-DRACK_ARENA_POOL"]
+# FM1 Rack's Plaits shim (first: it stands in for one of Plaits' headers), the Mutable code (a checkout of
+# pichenettes/eurorack beside MODFM1)
+include = ["../../../engine/shim", "../../../../eurorack"]
+# the few C++ standard headers JieLi's toolchain lacks, and C headers for a build with no C library (firmware only)
+device_include = ["../../hw/cxx", "../../hw/libc"]
+vendored = ["units/"]
+licence = "GPL-3.0"               # the firmware as a whole (FM1 Rack's engine); app.c and app.h are MPL-2.0, from fm1-base's template
+tagline = "times FM1 Rack's modules on an FM-1"
+credits = "Mutable Instruments' open-source module code (github.com/pichenettes/eurorack)"

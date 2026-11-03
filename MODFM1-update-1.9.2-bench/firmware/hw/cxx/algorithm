@@ -1,0 +1,30 @@
+// Minimal <algorithm> for JieLi's pi32v2 clang 4.0.1, which ships no C++ standard library headers.
+// Only what the Mutable Instruments code and rack.cc use: min, max, fill, copy, max_element, upper_bound,
+// sort (insertion sort: the code sorts a handful of elements), rotate.
+#pragma once
+#include <stddef.h>
+namespace std {
+template <class T> inline const T& min(const T& a, const T& b) { return b < a ? b : a; }
+template <class T> inline const T& max(const T& a, const T& b) { return a < b ? b : a; }
+template <class It, class T> inline void fill(It first, It last, const T& v) { for (; first != last; ++first) *first = v; }
+template <class In, class Out> inline Out copy(In first, In last, Out out) { for (; first != last; ++first, ++out) *out = *first; return out; }
+template <class It> inline It max_element(It first, It last) { It best = first; if (first == last) return last; while (++first != last) if (*best < *first) best = first; return best; }
+template <class It, class T> inline It upper_bound(It first, It last, const T& v) {
+  size_t n = last - first;
+  while (n > 0) { size_t h = n / 2; It m = first + h; if (!(v < *m)) { first = m + 1; n -= h + 1; } else n = h; }
+  return first;
+}
+template <class It, class Less> inline void sort(It first, It last, Less less) {
+  for (It i = first; i != last; ++i) for (It j = i; j != first && less(*j, *(j - 1)); --j) { auto t = *j; *j = *(j - 1); *(j - 1) = t; }
+}
+template <class It> inline void sort(It first, It last) { sort(first, last, [](const decltype(*first)& a, const decltype(*first)& b) { return a < b; }); }
+template <class T> inline void swap(T& a, T& b) { T t = a; a = b; b = t; }
+template <class It> inline It rotate(It first, It mid, It last) {
+  if (first == mid) return last; if (mid == last) return first;
+  It r = first + (last - mid);
+  // three reversals
+  auto rev = [](It a, It b) { while (a != b && a != --b) { auto t = *a; *a = *b; *b = t; ++a; } };
+  rev(first, mid); rev(mid, last); rev(first, last);
+  return r;
+}
+}

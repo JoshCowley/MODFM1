@@ -1,0 +1,6459 @@
+[
+ {
+  "name": "GLASS BELLS",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "RINGS",
+   "MODA": "TIDES",
+   "MODB": "PEAKS",
+   "FX1": "CLOUDS",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "2OP FM",
+    "HARMO": 0.3,
+    "TIMBRE": 0.45,
+    "MORPH": 0.25
+   },
+   "SHP": {
+    "MODEL": "MODAL",
+    "STRUCT": 0.62,
+    "BRIGHT": 0.7,
+    "DAMPING": 0.55,
+    "POSITION": 0.3,
+    "EXCITE": 0.7,
+    "MIX": 0.75,
+    "SPREAD": 0.6
+   },
+   "MODA": {
+    "MODE": "LOOP",
+    "FREQ": 0.25,
+    "SHAPE": 0.5,
+    "SLOPE": 0
+   },
+   "MODB": {
+    "FUNC": "ENV",
+    "K1": 0,
+    "K2": 0.5
+   },
+   "FX1": {
+    "POSITION": 0.3,
+    "SIZE": 0.55,
+    "DENSITY": 0.45,
+    "TEXTURE": 0.6,
+    "BLEND": 0.3,
+    "SPREAD": 0.7,
+    "FEEDBACK": 0.2,
+    "REVERB": 0.45
+   }
+  },
+  "amp": {
+   "ATTACK": 0.02,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.6,
+   "RELEASE": 0.55,
+   "LEVEL": 1
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.BRIGHT",
+    0.4
+   ],
+   [
+    "M3",
+    "FX 1.BLEND",
+    0.6
+   ],
+   [
+    "M4",
+    "SHP.STRUCT",
+    0.35
+   ],
+   [
+    "A TIDES",
+    "SHP.POSITION",
+    0.25
+   ],
+   [
+    "B PEAKS",
+    "SRC.MORPH",
+    0.35,
+    "VELO"
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.4,
+   0.3,
+   0.4
+  ]
+ },
+ {
+  "name": "ACID DRIFT",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": "GRIDS",
+   "MODB": "TIDES",
+   "FX1": "DELAY",
+   "FX2": "CHORUS"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "CSAW",
+    "TIMBRE": 0.35,
+    "COLOR": 0.5,
+    "DRIFT": 0.15
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.32,
+    "RESO": 0.72,
+    "DRIVE": 0.45,
+    "ENV AMT": 0.45,
+    "KEY TRK": 0.5
+   },
+   "MODA": {
+    "X": 0.3,
+    "Y": 0.6,
+    "FILL": 0.7,
+    "OUT": "KIT",
+    "CHAOS": 0.1
+   },
+   "MODB": {
+    "MODE": "AD",
+    "FREQ": 0.55,
+    "SHAPE": 0.3,
+    "SLOPE": -0.6,
+    "GATE": "GRID"
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.45,
+    "TONE": 0.4,
+    "MIX": 0.3
+   },
+   "FX2": {
+    "RATE": 0.2,
+    "DEPTH": 0.3,
+    "WIDTH": 0.8,
+    "MIX": 0.25
+   }
+  },
+  "amp": {
+   "ATTACK": 0.01,
+   "DECAY": 0.3,
+   "SUSTAIN": 0.55,
+   "RELEASE": 0.2,
+   "GLIDE": 0.35,
+   "LEVEL": 0.5
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.RESO",
+    0.25
+   ],
+   [
+    "M3",
+    "FX 1.FEEDBACK",
+    0.4
+   ],
+   [
+    "M4",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "B TIDE+",
+    "SHP.CUTOFF",
+    0.35
+   ],
+   [
+    "A ACCENT",
+    "SHP.DRIVE",
+    0.4
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/16",
+   "swing": 0.12,
+   "steps": [
+    {
+     "n": [
+      45
+     ],
+     "v": 0.9,
+     "l": "1/2"
+    },
+    {
+     "n": [
+      45
+     ],
+     "v": 0.5,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      57
+     ],
+     "v": 0.85,
+     "l": "1/4",
+     "lock": {
+      "SHP.CUTOFF": 0.62
+     }
+    },
+    null,
+    {
+     "n": [
+      43
+     ],
+     "v": 0.7,
+     "l": "TIE"
+    },
+    {
+     "n": [
+      45
+     ],
+     "v": 0.7,
+     "l": "1/2"
+    },
+    {
+     "n": [
+      48
+     ],
+     "v": 0.9,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      45
+     ],
+     "v": 0.6,
+     "l": "1/4",
+     "c": 0.5
+    },
+    {
+     "n": [
+      52
+     ],
+     "v": 0.9,
+     "l": "1/2",
+     "lock": {
+      "SHP.CUTOFF": 0.7,
+      "SHP.RESO": 0.82
+     }
+    },
+    null,
+    {
+     "n": [
+      50
+     ],
+     "v": 0.7,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      48
+     ],
+     "v": 0.7,
+     "l": "TIE"
+    },
+    {
+     "n": [
+      48
+     ],
+     "v": 0.7,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      45
+     ],
+     "v": 0.8,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      55
+     ],
+     "v": 0.95,
+     "l": "1/8",
+     "lock": {
+      "SHP.CUTOFF": 0.78
+     }
+    },
+    {
+     "n": [
+      40
+     ],
+     "v": 0.7,
+     "l": "1/4"
+    }
+   ]
+  }
+ },
+ {
+  "name": "BOWED SPACE",
+  "slots": {
+   "SRC": "ELEMENTS",
+   "SHP": null,
+   "MODA": "MARBLES",
+   "MODB": null,
+   "FX1": "REVERB",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "BOW": 0.75,
+    "BLOW": 0.1,
+    "STRIKE": 0.15,
+    "CONTOUR": 0.6,
+    "GEOMETRY": 0.35,
+    "BRIGHT": 0.55,
+    "DAMPING": 0.7,
+    "POSITION": 0.3,
+    "BOW TMB": 0.55,
+    "SPACE": 0.45
+   },
+   "MODA": {
+    "RATE": 0.35,
+    "SPREAD": 0.35,
+    "BIAS": 0.5,
+    "STEPS": 0.2,
+    "DEJA VU": 0.6,
+    "CLOCK": "FREE"
+   },
+   "FX1": {
+    "SIZE": 0.8,
+    "DAMP": 0.45,
+    "MIX": 0.35
+   }
+  },
+  "amp": {
+   "ATTACK": 0.45,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.6,
+   "LEVEL": 0.32
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.BOW",
+    0.4
+   ],
+   [
+    "M2",
+    "SRC.BRIGHT",
+    0.4
+   ],
+   [
+    "M3",
+    "FX 1.MIX",
+    0.5
+   ],
+   [
+    "M4",
+    "SRC.GEOMETRY",
+    0.5
+   ],
+   [
+    "A MARB X",
+    "SRC.POSITION",
+    0.2
+   ]
+  ],
+  "macros": [
+   0.2,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "STRING MACH",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "STR MACH",
+    "HARMO": 0.55,
+    "TIMBRE": 0.5,
+    "MORPH": 0.45
+   },
+   "FX1": {
+    "RATE": 0.25,
+    "DEPTH": 0.55,
+    "WIDTH": 0.9,
+    "MIX": 0.45
+   },
+   "FX2": {
+    "SIZE": 0.75,
+    "DAMP": 0.5,
+    "MIX": 0.3
+   }
+  },
+  "amp": {
+   "ATTACK": 0.5,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.6,
+   "SPREAD": 0.6,
+   "LEVEL": 0.73
+  },
+  "lfo": {
+   "SHAPE 1": "TRI",
+   "RATE 1": 0.25,
+   "SHAPE 2": "DRIFT",
+   "RATE 2": 0.15
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.45
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.DEPTH",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SRC.TIMBRE",
+    0.12
+   ],
+   [
+    "LFO 2",
+    "SRC.MORPH",
+    0.1
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/8",
+   "swing": 0,
+   "steps": [
+    {
+     "n": [
+      57,
+      60,
+      64,
+      67
+     ],
+     "v": 0.7,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      53,
+      57,
+      60,
+      64
+     ],
+     "v": 0.7,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      55,
+      60,
+      64,
+      67
+     ],
+     "v": 0.75,
+     "l": "TIE",
+     "lock": {
+      "SRC.TIMBRE": 0.7
+     }
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      55,
+      59,
+      62,
+      67
+     ],
+     "v": 0.8,
+     "l": "TIE",
+     "lock": {
+      "SRC.TIMBRE": 0.62
+     }
+    },
+    null,
+    null,
+    null
+   ]
+  }
+ },
+ {
+  "name": "SPEECH DUST",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": "MARBLES",
+   "MODB": null,
+   "FX1": "CLOUDS",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "SPEECH",
+    "HARMO": 0.5,
+    "TIMBRE": 0.5,
+    "MORPH": 0.4
+   },
+   "MODA": {
+    "RATE": 0.45,
+    "SPREAD": 0.6,
+    "BIAS": 0.5,
+    "STEPS": 0.1,
+    "DEJA VU": 0.5,
+    "LENGTH": "8",
+    "CLOCK": "1/8"
+   },
+   "FX1": {
+    "POSITION": 0.5,
+    "SIZE": 0.35,
+    "DENSITY": 0.65,
+    "TEXTURE": 0.5,
+    "BLEND": 0.55,
+    "SPREAD": 0.8,
+    "FEEDBACK": 0.35,
+    "REVERB": 0.5
+   }
+  },
+  "amp": {
+   "ATTACK": 0.1,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.5,
+   "LEVEL": 0.93
+  },
+  "matrix": [
+   [
+    "A MARB X",
+    "SRC.MORPH",
+    0.45
+   ],
+   [
+    "A MARB T",
+    "SRC.TIMBRE",
+    0.3
+   ],
+   [
+    "M1",
+    "SRC.HARMO",
+    0.5
+   ],
+   [
+    "M2",
+    "FX 1.DENSITY",
+    0.4
+   ],
+   [
+    "M3",
+    "FX 1.BLEND",
+    0.4
+   ],
+   [
+    "M4",
+    "MOD A.RATE",
+    0.4
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "KARPLUS",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "RINGS",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "PLUK",
+    "TIMBRE": 0.5,
+    "COLOR": 0.4
+   },
+   "SHP": {
+    "MODEL": "STRING",
+    "STRUCT": 0.4,
+    "BRIGHT": 0.6,
+    "DAMPING": 0.6,
+    "POSITION": 0.25,
+    "EXCITE": 0.6,
+    "MIX": 0.6,
+    "SPREAD": 0.5
+   },
+   "FX1": {
+    "TIME": "1/4",
+    "FEEDBACK": 0.35,
+    "TONE": 0.45,
+    "MIX": 0.25
+   }
+  },
+  "amp": {
+   "ATTACK": 0,
+   "DECAY": 0.55,
+   "SUSTAIN": 0,
+   "RELEASE": 0.5,
+   "VEL AMT": 0.8,
+   "LEVEL": 0.55
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.DAMPING",
+    0.4
+   ],
+   [
+    "M2",
+    "SHP.BRIGHT",
+    0.4
+   ],
+   [
+    "M3",
+    "FX 1.FEEDBACK",
+    0.4
+   ],
+   [
+    "M4",
+    "SHP.POSITION",
+    0.5
+   ],
+   [
+    "VELO",
+    "SHP.BRIGHT",
+    0.25
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "FOLDED BASS",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": null,
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "FOLD",
+    "TIMBRE": 0.3,
+    "COLOR": 0.5,
+    "DRIFT": 0.1
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.45,
+    "RESO": 0.3,
+    "DRIVE": 0.5,
+    "ENV AMT": 0.3,
+    "KEY TRK": 0.6
+   }
+  },
+  "amp": {
+   "ATTACK": 0.01,
+   "DECAY": 0.35,
+   "SUSTAIN": 0.7,
+   "RELEASE": 0.2,
+   "GLIDE": 0.4,
+   "M ATTACK": 0,
+   "M DECAY": 0.35,
+   "LEVEL": 0.44
+  },
+  "matrix": [
+   [
+    "MOD ENV",
+    "SRC.TIMBRE",
+    0.45
+   ],
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.4
+   ],
+   [
+    "M2",
+    "SRC.COLOR",
+    0.5
+   ],
+   [
+    "M3",
+    "SHP.CUTOFF",
+    0.4
+   ],
+   [
+    "M4",
+    "SHP.DRIVE",
+    0.4
+   ],
+   [
+    "VELO",
+    "SRC.TIMBRE",
+    0.2
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "WARPED VOX",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "WARPS",
+   "MODA": "TIDES",
+   "MODB": null,
+   "FX1": "REVERB",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "FORMANT",
+    "HARMO": 0.5,
+    "TIMBRE": 0.5,
+    "MORPH": 0.5
+   },
+   "SHP": {
+    "ALGO": 0.92,
+    "TIMBRE": 0.55,
+    "CARRIER": "SAW",
+    "MOD IN": "OSC",
+    "CAR LVL": 1,
+    "MOD LVL": 1,
+    "MIX": 0.85
+   },
+   "MODA": {
+    "MODE": "LOOP",
+    "FREQ": 0.3,
+    "SHAPE": 0.5,
+    "SLOPE": 0.2
+   },
+   "FX1": {
+    "SIZE": 0.65,
+    "DAMP": 0.5,
+    "MIX": 0.3
+   }
+  },
+  "amp": {
+   "ATTACK": 0.2,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.45,
+   "LEVEL": 1
+  },
+  "matrix": [
+   [
+    "A TIDES",
+    "SRC.MORPH",
+    0.4
+   ],
+   [
+    "M1",
+    "SHP.ALGO",
+    0.3
+   ],
+   [
+    "M2",
+    "SHP.TIMBRE",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.HARMO",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "GRID GATE",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": "GRIDS",
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "WTBL",
+    "TIMBRE": 0.4,
+    "COLOR": 0.6
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.62,
+    "RESO": 0.3,
+    "DRIVE": 0.3,
+    "ENV AMT": 0,
+    "KEY TRK": 0.5
+   },
+   "MODA": {
+    "X": 0.5,
+    "Y": 0.5,
+    "FILL": 0.65,
+    "OUT": "KIT",
+    "CHAOS": 0.15
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.5,
+    "TONE": 0.5,
+    "MIX": 0.3
+   },
+   "FX2": {
+    "SIZE": 0.5,
+    "MIX": 0.2
+   }
+  },
+  "amp": {
+   "ATTACK": 0,
+   "SUSTAIN": 1,
+   "RELEASE": 0.3,
+   "LEVEL": 0.12
+  },
+  "matrix": [
+   [
+    "A GRID",
+    "AMP.LEVEL",
+    0.6
+   ],
+   [
+    "A ACCENT",
+    "SHP.CUTOFF",
+    0.25
+   ],
+   [
+    "M1",
+    "MOD A.X",
+    0.5
+   ],
+   [
+    "M2",
+    "MOD A.Y",
+    0.5
+   ],
+   [
+    "M3",
+    "MOD A.FILL",
+    0.3
+   ],
+   [
+    "M4",
+    "SRC.TIMBRE",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "FROZEN CLOUD",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CLOUDS",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "CHORDS",
+    "HARMO": 0.4,
+    "TIMBRE": 0.4,
+    "MORPH": 0.45
+   },
+   "FX1": {
+    "POSITION": 0.2,
+    "SIZE": 0.8,
+    "PITCH": 0,
+    "DENSITY": 0.6,
+    "TEXTURE": 0.7,
+    "BLEND": 0.6,
+    "SPREAD": 0.9,
+    "FEEDBACK": 0.4,
+    "REVERB": 0.6,
+    "MODE": "STRETCH"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.35,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.8,
+   "RELEASE": 0.65,
+   "LEVEL": 1
+  },
+  "lfo": {
+   "SHAPE 2": "TRI",
+   "SYNC 2": "2 BARS"
+  },
+  "matrix": [
+   [
+    "LFO 2",
+    "FX 1.POSITION",
+    0.2
+   ],
+   [
+    "M1",
+    "FX 1.SIZE",
+    0.3
+   ],
+   [
+    "M2",
+    "FX 1.TEXTURE",
+    0.3
+   ],
+   [
+    "M3",
+    "FX 1.BLEND",
+    0.4
+   ],
+   [
+    "M4",
+    "SRC.TIMBRE",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "TIDAL FM",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": "TIDES",
+   "MODB": "PEAKS",
+   "FX1": "CHORUS",
+   "FX2": "DELAY"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "6OP FM 1",
+    "HARMO": 0.3,
+    "TIMBRE": 0.5,
+    "MORPH": 0.3
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.62,
+    "RESO": 0.3,
+    "DRIVE": 0.2,
+    "ENV AMT": 0.2,
+    "KEY TRK": 0.5
+   },
+   "MODA": {
+    "MODE": "AD",
+    "FREQ": 0.45,
+    "SHAPE": 0.4,
+    "SLOPE": -0.4,
+    "GATE": "NOTE"
+   },
+   "MODB": {
+    "FUNC": "LFO",
+    "K1": 0.35,
+    "K2": 0.3
+   },
+   "FX1": {
+    "RATE": 0.3,
+    "DEPTH": 0.4,
+    "WIDTH": 0.8,
+    "MIX": 0.3
+   },
+   "FX2": {
+    "TIME": "1/4",
+    "FEEDBACK": 0.35,
+    "MIX": 0.2
+   }
+  },
+  "amp": {
+   "ATTACK": 0.02,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.7,
+   "RELEASE": 0.45,
+   "LEVEL": 0.43
+  },
+  "matrix": [
+   [
+    "A TIDE+",
+    "SHP.CUTOFF",
+    0.4
+   ],
+   [
+    "B PEAKS",
+    "PAN",
+    0.4
+   ],
+   [
+    "M1",
+    "SRC.HARMO",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "SHP.CUTOFF",
+    0.3
+   ],
+   [
+    "M4",
+    "FX 2.FEEDBACK",
+    0.4
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "INIT",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": null,
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "VA VCF"
+   }
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "amp": {
+   "LEVEL": 0.38
+  }
+ },
+ {
+  "name": "BS SUB MONO",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "VA VCF",
+    "HARMO": 0.2,
+    "TIMBRE": 0.35,
+    "MORPH": 0.15
+   },
+   "SHP": {
+    "TYPE": "LP24",
+    "CUTOFF": 0.3,
+    "RESO": 0.25,
+    "DRIVE": 0.35,
+    "ENV AMT": 0.35,
+    "KEY TRK": 0.6,
+    "ENV SRC": "OWN",
+    "F ATK": 0.0,
+    "F DEC": 0.32,
+    "F SUS": 0.25,
+    "F REL": 0.25,
+    "VEL AMT": 0.2
+   },
+   "FX1": {
+    "RATE": 0.15,
+    "DEPTH": 0.2,
+    "WIDTH": 0.5,
+    "MIX": 0.15
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.4,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.15,
+   "GLIDE": 0.25,
+   "LEVEL": 0.56,
+   "MODE": "LEGATO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.RESO",
+    0.4
+   ],
+   [
+    "M3",
+    "SHP.ENV AMT",
+    0.4
+   ],
+   [
+    "M4",
+    "SRC.TIMBRE",
+    0.5
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/16",
+   "swing": 0.1,
+   "steps": [
+    {
+     "n": [
+      33
+     ],
+     "v": 0.95,
+     "l": "1/2"
+    },
+    null,
+    {
+     "n": [
+      45
+     ],
+     "v": 0.6,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      33
+     ],
+     "v": 0.7,
+     "l": "1/4"
+    },
+    null,
+    {
+     "n": [
+      33
+     ],
+     "v": 0.8,
+     "l": "1/2"
+    },
+    {
+     "n": [
+      36
+     ],
+     "v": 0.7,
+     "l": "1/2"
+    },
+    null,
+    {
+     "n": [
+      31
+     ],
+     "v": 0.95,
+     "l": "TIE"
+    },
+    null,
+    {
+     "n": [
+      43
+     ],
+     "v": 0.6,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      31
+     ],
+     "v": 0.7,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      28
+     ],
+     "v": 0.85,
+     "l": "1/2"
+    },
+    null,
+    {
+     "n": [
+      31
+     ],
+     "v": 0.7,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      35
+     ],
+     "v": 0.75,
+     "l": "1/4"
+    }
+   ]
+  },
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "BS ACID 303",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "//-_",
+    "TIMBRE": 0.05,
+    "COLOR": 0.5,
+    "DRIFT": 0.05
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.28,
+    "RESO": 0.78,
+    "DRIVE": 0.5,
+    "ENV AMT": 0.55,
+    "KEY TRK": 0.5,
+    "ENV SRC": "OWN",
+    "F ATK": 0.0,
+    "F DEC": 0.25,
+    "F SUS": 0.0,
+    "F REL": 0.2,
+    "VEL AMT": 0.35,
+    "SAT": "ASYM"
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.35,
+    "TONE": 0.35,
+    "MIX": 0.2,
+    "MODE": "PING"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.35,
+   "SUSTAIN": 0.75,
+   "RELEASE": 0.12,
+   "GLIDE": 0.3,
+   "LEVEL": 0.39,
+   "MODE": "LEGATO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.RESO",
+    0.25
+   ],
+   [
+    "M3",
+    "SHP.F DEC",
+    0.5
+   ],
+   [
+    "M4",
+    "SHP.DRIVE",
+    0.5
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/16",
+   "swing": 0.08,
+   "steps": [
+    {
+     "n": [
+      36
+     ],
+     "v": 0.95,
+     "l": "1/2"
+    },
+    {
+     "n": [
+      36
+     ],
+     "v": 0.5,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      48
+     ],
+     "v": 0.95,
+     "l": "TIE",
+     "lock": {
+      "SHP.CUTOFF": 0.45
+     }
+    },
+    {
+     "n": [
+      46
+     ],
+     "v": 0.6,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      36
+     ],
+     "v": 0.6,
+     "l": "1/2"
+    },
+    null,
+    {
+     "n": [
+      39
+     ],
+     "v": 0.95,
+     "l": "1/2",
+     "lock": {
+      "SHP.RESO": 0.88
+     }
+    },
+    {
+     "n": [
+      36
+     ],
+     "v": 0.5,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      43
+     ],
+     "v": 0.8,
+     "l": "TIE"
+    },
+    {
+     "n": [
+      41
+     ],
+     "v": 0.6,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      36
+     ],
+     "v": 0.95,
+     "l": "1/2",
+     "lock": {
+      "SHP.CUTOFF": 0.5
+     }
+    },
+    null,
+    {
+     "n": [
+      48
+     ],
+     "v": 0.6,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      36
+     ],
+     "v": 0.6,
+     "l": "1/4",
+     "c": 0.6
+    },
+    {
+     "n": [
+      51
+     ],
+     "v": 0.95,
+     "l": "1/8",
+     "lock": {
+      "SHP.CUTOFF": 0.55
+     }
+    },
+    {
+     "n": [
+      34
+     ],
+     "v": 0.7,
+     "l": "1/4"
+    }
+   ]
+  },
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "BS FM PLUCK",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "REVERB",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "2OP FM",
+    "HARMO": 0.25,
+    "TIMBRE": 0.45,
+    "MORPH": 0.35,
+    "LPG": "ON",
+    "DECAY": 0.35,
+    "COLOUR": 0.6,
+    "ENV>TIMB": 0.35
+   },
+   "FX1": {
+    "SIZE": 0.3,
+    "DAMP": 0.6,
+    "MIX": 0.1
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.4,
+   "SUSTAIN": 0.6,
+   "RELEASE": 0.2,
+   "LEVEL": 0.68
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.HARMO",
+    0.4
+   ],
+   [
+    "M3",
+    "SRC.DECAY",
+    0.5
+   ],
+   [
+    "M4",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "VELO",
+    "SRC.TIMBRE",
+    0.25
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/16",
+   "swing": 0.0,
+   "steps": [
+    {
+     "n": [
+      38
+     ],
+     "v": 0.9,
+     "l": "1/2"
+    },
+    null,
+    null,
+    {
+     "n": [
+      50
+     ],
+     "v": 0.6,
+     "l": "1/4"
+    },
+    null,
+    null,
+    {
+     "n": [
+      38
+     ],
+     "v": 0.8,
+     "l": "1/2"
+    },
+    null,
+    {
+     "n": [
+      41
+     ],
+     "v": 0.9,
+     "l": "1/2"
+    },
+    null,
+    {
+     "n": [
+      43
+     ],
+     "v": 0.7,
+     "l": "1/2"
+    },
+    null,
+    {
+     "n": [
+      45
+     ],
+     "v": 0.9,
+     "l": "1/2"
+    },
+    null,
+    {
+     "n": [
+      48
+     ],
+     "v": 0.6,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      36
+     ],
+     "v": 0.8,
+     "l": "1/4"
+    }
+   ]
+  },
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "BS REESE",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "//x3",
+    "TIMBRE": 0.45,
+    "COLOR": 0.4,
+    "DRIFT": 0.35
+   },
+   "SHP": {
+    "TYPE": "LP24",
+    "CUTOFF": 0.38,
+    "RESO": 0.2,
+    "DRIVE": 0.4,
+    "ENV AMT": 0.1,
+    "KEY TRK": 0.5,
+    "SAT": "SOFT"
+   },
+   "FX1": {
+    "RATE": 0.1,
+    "DEPTH": 0.35,
+    "WIDTH": 0.9,
+    "MIX": 0.3
+   }
+  },
+  "amp": {
+   "ATTACK": 0.02,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.25,
+   "GLIDE": 0.2,
+   "LEVEL": 0.43,
+   "MODE": "UNI 2",
+   "DETUNE": 0.3
+  },
+  "lfo": {
+   "SHAPE 1": "TRI",
+   "RATE 1": 0.2
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M2",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.DRIFT",
+    0.5
+   ],
+   [
+    "M4",
+    "SHP.DRIVE",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SRC.COLOR",
+    0.15
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/8",
+   "swing": 0.0,
+   "steps": [
+    {
+     "n": [
+      29
+     ],
+     "v": 0.9,
+     "l": "TIE"
+    },
+    null,
+    null,
+    {
+     "n": [
+      29
+     ],
+     "v": 0.7,
+     "l": "1/2"
+    },
+    {
+     "n": [
+      32
+     ],
+     "v": 0.85,
+     "l": "TIE"
+    },
+    null,
+    {
+     "n": [
+      27
+     ],
+     "v": 0.8,
+     "l": "TIE"
+    },
+    null,
+    {
+     "n": [
+      24
+     ],
+     "v": 0.9,
+     "l": "TIE"
+    },
+    null,
+    null,
+    {
+     "n": [
+      24
+     ],
+     "v": 0.7,
+     "l": "1/2"
+    },
+    {
+     "n": [
+      27
+     ],
+     "v": 0.85,
+     "l": "TIE"
+    },
+    null,
+    {
+     "n": [
+      31
+     ],
+     "v": 0.8,
+     "l": "1/2"
+    },
+    {
+     "n": [
+      32
+     ],
+     "v": 0.8,
+     "l": "1/2"
+    }
+   ]
+  },
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "BS WOBBLE",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": null,
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "SUB/",
+    "TIMBRE": 0.4,
+    "COLOR": 0.6,
+    "DRIFT": 0.1
+   },
+   "SHP": {
+    "TYPE": "LP24",
+    "CUTOFF": 0.3,
+    "RESO": 0.45,
+    "DRIVE": 0.55,
+    "ENV AMT": 0.0,
+    "KEY TRK": 0.5,
+    "SAT": "HARD"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.5,
+   "SUSTAIN": 1.0,
+   "RELEASE": 0.15,
+   "GLIDE": 0.15,
+   "LEVEL": 0.33,
+   "MODE": "MONO"
+  },
+  "lfo": {
+   "SHAPE 1": "SINE",
+   "SYNC 1": "1/8",
+   "RETRIG 1": "ON",
+   "POLAR 1": "UNI"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.4
+   ],
+   [
+    "M2",
+    "SHP.RESO",
+    0.4
+   ],
+   [
+    "M3",
+    "LFO.RATE 1",
+    0.5
+   ],
+   [
+    "M4",
+    "SHP.DRIVE",
+    0.4
+   ],
+   [
+    "LFO 1",
+    "SHP.CUTOFF",
+    0.45
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/16",
+   "swing": 0.0,
+   "steps": [
+    {
+     "n": [
+      31
+     ],
+     "v": 0.9,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    {
+     "n": [
+      31
+     ],
+     "v": 0.8,
+     "l": "1/2"
+    },
+    null,
+    {
+     "n": [
+      34
+     ],
+     "v": 0.9,
+     "l": "TIE",
+     "lock": {
+      "LFO.SYNC 1": 3
+     }
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      29
+     ],
+     "v": 0.9,
+     "l": "TIE",
+     "lock": {
+      "LFO.SYNC 1": 1
+     }
+    },
+    null,
+    null,
+    {
+     "n": [
+      26
+     ],
+     "v": 0.8,
+     "l": "1/2"
+    }
+   ]
+  },
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "BS FOLD GRIT",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": "GRIDS",
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "FOLD",
+    "TIMBRE": 0.3,
+    "COLOR": 0.4,
+    "DRIFT": 0.05,
+    "AD ATK": 0.0,
+    "AD DEC": 0.3,
+    "AD>TIMB": 0.35
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.4,
+    "RESO": 0.3,
+    "DRIVE": 0.45,
+    "ENV AMT": 0.3,
+    "KEY TRK": 0.5,
+    "SAT": "FOLD"
+   },
+   "MODA": {
+    "X": 0.35,
+    "Y": 0.55,
+    "FILL": 0.7,
+    "OUT": "KIT",
+    "CHAOS": 0.05
+   },
+   "FX1": {
+    "TIME": "1/16",
+    "FEEDBACK": 0.25,
+    "TONE": 0.4,
+    "MIX": 0.15,
+    "MODE": "MONO"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.3,
+   "SUSTAIN": 0.6,
+   "RELEASE": 0.12,
+   "LEVEL": 0.46,
+   "MODE": "MONO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M3",
+    "SHP.DRIVE",
+    0.5
+   ],
+   [
+    "M4",
+    "SRC.AD>TIMB",
+    0.5
+   ],
+   [
+    "A ACCENT",
+    "SRC.TIMBRE",
+    0.3
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/16",
+   "swing": 0.15,
+   "steps": [
+    {
+     "n": [
+      35
+     ],
+     "v": 0.95,
+     "l": "1/4"
+    },
+    null,
+    {
+     "n": [
+      35
+     ],
+     "v": 0.6,
+     "l": "1/8"
+    },
+    {
+     "n": [
+      47
+     ],
+     "v": 0.8,
+     "l": "1/4"
+    },
+    null,
+    {
+     "n": [
+      35
+     ],
+     "v": 0.7,
+     "l": "1/4"
+    },
+    null,
+    {
+     "n": [
+      38
+     ],
+     "v": 0.9,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      35
+     ],
+     "v": 0.95,
+     "l": "1/4"
+    },
+    null,
+    {
+     "n": [
+      40
+     ],
+     "v": 0.8,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      35
+     ],
+     "v": 0.5,
+     "l": "1/8",
+     "c": 0.5
+    },
+    null,
+    {
+     "n": [
+      42
+     ],
+     "v": 0.9,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      40
+     ],
+     "v": 0.7,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      33
+     ],
+     "v": 0.8,
+     "l": "1/4"
+    }
+   ]
+  },
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "PD GLASSWASH",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CLOUDS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "ADDITIVE",
+    "HARMO": 0.6,
+    "TIMBRE": 0.55,
+    "MORPH": 0.3
+   },
+   "FX1": {
+    "POSITION": 0.3,
+    "SIZE": 0.7,
+    "PITCH": 0.0,
+    "DENSITY": 0.75,
+    "TEXTURE": 0.7,
+    "BLEND": 0.4,
+    "SPREAD": 0.8,
+    "FEEDBACK": 0.3,
+    "REVERB": 0.4
+   },
+   "FX2": {
+    "SIZE": 0.8,
+    "DAMP": 0.45,
+    "MIX": 0.3,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.55,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.7,
+   "SPREAD": 0.7,
+   "LEVEL": 1.0
+  },
+  "lfo": {
+   "SHAPE 1": "DRIFT",
+   "RATE 1": 0.2,
+   "SHAPE 2": "TRI",
+   "RATE 2": 0.12
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.45
+   ],
+   [
+    "M2",
+    "FX 1.BLEND",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.TEXTURE",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SRC.MORPH",
+    0.15
+   ],
+   [
+    "LFO 2",
+    "SRC.HARMO",
+    0.1
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "PD STRINGS",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "STR MACH",
+    "HARMO": 0.5,
+    "TIMBRE": 0.6,
+    "MORPH": 0.5
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.6,
+    "RESO": 0.15,
+    "DRIVE": 0.1,
+    "ENV AMT": 0.15,
+    "KEY TRK": 0.6
+   },
+   "FX1": {
+    "RATE": 0.3,
+    "DEPTH": 0.6,
+    "WIDTH": 0.9,
+    "MIX": 0.45
+   },
+   "FX2": {
+    "SIZE": 0.75,
+    "DAMP": 0.5,
+    "MIX": 0.3,
+    "TYPE": "HALL",
+    "PRE": 0.2
+   }
+  },
+  "amp": {
+   "ATTACK": 0.45,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.55,
+   "SPREAD": 0.6,
+   "LEVEL": 0.6
+  },
+  "lfo": {
+   "SHAPE 1": "SINE",
+   "RATE 1": 0.45,
+   "FADE 1": 0.5
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.4
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.DEPTH",
+    0.4
+   ],
+   [
+    "M4",
+    "AMP.ATTACK",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "PITCH",
+    0.02
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "PD SHIMMER",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "WAVETBL",
+    "HARMO": 0.4,
+    "TIMBRE": 0.45,
+    "MORPH": 0.5
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.55,
+    "RESO": 0.2,
+    "DRIVE": 0.0,
+    "ENV AMT": 0.2,
+    "KEY TRK": 0.5
+   },
+   "FX1": {
+    "TIME": "1/4",
+    "FEEDBACK": 0.45,
+    "TONE": 0.55,
+    "MIX": 0.2,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.85,
+    "DAMP": 0.35,
+    "MIX": 0.4,
+    "TYPE": "SHIMMER",
+    "SHIMMER": 0.5,
+    "PRE": 0.15
+   }
+  },
+  "amp": {
+   "ATTACK": 0.6,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.8,
+   "RELEASE": 0.75,
+   "SPREAD": 0.8,
+   "LEVEL": 0.56
+  },
+  "lfo": {
+   "SHAPE 1": "TRI",
+   "RATE 1": 0.15,
+   "SHAPE 2": "SINE",
+   "SYNC 2": "2 BARS"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "FX 2.SHIMMER",
+    0.5
+   ],
+   [
+    "M3",
+    "SHP.CUTOFF",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SRC.MORPH",
+    0.25
+   ],
+   [
+    "LFO 2",
+    "SHP.CUTOFF",
+    0.1
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "PD SYMPATH",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "RINGS",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "REVERB",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "////",
+    "TIMBRE": 0.5,
+    "COLOR": 0.4,
+    "DRIFT": 0.2
+   },
+   "SHP": {
+    "MODEL": "SYMPATH",
+    "STRUCT": 0.35,
+    "BRIGHT": 0.55,
+    "DAMPING": 0.75,
+    "POSITION": 0.4,
+    "EXCITE": 0.35,
+    "MIX": 0.55,
+    "SPREAD": 0.6
+   },
+   "FX1": {
+    "SIZE": 0.8,
+    "DAMP": 0.5,
+    "MIX": 0.35,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.5,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.65,
+   "SPREAD": 0.6,
+   "LEVEL": 0.59
+  },
+  "lfo": {
+   "SHAPE 1": "DRIFT",
+   "RATE 1": 0.25
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.STRUCT",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.MIX",
+    0.4
+   ],
+   [
+    "M3",
+    "SHP.BRIGHT",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SHP.POSITION",
+    0.2
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "PD DARK DRONE",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "SWARM",
+    "HARMO": 0.35,
+    "TIMBRE": 0.4,
+    "MORPH": 0.5,
+    "OCTAVE": -1
+   },
+   "SHP": {
+    "TYPE": "LP24",
+    "CUTOFF": 0.35,
+    "RESO": 0.35,
+    "DRIVE": 0.3,
+    "ENV AMT": 0.0,
+    "KEY TRK": 0.4
+   },
+   "FX1": {
+    "TIME": "1/2",
+    "FEEDBACK": 0.55,
+    "TONE": 0.3,
+    "MIX": 0.25,
+    "MODE": "TAPE",
+    "WOW": 0.5
+   },
+   "FX2": {
+    "SIZE": 0.9,
+    "DAMP": 0.6,
+    "MIX": 0.35,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.7,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.8,
+   "SPREAD": 0.7,
+   "LEVEL": 0.34
+  },
+  "lfo": {
+   "SHAPE 1": "SINE",
+   "SYNC 1": "2 BARS",
+   "SHAPE 2": "DRIFT",
+   "RATE 2": 0.1
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.FEEDBACK",
+    0.35
+   ],
+   [
+    "M4",
+    "SHP.RESO",
+    0.4
+   ],
+   [
+    "LFO 1",
+    "SHP.CUTOFF",
+    0.2
+   ],
+   [
+    "LFO 2",
+    "SRC.TIMBRE",
+    0.15
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "PD VOX CHOIR",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "FORMANT",
+    "HARMO": 0.5,
+    "TIMBRE": 0.45,
+    "MORPH": 0.35
+   },
+   "FX1": {
+    "RATE": 0.2,
+    "DEPTH": 0.55,
+    "WIDTH": 0.9,
+    "MIX": 0.4
+   },
+   "FX2": {
+    "SIZE": 0.8,
+    "DAMP": 0.5,
+    "MIX": 0.35,
+    "TYPE": "HALL",
+    "PRE": 0.25
+   }
+  },
+  "amp": {
+   "ATTACK": 0.5,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.6,
+   "SPREAD": 0.6,
+   "LEVEL": 0.45
+  },
+  "lfo": {
+   "SHAPE 1": "TRI",
+   "RATE 1": 0.2,
+   "SHAPE 2": "SINE",
+   "RATE 2": 0.4,
+   "FADE 2": 0.5
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.TIMBRE",
+    0.4
+   ],
+   [
+    "M3",
+    "SRC.HARMO",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SRC.MORPH",
+    0.2
+   ],
+   [
+    "LFO 2",
+    "PITCH",
+    0.015
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "LD SYNC SCRM",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "SYN/",
+    "TIMBRE": 0.45,
+    "COLOR": 0.5,
+    "DRIFT": 0.1,
+    "AD ATK": 0.0,
+    "AD DEC": 0.4,
+    "AD>TIMB": 0.3
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.7,
+    "RESO": 0.25,
+    "DRIVE": 0.45,
+    "ENV AMT": 0.15,
+    "KEY TRK": 0.6,
+    "SAT": "ASYM"
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.4,
+    "TONE": 0.45,
+    "MIX": 0.25,
+    "MODE": "PING",
+    "DUCK": 0.5
+   },
+   "FX2": {
+    "SIZE": 0.5,
+    "DAMP": 0.5,
+    "MIX": 0.15
+   }
+  },
+  "amp": {
+   "ATTACK": 0.01,
+   "DECAY": 0.4,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.3,
+   "GLIDE": 0.25,
+   "LEVEL": 0.48,
+   "MODE": "LEGATO"
+  },
+  "lfo": {
+   "SHAPE 1": "SINE",
+   "RATE 1": 0.55,
+   "FADE 1": 0.45
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.CUTOFF",
+    0.4
+   ],
+   [
+    "M3",
+    "FX 1.MIX",
+    0.4
+   ],
+   [
+    "M4",
+    "SRC.AD>TIMB",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "PITCH",
+    0.025
+   ],
+   [
+    "WHEEL",
+    "SRC.COLOR",
+    0.4
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "LD CHIP SQ",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "CHIPTUNE",
+    "HARMO": 0.5,
+    "TIMBRE": 0.5,
+    "MORPH": 0.4
+   },
+   "FX1": {
+    "TIME": "1/8",
+    "FEEDBACK": 0.35,
+    "TONE": 0.6,
+    "MIX": 0.2,
+    "MODE": "PING"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.4,
+   "SUSTAIN": 0.8,
+   "RELEASE": 0.15,
+   "GLIDE": 0.1,
+   "LEVEL": 0.66,
+   "MODE": "MONO"
+  },
+  "lfo": {
+   "SHAPE 1": "SQUARE",
+   "SYNC 1": "1/16",
+   "FADE 1": 0.35
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.MIX",
+    0.4
+   ],
+   [
+    "M4",
+    "SRC.HARMO",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "LD BREATH",
+  "slots": {
+   "SRC": "ELEMENTS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "REVERB",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "BOW": 0.0,
+    "BLOW": 0.75,
+    "STRIKE": 0.1,
+    "CONTOUR": 0.55,
+    "GEOMETRY": 0.3,
+    "BRIGHT": 0.55,
+    "DAMPING": 0.5,
+    "POSITION": 0.35,
+    "FLOW": 0.55,
+    "MALLET": 0.4,
+    "SPACE": 0.3
+   },
+   "FX1": {
+    "SIZE": 0.6,
+    "DAMP": 0.55,
+    "MIX": 0.2,
+    "TYPE": "PLATE"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.05,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.4,
+   "LEVEL": 0.29
+  },
+  "lfo": {
+   "SHAPE 1": "SINE",
+   "RATE 1": 0.5,
+   "FADE 1": 0.5
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.BLOW",
+    0.4
+   ],
+   [
+    "M2",
+    "SRC.FLOW",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.BRIGHT",
+    0.4
+   ],
+   [
+    "M4",
+    "SRC.GEOMETRY",
+    0.4
+   ],
+   [
+    "LFO 1",
+    "SRC.FLOW",
+    0.1
+   ],
+   [
+    "PRESS",
+    "SRC.BLOW",
+    0.3
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "LD PWM SOLO",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "DELAY"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "PAIR VA",
+    "HARMO": 0.3,
+    "TIMBRE": 0.5,
+    "MORPH": 0.65
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.62,
+    "RESO": 0.3,
+    "DRIVE": 0.25,
+    "ENV AMT": 0.25,
+    "KEY TRK": 0.6,
+    "ENV SRC": "OWN",
+    "F ATK": 0.05,
+    "F DEC": 0.45,
+    "F SUS": 0.4,
+    "F REL": 0.3
+   },
+   "FX1": {
+    "RATE": 0.25,
+    "DEPTH": 0.3,
+    "WIDTH": 0.7,
+    "MIX": 0.2
+   },
+   "FX2": {
+    "TIME": "1/4",
+    "FEEDBACK": 0.35,
+    "TONE": 0.45,
+    "MIX": 0.18,
+    "MODE": "PING"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.01,
+   "DECAY": 0.4,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.3,
+   "GLIDE": 0.3,
+   "LEVEL": 0.57,
+   "MODE": "LEGATO"
+  },
+  "lfo": {
+   "SHAPE 1": "TRI",
+   "RATE 1": 0.35
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M2",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M3",
+    "AMP.GLIDE",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.4
+   ],
+   [
+    "LFO 1",
+    "SRC.TIMBRE",
+    0.2
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "LD PHASE D",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "PHASE D",
+    "HARMO": 0.45,
+    "TIMBRE": 0.3,
+    "MORPH": 0.4
+   },
+   "FX1": {
+    "RATE": 0.3,
+    "DEPTH": 0.4,
+    "WIDTH": 0.8,
+    "MIX": 0.25
+   },
+   "FX2": {
+    "SIZE": 0.55,
+    "DAMP": 0.5,
+    "MIX": 0.18
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.8,
+   "RELEASE": 0.3,
+   "GLIDE": 0.15,
+   "LEVEL": 0.6,
+   "MODE": "MONO",
+   "M ATTACK": 0.0,
+   "M DECAY": 0.35
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.HARMO",
+    0.4
+   ],
+   [
+    "M3",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.4
+   ],
+   [
+    "MOD ENV",
+    "SRC.TIMBRE",
+    0.4
+   ],
+   [
+    "VELO",
+    "SRC.TIMBRE",
+    0.2
+   ]
+  ],
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "LD UNISON",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "REVERB",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "CSAW",
+    "TIMBRE": 0.4,
+    "COLOR": 0.5,
+    "DRIFT": 0.15
+   },
+   "SHP": {
+    "TYPE": "LP24",
+    "CUTOFF": 0.62,
+    "RESO": 0.2,
+    "DRIVE": 0.2,
+    "ENV AMT": 0.2,
+    "KEY TRK": 0.6
+   },
+   "FX1": {
+    "SIZE": 0.6,
+    "DAMP": 0.5,
+    "MIX": 0.2,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.01,
+   "DECAY": 0.4,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.35,
+   "GLIDE": 0.2,
+   "LEVEL": 0.25,
+   "MODE": "UNI 4",
+   "DETUNE": 0.25,
+   "VINTAGE": 0.3
+  },
+  "lfo": {
+   "SHAPE 1": "SINE",
+   "RATE 1": 0.55,
+   "FADE 1": 0.4
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M2",
+    "SRC.COLOR",
+    0.5
+   ],
+   [
+    "M3",
+    "SHP.RESO",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.4
+   ],
+   [
+    "LFO 1",
+    "PITCH",
+    0.02
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "CH FM EP",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "2OP FM",
+    "HARMO": 0.12,
+    "TIMBRE": 0.3,
+    "MORPH": 0.2,
+    "LPG": "ON",
+    "DECAY": 0.7,
+    "COLOUR": 0.4,
+    "ENV>TIMB": 0.25
+   },
+   "FX1": {
+    "RATE": 0.35,
+    "DEPTH": 0.35,
+    "WIDTH": 0.9,
+    "MIX": 0.3
+   },
+   "FX2": {
+    "SIZE": 0.45,
+    "DAMP": 0.55,
+    "MIX": 0.15
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.5,
+   "RELEASE": 0.35,
+   "SPREAD": 0.5,
+   "LEVEL": 0.39
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.DECAY",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.MIX",
+    0.4
+   ],
+   [
+    "M4",
+    "SRC.HARMO",
+    0.4
+   ],
+   [
+    "VELO",
+    "SRC.TIMBRE",
+    0.3
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/8",
+   "swing": 0.1,
+   "steps": [
+    {
+     "n": [
+      50,
+      53,
+      57,
+      60
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    {
+     "n": [
+      50,
+      53,
+      57,
+      60
+     ],
+     "v": 0.5,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      55,
+      59,
+      62,
+      65
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      52,
+      55,
+      59,
+      64
+     ],
+     "v": 0.7,
+     "l": "TIE"
+    },
+    null,
+    null,
+    {
+     "n": [
+      52,
+      55,
+      59,
+      64
+     ],
+     "v": 0.5,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      57,
+      60,
+      64,
+      67
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null
+   ]
+  },
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "CH POLY STAB",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "CHORUS"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "CSAW",
+    "TIMBRE": 0.45,
+    "COLOR": 0.45,
+    "DRIFT": 0.15
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.45,
+    "RESO": 0.3,
+    "DRIVE": 0.2,
+    "ENV AMT": 0.4,
+    "KEY TRK": 0.5,
+    "ENV SRC": "OWN",
+    "F ATK": 0.0,
+    "F DEC": 0.3,
+    "F SUS": 0.1,
+    "F REL": 0.2
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.4,
+    "TONE": 0.45,
+    "MIX": 0.25,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "RATE": 0.25,
+    "DEPTH": 0.4,
+    "WIDTH": 0.9,
+    "MIX": 0.3
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.35,
+   "SUSTAIN": 0.2,
+   "RELEASE": 0.25,
+   "SPREAD": 0.6,
+   "LEVEL": 0.25
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M2",
+    "SHP.F DEC",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.FEEDBACK",
+    0.35
+   ],
+   [
+    "M4",
+    "SHP.RESO",
+    0.4
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/16",
+   "swing": 0.12,
+   "steps": [
+    null,
+    null,
+    {
+     "n": [
+      57,
+      60,
+      64
+     ],
+     "v": 0.85,
+     "l": "1/4"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      57,
+      60,
+      64
+     ],
+     "v": 0.7,
+     "l": "1/4"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      55,
+      59,
+      62
+     ],
+     "v": 0.85,
+     "l": "1/4"
+    },
+    null,
+    null,
+    {
+     "n": [
+      53,
+      57,
+      60
+     ],
+     "v": 0.7,
+     "l": "1/4"
+    },
+    null,
+    {
+     "n": [
+      53,
+      57,
+      60
+     ],
+     "v": 0.6,
+     "l": "1/4",
+     "c": 0.6
+    }
+   ]
+  },
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "CH ORGAN",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "ADDITIVE",
+    "HARMO": 0.35,
+    "TIMBRE": 0.6,
+    "MORPH": 0.0
+   },
+   "FX1": {
+    "RATE": 0.55,
+    "DEPTH": 0.5,
+    "WIDTH": 0.9,
+    "MIX": 0.4,
+    "MODE": "VIBRATO"
+   },
+   "FX2": {
+    "SIZE": 0.5,
+    "DAMP": 0.5,
+    "MIX": 0.15
+   }
+  },
+  "amp": {
+   "ATTACK": 0.01,
+   "DECAY": 0.3,
+   "SUSTAIN": 1.0,
+   "RELEASE": 0.15,
+   "SPREAD": 0.4,
+   "VEL AMT": 0.1,
+   "LEVEL": 0.44
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "FX 1.RATE",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.HARMO",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.4
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/8",
+   "swing": 0,
+   "steps": [
+    {
+     "n": [
+      48,
+      55,
+      60,
+      64
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      45,
+      52,
+      57,
+      60
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      41,
+      53,
+      57,
+      60
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      43,
+      50,
+      55,
+      59
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null
+   ]
+  },
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "CH PLUCK HARP",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "STRING",
+    "HARMO": 0.4,
+    "TIMBRE": 0.55,
+    "MORPH": 0.6
+   },
+   "FX1": {
+    "TIME": "1/4",
+    "FEEDBACK": 0.3,
+    "TONE": 0.55,
+    "MIX": 0.15,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.7,
+    "DAMP": 0.45,
+    "MIX": 0.25,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.7,
+   "SUSTAIN": 0.6,
+   "RELEASE": 0.6,
+   "SPREAD": 0.6,
+   "LEVEL": 0.56
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.HARMO",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/8",
+   "swing": 0,
+   "steps": [
+    {
+     "n": [
+      48,
+      52,
+      55,
+      59,
+      64
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      45,
+      52,
+      57,
+      60,
+      64
+     ],
+     "v": 0.7,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      41,
+      48,
+      53,
+      57,
+      64
+     ],
+     "v": 0.7,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      43,
+      50,
+      55,
+      59,
+      62
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null
+   ]
+  },
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "CH GLASS PNO",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "REVERB",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "MODAL",
+    "HARMO": 0.45,
+    "TIMBRE": 0.55,
+    "MORPH": 0.55
+   },
+   "FX1": {
+    "SIZE": 0.65,
+    "DAMP": 0.45,
+    "MIX": 0.25,
+    "TYPE": "PLATE",
+    "PRE": 0.1
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.7,
+   "SUSTAIN": 0.7,
+   "RELEASE": 0.6,
+   "SPREAD": 0.5,
+   "LEVEL": 0.33
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.HARMO",
+    0.4
+   ],
+   [
+    "M3",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ],
+   [
+    "VELO",
+    "SRC.TIMBRE",
+    0.25
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/8",
+   "swing": 0,
+   "steps": [
+    {
+     "n": [
+      52,
+      57,
+      60,
+      64
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      53,
+      57,
+      60,
+      65
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      55,
+      59,
+      62,
+      67
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      52,
+      55,
+      59,
+      64
+     ],
+     "v": 0.75,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null
+   ]
+  },
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "CH DUSTY KEYS",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "CHORUS"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "FM",
+    "TIMBRE": 0.25,
+    "COLOR": 0.35,
+    "DRIFT": 0.2,
+    "BITS": "8",
+    "RATE": "22K",
+    "AD ATK": 0.0,
+    "AD DEC": 0.45,
+    "AD>TIMB": 0.25
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.5,
+    "RESO": 0.15,
+    "DRIVE": 0.2,
+    "ENV AMT": 0.2,
+    "KEY TRK": 0.5
+   },
+   "FX1": {
+    "TIME": "1/4",
+    "FEEDBACK": 0.35,
+    "TONE": 0.3,
+    "MIX": 0.2,
+    "MODE": "TAPE",
+    "WOW": 0.6
+   },
+   "FX2": {
+    "RATE": 0.15,
+    "DEPTH": 0.45,
+    "WIDTH": 0.8,
+    "MIX": 0.3
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.55,
+   "RELEASE": 0.4,
+   "SPREAD": 0.5,
+   "LEVEL": 0.33,
+   "VINTAGE": 0.5
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M2",
+    "FX 1.WOW",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.TIMBRE",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.4
+   ]
+  ],
+  "seq": {
+   "len": 16,
+   "rate": "1/8",
+   "swing": 0.2,
+   "steps": [
+    {
+     "n": [
+      50,
+      57,
+      60,
+      65
+     ],
+     "v": 0.7,
+     "l": "TIE"
+    },
+    null,
+    null,
+    {
+     "n": [
+      50,
+      57,
+      60,
+      65
+     ],
+     "v": 0.45,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      55,
+      58,
+      62,
+      65
+     ],
+     "v": 0.7,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null,
+    {
+     "n": [
+      48,
+      55,
+      58,
+      64
+     ],
+     "v": 0.7,
+     "l": "TIE"
+    },
+    null,
+    null,
+    {
+     "n": [
+      48,
+      55,
+      58,
+      64
+     ],
+     "v": 0.45,
+     "l": "1/4"
+    },
+    {
+     "n": [
+      53,
+      57,
+      60,
+      64
+     ],
+     "v": 0.7,
+     "l": "TIE"
+    },
+    null,
+    null,
+    null
+   ]
+  },
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "FX RISER",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "NOISE",
+    "HARMO": 0.5,
+    "TIMBRE": 0.6,
+    "MORPH": 0.4
+   },
+   "SHP": {
+    "TYPE": "BP",
+    "CUTOFF": 0.3,
+    "RESO": 0.6,
+    "DRIVE": 0.1,
+    "ENV AMT": 0.0,
+    "KEY TRK": 0.3
+   },
+   "FX1": {
+    "TIME": "1/8",
+    "FEEDBACK": 0.5,
+    "TONE": 0.5,
+    "MIX": 0.25,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.85,
+    "DAMP": 0.4,
+    "MIX": 0.35,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.75,
+   "DECAY": 0.5,
+   "SUSTAIN": 1.0,
+   "RELEASE": 0.6,
+   "LEVEL": 0.53,
+   "M ATTACK": 0.85,
+   "M DECAY": 0.4,
+   "M SUST": 1.0,
+   "PITCH ENV": 0.25
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.RESO",
+    0.4
+   ],
+   [
+    "M2",
+    "AMP.M ATTACK",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.FEEDBACK",
+    0.35
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "MOD ENV",
+    "SHP.CUTOFF",
+    0.65
+   ]
+  ],
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "FX GRAINSTORM",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CLOUDS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "PARTICLE",
+    "HARMO": 0.6,
+    "TIMBRE": 0.55,
+    "MORPH": 0.6
+   },
+   "FX1": {
+    "POSITION": 0.4,
+    "SIZE": 0.35,
+    "PITCH": 0.0,
+    "DENSITY": 0.66,
+    "TEXTURE": 0.55,
+    "BLEND": 0.55,
+    "SPREAD": 0.9,
+    "FEEDBACK": 0.3,
+    "REVERB": 0.3,
+    "GRN SYNC": "1/16",
+    "SPRAY": 0.5,
+    "PITCH RND": 0.5,
+    "PITCH QNT": "5TH+OCT",
+    "SIZE RND": 0.4
+   },
+   "FX2": {
+    "SIZE": 0.75,
+    "DAMP": 0.5,
+    "MIX": 0.25
+   }
+  },
+  "amp": {
+   "ATTACK": 0.1,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.6,
+   "SPREAD": 0.7,
+   "LEVEL": 1.0
+  },
+  "lfo": {
+   "SHAPE 1": "SAW",
+   "SYNC 1": "1 BAR"
+  },
+  "matrix": [
+   [
+    "M1",
+    "FX 1.SPRAY",
+    0.5
+   ],
+   [
+    "M2",
+    "FX 1.PITCH RND",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.SIZE",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 1.BLEND",
+    0.3
+   ],
+   [
+    "LFO 1",
+    "FX 1.POSITION",
+    0.3
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "FX ROBOT TALK",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": "MARBLES",
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "SPEECH",
+    "HARMO": 0.4,
+    "TIMBRE": 0.5,
+    "MORPH": 0.5
+   },
+   "MODA": {
+    "RATE": 0.55,
+    "SPREAD": 0.6,
+    "BIAS": 0.5,
+    "STEPS": 0.0,
+    "DEJA VU": 0.6,
+    "LENGTH": "4",
+    "CLOCK": "1/8"
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.4,
+    "TONE": 0.5,
+    "MIX": 0.25,
+    "MODE": "PING"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.01,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.3,
+   "LEVEL": 0.53,
+   "MODE": "MONO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.HARMO",
+    0.5
+   ],
+   [
+    "M2",
+    "MOD A.DEJA VU",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.TIMBRE",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.4
+   ],
+   [
+    "A MARB X",
+    "SRC.MORPH",
+    0.6
+   ],
+   [
+    "A MARB T",
+    "SRC.TIMBRE",
+    0.15
+   ]
+  ],
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "FX LASER ZAP",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "2OP FM",
+    "HARMO": 0.7,
+    "TIMBRE": 0.6,
+    "MORPH": 0.5,
+    "OCTAVE": 1
+   },
+   "FX1": {
+    "TIME": "1/16",
+    "FEEDBACK": 0.55,
+    "TONE": 0.6,
+    "MIX": 0.3,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.6,
+    "DAMP": 0.5,
+    "MIX": 0.2
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.25,
+   "SUSTAIN": 0.0,
+   "RELEASE": 0.2,
+   "LEVEL": 0.76,
+   "M ATTACK": 0.0,
+   "M DECAY": 0.3,
+   "PITCH ENV": -0.9
+  },
+  "matrix": [
+   [
+    "M1",
+    "AMP.PITCH ENV",
+    0.5
+   ],
+   [
+    "M2",
+    "AMP.M DECAY",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.TIMBRE",
+    0.4
+   ],
+   [
+    "M4",
+    "FX 1.FEEDBACK",
+    0.35
+   ],
+   [
+    "MOD ENV",
+    "SRC.TIMBRE",
+    0.4
+   ]
+  ],
+  "lfo": {},
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "FX DRONESPACE",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CLOUDS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "TERRAIN",
+    "HARMO": 0.45,
+    "TIMBRE": 0.5,
+    "MORPH": 0.5,
+    "OCTAVE": -1
+   },
+   "FX1": {
+    "POSITION": 0.5,
+    "SIZE": 0.75,
+    "PITCH": 0.0,
+    "DENSITY": 0.8,
+    "TEXTURE": 0.75,
+    "BLEND": 0.6,
+    "SPREAD": 0.9,
+    "FEEDBACK": 0.3,
+    "REVERB": 0.5,
+    "SCAN": -0.35,
+    "TONE": -0.3
+   },
+   "FX2": {
+    "SIZE": 0.9,
+    "DAMP": 0.4,
+    "MIX": 0.35,
+    "TYPE": "SHIMMER",
+    "SHIMMER": 0.45
+   }
+  },
+  "amp": {
+   "ATTACK": 0.7,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.8,
+   "SPREAD": 0.8,
+   "LEVEL": 0.64
+  },
+  "lfo": {
+   "SHAPE 1": "DRIFT",
+   "RATE 1": 0.15,
+   "SHAPE 2": "SINE",
+   "SYNC 2": "2 BARS"
+  },
+  "matrix": [
+   [
+    "M1",
+    "FX 1.SCAN",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.FEEDBACK",
+    0.35
+   ],
+   [
+    "M4",
+    "FX 2.SHIMMER",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SRC.TIMBRE",
+    0.25
+   ],
+   [
+    "LFO 2",
+    "SRC.HARMO",
+    0.15
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "FX SAMPLEHOLD",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "SYN-",
+    "TIMBRE": 0.5,
+    "COLOR": 0.5,
+    "DRIFT": 0.0,
+    "BITS": "6",
+    "RATE": "16K"
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.5,
+    "RESO": 0.65,
+    "DRIVE": 0.3,
+    "ENV AMT": 0.0,
+    "KEY TRK": 0.5
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.5,
+    "TONE": 0.5,
+    "MIX": 0.3,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.6,
+    "DAMP": 0.5,
+    "MIX": 0.2
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.5,
+   "SUSTAIN": 1.0,
+   "RELEASE": 0.4,
+   "LEVEL": 0.32,
+   "MODE": "MONO"
+  },
+  "lfo": {
+   "SHAPE 1": "S&H",
+   "SYNC 1": "1/16",
+   "SHAPE 2": "S&H",
+   "SYNC 2": "1/16"
+  },
+  "matrix": [
+   [
+    "M1",
+    "LFO.RATE 1",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.RESO",
+    0.3
+   ],
+   [
+    "M3",
+    "FX 1.FEEDBACK",
+    0.35
+   ],
+   [
+    "M4",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "PITCH",
+    0.5
+   ],
+   [
+    "LFO 2",
+    "SHP.CUTOFF",
+    0.35
+   ]
+  ],
+  "macros": [
+   0.3,
+   0.3,
+   0.3,
+   0.3
+  ]
+ },
+ {
+  "name": "BS DEEP SUB",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": null,
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "VA VCF",
+    "HARMO": 0.1,
+    "TIMBRE": 0.15,
+    "MORPH": 0.0,
+    "OCTAVE": -1
+   },
+   "SHP": {
+    "TYPE": "LP24",
+    "CUTOFF": 0.25,
+    "RESO": 0.1,
+    "DRIVE": 0.2,
+    "ENV AMT": 0.15,
+    "KEY TRK": 0.5,
+    "ENV SRC": "OWN",
+    "F ATK": 0.0,
+    "F DEC": 0.3,
+    "F SUS": 0.3,
+    "F REL": 0.2
+   }
+  },
+  "amp": {
+   "ATTACK": 0.01,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.15,
+   "GLIDE": 0.15,
+   "LEVEL": 0.54,
+   "MODE": "LEGATO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.4
+   ],
+   [
+    "M2",
+    "SHP.DRIVE",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.TIMBRE",
+    0.4
+   ],
+   [
+    "M4",
+    "AMP.GLIDE",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "BS FM GROWL",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "2OP FM",
+    "HARMO": 0.3,
+    "TIMBRE": 0.55,
+    "MORPH": 0.45,
+    "OCTAVE": -1
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.45,
+    "RESO": 0.35,
+    "DRIVE": 0.5,
+    "ENV AMT": 0.2,
+    "KEY TRK": 0.5,
+    "SAT": "ASYM"
+   },
+   "FX1": {
+    "RATE": 0.2,
+    "DEPTH": 0.3,
+    "WIDTH": 0.7,
+    "MIX": 0.2
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.45,
+   "SUSTAIN": 0.8,
+   "RELEASE": 0.15,
+   "GLIDE": 0.1,
+   "LEVEL": 0.51,
+   "MODE": "MONO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M3",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M4",
+    "SHP.DRIVE",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SRC.TIMBRE",
+    0.2
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "lfo": {
+   "SHAPE 1": "SINE",
+   "SYNC 1": "1/8",
+   "RETRIG 1": "ON"
+  }
+ },
+ {
+  "name": "BS PLUCKED",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "PLUK",
+    "TIMBRE": 0.5,
+    "COLOR": 0.35,
+    "OCTAVE": -1
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.5,
+    "RESO": 0.2,
+    "DRIVE": 0.25,
+    "ENV AMT": 0.25,
+    "KEY TRK": 0.6,
+    "ENV SRC": "OWN",
+    "F ATK": 0.0,
+    "F DEC": 0.25,
+    "F SUS": 0.1,
+    "F REL": 0.2
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.25,
+    "TONE": 0.4,
+    "MIX": 0.12,
+    "MODE": "MONO"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.45,
+   "SUSTAIN": 0.3,
+   "RELEASE": 0.25,
+   "LEVEL": 0.6
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M3",
+    "SRC.COLOR",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ],
+   [
+    "VELO",
+    "SHP.CUTOFF",
+    0.2
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "BS ROLLER",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": "TIDES",
+   "MODB": null,
+   "FX1": null,
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "CSAW",
+    "TIMBRE": 0.35,
+    "COLOR": 0.3,
+    "DRIFT": 0.1,
+    "OCTAVE": -1
+   },
+   "SHP": {
+    "TYPE": "LP24",
+    "CUTOFF": 0.3,
+    "RESO": 0.4,
+    "DRIVE": 0.35,
+    "ENV AMT": 0.0,
+    "KEY TRK": 0.5,
+    "SAT": "SOFT"
+   },
+   "MODA": {
+    "MODE": "AD",
+    "FREQ": 0.45,
+    "SHAPE": 0.3,
+    "SLOPE": -0.4,
+    "GATE": "1/16"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.12,
+   "LEVEL": 0.45,
+   "MODE": "MONO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M2",
+    "SHP.RESO",
+    0.4
+   ],
+   [
+    "M3",
+    "MOD A.FREQ",
+    0.5
+   ],
+   [
+    "M4",
+    "SHP.DRIVE",
+    0.5
+   ],
+   [
+    "A TIDES",
+    "SHP.CUTOFF",
+    0.35
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "BS DUB ROUND",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "WAVESHP",
+    "HARMO": 0.2,
+    "TIMBRE": 0.2,
+    "MORPH": 0.3,
+    "OCTAVE": -1
+   },
+   "SHP": {
+    "TYPE": "LP24",
+    "CUTOFF": 0.3,
+    "RESO": 0.15,
+    "DRIVE": 0.3,
+    "ENV AMT": 0.2,
+    "KEY TRK": 0.5
+   },
+   "FX1": {
+    "TIME": "1/4D",
+    "FEEDBACK": 0.45,
+    "TONE": 0.3,
+    "MIX": 0.15,
+    "MODE": "TAPE",
+    "WOW": 0.3
+   },
+   "FX2": {
+    "SIZE": 0.5,
+    "DAMP": 0.6,
+    "MIX": 0.12,
+    "TYPE": "PLATE",
+    "LO CUT": 0.5
+   }
+  },
+  "amp": {
+   "ATTACK": 0.01,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.7,
+   "RELEASE": 0.3,
+   "GLIDE": 0.05,
+   "LEVEL": 0.55,
+   "MODE": "LEGATO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M2",
+    "FX 1.FEEDBACK",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "LD SAW SOLO",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "CSAW",
+    "TIMBRE": 0.4,
+    "COLOR": 0.4,
+    "DRIFT": 0.15
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.55,
+    "RESO": 0.3,
+    "DRIVE": 0.3,
+    "ENV AMT": 0.25,
+    "KEY TRK": 0.6,
+    "ENV SRC": "OWN",
+    "F ATK": 0.02,
+    "F DEC": 0.4,
+    "F SUS": 0.5,
+    "F REL": 0.3
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.35,
+    "TONE": 0.5,
+    "MIX": 0.2,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.55,
+    "DAMP": 0.5,
+    "MIX": 0.15,
+    "TYPE": "PLATE"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.01,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.3,
+   "GLIDE": 0.2,
+   "LEVEL": 0.45,
+   "MODE": "LEGATO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.RESO",
+    0.4
+   ],
+   [
+    "M3",
+    "FX 1.MIX",
+    0.5
+   ],
+   [
+    "M4",
+    "AMP.GLIDE",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "PITCH",
+    0.015
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "lfo": {
+   "SHAPE 1": "SINE",
+   "RATE 1": 0.55,
+   "FADE 1": 0.6
+  }
+ },
+ {
+  "name": "LD SYNC SWEEP",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "SYN/",
+    "TIMBRE": 0.3,
+    "COLOR": 0.5,
+    "DRIFT": 0.05,
+    "AD ATK": 0.0,
+    "AD DEC": 0.45,
+    "AD>TIMB": 0.5
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.65,
+    "RESO": 0.2,
+    "DRIVE": 0.2,
+    "KEY TRK": 0.6
+   },
+   "FX1": {
+    "TIME": "1/8",
+    "FEEDBACK": 0.3,
+    "TONE": 0.5,
+    "MIX": 0.18,
+    "MODE": "PING"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.8,
+   "RELEASE": 0.25,
+   "GLIDE": 0.1,
+   "LEVEL": 0.51,
+   "MODE": "MONO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.AD>TIMB",
+    0.5
+   ],
+   [
+    "M3",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "LD BREATH FLUT",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "REVERB",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "FLUT",
+    "TIMBRE": 0.45,
+    "COLOR": 0.4
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.7,
+    "RESO": 0.1,
+    "KEY TRK": 0.6
+   },
+   "FX1": {
+    "SIZE": 0.6,
+    "DAMP": 0.5,
+    "MIX": 0.2,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.08,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.3,
+   "GLIDE": 0.08,
+   "LEVEL": 0.45,
+   "MODE": "LEGATO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.COLOR",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.MIX",
+    0.5
+   ],
+   [
+    "M4",
+    "AMP.ATTACK",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "PITCH",
+    0.012
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "lfo": {
+   "SHAPE 1": "SINE",
+   "RATE 1": 0.5,
+   "FADE 1": 0.7
+  }
+ },
+ {
+  "name": "LD SQUARE CHIP",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "CHIPTUNE",
+    "HARMO": 0.5,
+    "TIMBRE": 0.5,
+    "MORPH": 0.3
+   },
+   "FX1": {
+    "TIME": "1/16",
+    "FEEDBACK": 0.3,
+    "TONE": 0.6,
+    "MIX": 0.15,
+    "MODE": "PING"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.4,
+   "SUSTAIN": 0.8,
+   "RELEASE": 0.15,
+   "GLIDE": 0.05,
+   "LEVEL": 0.45,
+   "MODE": "MONO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.HARMO",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "PITCH",
+    0.02
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "lfo": {
+   "SHAPE 1": "TRI",
+   "RATE 1": 0.6,
+   "FADE 1": 0.4
+  }
+ },
+ {
+  "name": "LD RESO STRING",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "RINGS",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "REVERB",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "CSAW",
+    "TIMBRE": 0.3,
+    "COLOR": 0.3,
+    "AD ATK": 0.0,
+    "AD DEC": 0.2,
+    "AD VCA": "ON"
+   },
+   "SHP": {
+    "MODEL": "STRING",
+    "STRUCT": 0.4,
+    "BRIGHT": 0.6,
+    "DAMPING": 0.6,
+    "POSITION": 0.3,
+    "EXCITE": 0.6,
+    "MIX": 0.7
+   },
+   "FX1": {
+    "SIZE": 0.5,
+    "DAMP": 0.5,
+    "MIX": 0.15,
+    "TYPE": "PLATE"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.7,
+   "RELEASE": 0.4,
+   "GLIDE": 0.05,
+   "LEVEL": 1.0,
+   "MODE": "MONO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.BRIGHT",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.DAMPING",
+    0.5
+   ],
+   [
+    "M3",
+    "SHP.STRUCT",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "PD WARM ANALOG",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "PAIR VA",
+    "HARMO": 0.45,
+    "TIMBRE": 0.5,
+    "MORPH": 0.4
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.45,
+    "RESO": 0.15,
+    "DRIVE": 0.1,
+    "ENV AMT": 0.15,
+    "KEY TRK": 0.5
+   },
+   "FX1": {
+    "RATE": 0.25,
+    "DEPTH": 0.5,
+    "WIDTH": 0.9,
+    "MIX": 0.4
+   },
+   "FX2": {
+    "SIZE": 0.75,
+    "DAMP": 0.55,
+    "MIX": 0.3,
+    "TYPE": "HALL",
+    "PRE": 0.15
+   }
+  },
+  "amp": {
+   "ATTACK": 0.5,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.6,
+   "SPREAD": 0.6,
+   "LEVEL": 0.44
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.DEPTH",
+    0.5
+   ],
+   [
+    "M4",
+    "AMP.ATTACK",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SRC.TIMBRE",
+    0.12
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "lfo": {
+   "SHAPE 1": "TRI",
+   "RATE 1": 0.15
+  }
+ },
+ {
+  "name": "PD CHOIR AAH",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "FORMANT",
+    "HARMO": 0.4,
+    "TIMBRE": 0.35,
+    "MORPH": 0.4
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.6,
+    "RESO": 0.1,
+    "KEY TRK": 0.5
+   },
+   "FX1": {
+    "RATE": 0.2,
+    "DEPTH": 0.4,
+    "WIDTH": 0.9,
+    "MIX": 0.35
+   },
+   "FX2": {
+    "SIZE": 0.85,
+    "DAMP": 0.5,
+    "MIX": 0.35,
+    "TYPE": "HALL",
+    "PRE": 0.1
+   }
+  },
+  "amp": {
+   "ATTACK": 0.45,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.6,
+   "SPREAD": 0.6,
+   "LEVEL": 0.51
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "M4",
+    "AMP.ATTACK",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SRC.MORPH",
+    0.1
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "lfo": {
+   "SHAPE 1": "DRIFT",
+   "RATE 1": 0.2
+  }
+ },
+ {
+  "name": "PD EVOLVING WT",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "WAVETBL",
+    "HARMO": 0.5,
+    "TIMBRE": 0.3,
+    "MORPH": 0.5
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.5,
+    "RESO": 0.25,
+    "KEY TRK": 0.5
+   },
+   "FX1": {
+    "TIME": "1/4",
+    "FEEDBACK": 0.4,
+    "TONE": 0.4,
+    "MIX": 0.15,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.85,
+    "DAMP": 0.45,
+    "MIX": 0.35,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.55,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.7,
+   "SPREAD": 0.7,
+   "LEVEL": 0.37
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SRC.TIMBRE",
+    0.3
+   ],
+   [
+    "LFO 2",
+    "SRC.MORPH",
+    0.2
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "lfo": {
+   "SHAPE 1": "TRI",
+   "SYNC 1": "2 BARS",
+   "SHAPE 2": "DRIFT",
+   "RATE 2": 0.15
+  }
+ },
+ {
+  "name": "PD SOFT STRING",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "STR MACH",
+    "HARMO": 0.3,
+    "TIMBRE": 0.45,
+    "MORPH": 0.35
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.5,
+    "RESO": 0.1,
+    "KEY TRK": 0.6
+   },
+   "FX1": {
+    "RATE": 0.35,
+    "DEPTH": 0.55,
+    "WIDTH": 0.9,
+    "MIX": 0.45
+   },
+   "FX2": {
+    "SIZE": 0.7,
+    "DAMP": 0.55,
+    "MIX": 0.3,
+    "TYPE": "HALL",
+    "PRE": 0.2
+   }
+  },
+  "amp": {
+   "ATTACK": 0.6,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.6,
+   "SPREAD": 0.5,
+   "LEVEL": 0.6
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.DEPTH",
+    0.5
+   ],
+   [
+    "M4",
+    "AMP.ATTACK",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "PD GLASS AIR",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "ADDITIVE",
+    "HARMO": 0.7,
+    "TIMBRE": 0.6,
+    "MORPH": 0.4
+   },
+   "FX1": {
+    "TIME": "1/4D",
+    "FEEDBACK": 0.35,
+    "TONE": 0.6,
+    "MIX": 0.2,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.85,
+    "DAMP": 0.4,
+    "MIX": 0.35,
+    "TYPE": "HALL",
+    "PRE": 0.1
+   }
+  },
+  "amp": {
+   "ATTACK": 0.6,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.8,
+   "RELEASE": 0.8,
+   "SPREAD": 0.8,
+   "LEVEL": 0.73
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "FX 2.SIZE",
+    0.4
+   ],
+   [
+    "M3",
+    "SRC.HARMO",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SRC.TIMBRE",
+    0.15
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "lfo": {
+   "SHAPE 1": "SINE",
+   "RATE 1": 0.1
+  }
+ },
+ {
+  "name": "CH E-PIANO",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "2OP FM",
+    "HARMO": 0.5,
+    "TIMBRE": 0.3,
+    "MORPH": 0.25,
+    "LPG": "ON",
+    "DECAY": 0.55,
+    "COLOUR": 0.4,
+    "ENV>TIMB": 0.3
+   },
+   "FX1": {
+    "RATE": 0.35,
+    "DEPTH": 0.35,
+    "WIDTH": 0.8,
+    "MIX": 0.3
+   },
+   "FX2": {
+    "SIZE": 0.45,
+    "DAMP": 0.55,
+    "MIX": 0.15,
+    "TYPE": "PLATE"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.5,
+   "RELEASE": 0.35,
+   "VEL AMT": 0.7,
+   "LEVEL": 0.57
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.DECAY",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.MIX",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "VELO",
+    "SRC.TIMBRE",
+    0.3
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "CH DRAWBAR",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "ADDITIVE",
+    "HARMO": 0.35,
+    "TIMBRE": 0.45,
+    "MORPH": 0.0
+   },
+   "FX1": {
+    "MODE": "VIBRATO",
+    "RATE": 0.55,
+    "DEPTH": 0.3,
+    "WIDTH": 0.7,
+    "MIX": 0.5
+   },
+   "FX2": {
+    "SIZE": 0.4,
+    "DAMP": 0.6,
+    "MIX": 0.12,
+    "TYPE": "PLATE"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.01,
+   "DECAY": 0.5,
+   "SUSTAIN": 1.0,
+   "RELEASE": 0.1,
+   "LEVEL": 0.78
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.HARMO",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.RATE",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "CH HOUSE STAB",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "CHORDS",
+    "HARMO": 0.35,
+    "TIMBRE": 0.4,
+    "MORPH": 0.3
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.5,
+    "RESO": 0.3,
+    "DRIVE": 0.2,
+    "ENV AMT": 0.35,
+    "KEY TRK": 0.5,
+    "ENV SRC": "OWN",
+    "F ATK": 0.0,
+    "F DEC": 0.25,
+    "F SUS": 0.1,
+    "F REL": 0.2
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.3,
+    "TONE": 0.45,
+    "MIX": 0.2,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.55,
+    "DAMP": 0.5,
+    "MIX": 0.18,
+    "TYPE": "PLATE"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.35,
+   "SUSTAIN": 0.2,
+   "RELEASE": 0.25,
+   "LEVEL": 1.0,
+   "MODE": "MONO"
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.45
+   ],
+   [
+    "M2",
+    "SRC.HARMO",
+    0.5
+   ],
+   [
+    "M3",
+    "SHP.F DEC",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "CH STRING PLK",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "STRING",
+    "HARMO": 0.5,
+    "TIMBRE": 0.55,
+    "MORPH": 0.45
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.35,
+    "TONE": 0.55,
+    "MIX": 0.2,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.6,
+    "DAMP": 0.45,
+    "MIX": 0.2,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.0,
+   "RELEASE": 0.5,
+   "VEL AMT": 0.6,
+   "LEVEL": 0.98
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.MIX",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "CH MALLETS",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": null,
+   "MODA": null,
+   "MODB": null,
+   "FX1": "REVERB",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "MODAL",
+    "HARMO": 0.4,
+    "TIMBRE": 0.5,
+    "MORPH": 0.5
+   },
+   "FX1": {
+    "SIZE": 0.55,
+    "DAMP": 0.5,
+    "MIX": 0.2,
+    "TYPE": "PLATE"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.0,
+   "RELEASE": 0.5,
+   "VEL AMT": 0.6,
+   "LEVEL": 0.93
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.HARMO",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ],
+   [
+    "VELO",
+    "SRC.TIMBRE",
+    0.25
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "CH SYNTH BRASS",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "CSAW",
+    "TIMBRE": 0.35,
+    "COLOR": 0.3,
+    "DRIFT": 0.15
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.35,
+    "RESO": 0.15,
+    "DRIVE": 0.2,
+    "ENV AMT": 0.4,
+    "KEY TRK": 0.5,
+    "ENV SRC": "OWN",
+    "F ATK": 0.15,
+    "F DEC": 0.4,
+    "F SUS": 0.45,
+    "F REL": 0.3
+   },
+   "FX1": {
+    "RATE": 0.2,
+    "DEPTH": 0.3,
+    "WIDTH": 0.8,
+    "MIX": 0.25
+   },
+   "FX2": {
+    "SIZE": 0.5,
+    "DAMP": 0.5,
+    "MIX": 0.15,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.1,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.85,
+   "RELEASE": 0.3,
+   "SPREAD": 0.5,
+   "LEVEL": 0.4
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.F ATK",
+    0.5
+   ],
+   [
+    "M3",
+    "SHP.ENV AMT",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "CH PHASE KEYS",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "CHORUS",
+   "FX2": null
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "PHASE D",
+    "HARMO": 0.4,
+    "TIMBRE": 0.4,
+    "MORPH": 0.3,
+    "LPG": "ON",
+    "DECAY": 0.5,
+    "COLOUR": 0.5
+   },
+   "SHP": {
+    "TYPE": "LP",
+    "CUTOFF": 0.6,
+    "RESO": 0.1,
+    "KEY TRK": 0.5
+   },
+   "FX1": {
+    "RATE": 0.3,
+    "DEPTH": 0.4,
+    "WIDTH": 0.8,
+    "MIX": 0.3
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.55,
+   "SUSTAIN": 0.4,
+   "RELEASE": 0.3,
+   "VEL AMT": 0.6,
+   "LEVEL": 0.41
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.MORPH",
+    0.5
+   ],
+   [
+    "M3",
+    "SRC.DECAY",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 1.MIX",
+    0.5
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "FX NOISE SWEEP",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": null,
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "NOISE",
+    "HARMO": 0.5,
+    "TIMBRE": 0.5,
+    "MORPH": 0.5
+   },
+   "SHP": {
+    "TYPE": "BP",
+    "CUTOFF": 0.4,
+    "RESO": 0.6,
+    "DRIVE": 0.1,
+    "KEY TRK": 0.3
+   },
+   "FX1": {
+    "TIME": "1/8D",
+    "FEEDBACK": 0.4,
+    "TONE": 0.5,
+    "MIX": 0.2,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.85,
+    "DAMP": 0.4,
+    "MIX": 0.35,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.5,
+   "DECAY": 0.6,
+   "SUSTAIN": 0.8,
+   "RELEASE": 0.6,
+   "LEVEL": 0.72
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.5
+   ],
+   [
+    "M2",
+    "SHP.RESO",
+    0.4
+   ],
+   [
+    "M3",
+    "LFO.RATE 1",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "LFO 1",
+    "SHP.CUTOFF",
+    0.4
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "lfo": {
+   "SHAPE 1": "TRI",
+   "SYNC 1": "1 BAR"
+  }
+ },
+ {
+  "name": "FX METAL RING",
+  "slots": {
+   "SRC": "BRAIDS",
+   "SHP": "FILTER",
+   "MODA": "PEAKS",
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "RING",
+    "TIMBRE": 0.5,
+    "COLOR": 0.6
+   },
+   "SHP": {
+    "TYPE": "HP",
+    "CUTOFF": 0.3,
+    "RESO": 0.2,
+    "KEY TRK": 0.5
+   },
+   "MODA": {
+    "FUNC": "LFO",
+    "K1": 0.4,
+    "K2": 0.6
+   },
+   "FX1": {
+    "TIME": "1/16",
+    "FEEDBACK": 0.5,
+    "TONE": 0.6,
+    "MIX": 0.25,
+    "MODE": "PING"
+   },
+   "FX2": {
+    "SIZE": 0.7,
+    "DAMP": 0.4,
+    "MIX": 0.3,
+    "TYPE": "PLATE"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.0,
+   "DECAY": 0.5,
+   "SUSTAIN": 0.6,
+   "RELEASE": 0.5,
+   "LEVEL": 0.68
+  },
+  "matrix": [
+   [
+    "M1",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.COLOR",
+    0.5
+   ],
+   [
+    "M3",
+    "FX 1.FEEDBACK",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "A PEAKS",
+    "SRC.COLOR",
+    0.3
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ },
+ {
+  "name": "FX TIDAL DRONE",
+  "slots": {
+   "SRC": "PLAITS",
+   "SHP": "FILTER",
+   "MODA": "TIDES",
+   "MODB": null,
+   "FX1": "DELAY",
+   "FX2": "REVERB"
+  },
+  "p": {
+   "SRC": {
+    "MODEL": "SWARM",
+    "HARMO": 0.4,
+    "TIMBRE": 0.45,
+    "MORPH": 0.4,
+    "OCTAVE": -1
+   },
+   "SHP": {
+    "TYPE": "LP24",
+    "CUTOFF": 0.35,
+    "RESO": 0.3,
+    "DRIVE": 0.2,
+    "KEY TRK": 0.4
+   },
+   "MODA": {
+    "MODE": "LOOP",
+    "FREQ": 0.15,
+    "SHAPE": 0.5,
+    "SLOPE": 0.0,
+    "RANGE": "LO"
+   },
+   "FX1": {
+    "TIME": "1/2",
+    "FEEDBACK": 0.5,
+    "TONE": 0.35,
+    "MIX": 0.2,
+    "MODE": "TAPE",
+    "WOW": 0.5
+   },
+   "FX2": {
+    "SIZE": 0.9,
+    "DAMP": 0.5,
+    "MIX": 0.4,
+    "TYPE": "HALL"
+   }
+  },
+  "amp": {
+   "ATTACK": 0.7,
+   "DECAY": 0.7,
+   "SUSTAIN": 0.9,
+   "RELEASE": 0.8,
+   "SPREAD": 0.7,
+   "LEVEL": 0.39
+  },
+  "matrix": [
+   [
+    "M1",
+    "SHP.CUTOFF",
+    0.5
+   ],
+   [
+    "M2",
+    "SRC.TIMBRE",
+    0.5
+   ],
+   [
+    "M3",
+    "MOD A.FREQ",
+    0.5
+   ],
+   [
+    "M4",
+    "FX 2.MIX",
+    0.5
+   ],
+   [
+    "A TIDES",
+    "SHP.CUTOFF",
+    0.3
+   ],
+   [
+    "A TIDE+",
+    "SRC.MORPH",
+    0.25
+   ]
+  ],
+  "macros": [
+   0.5,
+   0.5,
+   0.5,
+   0.5
+  ]
+ }
+]

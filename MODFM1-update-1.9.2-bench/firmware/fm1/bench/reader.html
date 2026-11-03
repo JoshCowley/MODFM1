@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FM1 Bench Reader</title>
+<style>
+  :root { --bg: #fafaf8; --fg: #1b1b1a; --dim: #6b6b66; --line: #d9d8d2; --hi: #0a6cb8; --bad: #c0392b; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #151514; --fg: #ecebe6; --dim: #9a9993; --line: #2e2e2b; --hi: #5ab4ff; --bad: #ff6b5b; } }
+  body { background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, sans-serif; margin: 0; padding: 16px; }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p { color: var(--dim); margin: 0 0 12px; }
+  button { font: inherit; padding: 6px 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 6px; cursor: pointer; }
+  button:disabled { opacity: .4; cursor: default; }
+  #status { margin: 10px 0; }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--dim); font-weight: 500; }
+  td.n { text-align: right; }
+  .bad { color: var(--bad); }
+  .hi { color: var(--hi); }
+</style>
+</head>
+<body>
+<main>
+  <h1>FM1 Bench Reader</h1>
+  <p>Connect the FM-1 by USB, open this page in Chrome or Edge, press <b>Listen</b> (allow MIDI with SysEx), then press
+    <b>PLAY</b> on the FM-1 once its run is done. Nothing is sent to the FM-1.</p>
+  <button id="listen">Listen</button>
+  <button id="csv" disabled>Save CSV</button>
+  <div id="status">Not listening.</div>
+  <div class="wrap"><table id="t"></table></div>
+</main>
+<script>
+const lines = [];
+const status = document.getElementById('status');
+const table = document.getElementById('t');
+const csvBtn = document.getElementById('csv');
+
+function show() {
+  const cols = lines.find(l => l[0] === 'COLUMNS');
+  const rows = lines.filter(l => !['BEGIN', 'FPU', 'COLUMNS', 'END'].includes(l[0]));
+  const fpu = lines.find(l => l[0] === 'FPU');
+  let html = '';
+  if (fpu) html += `<caption style="text-align:left;padding:6px 0" class="${fpu[2] === 'EXACT' ? 'hi' : 'bad'}">FPU check: ${fpu[1]} (${fpu[2]}), ${fpu[3]}</caption>`;
+  if (cols) html += '<tr>' + cols.slice(1).map(c => `<th>${c}</th>`).join('') + '</tr>';
+  for (const r of rows)
+    html += '<tr>' + r.map((c, i) => `<td class="${i >= 2 && i <= 4 ? 'n' : ''} ${c === 'NAN' || c === 'SILENT' ? 'bad' : ''}">${c}</td>`).join('') + '</tr>';
+  table.innerHTML = html;
+  csvBtn.disabled = !rows.length;
+}
+
+function onMessage(e) {
+  const d = e.data;
+  if (d[0] !== 0xF0 || d[1] !== 0x7D || d[2] !== 0x46 || d[3] !== 0x4D || d[4] !== 0x42) return;   // F0 7D 'FMB'
+  const text = String.fromCharCode(...d.slice(5, d.length - 1));
+  const f = text.split(',');
+  if (f[0] === 'BEGIN') lines.length = 0;
+  lines.push(f);
+  status.textContent = f[0] === 'END' ? `Received ${lines.length - 4} results.` : `Receiving... ${lines.length}`;
+  if (f[0] === 'END') show();
+}
+
+document.getElementById('listen').onclick = async () => {
+  if (!navigator.requestMIDIAccess) { status.textContent = 'This browser has no Web MIDI: use Chrome or Edge.'; return; }
+  try {
+    const midi = await navigator.requestMIDIAccess({ sysex: true });
+    const hook = () => { for (const i of midi.inputs.values()) i.onmidimessage = onMessage; };
+    hook();
+    midi.onstatechange = hook;
+    const names = [...midi.inputs.values()].map(i => i.name).join(', ');
+    status.textContent = names ? `Listening on: ${names}. Press PLAY on the FM-1.` : 'No MIDI inputs: is the FM-1 connected?';
+  } catch (err) {
+    status.textContent = 'MIDI access was refused: ' + err.message;
+  }
+};
+
+csvBtn.onclick = () => {
+  const text = lines.filter(l => l[0] !== 'BEGIN' && l[0] !== 'END').map(l => (l[0] === 'COLUMNS' ? l.slice(1) : l).join(',')).join('\n') + '\n';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
+  a.download = 'fm1-bench.csv';
+  a.click();
+};
+</script>
+</body>
+</html>
