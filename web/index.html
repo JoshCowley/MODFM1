@@ -130,7 +130,7 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
 <main>
   <div class="top">
     <div>
-      <h1>FM1 Rack <span>1.8</span></h1>
+      <h1>FM1 Rack <span>1.9</span></h1>
       <p>A sound-design firmware for the M-VAVE FM-1: open-source eurorack modules in swappable slots, a 12-row mod matrix and four performance macros. This is the browser build, running the original module code.</p>
     </div>
     <a class="manual" href="manual/" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h4.5A1.5 1.5 0 0 1 8 4v10a1.5 1.5 0 0 0-1.5-1.5H2zM14 2.5H9.5A1.5 1.5 0 0 0 8 4v10a1.5 1.5 0 0 1 1.5-1.5H14z"/></svg>Open the manual</a>
@@ -172,6 +172,7 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
         <li><b>SEL</b> sets the scale and root, and turns each key into a chord with its voicing. While chords are on, the lowest seven keys change the chord you hold: DIM, MIN, MAJ (MIN+MAJ for SUS) and 6, m7, M7, 9.</li>
         <li><b>HOME</b> three times opens TOOLS: undo and compare, morph A↔B, randomize, favourites. <b>ARP</b> twice is the arpeggiator.</li>
         <li><b>SAVE</b> names a patch into one of 64 user slots (4 pages of 16) with a category. OCT+ on SAVE opens the library of every preset: Knob 1 scrolls, Knob 2 picks the tab, Knob 3 picks LOAD, COPY, RENAME or DELETE, OCT+ does it.</li>
+        <li><b>FM-1 preview</b> is on by default (GLOBAL &gt; HARDWARE). The CPU and RAM bars use each module's real memory needs and measured cost, against an assumed FM-1 budget you can change there; the voice count drops to what fits, and a patch that can't fit shows <b>OVER</b>. The delay is capped at 1 s and stored at 16-bit, as a port would. Set TARGET to BROWSER for no limits. FM1 Rack is not FM-1 firmware yet: this page only previews what might fit.</li>
         <li>Full MIDI over USB where the browser allows it: notes, bend, pressure, program changes, clock in and out, CC 70–73 for the four knobs, and notes out from the keys, sequencer and arp.</li>
       </ul>
     </div>
@@ -197,22 +198,25 @@ const I = (l, min, max, def) => ({ l, t: "int", min, max, def, mod: false });
 const PLAITS_MODELS = ["VA VCF", "PHASE D", "6OP FM 1", "6OP FM 2", "6OP FM 3", "TERRAIN", "STR MACH", "CHIPTUNE", "PAIR VA", "WAVESHP", "2OP FM", "FORMANT", "ADDITIVE", "WAVETBL", "CHORDS", "SPEECH", "SWARM", "NOISE", "PARTICLE", "STRING", "MODAL", "BASS DR", "SNARE", "HI-HAT"];
 const BRAIDS_MODELS = ["CSAW", "/\\-_", "//-_", "FOLD", "UUUU", "SUB-", "SUB/", "SYN-", "SYN/", "//x3", "-_x3", "/\\x3", "SIx3", "RING", "////", "//uu", "TOY*", "ZLPF", "ZPKF", "ZBPF", "ZHPF", "VOSM", "VOWL", "VFOF", "HARM", "FM", "FBFM", "WTFM", "PLUK", "BOWD", "BLOW", "FLUT", "BELL", "DRUM", "KICK", "CYMB", "SNAR", "WTBL", "WMAP", "WLIN", "WTx4", "NOIS", "TWLN", "CLKN", "CLOU", "PRTC", "QPSK"];
 
-// cpu: est. units of an 80-unit budget (per voice when poly); ram: est. KB
+// cpu: units of the FM-1 budget, per voice when poly. The ratios are measured (each module timed in rack.wasm,
+//      1.9); the size of the budget is an assumption, anchored so one Plaits voice costs 9 units.
+// ram: KB the module needs once; ramV: KB more per voice. These are the engine's real buffer sizes on a
+//      32-bit chip, with the delay, chorus and reverb lines stored as 16-bit (as a port would).
 const MODULES = {
-  PLAITS:   { kind: "src", poly: true, cpu: 9, ram: 8, blurb: "MACRO OSC · 24 MODELS", pages: [[L("MODEL", PLAITS_MODELS, 8), n("HARMO", .42), n("TIMBRE", .6), n("MORPH", .31)], [L("LPG", ["OFF", "ON"]), n("DECAY", .5), n("COLOUR", .5), n("LEVEL", .8)], [I("OCTAVE", -3, 3, 0), b("FINE"), b("ENV>TIMB"), b("ENV>MRPH")], [b("ENV>FM"), n("AUX MIX", 0)]] },
-  BRAIDS:   { kind: "src", poly: true, cpu: 4, ram: 2, blurb: "47 SHAPES · BIT CRUSH", pages: [[L("MODEL", BRAIDS_MODELS), n("TIMBRE", .5), n("COLOR", .5), n("DRIFT", .1)], [L("BITS", ["2", "3", "4", "6", "8", "12", "16"], 6), L("RATE", ["4K", "8K", "16K", "22K", "32K", "48K"], 5), n("SIGN", 0), n("LEVEL", .8)], [I("OCTAVE", -3, 3, 0), b("FINE"), n("AD ATK", .05), n("AD DEC", .4)], [b("AD>TIMB"), b("AD>COLR"), b("AD>PTCH"), L("AD VCA", ["OFF", "ON"])]] },
-  ELEMENTS: { kind: "src", poly: true, cpu: 40, ram: 64, blurb: "BOW BLOW STRIKE VOICE", pages: [[n("BOW", .3), n("BLOW", 0), n("STRIKE", .6), n("CONTOUR", .5)], [n("GEOMETRY", .4), n("BRIGHT", .6), n("DAMPING", .4), n("POSITION", .3)], [n("FLOW", .5), n("MALLET", .5), n("BOW TMB", .5), n("SPACE", .4)], [I("OCTAVE", -3, 3, 0), b("FINE"), b("BLOW TMB"), b("STRK TMB")]] },
-  RINGS:    { kind: "shp", poly: true, cpu: 14, ram: 40, blurb: "RESONATOR · 6 MODELS", pages: [[L("MODEL", ["MODAL", "SYMPATH", "STRING", "FM VOICE", "SYM QNT", "STR+VERB"]), n("STRUCT", .5), n("BRIGHT", .7), n("DAMPING", .4)], [n("POSITION", .3), n("EXCITE", .6), n("MIX", .7), n("SPREAD", .3)], [I("TUNE", -24, 24, 0), b("FINE"), L("INT EXC", ["OFF", "ON"]), I("CHORD", 0, 10, 0)]] },
-  WARPS:    { kind: "shp", poly: true, cpu: 10, ram: 8, blurb: "CROSS-MOD · VOCODER", pages: [[n("ALGO", .3), n("TIMBRE", .5), L("CARRIER", ["SINE", "TRI", "SAW"], 2), L("MOD IN", ["OSC", "USB IN", "NOISE"])], [n("CAR LVL", .7), n("MOD LVL", .7), n("MIX", 1), I("CAR TUNE", -24, 24, 0)]] },
-  FILTER:   { kind: "shp", poly: true, cpu: 2, ram: 1, blurb: "SVF · LP BP HP", pages: [[L("TYPE", ["LP", "BP", "HP", "LP24", "NOTCH", "PEAK"]), n("CUTOFF", .55), n("RESO", .3), n("DRIVE", .2)], [b("ENV AMT", .3), n("KEY TRK", .5), b("VEL AMT"), L("ENV SRC", ["AMP", "OWN", "MOD"])], [n("F ATK", .01), n("F DEC", .4), n("F SUS", .3), n("F REL", .35)], [L("SAT", ["SOFT", "HARD", "FOLD", "ASYM"]), n("AUDIO FM", 0), b("GAIN")]] },
-  PEAKS:    { kind: "mod", poly: false, cpu: 1, ram: 1, blurb: "ENVELOPE · LFO · TAP", outs: ["PEAKS"], pages: [[L("FUNC", ["ENV", "LFO", "TAP"]), n("K1", 0), n("K2", .7), L("GATE", GATES)], [n("SUSTAIN", 0), L("INVERT", ["OFF", "ON"])]] },
-  TIDES:    { kind: "mod", poly: false, cpu: 1, ram: 1, blurb: "SLOPE GENERATOR", outs: ["TIDES", "TIDE+"], pages: [[L("MODE", ["AD", "LOOP", "AR"], 1), n("FREQ", .3), n("SHAPE", .5), b("SLOPE", -.3)], [b("SMOOTH", .3), L("RANGE", ["LO", "MID", "HI"]), L("GATE", GATES, 4), L("INVERT", ["OFF", "ON"])]] },
-  MARBLES:  { kind: "mod", poly: false, cpu: 3, ram: 4, blurb: "RANDOM NOTES · GATES", outs: ["MARB X", "MARB T"], pages: [[n("RATE", .5), n("SPREAD", .4), n("BIAS", .5), n("STEPS", .7)], [n("DEJA VU", .5), L("LENGTH", ["1", "2", "3", "4", "5", "6", "8", "16"], 6), n("JITTER", .1), L("CLOCK", ["FREE", "1/16", "1/8", "1/4"], 2)], [L("SCALE", ["MAJOR", "MINOR", "PENTA", "PELOG", "BHAIRAV", "SHRI"]), L("T MODEL", ["COMPLEM", "CLUSTER", "DRUMS", "INDEP", "DIVIDER", "3 STATE", "MARKOV"]), L("X RANGE", ["2V", "5V", "±5V"]), b("GATE LEN")]] },
-  GRIDS:    { kind: "mod", poly: false, cpu: 1, ram: 2, blurb: "TOPOGRAPHIC DRUM MAP", outs: ["GRID", "ACCENT"], pages: [[n("X", .4), n("Y", .8), n("FILL", .8), L("OUT", ["BD", "SD", "HH", "KIT"], 3)], [n("CHAOS", 0), b("DECAY")]] },
-  CLOUDS:   { kind: "fx", poly: false, cpu: 22, ram: 118, blurb: "GRANULAR TEXTURES", pages: [[n("POSITION", .2), n("SIZE", .6), b("PITCH"), n("DENSITY", .5)], [n("TEXTURE", .4), n("BLEND", .3), n("SPREAD", .5), n("FEEDBACK", .2)], [n("REVERB", .3), L("MODE", ["GRANULR", "STRETCH", "LOOPDLY", "SPECTRL"]), L("FREEZE", ["OFF", "ON"]), L("QUALITY", ["16 ST", "16 MONO", "8 ST", "8 MONO"])], [b("IN GAIN"), L("NOTE TRG", ["OFF", "ON"]), L("PITCH TRK", ["OFF", "ON"]), L("GRN SYNC", ["OFF", "1/16", "1/8", "1/4", "1/2"])], [n("SPRAY", 0), n("PITCH RND", 0), L("PITCH QNT", ["FREE", "SEMI", "5TH+OCT", "OCT"]), n("SIZE RND", 0)], [b("SCAN"), b("TONE")]] },
-  DELAY:    { kind: "fx", poly: false, cpu: 3, ram: 64, blurb: "PING · MONO · TAPE", pages: [[L("TIME", ["1/16", "1/8", "1/8D", "1/4", "1/2", "1/8T", "1/4T", "1/4D", "1/2D"], 2), n("FEEDBACK", .4), n("TONE", .5), n("MIX", .3)], [L("MODE", ["PING", "MONO", "TAPE"]), n("WOW", .4), b("WIDTH"), n("DUCK", 0)], [n("LO CUT", 0), L("SYNC", ["TEMPO", "FREE"]), n("FREE MS", .5)]] },
-  REVERB:   { kind: "fx", poly: false, cpu: 8, ram: 72, blurb: "PLATE · HALL · SHIMMER", pages: [[n("SIZE", .6), n("DAMP", .5), n("DIFFUSE", .55), n("MIX", .3)], [L("TYPE", ["PLATE", "HALL", "SHIMMER"]), n("PRE", 0), n("SHIMMER", .4), n("LO CUT", 0)], [b("WIDTH"), n("DUCK", 0)]] },
-  CHORUS:   { kind: "fx", poly: false, cpu: 2, ram: 4, blurb: "STEREO CHORUS", pages: [[n("RATE", .3), n("DEPTH", .5), n("WIDTH", .7), n("MIX", .4)], [L("MODE", ["CHORUS", "FLANGER", "VIBRATO"]), n("FEEDBACK", 0), b("DELAY")]] },
+  PLAITS:   { kind: "src", poly: true, cpu: 9, ram: 0, ramV: 25, blurb: "MACRO OSC · 24 MODELS", pages: [[L("MODEL", PLAITS_MODELS, 8), n("HARMO", .42), n("TIMBRE", .6), n("MORPH", .31)], [L("LPG", ["OFF", "ON"]), n("DECAY", .5), n("COLOUR", .5), n("LEVEL", .8)], [I("OCTAVE", -3, 3, 0), b("FINE"), b("ENV>TIMB"), b("ENV>MRPH")], [b("ENV>FM"), n("AUX MIX", 0)]] },
+  BRAIDS:   { kind: "src", poly: true, cpu: 5, ram: 0, ramV: 17, blurb: "47 SHAPES · BIT CRUSH", pages: [[L("MODEL", BRAIDS_MODELS), n("TIMBRE", .5), n("COLOR", .5), n("DRIFT", .1)], [L("BITS", ["2", "3", "4", "6", "8", "12", "16"], 6), L("RATE", ["4K", "8K", "16K", "22K", "32K", "48K"], 5), n("SIGN", 0), n("LEVEL", .8)], [I("OCTAVE", -3, 3, 0), b("FINE"), n("AD ATK", .05), n("AD DEC", .4)], [b("AD>TIMB"), b("AD>COLR"), b("AD>PTCH"), L("AD VCA", ["OFF", "ON"])]] },
+  ELEMENTS: { kind: "src", poly: true, cpu: 50, ram: 0, ramV: 175, blurb: "BOW BLOW STRIKE VOICE", pages: [[n("BOW", .3), n("BLOW", 0), n("STRIKE", .6), n("CONTOUR", .5)], [n("GEOMETRY", .4), n("BRIGHT", .6), n("DAMPING", .4), n("POSITION", .3)], [n("FLOW", .5), n("MALLET", .5), n("BOW TMB", .5), n("SPACE", .4)], [I("OCTAVE", -3, 3, 0), b("FINE"), b("BLOW TMB"), b("STRK TMB")]] },
+  RINGS:    { kind: "shp", poly: true, cpu: 32, ram: 0, ramV: 172, blurb: "RESONATOR · 6 MODELS", pages: [[L("MODEL", ["MODAL", "SYMPATH", "STRING", "FM VOICE", "SYM QNT", "STR+VERB"]), n("STRUCT", .5), n("BRIGHT", .7), n("DAMPING", .4)], [n("POSITION", .3), n("EXCITE", .6), n("MIX", .7), n("SPREAD", .3)], [I("TUNE", -24, 24, 0), b("FINE"), L("INT EXC", ["OFF", "ON"]), I("CHORD", 0, 10, 0)]] },
+  WARPS:    { kind: "shp", poly: true, cpu: 14, ram: 0, ramV: 71, blurb: "CROSS-MOD · VOCODER", pages: [[n("ALGO", .3), n("TIMBRE", .5), L("CARRIER", ["SINE", "TRI", "SAW"], 2), L("MOD IN", ["OSC", "USB IN", "NOISE"])], [n("CAR LVL", .7), n("MOD LVL", .7), n("MIX", 1), I("CAR TUNE", -24, 24, 0)]] },
+  FILTER:   { kind: "shp", poly: true, cpu: 5, ram: 0, ramV: 1, blurb: "SVF · LP BP HP", pages: [[L("TYPE", ["LP", "BP", "HP", "LP24", "NOTCH", "PEAK"]), n("CUTOFF", .55), n("RESO", .3), n("DRIVE", .2)], [b("ENV AMT", .3), n("KEY TRK", .5), b("VEL AMT"), L("ENV SRC", ["AMP", "OWN", "MOD"])], [n("F ATK", .01), n("F DEC", .4), n("F SUS", .3), n("F REL", .35)], [L("SAT", ["SOFT", "HARD", "FOLD", "ASYM"]), n("AUDIO FM", 0), b("GAIN")]] },
+  PEAKS:    { kind: "mod", poly: false, cpu: 3, ram: 1, ramV: 0, blurb: "ENVELOPE · LFO · TAP", outs: ["PEAKS"], pages: [[L("FUNC", ["ENV", "LFO", "TAP"]), n("K1", 0), n("K2", .7), L("GATE", GATES)], [n("SUSTAIN", 0), L("INVERT", ["OFF", "ON"])]] },
+  TIDES:    { kind: "mod", poly: false, cpu: 2, ram: 1, ramV: 0, blurb: "SLOPE GENERATOR", outs: ["TIDES", "TIDE+"], pages: [[L("MODE", ["AD", "LOOP", "AR"], 1), n("FREQ", .3), n("SHAPE", .5), b("SLOPE", -.3)], [b("SMOOTH", .3), L("RANGE", ["LO", "MID", "HI"]), L("GATE", GATES, 4), L("INVERT", ["OFF", "ON"])]] },
+  MARBLES:  { kind: "mod", poly: false, cpu: 3, ram: 8, ramV: 0, blurb: "RANDOM NOTES · GATES", outs: ["MARB X", "MARB T"], pages: [[n("RATE", .5), n("SPREAD", .4), n("BIAS", .5), n("STEPS", .7)], [n("DEJA VU", .5), L("LENGTH", ["1", "2", "3", "4", "5", "6", "8", "16"], 6), n("JITTER", .1), L("CLOCK", ["FREE", "1/16", "1/8", "1/4"], 2)], [L("SCALE", ["MAJOR", "MINOR", "PENTA", "PELOG", "BHAIRAV", "SHRI"]), L("T MODEL", ["COMPLEM", "CLUSTER", "DRUMS", "INDEP", "DIVIDER", "3 STATE", "MARKOV"]), L("X RANGE", ["2V", "5V", "±5V"]), b("GATE LEN")]] },
+  GRIDS:    { kind: "mod", poly: false, cpu: 1, ram: 1, ramV: 0, blurb: "TOPOGRAPHIC DRUM MAP", outs: ["GRID", "ACCENT"], pages: [[n("X", .4), n("Y", .8), n("FILL", .8), L("OUT", ["BD", "SD", "HH", "KIT"], 3)], [n("CHAOS", 0), b("DECAY")]] },
+  CLOUDS:   { kind: "fx", poly: false, cpu: 35, ram: 188, ramV: 0, blurb: "GRANULAR TEXTURES", pages: [[n("POSITION", .2), n("SIZE", .6), b("PITCH"), n("DENSITY", .5)], [n("TEXTURE", .4), n("BLEND", .3), n("SPREAD", .5), n("FEEDBACK", .2)], [n("REVERB", .3), L("MODE", ["GRANULR", "STRETCH", "LOOPDLY", "SPECTRL"]), L("FREEZE", ["OFF", "ON"]), L("QUALITY", ["16 ST", "16 MONO", "8 ST", "8 MONO"])], [b("IN GAIN"), L("NOTE TRG", ["OFF", "ON"]), L("PITCH TRK", ["OFF", "ON"]), L("GRN SYNC", ["OFF", "1/16", "1/8", "1/4", "1/2"])], [n("SPRAY", 0), n("PITCH RND", 0), L("PITCH QNT", ["FREE", "SEMI", "5TH+OCT", "OCT"]), n("SIZE RND", 0)], [b("SCAN"), b("TONE")]] },
+  DELAY:    { kind: "fx", poly: false, cpu: 4, ram: 188, ramV: 0, blurb: "PING · MONO · TAPE", pages: [[L("TIME", ["1/16", "1/8", "1/8D", "1/4", "1/2", "1/8T", "1/4T", "1/4D", "1/2D"], 2), n("FEEDBACK", .4), n("TONE", .5), n("MIX", .3)], [L("MODE", ["PING", "MONO", "TAPE"]), n("WOW", .4), b("WIDTH"), n("DUCK", 0)], [n("LO CUT", 0), L("SYNC", ["TEMPO", "FREE"]), n("FREE MS", .5)]] },
+  REVERB:   { kind: "fx", poly: false, cpu: 5, ram: 40, ramV: 0, blurb: "PLATE · HALL · SHIMMER", pages: [[n("SIZE", .6), n("DAMP", .5), n("DIFFUSE", .55), n("MIX", .3)], [L("TYPE", ["PLATE", "HALL", "SHIMMER"]), n("PRE", 0), n("SHIMMER", .4), n("LO CUT", 0)], [b("WIDTH"), n("DUCK", 0)]] },
+  CHORUS:   { kind: "fx", poly: false, cpu: 5, ram: 16, ramV: 0, blurb: "STEREO CHORUS", pages: [[n("RATE", .3), n("DEPTH", .5), n("WIDTH", .7), n("MIX", .4)], [L("MODE", ["CHORUS", "FLANGER", "VIBRATO"]), n("FEEDBACK", 0), b("DELAY")]] },
 };
 for (const m of Object.values(MODULES)) if (m.kind === "fx") m.pages.flat().forEach((p) => { p.mod = true; });
 const VOICE_MODES = ["POLY", "MONO", "LEGATO", "UNI 2", "UNI 4"];
@@ -242,8 +246,8 @@ const TUNINGS = [
   ["24-EDO", Array.from({ length: 24 }, (_, i) => i * 50)],
   ["31-EDO", Array.from({ length: 31 }, (_, i) => i * 1200 / 31)],
 ];
-const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)], [L("TUNING", TUNINGS.map((t) => t[0])), L("T ROOT", KEYS12), I("A4 HZ", 400, 480, 440), I("BEND", 0, 24, 2)], [L("PROG CHG", ["OFF", "ON"], 1), L("MIDI OUT", ["OFF", "NOTES", "+CC"]), L("OUT CH", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]), L("LOCAL", ["ON", "OFF"])], [b("LOW EQ", 0), b("MID EQ", 0), b("HIGH EQ", 0), n("COMP", 0)], [L("STEP ADV", ["ON", "OFF"])]] };
-const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6, G_TUNE = 7, G_TROOT = 8, G_A4 = 9, G_BEND = 10, G_PROG = 11, G_MOUT = 12, G_OUTCH = 13, G_LOCAL = 14, G_LOW = 15, G_MID = 16, G_HIGH = 17, G_COMP = 18, G_ADV = 19;
+const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)], [L("TUNING", TUNINGS.map((t) => t[0])), L("T ROOT", KEYS12), I("A4 HZ", 400, 480, 440), I("BEND", 0, 24, 2)], [L("PROG CHG", ["OFF", "ON"], 1), L("MIDI OUT", ["OFF", "NOTES", "+CC"]), L("OUT CH", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]), L("LOCAL", ["ON", "OFF"])], [b("LOW EQ", 0), b("MID EQ", 0), b("HIGH EQ", 0), n("COMP", 0)], [L("STEP ADV", ["ON", "OFF"])], [L("TARGET", ["FM-1", "BROWSER"]), L("FREE RAM", ["256K", "384K", "512K"], 1), L("CPU SPEED", ["SLOW", "MID", "FAST"], 1)]] };
+const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6, G_TUNE = 7, G_TROOT = 8, G_A4 = 9, G_BEND = 10, G_PROG = 11, G_MOUT = 12, G_OUTCH = 13, G_LOCAL = 14, G_LOW = 15, G_MID = 16, G_HIGH = 17, G_COMP = 18, G_ADV = 19, G_TARGET = 20, G_RAM = 21, G_CPU = 22;
 const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10], LYDIAN: [0, 2, 4, 6, 7, 9, 11] };
 // SEL (CHORD): scale, root, chords and voicing on page 1; how the keys follow the scale on page 2.
 // After ChordStep FM-1 (one key per chord, the lowest keys force the quality and add extensions) and Melodee's CHRD/VOIC/QNT.
@@ -286,7 +290,14 @@ function tieLengths(out, src, isTie) {
     let j = 1; while (j < L && !(out.steps[(i + j) % L].notes.length)) j++;
     for (const nt of out.steps[i].notes) nt.len = Math.min(j, MAXSTEPS);
   }
-}const POOL = 256, BUDGET = 80, MAXV = 6;
+}const MAXV = 6;
+// FM-1 preview (1.9). Nobody has published the FM-1's free RAM or how fast the Mutable code runs on its pi32v2 core,
+// so both are settings (GLOBAL > HARDWARE). FREE RAM is what's left for sound: about 578 KB of SRAM (unverified)
+// less firmware, a 240x240 screen buffer and audio buffers. BASE_* is the engine itself (voices, matrix, LFOs, master).
+const RAM_OPTS = [256, 384, 512], CPU_OPTS = [60, 80, 110], BASE_CPU = 12, BASE_RAM = 16;
+const hwOn = () => glo.p[G_TARGET] === 0;
+const hwPool = () => RAM_OPTS[glo.p[G_RAM] ?? 1];
+const hwBudget = () => CPU_OPTS[glo.p[G_CPU] ?? 1];
 
 const SLOTS = [
   { id: "SRC", kind: "src", name: "SRC", choices: ["PLAITS", "BRAIDS", "ELEMENTS"] },
@@ -4871,6 +4882,12 @@ function storeUser() { try { localStorage.setItem(STORE_KEY, JSON.stringify(user
 const slotName = (i) => `U${String(i + 1).padStart(2, "0")}`;
 // a patch's category: chosen when saved, or read from the name's prefix (BS, PD, LD, CH, FX)
 function catOfName(nm) { const k = CATS.indexOf(String(nm).replace(/^U\d\d /, "").slice(0, 2)); return k > 0 && /^.. /.test(String(nm).replace(/^U\d\d /, "")) ? k : 0; }
+// would this preset fit on an FM-1 (GLOBAL > HARDWARE)? Used to mark the library.
+function entryFit(e) {
+  if (e.u !== undefined) { const u = userPatches[e.u]; if (!u) return null; return budgetFor(Object.fromEntries(SLOTS.map((s) => [s.id, u.slots[s.id] ? u.slots[s.id].mod : null])), u.amp[A_MODE]); }
+  const pr = PRESETS[e.f], md = pr.amp && pr.amp.MODE !== undefined ? Math.max(0, VOICE_MODES.indexOf(String(pr.amp.MODE))) : 0;
+  return budgetFor(Object.fromEntries(SLOTS.map((s) => [s.id, pr.slots[s.id] || null])), md);
+}
 function entryCat(e) { if (e.u !== undefined) { const p = userPatches[e.u]; return p && p.cat ? p.cat : catOfName(p ? p.name : ""); } return catOfName(PRESETS[e.f].name); }
 // the PRESETS encoder walks the factory patches, then the user slots that hold something
 function patchList(raw = false) { const all = [...PRESETS.map((p, i) => ({ f: i, name: p.name })), ...userPatches.map((p, i) => p && { u: i, name: `${slotName(i)} ${p.name}` }).filter(Boolean)]; if (raw || typeof filterList !== "function") return all; const f = filterList(all); return f.length ? f : all; }
@@ -5024,25 +5041,30 @@ function libDo() {
 }
 
 // ---------------------------------------------------------------- budget
-function budgetFor(ids) {
-  let shared = 0, poly = AMP.cpu, ram = 0;
+function budgetFor(ids, mode = amp.p[A_MODE]) {
+  let shared = BASE_CPU, poly = AMP.cpu, ram = BASE_RAM, ramV = 0;
   for (const s of SLOTS) {
     const m = MODULES[ids[s.id]];
     if (!m) continue;
     if (m.poly) poly += m.cpu; else shared += m.cpu;
-    ram += m.ram;
+    ram += m.ram; ramV += m.ramV;
   }
-  const cap = amp.p[A_MODE] === 1 || amp.p[A_MODE] === 2 ? 1 : glo.p[G_VOICES] ? glo.p[G_VOICES] : MAXV;
-  const voices = Math.min(cap, Math.floor((BUDGET - shared) / poly));
-  return { shared, poly, ram, voices, cpu: shared + poly * Math.max(voices, 0) };
+  const cap = mode === 1 || mode === 2 ? 1 : glo.p[G_VOICES] ? glo.p[G_VOICES] : MAXV;
+  if (!hwOn()) return { shared, poly, ram: ram + ramV * cap, ramV, voices: cap, cpu: shared + poly * cap, limit: "", over: "", hw: false };
+  const B = hwBudget(), pool = hwPool();
+  const byCpu = Math.floor((B - shared) / poly), byRam = ramV ? Math.floor((pool - ram) / ramV) : 99;
+  const fit = Math.min(cap, byCpu, byRam);
+  const limit = fit >= cap ? "" : byRam <= byCpu ? "RAM" : "CPU";
+  const voices = Math.max(1, fit);   // a patch that doesn't fit still plays one voice, flagged as over
+  const over = fit >= 1 ? "" : byRam < 1 ? "RAM" : "CPU";
+  return { shared, poly, ram: ram + ramV * voices, ramV, voices, cpu: shared + poly * voices, limit, over, hw: true, B, pool };
 }
 const currentIds = () => Object.fromEntries(SLOTS.map((s) => [s.id, rack[s.id].mod]));
 const budget = () => budgetFor(currentIds());
 function fitOf(slotId, modName) {
   const ids = currentIds(); ids[slotId] = modName;
   const bg = budgetFor(ids);
-  if (modName && bg.ram > POOL) return { ok: false, why: `${MODULES[modName].ram}K RAM`, bg };
-  if (bg.voices < 1) return { ok: false, why: "CPU", bg };
+  if (modName && bg.over && !budget().over) return { ok: false, why: bg.over, bg };   // a patch that's already over can still be trimmed
   if (modName && (slotId === "FX1" || slotId === "FX2")) { const other = slotId === "FX1" ? "FX2" : "FX1"; if (rack[other].mod === modName) return { ok: false, why: `IN ${other === "FX1" ? "FX 1" : "FX 2"}`, bg }; }
   return { ok: true, bg };
 }
@@ -5188,8 +5210,11 @@ function miniBar(x, y, w, frac, c) { rect(x, y, w, 3, C.faint, 1); rect(x, y, Ma
 function footer() {
   const bg = budget();
   rect(0, 214, 240, 26, C.bar);
-  T(6, 225, "CPU", { size: 8, c: C.dim }); miniBar(6, 229, 44, bg.cpu / BUDGET, bg.cpu > 72 ? C.warn : C.ok);
-  T(56, 225, "RAM", { size: 8, c: C.dim }); miniBar(56, 229, 44, bg.ram / POOL, bg.ram > POOL * .85 ? C.warn : C.ok);
+  if (bg.hw) {   // FM-1 preview: the assumed budget (GLOBAL > HARDWARE)
+    const cw = bg.over === "CPU" || bg.cpu > bg.B, rw = bg.over === "RAM" || bg.ram > bg.pool;
+    T(6, 225, "CPU", { size: 8, c: cw ? C.warn : bg.limit === "CPU" ? C.gold : C.dim }); miniBar(6, 229, 44, bg.cpu / bg.B, cw ? C.warn : bg.cpu > bg.B * .9 ? C.gold : C.ok);
+    T(56, 225, "RAM", { size: 8, c: rw ? C.warn : bg.limit === "RAM" ? C.gold : C.dim }); miniBar(56, 229, 44, bg.ram / bg.pool, rw ? C.warn : bg.ram > bg.pool * .9 ? C.gold : C.ok);
+  } else { T(6, 232, "BROWSER · NO LIMITS", { size: 8, c: C.dim }); }
   // voice LEDs: lit by each voice's envelope
   for (let i = 0; i < MAXV; i++) {
     const x = 108 + i * 8, on = i < bg.voices, e = mon[16 + i] || 0;
@@ -5199,6 +5224,7 @@ function footer() {
   const pl = Math.min(1, (mon[48] || 0) * 1.3), pr = Math.min(1, (mon[49] || 0) * 1.3);
   rect(228, 218, 3, 18, C.faint); rect(232, 218, 3, 18, C.faint);
   rect(228, 236 - 18 * pl, 3, 18 * pl, pl > .9 ? C.warn : C.ok); rect(232, 236 - 18 * pr, 3, 18 * pr, pr > .9 ? C.warn : C.ok);
+  if (bg.over && phrase.state !== "armed" && phrase.state !== "rec" && phrase.state !== "loop") T(162, 232, `OVER ${bg.over}`, { size: 9, c: C.warn });
   if (phrase.state === "armed") { if (Math.floor(performance.now() / 300) % 2) dot(164, 228, 3, C.warn, false); T(170, 232, "ARMED", { size: 9, c: C.warn }); }
   else if (phrase.state === "rec") { dot(164, 228, 3, C.warn); T(170, 232, `${((performance.now() - phrase.t0) / 1000).toFixed(1)}S`, { size: 9, c: C.warn }); }
   else if (phrase.state === "loop") {
@@ -5823,6 +5849,7 @@ function drawLibrary() {
     const loaded = it.name === patchName;
     T(16, y + 13, (loaded ? "▸ " : "") + it.name.slice(0, 19), { size: 10, c: sel ? C.fg : loaded ? C.gold : "#bdbab1" });
     if (lib.favs.has(entryKey(it))) T(196, y + 13, "★", { size: 9, c: C.gold });
+    if (hwOn()) { const f = entryFit(it); if (f && f.over) T(184, y + 13, "✕", { size: 9, c: C.warn }); else if (f && f.limit) T(184, y + 13, `${f.voices}V`, { size: 8, c: C.gold }); }
     T(232, y + 13, it.u !== undefined ? "USER" : "FACT", { a: "right", size: 8, c: it.u !== undefined ? C.gold : C.dim });
   }
   // scroll bar
@@ -5865,7 +5892,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.8", { a: "center", size: 11, c: C.dim });
+  T(120, 114, "EURORACK MODULES · 1.9", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -5879,7 +5906,7 @@ function render() {
   else if (page === "LFOS" && subpage >= LFOS.pages.length) drawLfoTgt(Math.min(2, subpage - LFOS.pages.length));
   else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3", "LFO 1 +", "LFO 2 +", "LFO 3 +"], "LFO", 8, visLfos);
   else if (page === "SAVE") { if (saveState) drawSave(); else page = "PERFORM"; }
-  else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem][Math.min(subpage, 5)]);
+  else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM", "HARDWARE"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem, visHardware][Math.min(subpage, 6)]);
   else if (page === "CHORD") drawFixed(CHORD, chd, "CHORD", [CHORD_TYPES[chd.p[C_TYPE]] === "OFF" ? "SCALE + KEY" : `${CHORD_TYPES[chd.p[C_TYPE]]} · ${VOICINGS[chd.p[C_VOICE]]}`, `QNT ${QNT_MODES[chd.p[C_QNT]]}${zoneOn() ? " · ZONE" : ""}`], "CHORD", -1, visChord);
   else if (isSeqPage()) drawSeq();
   else if (page === "TOOLS") drawTools();
@@ -6173,7 +6200,7 @@ function press(act) {
     if (picker && picker.slot === slot.id) {
       const ch = slot.choices[picker.ix];
       const f = fitOf(slot.id, ch);
-      if (!f.ok) { const free = POOL - (budget().ram - (MODULES[rack[slot.id].mod]?.ram || 0)); say(f.why === "CPU" ? `${ch} NEEDS MORE CPU` : f.why.startsWith("IN ") ? `${ch} IS ALREADY ${f.why}` : `${ch} NEEDS ${MODULES[ch].ram}K, ${free}K FREE`); return; }
+      if (!f.ok) { const m = MODULES[ch]; say(f.why === "CPU" ? `${ch} NEEDS MORE CPU ON FM-1` : f.why.startsWith("IN ") ? `${ch} IS ALREADY ${f.why}` : `${ch} NEEDS ${m.ram + m.ramV}K · ${hwPool()}K FREE RAM`); return; }
       rack[slot.id] = { mod: ch, p: blankParams(MODULES[ch]) }; picker = null; subpage = 0;
       delete vs.rings; delete vs.clouds; delete vs.verb;
       say(ch ? `${ch} LOADED · ${budget().voices} VOICES` : `${slot.name} EMPTIED`, ch || "EMPTY"); noteEdit(ch ? `${ch} LOADED` : `${slot.name} EMPTIED`); return;
@@ -6915,11 +6942,32 @@ function visSystem(X, Y, W, H, c) {
   const st = audio.cpu || [0, 0, 0], bg = budget();
   T(X + 8, Y + 14, `CPU ${Math.round(st[0])}%`, { size: 12 }); T(X + 80, Y + 14, `PEAK ${Math.round(st[1])}%`, { size: 10, c: st[1] > 90 ? C.warn : C.dim });
   T(X + 150, Y + 14, `LATE ${st[2]}`, { size: 10, c: st[2] ? C.warn : C.dim });
-  T(X + 8, Y + 27, `BROWSER ESTIMATE · FM-1 BUDGET ${bg.cpu}/${BUDGET} UNITS`, { size: 8, c: C.dim });
+  T(X + 8, Y + 27, bg.hw ? `BROWSER CPU · FM-1 BUDGET ${bg.cpu}/${bg.B} UNITS` : "BROWSER CPU · FM-1 LIMITS OFF", { size: 8, c: C.dim });
   const n = cpuHist.length;
   const pts = cpuHist.map((v, i) => [X + 6 + i * ((W - 12) / Math.max(1, HIST - 1)), Y + H - 4 - Math.min(1, v / 100) * 26]);
   rect(X + 6, Y + H - 30, W - 12, 26, "#0f0f0e", 2);
   if (n > 1) glow(pts, st[0] > 70 ? C.warn : c);
+}
+
+// HARDWARE: what this patch needs on an FM-1, against the assumed budget
+function visHardware(X, Y, W, H, c) {
+  const bg = budget();
+  if (!bg.hw) {
+    T(X + 8, Y + 14, "BROWSER: FM-1 LIMITS OFF", { size: 10, c: C.gold });
+    T(X + 8, Y + 28, `6 VOICES OF ANYTHING · DELAY 2 S, 32-BIT`, { size: 9, c: C.dim });
+    T(X + 8, Y + 42, `AT ${bg.voices} VOICES IT NEEDS ${bg.ram}K RAM`, { size: 9, c: C.dim });
+    T(X + 8, Y + 56, "SET TARGET TO FM-1 FOR THE PREVIEW", { size: 8, c: C.dim });
+    return;
+  }
+  const cap = amp.p[A_MODE] === 1 || amp.p[A_MODE] === 2 ? 1 : glo.p[G_VOICES] || MAXV;
+  T(X + 8, Y + 14, bg.over ? `WON'T FIT: OVER ON ${bg.over}` : `FITS · ${bg.voices} OF ${cap} VOICES`, { size: 10, c: bg.over ? C.warn : bg.limit ? C.gold : C.ok });
+  if (bg.limit && !bg.over) T(X + W - 8, Y + 14, `${bg.limit} LIMITS`, { size: 9, a: "right", c: C.gold });
+  T(X + 8, Y + 28, `RAM ${bg.ram}/${bg.pool}K · CPU ${bg.cpu}/${bg.B}`, { size: 9 });
+  // the biggest memory user
+  let big = null;
+  for (const s of SLOTS) { const m = MODULES[rack[s.id].mod]; if (!m) continue; const k = m.ram + m.ramV * bg.voices; if (!big || k > big.k) big = { n: rack[s.id].mod, k, v: m.ramV }; }
+  if (big) T(X + 8, Y + 42, `MOST RAM: ${big.n} ${big.v ? `${big.v}K × ${bg.voices}V` : `${big.k}K`}`, { size: 9, c: C.dim });
+  T(X + 8, Y + 56, "FREE RAM + CPU SPEED ARE ASSUMED", { size: 8, c: C.dim });
 }
 
 // ARP is a fixed page like AMP and GLOBAL
@@ -7815,6 +7863,7 @@ function syncEngine() {
   mseq.lanes.forEach((l, i) => put(`slew${i}`, ["set_ext_slew", i, 1 - l.smooth * .995]));
   const tk = `${glo.p[G_TUNE]}.${glo.p[G_TROOT]}.${glo.p[G_A4]}`;
   if (sent.tune !== tk) { sent.tune = tk; calls.push(...tuningCalls()); }
+  put("hw", ["set_hw", hwOn() ? 1 : 0]);
   put("voices", ["set_voices", Math.max(1, budget().voices)]);
   if (calls.length) audio.node.port.postMessage({ type: "calls", calls });
 }
@@ -7941,8 +7990,10 @@ async function switchOn() {
   try {
     const ctx = new AudioContext({ sampleRate: 48000, latencyHint: "interactive" });
     const [wasm] = await Promise.all([
-      fetch("rack.wasm").then((r) => { if (!r.ok) throw new Error("rack.wasm " + r.status); return r.arrayBuffer(); }),
-      ctx.audioWorklet.addModule("worklet.js")]);
+      // the single-file build carries the engine and the worklet inside the page
+      window.__RACK_WASM ? Promise.resolve(Uint8Array.from(atob(window.__RACK_WASM), (ch) => ch.charCodeAt(0)).buffer)
+        : fetch("rack.wasm").then((r) => { if (!r.ok) throw new Error("rack.wasm " + r.status); return r.arrayBuffer(); }),
+      ctx.audioWorklet.addModule(window.__RACK_WORKLET ? "data:text/javascript;charset=utf-8," + encodeURIComponent(window.__RACK_WORKLET) : "worklet.js")]);
     const node = new AudioWorkletNode(ctx, "fm1-rack", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
     node.connect(ctx.destination);
     await new Promise((res, rej) => {
