@@ -112,8 +112,11 @@ function miniBar(x, y, w, frac, c) { rect(x, y, w, 3, C.faint, 1); rect(x, y, Ma
 function footer() {
   const bg = budget();
   rect(0, 214, 240, 26, C.bar);
-  T(6, 225, "CPU", { size: 8, c: C.dim }); miniBar(6, 229, 44, bg.cpu / BUDGET, bg.cpu > 72 ? C.warn : C.ok);
-  T(56, 225, "RAM", { size: 8, c: C.dim }); miniBar(56, 229, 44, bg.ram / POOL, bg.ram > POOL * .85 ? C.warn : C.ok);
+  if (bg.hw) {   // FM-1 preview: the assumed budget (GLOBAL > HARDWARE)
+    const cw = bg.over === "CPU" || bg.cpu > bg.B, rw = bg.over === "RAM" || bg.ram > bg.pool;
+    T(6, 225, "CPU", { size: 8, c: cw ? C.warn : bg.limit === "CPU" ? C.gold : C.dim }); miniBar(6, 229, 44, bg.cpu / bg.B, cw ? C.warn : bg.cpu > bg.B * .9 ? C.gold : C.ok);
+    T(56, 225, "RAM", { size: 8, c: rw ? C.warn : bg.limit === "RAM" ? C.gold : C.dim }); miniBar(56, 229, 44, bg.ram / bg.pool, rw ? C.warn : bg.ram > bg.pool * .9 ? C.gold : C.ok);
+  } else { T(6, 232, "BROWSER · NO LIMITS", { size: 8, c: C.dim }); }
   // voice LEDs: lit by each voice's envelope
   for (let i = 0; i < MAXV; i++) {
     const x = 108 + i * 8, on = i < bg.voices, e = mon[16 + i] || 0;
@@ -123,6 +126,7 @@ function footer() {
   const pl = Math.min(1, (mon[48] || 0) * 1.3), pr = Math.min(1, (mon[49] || 0) * 1.3);
   rect(228, 218, 3, 18, C.faint); rect(232, 218, 3, 18, C.faint);
   rect(228, 236 - 18 * pl, 3, 18 * pl, pl > .9 ? C.warn : C.ok); rect(232, 236 - 18 * pr, 3, 18 * pr, pr > .9 ? C.warn : C.ok);
+  if (bg.over && phrase.state !== "armed" && phrase.state !== "rec" && phrase.state !== "loop") T(162, 232, `OVER ${bg.over}`, { size: 9, c: C.warn });
   if (phrase.state === "armed") { if (Math.floor(performance.now() / 300) % 2) dot(164, 228, 3, C.warn, false); T(170, 232, "ARMED", { size: 9, c: C.warn }); }
   else if (phrase.state === "rec") { dot(164, 228, 3, C.warn); T(170, 232, `${((performance.now() - phrase.t0) / 1000).toFixed(1)}S`, { size: 9, c: C.warn }); }
   else if (phrase.state === "loop") {

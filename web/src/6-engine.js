@@ -53,6 +53,7 @@ function syncEngine() {
   mseq.lanes.forEach((l, i) => put(`slew${i}`, ["set_ext_slew", i, 1 - l.smooth * .995]));
   const tk = `${glo.p[G_TUNE]}.${glo.p[G_TROOT]}.${glo.p[G_A4]}`;
   if (sent.tune !== tk) { sent.tune = tk; calls.push(...tuningCalls()); }
+  put("hw", ["set_hw", hwOn() ? 1 : 0]);
   put("voices", ["set_voices", Math.max(1, budget().voices)]);
   if (calls.length) audio.node.port.postMessage({ type: "calls", calls });
 }
@@ -179,8 +180,10 @@ async function switchOn() {
   try {
     const ctx = new AudioContext({ sampleRate: 48000, latencyHint: "interactive" });
     const [wasm] = await Promise.all([
-      fetch("rack.wasm").then((r) => { if (!r.ok) throw new Error("rack.wasm " + r.status); return r.arrayBuffer(); }),
-      ctx.audioWorklet.addModule("worklet.js")]);
+      // the single-file build carries the engine and the worklet inside the page
+      window.__RACK_WASM ? Promise.resolve(Uint8Array.from(atob(window.__RACK_WASM), (ch) => ch.charCodeAt(0)).buffer)
+        : fetch("rack.wasm").then((r) => { if (!r.ok) throw new Error("rack.wasm " + r.status); return r.arrayBuffer(); }),
+      ctx.audioWorklet.addModule(window.__RACK_WORKLET ? "data:text/javascript;charset=utf-8," + encodeURIComponent(window.__RACK_WORKLET) : "worklet.js")]);
     const node = new AudioWorkletNode(ctx, "fm1-rack", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
     node.connect(ctx.destination);
     await new Promise((res, rej) => {

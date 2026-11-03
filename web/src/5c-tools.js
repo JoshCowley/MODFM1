@@ -403,11 +403,32 @@ function visSystem(X, Y, W, H, c) {
   const st = audio.cpu || [0, 0, 0], bg = budget();
   T(X + 8, Y + 14, `CPU ${Math.round(st[0])}%`, { size: 12 }); T(X + 80, Y + 14, `PEAK ${Math.round(st[1])}%`, { size: 10, c: st[1] > 90 ? C.warn : C.dim });
   T(X + 150, Y + 14, `LATE ${st[2]}`, { size: 10, c: st[2] ? C.warn : C.dim });
-  T(X + 8, Y + 27, `BROWSER ESTIMATE · FM-1 BUDGET ${bg.cpu}/${BUDGET} UNITS`, { size: 8, c: C.dim });
+  T(X + 8, Y + 27, bg.hw ? `BROWSER CPU · FM-1 BUDGET ${bg.cpu}/${bg.B} UNITS` : "BROWSER CPU · FM-1 LIMITS OFF", { size: 8, c: C.dim });
   const n = cpuHist.length;
   const pts = cpuHist.map((v, i) => [X + 6 + i * ((W - 12) / Math.max(1, HIST - 1)), Y + H - 4 - Math.min(1, v / 100) * 26]);
   rect(X + 6, Y + H - 30, W - 12, 26, "#0f0f0e", 2);
   if (n > 1) glow(pts, st[0] > 70 ? C.warn : c);
+}
+
+// HARDWARE: what this patch needs on an FM-1, against the assumed budget
+function visHardware(X, Y, W, H, c) {
+  const bg = budget();
+  if (!bg.hw) {
+    T(X + 8, Y + 14, "BROWSER: FM-1 LIMITS OFF", { size: 10, c: C.gold });
+    T(X + 8, Y + 28, `6 VOICES OF ANYTHING · DELAY 2 S, 32-BIT`, { size: 9, c: C.dim });
+    T(X + 8, Y + 42, `AT ${bg.voices} VOICES IT NEEDS ${bg.ram}K RAM`, { size: 9, c: C.dim });
+    T(X + 8, Y + 56, "SET TARGET TO FM-1 FOR THE PREVIEW", { size: 8, c: C.dim });
+    return;
+  }
+  const cap = amp.p[A_MODE] === 1 || amp.p[A_MODE] === 2 ? 1 : glo.p[G_VOICES] || MAXV;
+  T(X + 8, Y + 14, bg.over ? `WON'T FIT: OVER ON ${bg.over}` : `FITS · ${bg.voices} OF ${cap} VOICES`, { size: 10, c: bg.over ? C.warn : bg.limit ? C.gold : C.ok });
+  if (bg.limit && !bg.over) T(X + W - 8, Y + 14, `${bg.limit} LIMITS`, { size: 9, a: "right", c: C.gold });
+  T(X + 8, Y + 28, `RAM ${bg.ram}/${bg.pool}K · CPU ${bg.cpu}/${bg.B}`, { size: 9 });
+  // the biggest memory user
+  let big = null;
+  for (const s of SLOTS) { const m = MODULES[rack[s.id].mod]; if (!m) continue; const k = m.ram + m.ramV * bg.voices; if (!big || k > big.k) big = { n: rack[s.id].mod, k, v: m.ramV }; }
+  if (big) T(X + 8, Y + 42, `MOST RAM: ${big.n} ${big.v ? `${big.v}K × ${bg.voices}V` : `${big.k}K`}`, { size: 9, c: C.dim });
+  T(X + 8, Y + 56, "FREE RAM + CPU SPEED ARE ASSUMED", { size: 8, c: C.dim });
 }
 
 // ARP is a fixed page like AMP and GLOBAL

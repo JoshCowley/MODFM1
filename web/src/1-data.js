@@ -7,22 +7,25 @@ const I = (l, min, max, def) => ({ l, t: "int", min, max, def, mod: false });
 const PLAITS_MODELS = ["VA VCF", "PHASE D", "6OP FM 1", "6OP FM 2", "6OP FM 3", "TERRAIN", "STR MACH", "CHIPTUNE", "PAIR VA", "WAVESHP", "2OP FM", "FORMANT", "ADDITIVE", "WAVETBL", "CHORDS", "SPEECH", "SWARM", "NOISE", "PARTICLE", "STRING", "MODAL", "BASS DR", "SNARE", "HI-HAT"];
 const BRAIDS_MODELS = ["CSAW", "/\\-_", "//-_", "FOLD", "UUUU", "SUB-", "SUB/", "SYN-", "SYN/", "//x3", "-_x3", "/\\x3", "SIx3", "RING", "////", "//uu", "TOY*", "ZLPF", "ZPKF", "ZBPF", "ZHPF", "VOSM", "VOWL", "VFOF", "HARM", "FM", "FBFM", "WTFM", "PLUK", "BOWD", "BLOW", "FLUT", "BELL", "DRUM", "KICK", "CYMB", "SNAR", "WTBL", "WMAP", "WLIN", "WTx4", "NOIS", "TWLN", "CLKN", "CLOU", "PRTC", "QPSK"];
 
-// cpu: est. units of an 80-unit budget (per voice when poly); ram: est. KB
+// cpu: units of the FM-1 budget, per voice when poly. The ratios are measured (each module timed in rack.wasm,
+//      1.9); the size of the budget is an assumption, anchored so one Plaits voice costs 9 units.
+// ram: KB the module needs once; ramV: KB more per voice. These are the engine's real buffer sizes on a
+//      32-bit chip, with the delay, chorus and reverb lines stored as 16-bit (as a port would).
 const MODULES = {
-  PLAITS:   { kind: "src", poly: true, cpu: 9, ram: 8, blurb: "MACRO OSC · 24 MODELS", pages: [[L("MODEL", PLAITS_MODELS, 8), n("HARMO", .42), n("TIMBRE", .6), n("MORPH", .31)], [L("LPG", ["OFF", "ON"]), n("DECAY", .5), n("COLOUR", .5), n("LEVEL", .8)], [I("OCTAVE", -3, 3, 0), b("FINE"), b("ENV>TIMB"), b("ENV>MRPH")], [b("ENV>FM"), n("AUX MIX", 0)]] },
-  BRAIDS:   { kind: "src", poly: true, cpu: 4, ram: 2, blurb: "47 SHAPES · BIT CRUSH", pages: [[L("MODEL", BRAIDS_MODELS), n("TIMBRE", .5), n("COLOR", .5), n("DRIFT", .1)], [L("BITS", ["2", "3", "4", "6", "8", "12", "16"], 6), L("RATE", ["4K", "8K", "16K", "22K", "32K", "48K"], 5), n("SIGN", 0), n("LEVEL", .8)], [I("OCTAVE", -3, 3, 0), b("FINE"), n("AD ATK", .05), n("AD DEC", .4)], [b("AD>TIMB"), b("AD>COLR"), b("AD>PTCH"), L("AD VCA", ["OFF", "ON"])]] },
-  ELEMENTS: { kind: "src", poly: true, cpu: 40, ram: 64, blurb: "BOW BLOW STRIKE VOICE", pages: [[n("BOW", .3), n("BLOW", 0), n("STRIKE", .6), n("CONTOUR", .5)], [n("GEOMETRY", .4), n("BRIGHT", .6), n("DAMPING", .4), n("POSITION", .3)], [n("FLOW", .5), n("MALLET", .5), n("BOW TMB", .5), n("SPACE", .4)], [I("OCTAVE", -3, 3, 0), b("FINE"), b("BLOW TMB"), b("STRK TMB")]] },
-  RINGS:    { kind: "shp", poly: true, cpu: 14, ram: 40, blurb: "RESONATOR · 6 MODELS", pages: [[L("MODEL", ["MODAL", "SYMPATH", "STRING", "FM VOICE", "SYM QNT", "STR+VERB"]), n("STRUCT", .5), n("BRIGHT", .7), n("DAMPING", .4)], [n("POSITION", .3), n("EXCITE", .6), n("MIX", .7), n("SPREAD", .3)], [I("TUNE", -24, 24, 0), b("FINE"), L("INT EXC", ["OFF", "ON"]), I("CHORD", 0, 10, 0)]] },
-  WARPS:    { kind: "shp", poly: true, cpu: 10, ram: 8, blurb: "CROSS-MOD · VOCODER", pages: [[n("ALGO", .3), n("TIMBRE", .5), L("CARRIER", ["SINE", "TRI", "SAW"], 2), L("MOD IN", ["OSC", "USB IN", "NOISE"])], [n("CAR LVL", .7), n("MOD LVL", .7), n("MIX", 1), I("CAR TUNE", -24, 24, 0)]] },
-  FILTER:   { kind: "shp", poly: true, cpu: 2, ram: 1, blurb: "SVF · LP BP HP", pages: [[L("TYPE", ["LP", "BP", "HP", "LP24", "NOTCH", "PEAK"]), n("CUTOFF", .55), n("RESO", .3), n("DRIVE", .2)], [b("ENV AMT", .3), n("KEY TRK", .5), b("VEL AMT"), L("ENV SRC", ["AMP", "OWN", "MOD"])], [n("F ATK", .01), n("F DEC", .4), n("F SUS", .3), n("F REL", .35)], [L("SAT", ["SOFT", "HARD", "FOLD", "ASYM"]), n("AUDIO FM", 0), b("GAIN")]] },
-  PEAKS:    { kind: "mod", poly: false, cpu: 1, ram: 1, blurb: "ENVELOPE · LFO · TAP", outs: ["PEAKS"], pages: [[L("FUNC", ["ENV", "LFO", "TAP"]), n("K1", 0), n("K2", .7), L("GATE", GATES)], [n("SUSTAIN", 0), L("INVERT", ["OFF", "ON"])]] },
-  TIDES:    { kind: "mod", poly: false, cpu: 1, ram: 1, blurb: "SLOPE GENERATOR", outs: ["TIDES", "TIDE+"], pages: [[L("MODE", ["AD", "LOOP", "AR"], 1), n("FREQ", .3), n("SHAPE", .5), b("SLOPE", -.3)], [b("SMOOTH", .3), L("RANGE", ["LO", "MID", "HI"]), L("GATE", GATES, 4), L("INVERT", ["OFF", "ON"])]] },
-  MARBLES:  { kind: "mod", poly: false, cpu: 3, ram: 4, blurb: "RANDOM NOTES · GATES", outs: ["MARB X", "MARB T"], pages: [[n("RATE", .5), n("SPREAD", .4), n("BIAS", .5), n("STEPS", .7)], [n("DEJA VU", .5), L("LENGTH", ["1", "2", "3", "4", "5", "6", "8", "16"], 6), n("JITTER", .1), L("CLOCK", ["FREE", "1/16", "1/8", "1/4"], 2)], [L("SCALE", ["MAJOR", "MINOR", "PENTA", "PELOG", "BHAIRAV", "SHRI"]), L("T MODEL", ["COMPLEM", "CLUSTER", "DRUMS", "INDEP", "DIVIDER", "3 STATE", "MARKOV"]), L("X RANGE", ["2V", "5V", "±5V"]), b("GATE LEN")]] },
-  GRIDS:    { kind: "mod", poly: false, cpu: 1, ram: 2, blurb: "TOPOGRAPHIC DRUM MAP", outs: ["GRID", "ACCENT"], pages: [[n("X", .4), n("Y", .8), n("FILL", .8), L("OUT", ["BD", "SD", "HH", "KIT"], 3)], [n("CHAOS", 0), b("DECAY")]] },
-  CLOUDS:   { kind: "fx", poly: false, cpu: 22, ram: 118, blurb: "GRANULAR TEXTURES", pages: [[n("POSITION", .2), n("SIZE", .6), b("PITCH"), n("DENSITY", .5)], [n("TEXTURE", .4), n("BLEND", .3), n("SPREAD", .5), n("FEEDBACK", .2)], [n("REVERB", .3), L("MODE", ["GRANULR", "STRETCH", "LOOPDLY", "SPECTRL"]), L("FREEZE", ["OFF", "ON"]), L("QUALITY", ["16 ST", "16 MONO", "8 ST", "8 MONO"])], [b("IN GAIN"), L("NOTE TRG", ["OFF", "ON"]), L("PITCH TRK", ["OFF", "ON"]), L("GRN SYNC", ["OFF", "1/16", "1/8", "1/4", "1/2"])], [n("SPRAY", 0), n("PITCH RND", 0), L("PITCH QNT", ["FREE", "SEMI", "5TH+OCT", "OCT"]), n("SIZE RND", 0)], [b("SCAN"), b("TONE")]] },
-  DELAY:    { kind: "fx", poly: false, cpu: 3, ram: 64, blurb: "PING · MONO · TAPE", pages: [[L("TIME", ["1/16", "1/8", "1/8D", "1/4", "1/2", "1/8T", "1/4T", "1/4D", "1/2D"], 2), n("FEEDBACK", .4), n("TONE", .5), n("MIX", .3)], [L("MODE", ["PING", "MONO", "TAPE"]), n("WOW", .4), b("WIDTH"), n("DUCK", 0)], [n("LO CUT", 0), L("SYNC", ["TEMPO", "FREE"]), n("FREE MS", .5)]] },
-  REVERB:   { kind: "fx", poly: false, cpu: 8, ram: 72, blurb: "PLATE · HALL · SHIMMER", pages: [[n("SIZE", .6), n("DAMP", .5), n("DIFFUSE", .55), n("MIX", .3)], [L("TYPE", ["PLATE", "HALL", "SHIMMER"]), n("PRE", 0), n("SHIMMER", .4), n("LO CUT", 0)], [b("WIDTH"), n("DUCK", 0)]] },
-  CHORUS:   { kind: "fx", poly: false, cpu: 2, ram: 4, blurb: "STEREO CHORUS", pages: [[n("RATE", .3), n("DEPTH", .5), n("WIDTH", .7), n("MIX", .4)], [L("MODE", ["CHORUS", "FLANGER", "VIBRATO"]), n("FEEDBACK", 0), b("DELAY")]] },
+  PLAITS:   { kind: "src", poly: true, cpu: 9, ram: 0, ramV: 25, blurb: "MACRO OSC · 24 MODELS", pages: [[L("MODEL", PLAITS_MODELS, 8), n("HARMO", .42), n("TIMBRE", .6), n("MORPH", .31)], [L("LPG", ["OFF", "ON"]), n("DECAY", .5), n("COLOUR", .5), n("LEVEL", .8)], [I("OCTAVE", -3, 3, 0), b("FINE"), b("ENV>TIMB"), b("ENV>MRPH")], [b("ENV>FM"), n("AUX MIX", 0)]] },
+  BRAIDS:   { kind: "src", poly: true, cpu: 5, ram: 0, ramV: 17, blurb: "47 SHAPES · BIT CRUSH", pages: [[L("MODEL", BRAIDS_MODELS), n("TIMBRE", .5), n("COLOR", .5), n("DRIFT", .1)], [L("BITS", ["2", "3", "4", "6", "8", "12", "16"], 6), L("RATE", ["4K", "8K", "16K", "22K", "32K", "48K"], 5), n("SIGN", 0), n("LEVEL", .8)], [I("OCTAVE", -3, 3, 0), b("FINE"), n("AD ATK", .05), n("AD DEC", .4)], [b("AD>TIMB"), b("AD>COLR"), b("AD>PTCH"), L("AD VCA", ["OFF", "ON"])]] },
+  ELEMENTS: { kind: "src", poly: true, cpu: 50, ram: 0, ramV: 175, blurb: "BOW BLOW STRIKE VOICE", pages: [[n("BOW", .3), n("BLOW", 0), n("STRIKE", .6), n("CONTOUR", .5)], [n("GEOMETRY", .4), n("BRIGHT", .6), n("DAMPING", .4), n("POSITION", .3)], [n("FLOW", .5), n("MALLET", .5), n("BOW TMB", .5), n("SPACE", .4)], [I("OCTAVE", -3, 3, 0), b("FINE"), b("BLOW TMB"), b("STRK TMB")]] },
+  RINGS:    { kind: "shp", poly: true, cpu: 32, ram: 0, ramV: 172, blurb: "RESONATOR · 6 MODELS", pages: [[L("MODEL", ["MODAL", "SYMPATH", "STRING", "FM VOICE", "SYM QNT", "STR+VERB"]), n("STRUCT", .5), n("BRIGHT", .7), n("DAMPING", .4)], [n("POSITION", .3), n("EXCITE", .6), n("MIX", .7), n("SPREAD", .3)], [I("TUNE", -24, 24, 0), b("FINE"), L("INT EXC", ["OFF", "ON"]), I("CHORD", 0, 10, 0)]] },
+  WARPS:    { kind: "shp", poly: true, cpu: 14, ram: 0, ramV: 71, blurb: "CROSS-MOD · VOCODER", pages: [[n("ALGO", .3), n("TIMBRE", .5), L("CARRIER", ["SINE", "TRI", "SAW"], 2), L("MOD IN", ["OSC", "USB IN", "NOISE"])], [n("CAR LVL", .7), n("MOD LVL", .7), n("MIX", 1), I("CAR TUNE", -24, 24, 0)]] },
+  FILTER:   { kind: "shp", poly: true, cpu: 5, ram: 0, ramV: 1, blurb: "SVF · LP BP HP", pages: [[L("TYPE", ["LP", "BP", "HP", "LP24", "NOTCH", "PEAK"]), n("CUTOFF", .55), n("RESO", .3), n("DRIVE", .2)], [b("ENV AMT", .3), n("KEY TRK", .5), b("VEL AMT"), L("ENV SRC", ["AMP", "OWN", "MOD"])], [n("F ATK", .01), n("F DEC", .4), n("F SUS", .3), n("F REL", .35)], [L("SAT", ["SOFT", "HARD", "FOLD", "ASYM"]), n("AUDIO FM", 0), b("GAIN")]] },
+  PEAKS:    { kind: "mod", poly: false, cpu: 3, ram: 1, ramV: 0, blurb: "ENVELOPE · LFO · TAP", outs: ["PEAKS"], pages: [[L("FUNC", ["ENV", "LFO", "TAP"]), n("K1", 0), n("K2", .7), L("GATE", GATES)], [n("SUSTAIN", 0), L("INVERT", ["OFF", "ON"])]] },
+  TIDES:    { kind: "mod", poly: false, cpu: 2, ram: 1, ramV: 0, blurb: "SLOPE GENERATOR", outs: ["TIDES", "TIDE+"], pages: [[L("MODE", ["AD", "LOOP", "AR"], 1), n("FREQ", .3), n("SHAPE", .5), b("SLOPE", -.3)], [b("SMOOTH", .3), L("RANGE", ["LO", "MID", "HI"]), L("GATE", GATES, 4), L("INVERT", ["OFF", "ON"])]] },
+  MARBLES:  { kind: "mod", poly: false, cpu: 3, ram: 8, ramV: 0, blurb: "RANDOM NOTES · GATES", outs: ["MARB X", "MARB T"], pages: [[n("RATE", .5), n("SPREAD", .4), n("BIAS", .5), n("STEPS", .7)], [n("DEJA VU", .5), L("LENGTH", ["1", "2", "3", "4", "5", "6", "8", "16"], 6), n("JITTER", .1), L("CLOCK", ["FREE", "1/16", "1/8", "1/4"], 2)], [L("SCALE", ["MAJOR", "MINOR", "PENTA", "PELOG", "BHAIRAV", "SHRI"]), L("T MODEL", ["COMPLEM", "CLUSTER", "DRUMS", "INDEP", "DIVIDER", "3 STATE", "MARKOV"]), L("X RANGE", ["2V", "5V", "±5V"]), b("GATE LEN")]] },
+  GRIDS:    { kind: "mod", poly: false, cpu: 1, ram: 1, ramV: 0, blurb: "TOPOGRAPHIC DRUM MAP", outs: ["GRID", "ACCENT"], pages: [[n("X", .4), n("Y", .8), n("FILL", .8), L("OUT", ["BD", "SD", "HH", "KIT"], 3)], [n("CHAOS", 0), b("DECAY")]] },
+  CLOUDS:   { kind: "fx", poly: false, cpu: 35, ram: 188, ramV: 0, blurb: "GRANULAR TEXTURES", pages: [[n("POSITION", .2), n("SIZE", .6), b("PITCH"), n("DENSITY", .5)], [n("TEXTURE", .4), n("BLEND", .3), n("SPREAD", .5), n("FEEDBACK", .2)], [n("REVERB", .3), L("MODE", ["GRANULR", "STRETCH", "LOOPDLY", "SPECTRL"]), L("FREEZE", ["OFF", "ON"]), L("QUALITY", ["16 ST", "16 MONO", "8 ST", "8 MONO"])], [b("IN GAIN"), L("NOTE TRG", ["OFF", "ON"]), L("PITCH TRK", ["OFF", "ON"]), L("GRN SYNC", ["OFF", "1/16", "1/8", "1/4", "1/2"])], [n("SPRAY", 0), n("PITCH RND", 0), L("PITCH QNT", ["FREE", "SEMI", "5TH+OCT", "OCT"]), n("SIZE RND", 0)], [b("SCAN"), b("TONE")]] },
+  DELAY:    { kind: "fx", poly: false, cpu: 4, ram: 188, ramV: 0, blurb: "PING · MONO · TAPE", pages: [[L("TIME", ["1/16", "1/8", "1/8D", "1/4", "1/2", "1/8T", "1/4T", "1/4D", "1/2D"], 2), n("FEEDBACK", .4), n("TONE", .5), n("MIX", .3)], [L("MODE", ["PING", "MONO", "TAPE"]), n("WOW", .4), b("WIDTH"), n("DUCK", 0)], [n("LO CUT", 0), L("SYNC", ["TEMPO", "FREE"]), n("FREE MS", .5)]] },
+  REVERB:   { kind: "fx", poly: false, cpu: 5, ram: 40, ramV: 0, blurb: "PLATE · HALL · SHIMMER", pages: [[n("SIZE", .6), n("DAMP", .5), n("DIFFUSE", .55), n("MIX", .3)], [L("TYPE", ["PLATE", "HALL", "SHIMMER"]), n("PRE", 0), n("SHIMMER", .4), n("LO CUT", 0)], [b("WIDTH"), n("DUCK", 0)]] },
+  CHORUS:   { kind: "fx", poly: false, cpu: 5, ram: 16, ramV: 0, blurb: "STEREO CHORUS", pages: [[n("RATE", .3), n("DEPTH", .5), n("WIDTH", .7), n("MIX", .4)], [L("MODE", ["CHORUS", "FLANGER", "VIBRATO"]), n("FEEDBACK", 0), b("DELAY")]] },
 };
 for (const m of Object.values(MODULES)) if (m.kind === "fx") m.pages.flat().forEach((p) => { p.mod = true; });
 const VOICE_MODES = ["POLY", "MONO", "LEGATO", "UNI 2", "UNI 4"];
@@ -52,8 +55,8 @@ const TUNINGS = [
   ["24-EDO", Array.from({ length: 24 }, (_, i) => i * 50)],
   ["31-EDO", Array.from({ length: 31 }, (_, i) => i * 1200 / 31)],
 ];
-const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)], [L("TUNING", TUNINGS.map((t) => t[0])), L("T ROOT", KEYS12), I("A4 HZ", 400, 480, 440), I("BEND", 0, 24, 2)], [L("PROG CHG", ["OFF", "ON"], 1), L("MIDI OUT", ["OFF", "NOTES", "+CC"]), L("OUT CH", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]), L("LOCAL", ["ON", "OFF"])], [b("LOW EQ", 0), b("MID EQ", 0), b("HIGH EQ", 0), n("COMP", 0)], [L("STEP ADV", ["ON", "OFF"])]] };
-const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6, G_TUNE = 7, G_TROOT = 8, G_A4 = 9, G_BEND = 10, G_PROG = 11, G_MOUT = 12, G_OUTCH = 13, G_LOCAL = 14, G_LOW = 15, G_MID = 16, G_HIGH = 17, G_COMP = 18, G_ADV = 19;
+const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)], [L("TUNING", TUNINGS.map((t) => t[0])), L("T ROOT", KEYS12), I("A4 HZ", 400, 480, 440), I("BEND", 0, 24, 2)], [L("PROG CHG", ["OFF", "ON"], 1), L("MIDI OUT", ["OFF", "NOTES", "+CC"]), L("OUT CH", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]), L("LOCAL", ["ON", "OFF"])], [b("LOW EQ", 0), b("MID EQ", 0), b("HIGH EQ", 0), n("COMP", 0)], [L("STEP ADV", ["ON", "OFF"])], [L("TARGET", ["FM-1", "BROWSER"]), L("FREE RAM", ["256K", "384K", "512K"], 1), L("CPU SPEED", ["SLOW", "MID", "FAST"], 1)]] };
+const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6, G_TUNE = 7, G_TROOT = 8, G_A4 = 9, G_BEND = 10, G_PROG = 11, G_MOUT = 12, G_OUTCH = 13, G_LOCAL = 14, G_LOW = 15, G_MID = 16, G_HIGH = 17, G_COMP = 18, G_ADV = 19, G_TARGET = 20, G_RAM = 21, G_CPU = 22;
 const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10], LYDIAN: [0, 2, 4, 6, 7, 9, 11] };
 // SEL (CHORD): scale, root, chords and voicing on page 1; how the keys follow the scale on page 2.
 // After ChordStep FM-1 (one key per chord, the lowest keys force the quality and add extensions) and Melodee's CHRD/VOIC/QNT.
@@ -96,7 +99,14 @@ function tieLengths(out, src, isTie) {
     let j = 1; while (j < L && !(out.steps[(i + j) % L].notes.length)) j++;
     for (const nt of out.steps[i].notes) nt.len = Math.min(j, MAXSTEPS);
   }
-}const POOL = 256, BUDGET = 80, MAXV = 6;
+}const MAXV = 6;
+// FM-1 preview (1.9). Nobody has published the FM-1's free RAM or how fast the Mutable code runs on its pi32v2 core,
+// so both are settings (GLOBAL > HARDWARE). FREE RAM is what's left for sound: about 578 KB of SRAM (unverified)
+// less firmware, a 240x240 screen buffer and audio buffers. BASE_* is the engine itself (voices, matrix, LFOs, master).
+const RAM_OPTS = [256, 384, 512], CPU_OPTS = [60, 80, 110], BASE_CPU = 12, BASE_RAM = 16;
+const hwOn = () => glo.p[G_TARGET] === 0;
+const hwPool = () => RAM_OPTS[glo.p[G_RAM] ?? 1];
+const hwBudget = () => CPU_OPTS[glo.p[G_CPU] ?? 1];
 
 const SLOTS = [
   { id: "SRC", kind: "src", name: "SRC", choices: ["PLAITS", "BRAIDS", "ELEMENTS"] },
@@ -176,6 +186,12 @@ function storeUser() { try { localStorage.setItem(STORE_KEY, JSON.stringify(user
 const slotName = (i) => `U${String(i + 1).padStart(2, "0")}`;
 // a patch's category: chosen when saved, or read from the name's prefix (BS, PD, LD, CH, FX)
 function catOfName(nm) { const k = CATS.indexOf(String(nm).replace(/^U\d\d /, "").slice(0, 2)); return k > 0 && /^.. /.test(String(nm).replace(/^U\d\d /, "")) ? k : 0; }
+// would this preset fit on an FM-1 (GLOBAL > HARDWARE)? Used to mark the library.
+function entryFit(e) {
+  if (e.u !== undefined) { const u = userPatches[e.u]; if (!u) return null; return budgetFor(Object.fromEntries(SLOTS.map((s) => [s.id, u.slots[s.id] ? u.slots[s.id].mod : null])), u.amp[A_MODE]); }
+  const pr = PRESETS[e.f], md = pr.amp && pr.amp.MODE !== undefined ? Math.max(0, VOICE_MODES.indexOf(String(pr.amp.MODE))) : 0;
+  return budgetFor(Object.fromEntries(SLOTS.map((s) => [s.id, pr.slots[s.id] || null])), md);
+}
 function entryCat(e) { if (e.u !== undefined) { const p = userPatches[e.u]; return p && p.cat ? p.cat : catOfName(p ? p.name : ""); } return catOfName(PRESETS[e.f].name); }
 // the PRESETS encoder walks the factory patches, then the user slots that hold something
 function patchList(raw = false) { const all = [...PRESETS.map((p, i) => ({ f: i, name: p.name })), ...userPatches.map((p, i) => p && { u: i, name: `${slotName(i)} ${p.name}` }).filter(Boolean)]; if (raw || typeof filterList !== "function") return all; const f = filterList(all); return f.length ? f : all; }
@@ -329,25 +345,30 @@ function libDo() {
 }
 
 // ---------------------------------------------------------------- budget
-function budgetFor(ids) {
-  let shared = 0, poly = AMP.cpu, ram = 0;
+function budgetFor(ids, mode = amp.p[A_MODE]) {
+  let shared = BASE_CPU, poly = AMP.cpu, ram = BASE_RAM, ramV = 0;
   for (const s of SLOTS) {
     const m = MODULES[ids[s.id]];
     if (!m) continue;
     if (m.poly) poly += m.cpu; else shared += m.cpu;
-    ram += m.ram;
+    ram += m.ram; ramV += m.ramV;
   }
-  const cap = amp.p[A_MODE] === 1 || amp.p[A_MODE] === 2 ? 1 : glo.p[G_VOICES] ? glo.p[G_VOICES] : MAXV;
-  const voices = Math.min(cap, Math.floor((BUDGET - shared) / poly));
-  return { shared, poly, ram, voices, cpu: shared + poly * Math.max(voices, 0) };
+  const cap = mode === 1 || mode === 2 ? 1 : glo.p[G_VOICES] ? glo.p[G_VOICES] : MAXV;
+  if (!hwOn()) return { shared, poly, ram: ram + ramV * cap, ramV, voices: cap, cpu: shared + poly * cap, limit: "", over: "", hw: false };
+  const B = hwBudget(), pool = hwPool();
+  const byCpu = Math.floor((B - shared) / poly), byRam = ramV ? Math.floor((pool - ram) / ramV) : 99;
+  const fit = Math.min(cap, byCpu, byRam);
+  const limit = fit >= cap ? "" : byRam <= byCpu ? "RAM" : "CPU";
+  const voices = Math.max(1, fit);   // a patch that doesn't fit still plays one voice, flagged as over
+  const over = fit >= 1 ? "" : byRam < 1 ? "RAM" : "CPU";
+  return { shared, poly, ram: ram + ramV * voices, ramV, voices, cpu: shared + poly * voices, limit, over, hw: true, B, pool };
 }
 const currentIds = () => Object.fromEntries(SLOTS.map((s) => [s.id, rack[s.id].mod]));
 const budget = () => budgetFor(currentIds());
 function fitOf(slotId, modName) {
   const ids = currentIds(); ids[slotId] = modName;
   const bg = budgetFor(ids);
-  if (modName && bg.ram > POOL) return { ok: false, why: `${MODULES[modName].ram}K RAM`, bg };
-  if (bg.voices < 1) return { ok: false, why: "CPU", bg };
+  if (modName && bg.over && !budget().over) return { ok: false, why: bg.over, bg };   // a patch that's already over can still be trimmed
   if (modName && (slotId === "FX1" || slotId === "FX2")) { const other = slotId === "FX1" ? "FX2" : "FX1"; if (rack[other].mod === modName) return { ok: false, why: `IN ${other === "FX1" ? "FX 1" : "FX 2"}`, bg }; }
   return { ok: true, bg };
 }
