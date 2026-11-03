@@ -69,3 +69,26 @@ The first run of `fm1/bench` on a real FM-1 (installed from M-VAVE's V15 firmwar
   voice measured on the computer (1.3 KB, 64-bit) with room to spare.
 - **The benchmark** now adds 11 **2 CORES** cases (VA VCF x2, x4, x6 and the 6-voice presets) when the second core
   starts, so the next run shows both changes against this one.
+
+# Second run: 3 November 2026 (lighter engine, two cores)
+
+Raw data: [`fm1-bench-2026-11-03-b.csv`](fm1-bench-2026-11-03-b.csv) (116 cases; the reader page had received each
+line twice, so the copy here keeps one of each). All OK: none silent, no NaN, FPU exact.
+
+| | First run | Second run |
+|---|---|---|
+| Engine, no source | 32.7 % | **8.1 %** |
+| VA VCF, 1 voice | 48.5 % | **21.1 %** |
+| VA VCF, 6 voices, one core | 157.6 % | **95.0 %** |
+| VA VCF, 6 voices, two cores | | **51.5 %** |
+| Plaits, one voice (24 models) | 42-59 % | **15-32 %** (mean 23) |
+| Braids, one voice (47 shapes) | 45-51 % | **11-16 %** (mean 13) |
+| Rings MODAL, one voice | 102 % | **71 %** (its own share 58 %) |
+
+- **Per voice:** about 6 % for the engine plus 15 % per VA voice on one core (5 voices under the 90 % line), and about
+  7 % per voice on two cores (all 6 voices at 52 %). Two cores run 6 voices 1.84 times as fast as one.
+- **Presets, 6 voices, two cores:** CH POLY STAB 59 %, ACID DRIFT 67 %, CH E-PIANO 76 %, STRING MACH 83 %,
+  PD STRINGS 104 % (5 voices fit). On one core they were 92-171 %.
+- **The limits now are the memory arena:** PD SYMPATH (88 %), PD SHIMMER (60 %) and LD SAW SOLO play one voice because
+  their Rings or effects fill the 308 KB arena, not because of the CPU; so the second core has nothing to share there.
+- FM1 Rack now starts poly presets with their own voices (up to 6) on two cores, 4 on one.

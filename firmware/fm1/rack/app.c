@@ -94,11 +94,11 @@ void app_panic(void)
 }
 
 /* ------------------------------------------------------------------ presets --- */
-/* poly presets start with this many voices, unless SAVE remembered another number: on the FM-1 the benchmark
- * (3 Nov 2026) measured about 27 % of a core for the engine plus about 22 % per Plaits voice on one core, so 2
- * voices fit the 90 % line and 3 did not. With the second core taking half the voices, 4 to start; the shedding
- * takes off what doesn't fit, and SELECT asks for more */
-#define START_VOICES (plat_cpu2_on() ? 4 : 2)
+/* poly presets start with at most this many voices, unless SAVE remembered another number. The second benchmark
+ * (3 Nov 2026, the lighter engine) measured VA VCF at about 6 % plus 15 % per voice on one core (4 voices 66 %,
+ * 6 voices 95 %) and about 7 % per voice on two (6 voices 52 %): so the preset's own voices (up to 6) on two cores,
+ * 4 on one. The shedding takes off what doesn't fit (PD STRINGS: 104 % with 6 on two cores) */
+#define START_VOICES (plat_cpu2_on() ? 6 : 4)
 static void load_preset(int k)
 {
     rc_pause();
@@ -107,7 +107,7 @@ static void load_preset(int k)
         rk_set_voices(set.voices);
         rc_patch.voices_now = set.voices;
     } else if (rc_patch.mode == RVM_POLY && rc_patch.voices_now > START_VOICES) {
-        rk_set_voices(START_VOICES);          /* the benchmark: one core plays about 2 voices (SELECT asks for more) */
+        rk_set_voices(START_VOICES);          /* (SELECT asks for more) */
         rc_patch.voices_now = START_VOICES;
     }
     rc_resume();

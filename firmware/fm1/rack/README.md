@@ -22,7 +22,7 @@ reverb, chorus), played from the keys (with velocity) and from USB or TRS MIDI.
 
 **After the benchmark (3 Nov 2026):** one FM-1 core played about 2 voices (`../../results/README.md`). The
 second core now renders half the voices (the screen shows 2 CORES; 1 CORE* if fm1-base gave it up), and poly
-presets start at 4 voices on two cores, 2 on one, unless SAVE remembered another number (SELECT asks for up to 6;
+presets start with their own voices (up to 6) on two cores, 4 on one, unless SAVE remembered another number (SELECT asks for up to 6;
 the firmware sheds what doesn't fit). A preset that
 overloads the core even at one voice (Rings' MODAL measured 102 %) is muted until you pick another, with
 **TOO HEAVY FOR FM-1** on the screen, so the screen and controls keep working.

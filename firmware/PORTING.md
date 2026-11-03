@@ -51,7 +51,8 @@ In order. Don't start a step until the one before passes its check. The develope
   costs about 27 % of one core before any voice, then about 22 % per Plaits voice, so one core plays about 2 voices.
   Plaits models 42-59 % with one voice, Braids 45-51 %, Rings MODAL 102 % (too heavy), SYMPATH 92 %; filter 6.5 %,
   Tides 6.9 %, Peaks 3.6 %, Grids 0.3 %, delay 7.1 %, reverb 11.1 %, chorus 6.8 %. Full results and what they mean:
-  [`results/README.md`](results/README.md).
+  [`results/README.md`](results/README.md). **Second run, same day:** the lighter engine (same sound) and the second
+  core: engine 8 %, Plaits 15-32 %, Braids 11-16 %, Rings MODAL 71 %; 6 VA voices at 52 % on two cores.
 - **The FM-1 has a single-precision FPU, by the evidence so far** (this corrects the note that was here before).
   Felucca-Engines' plugin guide says "The FM-1's DSP has no floating point unit", and Felucca's own code is fixed
   point. But fm1-base, whose firmwares run on the FM-1 (CTL-1, Radio and others), compiles everything with
@@ -94,8 +95,8 @@ In order. Don't start a step until the one before passes its check. The develope
 | Can the codec run at 48 kHz? (Felucca runs it at 44.1 kHz) | The engine is 48 kHz: resample, or move the engine | `hw/fm1_app.cc` (`fm1_app_init`) |
 | Audio block size and the time budget per block | CPU limit | page CPU_OPTS, voice limits |
 | ~~Does the core run the `fprev1` float instructions?~~ **Yes** (fm1/bench, 3 Nov 2026) | Float modules need it | `fm1/bench` |
-| Second core usable? (fm1-base's `cpu2`) | One core plays about 2 voices (fm1/bench) | **Done, not yet measured:** rack.cc `render_voices`, bench's 2 CORES cases |
-| What is the engine's fixed 27 %? | The biggest single cost | **Mostly the limiter's look-ahead scan** (callgrind); now a running maximum, same output. To measure again |
+| Second core usable? (fm1-base's `cpu2`) | One core plays about 2 voices (fm1/bench) | **Done, measured:** 6 voices at 52 % on two cores (results/README.md) |
+| What is the engine's fixed 27 %? | The biggest single cost | **Mostly the limiter's look-ahead scan**; now a running maximum, same output: 32.7 % to 8.1 % on the FM-1 |
 | Cycle counter readable? (fm1-base has `plat_ticks24()`, 24 ticks a microsecond) | CPU measurement | `fm1_hal_cycles()` |
 | Flash region for patches and its erase size | Storage | `fm1_hal_flash_*()` |
 
