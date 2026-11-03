@@ -92,3 +92,24 @@ line twice, so the copy here keeps one of each). All OK: none silent, no NaN, FP
 - **The limits now are the memory arena:** PD SYMPATH (88 %), PD SHIMMER (60 %) and LD SAW SOLO play one voice because
   their Rings or effects fill the 308 KB arena, not because of the CPU; so the second core has nothing to share there.
 - FM1 Rack now starts poly presets with their own voices (up to 6) on two cores, 4 on one.
+
+# Third run: 4 November 2026 (the engine at -Os)
+
+Raw data: [`fm1-bench-2026-11-04-os.csv`](fm1-bench-2026-11-04-os.csv) (the reader page had received each line two or
+three times; one of each kept). The same engine compiled for size (-Os) instead of speed (-O2), which frees about 36 KB
+of flash for the menus. This build also has Rings' 16-bit strings. All 116 cases OK, FPU exact.
+
+| | -O2 (second run) | -Os |
+|---|---|---|
+| Engine, no source | 8.1 % | 10.1 % |
+| VA VCF, 1 voice | 21.1 % | 24.1 % |
+| VA VCF, 6 voices, one core | 95.0 % | 109.3 % |
+| VA VCF, 6 voices, two cores | 51.5 % | **59.1 %** |
+| Plaits, one voice | 15-32 % | 18-39 % (+14 % on average) |
+| Braids, one voice | 11-16 % | 16-21 % (+36 %) |
+| Rings MODAL, one voice | 70.5 % | 72.2 % |
+| 6-voice presets, two cores | 59-104 % | CH POLY STAB 64, ACID DRIFT 70, CH E-PIANO 84, STRING MACH 90, PD STRINGS 102 % |
+
+About 15 % more CPU overall (Braids the most). On two cores six voices still fit for most presets; STRING MACH sits on
+the 90 % line and PD STRINGS sheds to five voices, as before. **Decision: FM1 Rack uses -Os** (its image 541.6 KB of
+the 568 KB app area, about 39 KB free for the next stages of the menus).

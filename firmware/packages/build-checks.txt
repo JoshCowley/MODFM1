@@ -9,7 +9,8 @@ package  /home/claude/MODFM1/firmware/fm1/bench/build/fm1bench.fwsc  611496 B, i
   ok    .ram_text: 1017 insns, no calls
   ok    no 64-bit multiply inlined beside a load
   ok    no soft-double routines (single-precision FPU only)
-  ok    image 572224 B; RAM .data+.bss 66588 B of 98304; pool 334864 B of 344064
+  ok    image 541636 B; RAM .data+.bss 66940 B of 98304; pool 334864 B of 344064
+  ok    boot_pack: .ram_text + .data 7480 B stored as 2384 B (LZMA, unpacked at boot)
   ok    register access: felucca-bsp only (device/, include/ and the app clean)
 parts    USB audio in, USB audio out, the second core, velocity and pressure  (not built in: Bluetooth MIDI, Bluetooth MIDI devices, WiFi, screen mirroring, backup and restore, USB MIDI host)
 package  /home/claude/MODFM1/firmware/fm1/rack/build/fm1rack.fwsc  611496 B, identity FM-1_7800

@@ -131,6 +131,7 @@ capture against the desktop render, clock jitter, power-loss save, a recovery dr
 FM1 Rack (Lite) with the second core, the compact buffers and the new screen: 572 KB of the app area's 581,632
 bytes. With stage 1 of the menus, `boot_pack` and the platform at -Oz: **578,196 bytes, 3.4 KB left.** The engine at
 -Os (instead of -O2) frees about 36 KB more (measured: the benchmark's image 566 KB -> 530 KB); `fm1bench-os.fwsc`
-measures what it costs in CPU before the next stages use it. Porting the editing pages will need room: fm1-base's `boot_pack` (about 9 KB back on a
+measured what it costs in CPU: about 15 % (results/README.md, third run). **FM1 Rack now builds at -Os: 541,636 bytes,
+about 39 KB free.** Porting the editing pages will need room: fm1-base's `boot_pack` (about 9 KB back on a
 large app), the engine's units at -Os instead of -O2 (to measure: it costs CPU), or dropping unused Braids or Plaits
 models.
