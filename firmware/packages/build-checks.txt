@@ -1,0 +1,15 @@
+  ok    .ram_text: 975 insns, no calls
+  ok    no 64-bit multiply inlined beside a load
+  ok    no soft-double routines (single-precision FPU only)
+  ok    image 550704 B; RAM .data+.bss 54700 B of 98304; pool 334608 B of 344064
+  ok    register access: felucca-bsp only (device/, include/ and the app clean)
+parts    USB audio in, USB audio out  (not built in: Bluetooth MIDI, Bluetooth MIDI devices, WiFi, screen mirroring, backup and restore, the second core, USB MIDI host, velocity and pressure)
+package  /home/claude/MODFM1/firmware/fm1/bench/build/fm1bench.fwsc  611496 B, identity FM-1_7700
+
+  ok    .ram_text: 975 insns, no calls
+  ok    no 64-bit multiply inlined beside a load
+  ok    no soft-double routines (single-precision FPU only)
+  ok    image 543636 B; RAM .data+.bss 59836 B of 98304; pool 334864 B of 344064
+  ok    register access: felucca-bsp only (device/, include/ and the app clean)
+parts    USB audio in, USB audio out, velocity and pressure  (not built in: Bluetooth MIDI, Bluetooth MIDI devices, WiFi, screen mirroring, backup and restore, the second core, USB MIDI host)
+package  /home/claude/MODFM1/firmware/fm1/rack/build/fm1rack.fwsc  611496 B, identity FM-1_7800

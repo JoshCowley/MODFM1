@@ -22,18 +22,26 @@
 #include "plaits/dsp/voice.h"
 #include "braids/macro_oscillator.h"
 #include "rings/dsp/part.h"
+#ifndef RACK_LITE
 #include "elements/dsp/part.h"
+#endif
+#ifndef RACK_LITE
 #include "clouds/dsp/granular_processor.h"
+#else
+#include "clouds/dsp/frame.h"   // the reverb's frame type
+#endif
 #include "clouds/dsp/fx/reverb.h"
 #include "peaks/modulations/lfo.h"
 #include "peaks/modulations/multistage_envelope.h"
 #include "tides2/poly_slope_generator.h"
+#ifndef RACK_LITE
 #include "warps/dsp/modulator.h"
 #include "marbles/random/t_generator.h"
 #include "marbles/random/x_y_generator.h"
 #include "marbles/random/random_generator.h"
 #include "marbles/random/random_stream.h"
 namespace marbles { extern const Scale preset_scales[6]; }
+#endif
 namespace grids_data {
 extern const uint8_t node_0[], node_1[], node_2[], node_3[], node_4[], node_5[], node_6[], node_7[], node_8[], node_9[],
   node_10[], node_11[], node_12[], node_13[], node_14[], node_15[], node_16[], node_17[], node_18[], node_19[],
@@ -107,17 +115,21 @@ static VoiceState vs_[MAXV];
 static plaits::Voice* plaits_; static char (*plaits_buf_)[16384];
 static braids::MacroOscillator* braids_;
 static rings::Part* rings_; static uint16_t (*rings_rev_)[32768];
+#ifndef RACK_LITE
 static elements::Part* elements_; static uint16_t (*elements_rev_)[32768];
 static warps::Modulator* warps_;
+#endif
 #else
 static plaits::Voice plaits_[MAXV];
 static char plaits_buf_[MAXV][16384];
 static braids::MacroOscillator braids_[MAXV];
 static rings::Part rings_[MAXV];
 static uint16_t rings_rev_[MAXV][32768];
+#ifndef RACK_LITE
 static elements::Part elements_[MAXV];
 static uint16_t elements_rev_[MAXV][32768];
 static warps::Modulator warps_[MAXV];
+#endif
 #endif
 static Svf svf_[MAXV], svf2_[MAXV];
 static int nvoices_ = 2;
@@ -125,7 +137,9 @@ static int last_voice_ = 0;
 static uint32_t age_counter_ = 0;
 
 // ------------------------------------------------------------------ shared
+#ifndef RACK_LITE
 static clouds::GranularProcessor clouds_;
+#endif
 static int clouds_quality_ = 0;
 static float cl_scan_ = 0.0f, cl_tone_l_ = 0.0f, cl_tone_r_ = 0.0f;
 static int cl_grid_ = -1;
@@ -135,8 +149,9 @@ static const int CL_LARGE = 118784, CL_SMALL = 65536 - 128, DLEN_MAX = 96000;
 #ifdef RACK_FM1
 typedef int16_t dsamp_t;
 static const int DLEN = 48000;   // 1 s
-static inline float DG(int16_t v) { return v * (1.0f / 32767.0f); }
-static inline int16_t DS(float x) { x = x > 1.0f ? 1.0f : x < -1.0f ? -1.0f : x; return (int16_t)(x * 32767.0f + (x >= 0 ? 0.5f : -0.5f)); }
+// 16-bit lines keep 6 dB of headroom (full scale = 2.0): mixes of several voices go past 1.0 before the limiter
+static inline float DG(int16_t v) { return v * (2.0f / 32767.0f); }
+static inline int16_t DS(float x) { x *= 0.5f; x = x > 1.0f ? 1.0f : x < -1.0f ? -1.0f : x; return (int16_t)(x * 32767.0f + (x >= 0 ? 0.5f : -0.5f)); }
 static uint8_t* clouds_large_; static uint8_t* clouds_small_;
 static uint16_t* reverb_buf_;
 static dsamp_t *delay_l_, *delay_r_;
@@ -145,8 +160,10 @@ typedef float dsamp_t;
 static const int DLEN = DLEN_MAX;
 static inline float DG(float v) { return v; }
 static inline float DS(float x) { return x; }
+#ifndef RACK_LITE
 static uint8_t clouds_large_[CL_LARGE];
 static uint8_t clouds_small_[CL_SMALL];
+#endif
 static uint16_t reverb_buf_[16384];
 static float delay_l_[DLEN_MAX], delay_r_[DLEN_MAX];
 #endif
@@ -158,7 +175,7 @@ static int delay_max_ = DMAX_FM1, delay_q16_ = 1;
 #else
 static int delay_max_ = DLEN - 1, delay_q16_ = 0;   // the browser's FM-1 preview (set_hw) switches to DMAX_FM1 and 16-bit values
 #endif
-static inline float q16(float x) { x = x > 1.0f ? 1.0f : x < -1.0f ? -1.0f : x; return (float)(int)(x * 32767.0f + (x >= 0 ? 0.5f : -0.5f)) / 32767.0f; }
+static inline float q16(float x) { x *= 0.5f; x = x > 1.0f ? 1.0f : x < -1.0f ? -1.0f : x; return (float)(int)(x * 32767.0f + (x >= 0 ? 0.5f : -0.5f)) * (2.0f / 32767.0f); }   // as the FM-1 build's 16-bit lines
 static int delay_w_ = 0;
 #ifdef RACK_FM1
 static dsamp_t *chorus_l_, *chorus_r_;
@@ -186,10 +203,12 @@ static GateFlags mod_prev_gate_[2];
 static float tap_last_[2], tap_period_[2];
 static float tides_raw_ = 0.0f;
 // marbles
+#ifndef RACK_LITE
 static marbles::RandomGenerator marbles_rng_;
 static marbles::RandomStream marbles_stream_;
 static marbles::TGenerator marbles_t_[2];
 static marbles::XYGenerator marbles_xy_[2];
+#endif
 static float marbles_t_env_[2];
 // grids
 static int grids_step_ = -1;
@@ -220,7 +239,20 @@ EXPORT void set_tides_ad_max(float v) { TIDES_AD_MAX = v; }
 EXPORT float tides_raw() { return tides_raw_; }
 
 // clock / gate bus
+#ifdef RACK_FM1
+// the FM-1's FPU is single precision only: the clock is whole 16ths plus a fraction, exact however long it runs
+static int clk_i_ = 0; static float clk_f_ = 0.0f;
+#define CLK() ((float)clk_i_ + clk_f_)
+#define CLK_I() clk_i_
+static inline void clk_reset() { clk_i_ = 0; clk_f_ = 0.0f; }
+static inline void clk_advance(float d) { clk_f_ += d; while (clk_f_ >= 1.0f) { clk_f_ -= 1.0f; ++clk_i_; } if (clk_i_ >= 4096) clk_i_ -= 4096; }
+#else
 static double clock_phase_ = 0.0;   // in 16ths
+#define CLK() ((float)clock_phase_)
+#define CLK_I() ((int)clock_phase_)
+static inline void clk_reset() { clock_phase_ = 0.0; }
+static inline void clk_advance(float d) { clock_phase_ += d; if (clock_phase_ > 4096.0) clock_phase_ -= 4096.0; }
+#endif
 static bool any_gate_ = false;
 static float master_ = 0.7f;
 
@@ -308,20 +340,26 @@ static void reset_voice_modules(int slot) {
       BufferAllocator alloc(plaits_buf_[i], 16384);
       if (mod_id_[S_SRC] == M_PLAITS) plaits_[i].Init(&alloc);
       if (mod_id_[S_SRC] == M_BRAIDS) braids_[i].Init();
+#ifndef RACK_LITE
       if (mod_id_[S_SRC] == M_ELEMENTS) { elements_[i].Init(elements_rev_[i]); }
+#endif
     } else if (slot == S_SHP) {
       if (mod_id_[S_SHP] == M_RINGS) { rings_[i].Init(rings_rev_[i]); rings_[i].set_polyphony(1); }
+#ifndef RACK_LITE
       if (mod_id_[S_SHP] == M_WARPS) warps_[i].Init(96000.0f);
+#endif
       svf_[i].Init(); svf2_[i].Init();
     }
   }
 }
 
 static void init_fx(int id) {
+#ifndef RACK_LITE
   if (id == M_CLOUDS) {
     clouds_.Init(clouds_large_, CL_LARGE, clouds_small_, CL_SMALL);
     clouds_.set_num_channels(2); clouds_.set_low_fidelity(false); clouds_quality_ = 0;
   }
+#endif
   if (id == M_REVERB) { reverb_.Init(reverb_buf_); memset(shim_buf_, 0, 4096 * 2); memset(pre_buf_l_, 0, 8192 * 2); memset(pre_buf_r_, 0, 8192 * 2); shim_fb_ = 0; }
   if (id == M_DELAY) { memset(delay_l_, 0, DLEN * sizeof(dsamp_t)); memset(delay_r_, 0, DLEN * sizeof(dsamp_t)); }
   if (id == M_CHORUS) { memset(chorus_l_, 0, 4096 * sizeof(dsamp_t)); memset(chorus_r_, 0, 4096 * sizeof(dsamp_t)); }
@@ -332,7 +370,12 @@ static void init_fx(int id) {
 // The sources, shapers and effects that need big buffers share one block of RAM. fm1_layout() lays it out
 // for what is loaded: the effects first, then as many voices as fit (up to MAXV). If even the effects or one
 // voice won't fit, it unloads modules (FX 2, FX 1, then the shaper, then the source) rather than overrun.
-static uint8_t arena_[RACK_ARENA_KB * 1024] __attribute__((aligned(16)));
+#if defined(RACK_ARENA_POOL)   // fm1-base and Felucca: big zero-initialised buffers go in the .pool section
+#define RACK_ARENA_ATTR __attribute__((section(".pool")))
+#elif !defined(RACK_ARENA_ATTR)
+#define RACK_ARENA_ATTR
+#endif
+static uint8_t arena_[RACK_ARENA_KB * 1024] RACK_ARENA_ATTR __attribute__((aligned(16)));
 static int req_[NSLOT];           // what the patch asks for
 static int want_voices_ = 2, dropped_ = 0;
 static size_t arena_used_ = 0;
@@ -341,7 +384,9 @@ static size_t carve(const int* eff, int nv, bool commit) {
   auto take = [&](size_t n) -> uint8_t* { at = (at + 15) & ~(size_t)15; uint8_t* p = arena_ + at; at += n; return p; };
   for (int s = S_FX1; s <= S_FX2; ++s) {
     int id = eff[s];
+#ifndef RACK_LITE
     if (id == M_CLOUDS) { uint8_t* a = take(CL_LARGE); uint8_t* b = take(CL_SMALL); if (commit) { clouds_large_ = a; clouds_small_ = b; } }
+#endif
     if (id == M_REVERB) { uint8_t* a = take(32768); uint8_t* b = take(8192); uint8_t* c = take(16384); uint8_t* d = take(16384);
                           if (commit) { reverb_buf_ = (uint16_t*)a; shim_buf_ = (int16_t*)b; pre_buf_l_ = (int16_t*)c; pre_buf_r_ = (int16_t*)d; } }
     if (id == M_DELAY) { uint8_t* a = take(DLEN * 2); uint8_t* b = take(DLEN * 2); if (commit) { delay_l_ = (int16_t*)a; delay_r_ = (int16_t*)b; } }
@@ -350,9 +395,13 @@ static size_t carve(const int* eff, int nv, bool commit) {
   if (nv > 0) {
     if (eff[S_SRC] == M_PLAITS) { uint8_t* a = take(nv * sizeof(plaits::Voice)); uint8_t* b = take(nv * 16384); if (commit) { plaits_ = (plaits::Voice*)a; plaits_buf_ = (char (*)[16384])b; } }
     if (eff[S_SRC] == M_BRAIDS) { uint8_t* a = take(nv * sizeof(braids::MacroOscillator)); if (commit) braids_ = (braids::MacroOscillator*)a; }
+#ifndef RACK_LITE
     if (eff[S_SRC] == M_ELEMENTS) { uint8_t* a = take(nv * sizeof(elements::Part)); uint8_t* b = take(nv * 65536); if (commit) { elements_ = (elements::Part*)a; elements_rev_ = (uint16_t (*)[32768])b; } }
+#endif
     if (eff[S_SHP] == M_RINGS) { uint8_t* a = take(nv * sizeof(rings::Part)); uint8_t* b = take(nv * 65536); if (commit) { rings_ = (rings::Part*)a; rings_rev_ = (uint16_t (*)[32768])b; } }
+#ifndef RACK_LITE
     if (eff[S_SHP] == M_WARPS) { uint8_t* a = take(nv * sizeof(warps::Modulator)); if (commit) warps_ = (warps::Modulator*)a; }
+#endif
   }
   return at;
 }
@@ -372,9 +421,13 @@ static void fm1_layout() {
   for (int i = 0; i < nv; ++i) {   // construct the module objects in place
     if (eff[S_SRC] == M_PLAITS) new (&plaits_[i]) plaits::Voice();
     if (eff[S_SRC] == M_BRAIDS) new (&braids_[i]) braids::MacroOscillator();
+#ifndef RACK_LITE
     if (eff[S_SRC] == M_ELEMENTS) new (&elements_[i]) elements::Part();
+#endif
     if (eff[S_SHP] == M_RINGS) new (&rings_[i]) rings::Part();
+#ifndef RACK_LITE
     if (eff[S_SHP] == M_WARPS) new (&warps_[i]) warps::Modulator();
+#endif
   }
   mod_id_[S_SRC] = eff[S_SRC]; mod_id_[S_SHP] = eff[S_SHP]; mod_id_[S_FX1] = eff[S_FX1]; mod_id_[S_FX2] = eff[S_FX2];
   reset_voice_modules(S_SRC); reset_voice_modules(S_SHP);
@@ -392,6 +445,10 @@ EXPORT int fm1_status(int what) {
 #endif
 
 EXPORT void set_module(int slot, int id) {
+#ifdef RACK_LITE
+  // the Lite firmware ships without Elements, Warps, Marbles and Clouds: they play as an empty slot
+  if (id == M_ELEMENTS || id == M_WARPS || id == M_MARBLES || id == M_CLOUDS) id = M_NONE;
+#endif
 #ifdef RACK_FM1
   if (slot == S_SRC || slot == S_SHP || slot == S_FX1 || slot == S_FX2) { if (req_[slot] == id) return; req_[slot] = id; fm1_layout(); return; }
 #endif
@@ -401,8 +458,10 @@ EXPORT void set_module(int slot, int id) {
   if (slot == S_MODA || slot == S_MODB) {
     int k = slot - S_MODA;
     peaks_lfo_[k].Init(); peaks_env_[k].Init(); tides_[k].Init(); mod_prev_gate_[k] = 0;
+#ifndef RACK_LITE
     marbles_t_[k].Init(&marbles_stream_, SR); marbles_xy_[k].Init(&marbles_stream_, SR);
     for (int s = 0; s < 6; ++s) marbles_xy_[k].LoadScale(s, marbles::preset_scales[s]);
+#endif
     marbles_t_env_[k] = 0.0f; grids_env_[k][0] = grids_env_[k][1] = 0.0f;
     mod_out_[k * 2] = mod_out_[k * 2 + 1] = 0.0f;
   }
@@ -444,7 +503,7 @@ EXPORT void note_on(float note, float vel) {
   v.pan = (pick % 2 ? 1.0f : -1.0f) * (0.3f + 0.7f * (pick / 2) / 2.0f);
   last_voice_ = pick;
 }
-EXPORT void reset_clock() { clock_phase_ = 0.0; }
+EXPORT void reset_clock() { clk_reset(); }
 
 EXPORT void note_off(float note) {
   for (int i = 0; i < MAXV; ++i) if (vs_[i].gate && fabsf(vs_[i].note - note) < 0.01f) { vs_[i].gate = false; vs_[i].stage = 4; }
@@ -461,8 +520,10 @@ EXPORT void init() {
   for (int i = 0; i < 6; ++i) ext_tgt_[i] = ext_cur_[i] = 0.0f;
   for (int k = 0; k < 2; ++k) { peaks_lfo_[k].Init(); peaks_env_[k].Init(); tides_[k].Init(); tap_period_[k] = 0.5f; }
   for (int i = 0; i < NROUTE; ++i) routes_[i].src = SR_NONE;
+#ifndef RACK_LITE
   marbles_rng_.Init(0x2357bd1);
   marbles_stream_.Init(&marbles_rng_);
+#endif
 #ifdef RACK_FM1
   fm1_layout();
 #endif
@@ -556,8 +617,8 @@ static void run_benv(VoiceState& v) {
 static float division_gate(int which) {   // 0 NOTE 1 GRID 2 1/16 3 1/8 4 1/4 5 BAR
   static const float div[] = { 0, 0, 1, 2, 4, 16 };
   if (which == 0) return any_gate_ ? 1.0f : 0.0f;
-  if (which == 1) return grids_gate_ && fmodf((float)clock_phase_, 1.0f) < 0.5f ? 1.0f : 0.0f;
-  float p = fmodf((float)clock_phase_, div[which]) / div[which];
+  if (which == 1) return grids_gate_ && fmodf(CLK(), 1.0f) < 0.5f ? 1.0f : 0.0f;
+  float p = fmodf(CLK(), div[which]) / div[which];
   return p < 0.5f ? 1.0f : 0.0f;
 }
 
@@ -603,6 +664,7 @@ static void run_mod(int k) {
     if (PI(slot, 7, 0) == 1) u = 1.0f - u;   // INVERT
     o[1] = u;                    // TIDE+ unipolar
     o[0] = u * 2.0f - 1.0f;      // TIDES bipolar
+#ifndef RACK_LITE
   } else if (id == M_MARBLES) {
     // RATE SPREAD BIAS STEPS | DEJA VU LENGTH JITTER CLOCK
     static const int lengths[] = { 1, 2, 3, 4, 5, 6, 8, 16 };
@@ -619,7 +681,7 @@ static void run_mod(int k) {
     float rb[BLOCK * 4]; bool gates[BLOCK * 2]; float volts[BLOCK * 4];
     marbles::Ramps ramps; ramps.master = rb; ramps.external = rb + BLOCK; ramps.slave[0] = rb + BLOCK * 2; ramps.slave[1] = rb + BLOCK * 3;
     GateFlags ext[BLOCK];
-    bool ext_gate = clock ? (fmodf((float)clock_phase_, divs[clock]) / divs[clock]) < 0.5f : false;
+    bool ext_gate = clock ? (fmodf(CLK(), divs[clock]) / divs[clock]) < 0.5f : false;
     for (int i = 0; i < BLOCK; ++i) { ext[i] = ExtractGateFlags(mod_prev_gate_[k], ext_gate); mod_prev_gate_[k] = ext[i]; }
     t.Process(clock != 0, ext, ramps, gates, BLOCK);
     marbles::GroupSettings x, y;
@@ -633,10 +695,11 @@ static void run_mod(int k) {
     bool tg = gates[(BLOCK - 1) * 2];
     marbles_t_env_[k] = tg ? 1.0f : marbles_t_env_[k] * 0.9f;
     o[1] = marbles_t_env_[k];
+#endif
   } else if (id == M_GRIDS) {
     // X Y FILL OUT | CHAOS
 
-    int step = ((int)clock_phase_) & 31;
+    int step = CLK_I() & 31;
     float* env = grids_env_[k];
     {
       static int last[2] = { -1, -1 };
@@ -681,7 +744,7 @@ static void run_lfos() {
     bool retrig = PI(S_LFO, l * 4 + 3, 0) == 1;
     float ph;
     if (sync > 0) {
-      ph = fmodf((float)clock_phase_, shapes_div[sync]) / shapes_div[sync];
+      ph = fmodf(CLK(), shapes_div[sync]) / shapes_div[sync];
     } else {
       float hz = 0.03f * powf(2.0f, rate * 10.0f);     // 0.03 .. 30 Hz
       if (one && rising) { lfo_phase_[l] = 0.0f; lfo_done_[l] = false; }
@@ -788,6 +851,7 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
       vbuf_[n] = f * P(S_SRC, 7, &v);
     }
     if (vca) for (int n = 0; n < BLOCK; ++n) vbuf_[n] *= v.benv;
+#ifndef RACK_LITE
   } else if (src == M_ELEMENTS) {
     elements::Patch* ep = elements_[i].mutable_patch();
     ep->exciter_bow_level = P(S_SRC, 0, &v); ep->exciter_blow_level = P(S_SRC, 1, &v);
@@ -809,6 +873,7 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
       elements_[i].Process(ps, zero, zero, a, b2, 12);
       for (int n = 0; n < 12; ++n) { vbuf_[h * 12 + n] = a[n] * 2.4f; vaux_[h * 12 + n] = b2[n] * 2.4f; }
     }
+#endif
   } else {
     memset(vbuf_, 0, sizeof(vbuf_));
   }
@@ -837,6 +902,7 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
       vbuf_[n] = vbuf_[n] * (1.0f - mix) + l * mix;
       vaux_[n] = vaux_[n] * (1.0f - mix) + rr * mix;
     }
+#ifndef RACK_LITE
   } else if (shp == M_WARPS) {
     // ALGO TIMBRE CARRIER MOD IN | CAR LVL MOD LVL MIX
     warps::Modulator& w = warps_[i];
@@ -863,6 +929,7 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
       vbuf_[n] = vbuf_[n] * (1.0f - mix) + a * mix;
       vaux_[n] = vaux_[n] * (1.0f - mix) + b * mix;
     }
+#endif
   } else if (shp == M_FILTER) {
     // TYPE CUTOFF RESO DRIVE | ENV AMT KEY TRK VEL AMT ENV SRC | F ATK F DEC F SUS F REL | SAT AUDIO FM GAIN
     int type = PI(S_SHP, 0, &v);
@@ -975,6 +1042,7 @@ static void run_master(float* l, float* r) {
 // ------------------------------------------------------------------ FX
 static void run_fx(int slot, float* l, float* r) {
   int id = mod_id_[slot];
+#ifndef RACK_LITE
   if (id == M_CLOUDS) {
     clouds::Parameters* p = clouds_.mutable_parameters();
     p->position = P(slot, 0, 0); p->size = P(slot, 1, 0); p->pitch = P(slot, 2, 0) * 24.0f;
@@ -989,7 +1057,7 @@ static void run_fx(int slot, float* l, float* r) {
     // position, pitch and length; PITCH QNT keeps the scatter musical; SCAN moves the read point; TONE colours the wet only
     static const float grid_div[] = { 0, 1, 2, 4, 8 };
     int gs = PI(slot, 15, 0);
-    if (gs > 0) { int cell = (int)(clock_phase_ / grid_div[gs]); if (cell != cl_grid_) { cl_grid_ = cell; trg = true; } } else cl_grid_ = -1;
+    if (gs > 0) { int cell = (int)(CLK() / grid_div[gs]); if (cell != cl_grid_) { cl_grid_ = cell; trg = true; } } else cl_grid_ = -1;
     p->trigger = trg; p->gate = trg;
     if (PI(slot, 14, 0) == 1) p->pitch = clampf(p->pitch + vs_[last_voice_].note - 60.0f, -48.0f, 48.0f);
     float spray = P(slot, 16, 0), prnd = P(slot, 17, 0), srnd = P(slot, 19, 0), scan = P(slot, 20, 0), tone = P(slot, 21, 0);
@@ -1031,7 +1099,9 @@ static void run_fx(int slot, float* l, float* r) {
         l[n] = SoftLimit((dl * fo + wl * fi) * 0.5f); r[n] = SoftLimit((dr * fo + wr * fi) * 0.5f);   // the same output stage as Clouds
       }
     }
-  } else if (id == M_REVERB) {
+  } else
+#endif
+  if (id == M_REVERB) {
     int type = PI(slot, 4, 0);                     // 0 PLATE, 1 HALL, 2 SHIMMER
     float size = P(slot, 0, 0), mix = P(slot, 3, 0);
     float time = type == 0 ? 0.35f + size * 0.63f : 0.6f + size * 0.39f;
@@ -1060,7 +1130,7 @@ static void run_fx(int slot, float* l, float* r) {
         float w1 = sinf(3.14159265f * shim_ph_), w2 = sinf(3.14159265f * fmodf(shim_ph_ + 0.5f, 1.0f));
         float up = rdbuf(d1) * w1 + rdbuf(d2) * w2;
         shim_w_ = (shim_w_ + 1) & 4095;
-        in_l += up * shim * 0.7f; in_r += up * shim * 0.7f;
+        in_l += up * shim * 0.35f; in_r += up * shim * 0.35f;   // 1.9.2: 0.7 let long shimmer tails grow after release
       }
       fr[n].l = in_l; fr[n].r = in_r;
     }
@@ -1124,6 +1194,9 @@ static void run_fx(int slot, float* l, float* r) {
       chorus_phase_ += rate / SR; if (chorus_phase_ >= 1.0f) chorus_phase_ -= 1.0f;
       float s = sinf(chorus_phase_ * 6.2831853f);
       chorus_l_[chorus_w_] = DS(cfb > 0.0f ? l[n] + ch_fb_l_ * cfb : l[n]); chorus_r_[chorus_w_] = DS(cfb > 0.0f ? r[n] + ch_fb_r_ * cfb : r[n]);
+#ifndef RACK_FM1
+      if (delay_q16_) { chorus_l_[chorus_w_] = q16(chorus_l_[chorus_w_]); chorus_r_[chorus_w_] = q16(chorus_r_[chorus_w_]); }   // the FM-1 preview: 16-bit
+#endif
       float dl = base + (1.0f + s) * depth * swing, dr = base + (1.0f - s * width) * depth * swing;
       auto tap = [](dsamp_t* buf, int w, float d) {
         float pos = w - d; while (pos < 0) pos += 4096.0f;
@@ -1142,8 +1215,7 @@ static void run_fx(int slot, float* l, float* r) {
 // ------------------------------------------------------------------ block + render
 static void process_block() {
   float bpm = base_[S_GLO][0] > 1.0f ? base_[S_GLO][0] : 112.0f;
-  clock_phase_ += BLOCK / SR * bpm / 60.0 * 4.0;
-  if (clock_phase_ > 4096.0) clock_phase_ -= 4096.0;
+  clk_advance(BLOCK / SR * bpm / 60.0f * 4.0f);
   for (int i = 0; i < 6; ++i) ext_cur_[i] += (ext_tgt_[i] - ext_cur_[i]) * ext_slew_[i];
   run_lfos();
   run_mod(0); run_mod(1);
@@ -1179,7 +1251,7 @@ EXPORT float* monitor(int slot) {
   }
   for (int i = 0; i < 4; ++i) mon_[40 + i] = mod_out_[i];
   for (int i = 0; i < 3; ++i) mon_[44 + i] = lfo_val_[i];
-  mon_[47] = (float)clock_phase_;
+  mon_[47] = CLK();
   mon_[48] = peak_l_; mon_[49] = peak_r_; peak_l_ *= 0.5f; peak_r_ *= 0.5f;
   for (int i = 0; i < 12; ++i) {
     const Route& r = routes_[i];

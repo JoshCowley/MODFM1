@@ -421,7 +421,7 @@ function visHardware(X, Y, W, H, c) {
     return;
   }
   const cap = amp.p[A_MODE] === 1 || amp.p[A_MODE] === 2 ? 1 : glo.p[G_VOICES] || MAXV;
-  T(X + 8, Y + 14, bg.dropped.length ? `NO RAM: ${bg.dropped.map((d) => rack[d].mod).join(" + ")} UNLOADED` : bg.over ? "OVER ON CPU: WOULD GLITCH" : `FITS · ${bg.voices} OF ${cap} VOICES`, { size: 10, c: bg.over ? C.warn : bg.limit ? C.gold : C.ok });
+  T(X + 8, Y + 14, bg.dropped.length ? (bg.over === "FW" ? `NOT IN FIRMWARE: ${bg.dropped.map((d) => rack[d].mod).join(" + ")}` : `NO RAM: ${bg.dropped.map((d) => rack[d].mod).join(" + ")} UNLOADED`) : bg.over ? "OVER ON CPU: WOULD GLITCH" : `FITS · ${bg.voices} OF ${cap} VOICES`, { size: 10, c: bg.over ? C.warn : bg.limit ? C.gold : C.ok });
   if (bg.limit && !bg.over) T(X + W - 8, Y + 14, `${bg.limit} LIMITS`, { size: 9, a: "right", c: C.gold });
   T(X + 8, Y + 28, `RAM ${Math.round(bg.ram)}/${bg.pool}K · CPU ${bg.cpu}/${bg.B}`, { size: 9 });
   // the biggest memory user
@@ -429,6 +429,15 @@ function visHardware(X, Y, W, H, c) {
   for (const s of SLOTS) { const m = MODULES[rack[s.id].mod]; if (!m || bg.dropped.includes(s.id)) continue; const k = m.ram + m.ramV * bg.voices; if (!big || k > big.k) big = { n: rack[s.id].mod, k, v: m.ramV }; }
   if (big) T(X + 8, Y + 42, `MOST RAM: ${big.n} ${big.v ? `${Math.round(big.v)}K × ${bg.voices}V` : `${Math.round(big.k)}K`}`, { size: 9, c: C.dim });
   T(X + 8, Y + 56, "FREE RAM + CPU SPEED ARE ASSUMED", { size: 8, c: C.dim });
+}
+
+// FIRMWARE (Lite): what the firmware's flash holds, against the app area in Felucca's memory map
+function visFirmware(X, Y, W, H, c) {
+  const f = flashUse(), pct = f.used / FW_AREA;
+  T(X + 8, Y + 14, `FLASH ${Math.round(f.used)} / ${FW_AREA} KB`, { size: 10, c: f.left < 0 ? C.warn : C.fg });
+  rect(X + 8, Y + 19, W - 16, 5, C.faint, 2); rect(X + 8, Y + 19, Math.min(1, pct) * (W - 16), 5, f.left < 0 ? C.warn : f.left < 100 ? C.gold : C.ok, 2);
+  T(X + 8, Y + 38, f.left < 0 ? `OVER BY ${Math.round(-f.left)} KB: TAKE A MODULE OUT` : `${Math.round(f.left)} KB LEFT FOR SCREEN, KEYS, SEQ, FONTS`, { size: 9, c: f.left < 0 ? C.warn : f.left < 100 ? C.gold : C.ok });
+  T(X + 8, Y + 52, "MEASURED · UI NEEDS NOT KNOWN YET", { size: 8, c: C.dim });
 }
 
 // ARP is a fixed page like AMP and GLOBAL

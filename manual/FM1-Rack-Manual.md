@@ -1,8 +1,8 @@
-# FM1 Rack 1.9.1 Manual
+# FM1 Rack 1.9.2 Manual
 
 Oct 26, 2026 · Josh Cowley
 
-FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.9.1 browser build, which runs the original module code.
+FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.9.2 browser build, which runs the original module code.
 
 ## Quick start
 
@@ -704,6 +704,18 @@ Twelve patches, each built to show off a pairing. Their levels were balanced by 
 ACID DRIFT (a 16th-note acid line with cutoff and resonance locks) and STRING MACH (four slow chords) also come with a sequencer pattern: load one and press **PLAY**.
 
 ### The preset library (1.7)
+
+**1.9.2 adds 25 presets** across the electronic-music instrument types, with no drums, all built from the modules FM1 Rack Lite keeps (Plaits, Braids, Rings, the filter, Peaks, Tides, delay, reverb and chorus), so they play the same on the Lite page:
+
+| Category | Presets |
+| --- | --- |
+| Bass | BS DEEP SUB, BS FM GROWL, BS PLUCKED, BS ROLLER, BS DUB ROUND |
+| Lead | LD SAW SOLO, LD SYNC SWEEP, LD BREATH FLUT, LD SQUARE CHIP, LD RESO STRING |
+| Pads | PD WARM ANALOG, PD CHOIR AAH, PD EVOLVING WT, PD SOFT STRING, PD GLASS AIR |
+| Keys, stabs, plucks, brass | CH E-PIANO, CH DRAWBAR, CH HOUSE STAB, CH STRING PLK, CH MALLETS, CH SYNTH BRASS, CH PHASE KEYS |
+| FX and textures | FX NOISE SWEEP, FX METAL RING, FX TIDAL DRONE |
+
+CH HOUSE STAB plays a whole chord from one key (Plaits' CHORDS model). 1.9.2 also fixes shimmer tails that kept growing after a note ended (PD SHIMMER) and an FX DRONESPACE tail that never died away.
 
 Thirty more presets follow the twelve above, in five categories named by their first two letters. On the TOOLS LIBRARY page, set **FILTER** to BASS, PADS, LEAD, CHORD or FX to step through one category with PRESETS. Every preset has its four macros on Knobs 1–4 of HOME, and the levels are balanced to sit with the factory patches. Bass and Chord presets come with a pattern: press **PLAY** to hear it.
 

@@ -254,7 +254,7 @@ function drawBoot(age) {
   const reveal = Math.min(1, age / .6);
   g.save(); g.beginPath(); g.rect(0, 0, 240 * reveal, 240); g.clip();
   T(120, 92, "FM1 RACK", { a: "center", size: 30 });
-  T(120, 114, "EURORACK MODULES · 1.9.1", { a: "center", size: 11, c: C.dim });
+  T(120, 114, LITE ? "FM-1 LITE · 1.9.2" : "EURORACK MODULES · 1.9.2", { a: "center", size: 11, c: C.dim });
   g.restore();
   g.fillStyle = rgba("#ffffff", .07); g.fillRect(0, (age * 400) % 240, 240, 2);
 }
@@ -268,7 +268,7 @@ function render() {
   else if (page === "LFOS" && subpage >= LFOS.pages.length) drawLfoTgt(Math.min(2, subpage - LFOS.pages.length));
   else if (page === "LFOS") drawFixed(LFOS, lfo, "LFO", ["LFO 1", "LFO 2", "LFO 3", "LFO 1 +", "LFO 2 +", "LFO 3 +"], "LFO", 8, visLfos);
   else if (page === "SAVE") { if (saveState) drawSave(); else page = "PERFORM"; }
-  else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM", "HARDWARE"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem, visHardware][Math.min(subpage, 6)]);
+  else if (page === "GLOBAL") drawFixed(GLOBAL, glo, "GLO", ["SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM", "HARDWARE", "FIRMWARE"], "GLOBAL", -1, [visGlobal, visGlobal, visTuning, visMidiOut, visMaster, visSystem, visHardware, visFirmware][Math.min(subpage, 7)]);
   else if (page === "CHORD") drawFixed(CHORD, chd, "CHORD", [CHORD_TYPES[chd.p[C_TYPE]] === "OFF" ? "SCALE + KEY" : `${CHORD_TYPES[chd.p[C_TYPE]]} · ${VOICINGS[chd.p[C_VOICE]]}`, `QNT ${QNT_MODES[chd.p[C_QNT]]}${zoneOn() ? " · ZONE" : ""}`], "CHORD", -1, visChord);
   else if (isSeqPage()) drawSeq();
   else if (page === "TOOLS") drawTools();

@@ -57,7 +57,24 @@ const TUNINGS = [
   ["31-EDO", Array.from({ length: 31 }, (_, i) => i * 1200 / 31)],
 ];
 const GLOBAL = { kind: "glo", pages: [[I("TEMPO", 60, 180, 112), L("MIDI CH", ["OMNI", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), L("VOICES", ["AUTO", "1", "2", "3", "4", "5", "6"]), L("CLOCK", ["INT", "MIDI"])], [n("VEL CURVE", .5), L("ANIMATION", ANIM_MODES, reducedMotion ? 1 : 0), n("LED BRIGHT", .8)], [L("TUNING", TUNINGS.map((t) => t[0])), L("T ROOT", KEYS12), I("A4 HZ", 400, 480, 440), I("BEND", 0, 24, 2)], [L("PROG CHG", ["OFF", "ON"], 1), L("MIDI OUT", ["OFF", "NOTES", "+CC"]), L("OUT CH", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]), L("LOCAL", ["ON", "OFF"])], [b("LOW EQ", 0), b("MID EQ", 0), b("HIGH EQ", 0), n("COMP", 0)], [L("STEP ADV", ["ON", "OFF"])], [L("TARGET", ["FM-1", "BROWSER"]), L("FREE RAM", ["256K", "384K", "512K"], 1), L("CPU SPEED", ["SLOW", "MID", "FAST"], 1)]] };
-const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6, G_TUNE = 7, G_TROOT = 8, G_A4 = 9, G_BEND = 10, G_PROG = 11, G_MOUT = 12, G_OUTCH = 13, G_LOCAL = 14, G_LOW = 15, G_MID = 16, G_HIGH = 17, G_COMP = 18, G_ADV = 19, G_TARGET = 20, G_RAM = 21, G_CPU = 22;
+const G_TEMPO = 0, G_MIDICH = 1, G_VOICES = 2, G_CLOCK = 3, G_VEL = 4, G_ANIM = 5, G_LED = 6, G_TUNE = 7, G_TROOT = 8, G_A4 = 9, G_BEND = 10, G_PROG = 11, G_MOUT = 12, G_OUTCH = 13, G_LOCAL = 14, G_LOW = 15, G_MID = 16, G_HIGH = 17, G_COMP = 18, G_ADV = 19, G_TARGET = 20, G_RAM = 21, G_CPU = 22, G_FW_WARPS = 23, G_FW_CLOUDS = 24, G_FW_MARBLES = 25;
+// FM1 Rack Lite (build.py --lite): the module set that could fit the FM-1's flash. Elements is left out (384 KB);
+// Warps, Clouds and Marbles are optional, chosen on GLOBAL > FIRMWARE against the flash they need.
+const LITE = /*LITE*/false;
+// flash per module (KB), measured with JieLi's pi32v2 compiler, unused code removed (firmware/desktop/size_pi32v2.sh).
+// FW_BASE: the engine itself (62.0), the C library (12.8) and stmlib (3.0). The filter, delay, reverb and chorus are
+// part of the engine. FW_AREA: the app area in Felucca's memory map (firmware/app.ld), for the whole firmware.
+const FLASH_KB = { PLAITS: 171.7, BRAIDS: 77.5, ELEMENTS: 384.5, RINGS: 49.1, WARPS: 76.9, FILTER: 0, PEAKS: 52.2, TIDES: 37.1, MARBLES: 82.3, GRIDS: 2.3, CLOUDS: 81.7, DELAY: 0, REVERB: 0, CHORUS: 0 };
+const FW_BASE = 77.8, FW_AREA = 568;
+const FW_OPTIONAL = { WARPS: G_FW_WARPS, CLOUDS: G_FW_CLOUDS, MARBLES: G_FW_MARBLES };
+if (LITE) GLOBAL.pages.push([L("WARPS", ["OUT", "IN"]), L("CLOUDS", ["OUT", "IN"]), L("MARBLES", ["OUT", "IN"])]);
+// is this module in the firmware?
+const shipped = (m) => !m || !LITE || (m !== "ELEMENTS" && (FW_OPTIONAL[m] === undefined || glo.p[FW_OPTIONAL[m]] === 1));
+function flashUse() {
+  const mods = Object.keys(FLASH_KB).filter((m) => m !== "ELEMENTS" && shipped(m));
+  const used = FW_BASE + mods.reduce((a, m) => a + FLASH_KB[m], 0);
+  return { used, left: FW_AREA - used, mods };
+}
 const SCALES = { MAJOR: [0, 2, 4, 5, 7, 9, 11], MINOR: [0, 2, 3, 5, 7, 8, 10], DORIAN: [0, 2, 3, 5, 7, 9, 10], MIXOLYD: [0, 2, 4, 5, 7, 9, 10], "PENT MAJ": [0, 2, 4, 7, 9], "PENT MIN": [0, 3, 5, 7, 10], "HARM MIN": [0, 2, 3, 5, 7, 8, 11], WHOLE: [0, 2, 4, 6, 8, 10], LYDIAN: [0, 2, 4, 6, 7, 9, 11] };
 // SEL (CHORD): scale, root, chords and voicing on page 1; how the keys follow the scale on page 2.
 // After ChordStep FM-1 (one key per chord, the lowest keys force the quality and add extensions) and Melodee's CHRD/VOIC/QNT.
@@ -117,6 +134,7 @@ const SLOTS = [
   { id: "FX1", kind: "fx", name: "FX 1", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
   { id: "FX2", kind: "fx", name: "FX 2", choices: ["CLOUDS", "DELAY", "REVERB", "CHORUS", null] },
 ];
+if (LITE) SLOTS[0].choices = SLOTS[0].choices.filter((c) => c !== "ELEMENTS");   // not in the Lite firmware
 const KC = { src: "#ffb347", shp: "#4fd1c5", mod: "#b48cff", fx: "#6aa9ff", amp: "#ff7a6b", glo: "#d8d7d3", lfo: "#c9a7ff", chd: "#9be37a", seq: "#ff8fc8", mx: "#ffd27a", arp: "#7fd6ff", tool: "#f2c14e" };
 
 // ---------------------------------------------------------------- state
@@ -358,6 +376,7 @@ function budgetFor(ids, mode = amp.p[A_MODE]) {
   };
   if (!hwOn()) { const t = sum(ids); return { ...t, ram: t.ram + t.ramV * cap, voices: cap, cpu: t.shared + t.poly * cap, limit: "", over: "", dropped: [], hw: false }; }
   const B = hwBudget(), pool = hwPool(), eff = { ...ids }, dropped = [];
+  for (const sl of ARENA_SLOTS.concat(["MODA", "MODB"])) if (eff[sl] && !shipped(eff[sl])) { dropped.push(sl); eff[sl] = null; }   // not in this firmware
   const fitRam = () => { const t = sum(eff); return t.ram > pool ? -1 : t.ramV ? Math.min(MAXV, Math.floor((pool - t.ram) / t.ramV)) : MAXV; };
   for (const sl of ["FX2", "FX1"]) if (sum(eff).ram > pool && eff[sl]) { dropped.push(sl); eff[sl] = null; }
   for (const sl of ["SHP", "SRC"]) if (fitRam() < 1 && eff[sl]) { dropped.push(sl); eff[sl] = null; }
@@ -365,12 +384,14 @@ function budgetFor(ids, mode = amp.p[A_MODE]) {
   const fit = Math.min(cap, byRam, byCpu);
   const voices = Math.max(1, fit);
   const limit = fit >= cap ? "" : byRam <= byCpu ? "RAM" : "CPU";
-  const over = dropped.length ? "RAM" : byCpu < 1 ? "CPU" : "";
+  const notFw = dropped.filter((sl) => !shipped(ids[sl]));
+  const over = dropped.length > notFw.length ? "RAM" : notFw.length ? "FW" : byCpu < 1 ? "CPU" : "";
   return { ...t, ram: t.ram + t.ramV * voices, voices, cpu: t.shared + t.poly * voices, limit, over, dropped, hw: true, B, pool };
 }
 const currentIds = () => Object.fromEntries(SLOTS.map((s) => [s.id, rack[s.id].mod]));
 const budget = () => budgetFor(currentIds());
 function fitOf(slotId, modName) {
+  if (modName && !shipped(modName)) return { ok: false, why: "NOT IN FW", bg: budget() };
   const ids = currentIds(); ids[slotId] = modName;
   const bg = budgetFor(ids);
   if (modName && bg.over && !budget().over) return { ok: false, why: bg.over, bg };   // a patch that's already over can still be trimmed

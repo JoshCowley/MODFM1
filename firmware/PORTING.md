@@ -30,34 +30,67 @@ In order. Don't start a step until the one before passes its check. The develope
   and constants (XIP), and 512 KB of SRAM laid out as 72 KB for data, 352 KB for big buffers (POOL), 24 KB for code
   that runs from RAM, 8 KB for plugins, then stacks. The engine's 43 KB of fixed memory belongs in the 72 KB; the
   arena belongs in POOL, which the screen buffers also use, so `RACK_ARENA_KB` will be under 352.
-- **Flash is the blocker.** The engine with every module needs **1,093 KB** of flash on pi32v2: almost twice the
-  568 KB Felucca's whole app gets, before any screen, fonts or UI code. By module (code + tables):
+- **Flash, measured again (November 2026).** With the FM-1's float flags (`-mcpu=r3 -mfprev1`, below) and only the
+  sections actually linked counted (the first count included discarded ones and soft-float calls), the engine with
+  every module is **961 KB**, and the Lite set (`-DRACK_LITE`: no Elements, Warps, Marbles or Clouds) **362 KB**:
 
   | Module | KB | Module | KB |
   |---|---|---|---|
-  | Elements | 384.5 (364 of it tables) | Peaks | 52.2 (tables) |
-  | Plaits | 171.7 | Rings | 49.1 |
-  | Marbles | 82.3 | Tides | 37.1 (tables) |
-  | Clouds | 81.7 | C library | 12.8 |
-  | Braids | 77.5 | stmlib, Grids | 5.3 |
-  | Warps | 76.9 | Engine (rack.cc) | 62.0 |
+  | Elements | 378.4 (363 of it tables) | Rings | 35.3 |
+  | Plaits | 148.1 | Tides | 32.1 (tables) |
+  | Marbles | 78.5 | Peaks | 13.8 |
+  | Braids | 75.5 | C library | 9.9 to 12.6 |
+  | Warps | 68.5 | stmlib, Grids | 4.3 to 5.3 |
+  | Clouds | 65.5 | Engine (rack.cc) | 43.0 (Lite) to 46.7 |
 
-  Ways down, to decide before step 3: leave out Elements (−384 KB); keep only the tables FM1 Rack actually uses
-  from Peaks, Marbles and Tides (they link whole tables files, though FM1 Rack uses only some of each: the saving
-  isn't measured yet); then choose between Warps, Clouds and Marbles. The page's FM-1 preview should then offer only
-  the modules that ship.
+  The benchmark firmware (`fm1/bench`: fm1-base's platform and fonts, the Lite engine, its own screen and 37 KB of
+  preset data) links to **551 KB of the 568 KB app area**. So the Lite set fits with room for FM1 Rack's UI only if
+  that UI stays small; whether Warps, Clouds or Marbles also fit is for after the UI is ported.
+
+- **The FM-1 has a single-precision FPU, by the evidence so far** (this corrects the note that was here before).
+  Felucca-Engines' plugin guide says "The FM-1's DSP has no floating point unit", and Felucca's own code is fixed
+  point. But fm1-base, whose firmwares run on the FM-1 (CTL-1, Radio and others), compiles everything with
+  `-mcpu=r3 -mfprev1 -ffp-contract=off`, which its build.py calls "the AC79's single-precision FPU (the SDK's own
+  flags)", and its build check fails any firmware that links soft-double routines. With those flags the engine's float
+  arithmetic compiles to hardware instructions; the only software float left is double precision, which FM1 Rack's
+  engine no longer uses on the FM-1 (the clock is whole 16ths plus a float fraction under `RACK_FM1`), and `fabs` on a
+  float (now a float overload in `hw/cxx/cmath`). **Not yet confirmed on a board:** `fm1/bench` checks a known
+  single-precision result at power-on and times every module.
+- **Audio, from Felucca's porting guide:** 44.1 kHz, 128-frame DMA halves (2.9 ms each). The engine runs at 48 kHz:
+  render about 139 frames per half and resample, or move the engine to 44.1 kHz.
+- **Screen:** 240 x 240 RGB565 (ST7789), the size the browser version already draws.
+- **felucca-bsp** (MPL-2.0, Felucca's `firmware/bsp`) is a standalone board layer with an example app (`examples/hwtest`,
+  tested on an FM-1), its own packer (`tools/fm1pkg.py`), installer and rescue script. An FM1 Rack firmware can be
+  built on it directly instead of on Felucca's whole app. Its `tools/get_sdk.sh` fetches the three SDK files from
+  JieLi's GitHub repository and checks their hashes.
+
+### The route this points to
+
+1. **Measure first: `fm1/bench`.** A test firmware on fm1-base (its update entry, boot guard and safe mode) that
+   checks the FPU and times one voice of every Plaits model, Braids shape and Rings model, the filter, Tides, Peaks,
+   Grids, the effects, 1 to 6 voices and ten presets. It builds and passes fm1-base's checks; it hasn't run on an
+   FM-1 yet. Its README has the build and install steps.
+2. **If the FPU is confirmed:** the float modules run as they are; the numbers decide how many voices, which Plaits
+   models need limits, and whether Rings (the heaviest Lite module) can be polyphonic.
+3. **If it isn't:** the earlier route stands: integer modules as they are (Braids, Peaks, Grids), a fixed-point
+   rewrite of FM1 Rack's own engine, fixed-point ports of chosen float models one at a time, or Felucca plugins.
+4. **First stage written: `fm1/rack`.** The Lite presets played from the keys and MIDI with the engine in the audio
+   interrupt, resampled to 44.1 kHz, voices shed on overload. Builds; not yet run on an FM-1. To install after
+   the benchmark.
+5. **Base:** fm1-base (MPL-2.0) is the better base than Felucca's whole app: its platform layer, build checks,
+   packaging, installer and safe mode are already what FM1 Rack needs, and its C contract (`app_render`, `app_frame`)
+   is what `fm1/bench` already uses.
 
 ## 2. Answer the open questions (measure on the board, with Felucca)
 
 | Question | Why it matters | Where it goes |
 |---|---|---|
 | Free RAM for the app (Felucca's map gives POOL 352 KB; how much of it the screen needs) | Sets `RACK_ARENA_KB` and the page's FREE RAM setting | build flags, `web/src/1-data.js` RAM_OPTS |
-| Codec sample rate, and can it run at 48 kHz? | The engine is 48 kHz; at 44,118 Hz everything is ~1.5 semitones flat | `hw/fm1_app.cc` (`fm1_app_init`) |
+| Can the codec run at 48 kHz? (Felucca runs it at 44.1 kHz) | The engine is 48 kHz: resample, or move the engine | `hw/fm1_app.cc` (`fm1_app_init`) |
 | Audio block size and the time budget per block | CPU limit | page CPU_OPTS, voice limits |
-| Hardware floating point? Speed of `sinf`, `expf`, `tanhf`, `powf` | The engine is float throughout | may need lookup tables |
+| Does the core run the `fprev1` float instructions? (fm1-base says yes, Felucca says no FPU) | Float modules need it | `fm1/bench` |
 | Second core usable? | Voices on one core, effects on the other | engine split |
-| Cycle counter readable? | CPU measurement | `fm1_hal_cycles()` |
-| Screen size and controller | Page drawing | `fm1_hal_display_rect()` |
+| Cycle counter readable? (fm1-base has `plat_ticks24()`, 24 ticks a microsecond) | CPU measurement | `fm1_hal_cycles()` |
 | Flash region for patches and its erase size | Storage | `fm1_hal_flash_*()` |
 
 ## 3. Engine on the board (roadmap step 4)

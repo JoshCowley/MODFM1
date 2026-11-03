@@ -4,6 +4,7 @@
 # Needs the JieLi Linux toolchain (Felucca's tools/get_toolchain.sh; Linux x86-64, or Docker on a Mac) and the
 # Mutable code:
 #   JIELI_TOOLCHAIN=~/.jieli/toolchain EURORACK=/path/to/eurorack sh firmware/desktop/size_pi32v2.sh
+# The Lite set (no Elements, Warps, Marbles or Clouds): RACK_EXTRA=-DRACK_LITE in front of the same command.
 # The toolchain has no C++ standard library headers; hw/cxx/ has the few the Mutable code needs.
 set -e
 cd "$(dirname "$0")"
@@ -12,7 +13,7 @@ EURORACK="${EURORACK:-../../../eurorack}"
 ENG=../../engine
 OUT=build/pi32v2
 mkdir -p $OUT
-CXX="$TC/pi32v2/bin/clang++ -target pi32v2 -isystem ../hw/cxx -isystem $TC/pi32v2/include -Os -ffunction-sections -fdata-sections -fno-exceptions -fno-rtti -ffast-math -std=gnu++11 -DTEST -DRACK_FM1 -I$ENG/shim -I$EURORACK -w"
+CXX="$TC/pi32v2/bin/clang++ -target pi32v2 -mcpu=r3 -mfprev1 -ffp-contract=off -isystem ../hw/cxx -isystem $TC/pi32v2/include -Os -ffunction-sections -fdata-sections -fno-exceptions -fno-rtti -ffast-math -std=gnu++11 -DTEST -DRACK_FM1 $RACK_EXTRA -I$ENG/shim -I$EURORACK -w"
 while read -r src; do
   [ -z "$src" ] && continue
   o="$OUT/$(echo "$src" | sed 's#/dsp/##; s#/#_#g; s#\.cc$##').o"
@@ -29,6 +30,7 @@ $TC/pi32v2/bin/ld -o $OUT/rack.elf -T $OUT/size.ld --gc-sections -e fm1_entry -M
 python3 - "$OUT/rack.map" <<'PY'
 import re, sys, collections
 m = open(sys.argv[1]).read()
+m = m[m.find('Linker script and memory map'):]   # only what was linked (not the discarded sections listed before it)
 acc = collections.Counter(); ram = 0
 for mm in re.finditer(r'^ (\.\S+)\s*\n?\s+0x[0-9a-f]+\s+0x([0-9a-f]+)\s+(\S+)', m, re.M):
     sec, sz, f = mm.group(1), int(mm.group(2), 16), mm.group(3).split('/')[-1]

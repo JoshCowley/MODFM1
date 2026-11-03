@@ -254,5 +254,155 @@
   "dropped": [],
   "fit": 4,
   "free_ram_kb": 384
+ },
+ {
+  "name": "BS DEEP SUB",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "BS FM GROWL",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "BS PLUCKED",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "BS ROLLER",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "BS DUB ROUND",
+  "dropped": [],
+  "fit": 3,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "LD SAW SOLO",
+  "dropped": [],
+  "fit": 4,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "LD SYNC SWEEP",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "LD BREATH FLUT",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "LD SQUARE CHIP",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "LD RESO STRING",
+  "dropped": [],
+  "fit": 1,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "PD WARM ANALOG",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "PD CHOIR AAH",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "PD EVOLVING WT",
+  "dropped": [],
+  "fit": 3,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "PD SOFT STRING",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "PD GLASS AIR",
+  "dropped": [],
+  "fit": 3,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "CH E-PIANO",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "CH DRAWBAR",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "CH HOUSE STAB",
+  "dropped": [],
+  "fit": 3,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "CH STRING PLK",
+  "dropped": [],
+  "fit": 3,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "CH MALLETS",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "CH SYNTH BRASS",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "CH PHASE KEYS",
+  "dropped": [],
+  "fit": 6,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "FX NOISE SWEEP",
+  "dropped": [],
+  "fit": 3,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "FX METAL RING",
+  "dropped": [],
+  "fit": 4,
+  "free_ram_kb": 384
+ },
+ {
+  "name": "FX TIDAL DRONE",
+  "dropped": [],
+  "fit": 3,
+  "free_ram_kb": 384
  }
 ]

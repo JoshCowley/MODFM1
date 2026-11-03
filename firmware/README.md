@@ -1,6 +1,8 @@
 # FM1 Rack firmware (in progress)
 
-**Status: not firmware yet. Nothing here can be flashed onto an FM-1, and nothing here has run on one.**
+**Status: not FM1 Rack firmware yet, and nothing here has run on an FM-1.** Two things build into installable packages
+(you build them yourself, with fm1-base): `fm1/bench/`, a test firmware that times the engine, and `fm1/rack/`, the
+first stage of FM1 Rack Lite. Run the benchmark first.
 This folder is steps 2 and 3 of the roadmap in the developer guide: the engine made portable, shrunk to a
 memory budget, built on a computer and tested. Step 1 (building Felucca and proving you can flash and recover
 an FM-1) and steps 4 onwards (running on the board) are still to do.
@@ -19,7 +21,11 @@ an FM-1) and steps 4 onwards (running on the board) are still to do.
 | `desktop/fake_board.cc` | A pretend FM-1: drives `hw/fm1_app.cc` with 64-frame audio blocks, keys and MIDI, writes a WAV |
 | `hw/fm1_platform.h` | The seam between FM1 Rack and the board: what the app gets called with, and what the board must provide |
 | `hw/fm1_app.cc` | The app glue: call queue into the audio interrupt, 16-bit audio, keys and MIDI notes. Screen, sequencer, chords and storage are still to port |
-| `tests/` | Traces of all 42 factory presets, the players and the test runner |
+| `tests/` | Traces of the factory presets, the players and the test runner |
+| `fm1/bench/` | The benchmark firmware (fm1-base app): FPU check and module timings on the FM-1 |
+| `fm1/rack/` | FM1 Rack (Lite) firmware, first stage: the 57 Lite presets played from keys and MIDI, macros on K1-K4 |
+| `fm1/common/` | The engine's C names and the C++ runtime and maths for fm1-base builds |
+| `hw/libc/` | C headers for fm1-base builds, which link no C library |
 | `PORTING.md` | What's left, in order, with the open questions |
 
 ## The FM-1 build of the engine
@@ -90,9 +96,15 @@ then run `tests/make_trace.mjs`.
 
 ## Flash: measured with the FM-1's own compiler
 
-`desktop/size_pi32v2.sh` compiles everything with JieLi's pi32v2 compiler (it all compiles) and links it:
-**1,093 KB of flash**, against 568 KB for Felucca's whole app. Elements alone is 384 KB. See PORTING.md for the
-breakdown and the ways down; this has to be settled before the engine goes onto the board.
+`desktop/size_pi32v2.sh` compiles everything with JieLi's pi32v2 compiler and the FM-1's float flags and links it:
+**961 KB** with every module, **362 KB** for the Lite set (`RACK_EXTRA=-DRACK_LITE`), against 568 KB for a whole
+firmware. See PORTING.md for the breakdown.
+
+## The benchmark firmware
+
+`fm1/bench/` is a test firmware on fm1-base that checks the FPU and times FM1 Rack's Lite engine on the FM-1 (105
+cases). It builds (551 KB) and passes fm1-base's checks, and its computer check (`fm1/bench/build_host.sh`) passes;
+it hasn't run on an FM-1 yet. Its README has the steps.
 
 ## What the tests can't tell you
 
