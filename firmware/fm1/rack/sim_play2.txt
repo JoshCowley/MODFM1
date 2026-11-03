@@ -1,0 +1,29 @@
+wait 400
+tap GLO
+turn SELECT 3
+turn K2 1
+tap SEL
+turn K3 1
+key w11 down 100
+wait 100
+key w11 up
+wait 100
+key b1 down 80
+key w11 down 100
+wait 100
+shot zone_min.png
+key w11 up
+key b1 up
+turn K3 -1
+turn SELECT 1
+turn K4 40
+turn SELECT -1
+turn K3 1
+key w4 down 100
+wait 200
+key w4 up
+wait 100
+tap HOME
+turn K1 3
+wait 300
+shot home_chips.png

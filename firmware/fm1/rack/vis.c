@@ -16,6 +16,8 @@ static struct {
     uint8_t hist_w;
     uint32_t hist_at;
     uint32_t rng;
+    float at;                                 /* the animation's clock (s): GLOBAL > ANIMATION slows or stops it */
+    uint32_t at_ms;
 } vz;
 
 static void vis_note(int note, int vel)       /* a note played (keys or MIDI): the drums, Rings and the delay show it */
@@ -25,7 +27,15 @@ static void vis_note(int note, int vel)       /* a note played (keys or MIDI): t
     vz.pulse_v[vz.pulse_w & 7u] = (uint8_t)vel;
     vz.pulse_w++;
 }
-static float vis_t(void) { return (float)(plat_ms() - vz.t0) * 0.001f; }
+static float vis_t(void)
+{
+    static const float SPEED[3] = {1.0f, 0.45f, 0.0f};
+    uint32_t now = plat_ms();
+    int a = GI(G_ANIM);
+    vz.at += (float)(now - vz.at_ms) * 0.001f * SPEED[a < 0 ? 0 : a > 2 ? 2 : a];
+    vz.at_ms = now;
+    return vz.at;
+}
 static float rnd(void) { vz.rng = vz.rng * 1664525u + 1013904223u; return (float)(vz.rng >> 8) * (1.0f / 16777216.0f); }
 static float env_max(const float *mon)
 {

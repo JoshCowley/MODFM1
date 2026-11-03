@@ -1,4 +1,4 @@
-# FM1 Rack (Lite) firmware: first stage
+# FM1 Rack (Lite) firmware
 
 **Status: builds and passes fm1-base's checks; its sound side passes the computer check; it has not run on an
 FM-1.** Don't install it until `fm1/bench` has run on your FM-1 and its FPU check said OK: this firmware plays the
@@ -9,8 +9,9 @@ engine in the audio interrupt, and the benchmark is what tells us that's afforda
 The 57 factory presets that use only Lite modules (Plaits, Braids, Rings, filter, Tides, Peaks, Grids, delay,
 reverb, chorus), played from the keys (with velocity) and from USB or TRS MIDI.
 
-Stages 1 and 2 of the menus (sound editing; save and the library) are in: the page's own pages, buttons and knobs (`menus.c`; the parameters
-come from the page's definitions through `make_ui.py` -> `ui_defs.h`).
+Stages 1 to 3 of the menus (sound editing; save and the library; scales, chords, the arpeggiator, tunings and GLOBAL)
+are in: the page's own pages, buttons and knobs (`menus.c`; the parameters come from the page's definitions through
+`make_ui.py` -> `ui_defs.h`).
 
 | Button (printed) | Page |
 |---|---|
@@ -19,9 +20,11 @@ come from the page's definitions through `make_ui.py` -> `ui_defs.h`).
 | ENV | AMP (envelopes, voice mode), then the shaper (Rings or filter) |
 | LFO | MOD A, MOD B, then the three LFOs (and each LFO's two direct targets) |
 | FX | FX 1, then FX 2 |
-| ARP | the 12-row matrix |
+| ARP | the 12-row matrix, then the arpeggiator |
+| SEL | scale + chord, then the keys (QNT, harmony, zone, strum) |
+| GLO | GLOBAL: settings, playing, tuning, MIDI, master, system |
 | SAVE | the SAVE page: name, slot and category; SAVE again stores it (and it comes back at power-on). OCT+ the library |
-| SEL, GLO, SEQ, PLAY, REC | not yet (stages 3 and 4): "NEXT STAGE OF THE PORT" |
+| SEQ, PLAY, REC | not yet (stage 4): "NEXT STAGE OF THE PORT" |
 
 | Knob | Home | A module's page, AMP, LFO | Matrix |
 |---|---|---|---|
@@ -57,7 +60,7 @@ A module's page shows the page's cells: label, value, a bar (ticks for a list), 
 modulation has moved it to. The well shows the output (AMP's first page: its envelope). Loading a module stops the
 sound for a moment (the arena is laid out again) and says how many voices fit; an edit that needs a bigger buffer (a
 longer delay, STR+VERB, SHIMMER) fits it again when the knobs rest ("MEMORY FITTED"). Edits are not kept when the
-preset changes unless saved (SAVE). `sim_menus.txt`, `sim_save.txt` and `sim_vis.txt` drive the pages in fm1-base's host simulator
+preset changes unless saved (SAVE). `sim_menus.txt`, `sim_save.txt`, `sim_vis.txt` and `sim_play*.txt` drive the pages in fm1-base's host simulator
 (`tools/build.py ../MODFM1/firmware/fm1/rack --host`, then `build/host/fm1rack_host sim_menus.txt OUTDIR`).
 
 ![A module's page](screen-module.png) ![The matrix](screen-matrix.png)
@@ -69,8 +72,11 @@ the firmware sheds what doesn't fit). A preset that
 overloads the core even at one voice (Rings' MODAL measured 102 %) is muted until you pick another, with
 **TOO HEAVY FOR FM-1** on the screen, so the screen and controls keep working.
 
-MIDI in: notes, pitch bend (±2 semitones), CC 120/123 (all off), CC 20-23 (macros). The keys also go out over
-USB-MIDI. The voice modes play as on the page: MONO, LEGATO, and UNI 2 / UNI 4 (each key plays 2 or 4 detuned
+MIDI in (on GLOBAL > MIDI CH, or all): notes (through SEL and the arp, as the keys), pitch bend (± GLOBAL > BEND),
+sustain (CC 64), program change (GLOBAL > PROG CHG: factory presets, then user), CC 120/123 (all off), CC 20-23
+(macros), clock (GLOBAL > CLOCK MIDI: the arp's steps and the tempo). MIDI out over USB (GLOBAL > MIDI OUT, off by
+default as on the page): the notes played (chords and arp included; MIDI in isn't echoed), the clock on the internal
+tempo, and with +CC the macros as CC 21-24. The voice modes play as on the page: MONO, LEGATO, and UNI 2 / UNI 4 (each key plays 2 or 4 detuned
 voices). If a block of sound takes over 90 % of its time, the firmware drops a voice and shows how many it shed.
 
 ![FM1 Rack's screen, from fm1-base's host simulator](screen.png)
@@ -82,8 +88,38 @@ blue effects; red: asked for but no room in the arena); the macros as cells with
 RAM bars, a light per voice lit by its envelope, the cores and voice mode (SHED n when voices were dropped, HEAVY when
 muted), the octave (green while keys are held) and the output meter.
 
-Not here yet, still to port from the page: editing modules and parameters, the matrix, the sequencer, arpeggiator,
-chords, tunings, user presets and the library.
+**Stage 3: playing** (`play.c`, `vis3.c`, after the page's 5b-seq.js, 5c-tools.js and 6-engine.js). SEL, GLO and ARP
+are settings, not part of a preset: they stay when the preset changes and are saved on their own about 3 seconds
+after the last change (the settings record grew: stage 2's preset, octave and voices carry over).
+
+- **SEL**: SCALE (9), ROOT, CHORD (OFF, TRIAD, 7TH, 9TH, 11TH, SUS4, 6TH, POWER: the scale's own chord on each key in
+  KEY harmony, a chromatic one in FREE), VOICING (CLOSE, LEAD: the inversion nearest the last chord, OPEN, INV1, INV2,
+  +OCT); then QNT (SNAP down to the scale, ALL up to it, WHITE: the scale on the white keys, C4 the root), HARMONY,
+  ZONE (with chords on, the seven lowest keys F3-B3 add 6, m7, M7, 9 or force DIM, MIN, MAJ; MIN + MAJ: sus) and
+  STRUM (up to 80 ms between notes). The well: two octaves lighting the chord, its name (Cmaj7, Am7/G...), the scale;
+  page 2 maps the FM-1's 27 keys to the notes they play. The keys in the scale glow on the keybed; SEL stays half lit
+  while chords or QNT are on.
+- **ARP**: MODE (UP, DOWN, UPDN, DNUP, RANDOM, ORDER, CHORD, REPEAT, UP+8, CONV, DIVG, PINKY, THUMB, TURING), RATE
+  (1/4 to 1/32 with triplets), OCTAVE (1-4), GATE; HOLD (latch), MUTATE and LOOP (the Turing register), SWING. On the
+  internal tempo or MIDI clock. The well: the pattern as bars by pitch, the step playing, the register's bits.
+- **GLOBAL**: TEMPO, MIDI CH, VOICES (AUTO or 1-6: the same as SELECT on home), CLOCK; VEL CURVE, ANIMATION (the wells:
+  full, calm, still), LED BRIGHT (the unlit buttons' glow); TUNING (13: equal, just, Pythagorean, meantone, Werckmeister
+  III, Kirnberger III, rast, bayati, slendro, pelog, 19-, 24-, 31-EDO), T ROOT, A4 HZ, BEND; PROG CHG, MIDI OUT, OUT CH,
+  LOCAL; LOW / MID / HIGH EQ and COMP (the master, over every preset); SYSTEM (measured: CPU history, arena, voices,
+  cores). Each page's well draws it: a metronome, the velocity curve, each degree's cents against equal temperament,
+  MIDI traffic, the EQ curve, the CPU graph.
+- Home shows small tabs over the scope when SEL, the arp or a tuning is on.
+
+How: the main loop pushes keys through rack_core's queue; the audio interrupt turns them into notes (`play.c`), counts
+the notes sounding (two keys may share one), runs the strums and the arp by the codec's frame and applies what falls
+due at the start of each block (5.8 ms). Checked in the simulator (`sim_play.txt`, `sim_play2.txt`): C5 plays C-E-G
+with TRIAD, C-Eb-G with the zone's MIN key held, a strum spaces C4-E4-G4 by 35 ms, the arp steps, the settings come
+back after a reboot. Not yet heard on an FM-1.
+
+![SEL](screen-sel.png) ![ARP](screen-arp.png) ![Tuning](screen-tuning.png)
+
+Flash: 515,824 of 581,632 bytes (64 KB free) after stage 3, which cost 18.3 KB; the two size changes from the report
+(unused tables dropped with `-fdata-sections`, Tides built with only the modes FM1 Rack uses: 67 KB) made the room.
 
 ## How it works
 

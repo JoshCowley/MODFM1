@@ -5,6 +5,8 @@ The definitions are evaluated with Node (the same JavaScript the page runs), the
   UI_OPT[]           every option name, once
   ui_param_t arrays  one per module / AMP / LFO: label, type, range, options, default, modulatable
   UI_MODS[]          the Lite firmware's modules: engine id, name, blurb, kind, pages, outputs (matrix sources)
+  UI_GLO, UI_SEL, UI_ARP the GLOBAL (its first five pages, then SYSTEM with none), SEL (CHORD) and ARP pages
+  TUNE_*, SCALE_*    the tunings (cents per degree) and the scales (semitones per degree)
 Run by fm1.toml's gen step before each build (needs node). The Lite module set: no Elements, Warps, Marbles or Clouds.
 """
 import json
@@ -14,6 +16,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "../../../web/src/1-data.js"
+TOOLS = HERE / "../../../web/src/5c-tools.js"
+GLO_PAGES = 5                     # SETTINGS PLAYING TUNING MIDI MASTER (the page's STEP ADV, HARDWARE, FIRMWARE: not here)
 OUT = HERE / "ui_defs.h"
 LITE = ["PLAITS", "BRAIDS", "RINGS", "FILTER", "PEAKS", "TIDES", "GRIDS", "DELAY", "REVERB", "CHORUS"]
 MID = {"PLAITS": 1, "BRAIDS": 2, "RINGS": 10, "FILTER": 12, "PEAKS": 20, "TIDES": 21, "GRIDS": 23,
@@ -24,11 +28,12 @@ TYPE = {"num": 0, "bip": 1, "list": 2, "int": 3}
 
 def load():
     js = SRC.read_text().split("\n")
-    end = next(i for i, l in enumerate(js) if l.startswith("const LFOS ="))
+    end = next(i for i, l in enumerate(js) if l.startswith("const C_SCALE ="))
     body = "\n".join(js[:end + 1])
-    prog = ("const matchMedia = () => ({ matches: false });\n" + body +
+    arp = "\n".join(l for l in TOOLS.read_text().split("\n") if l.startswith(("const ARP_MODES", "const ARP_RATES", "const ARPDEF")))
+    prog = ("const matchMedia = () => ({ matches: false });\n" + body + "\n" + arp +
             "\nfor (const m of Object.values(MODULES)) if (m.kind === 'fx') m.pages.flat().forEach((p) => { p.mod = true; });" +
-            "\nprocess.stdout.write(JSON.stringify({ MODULES, AMP, LFOS }));")
+            "\nprocess.stdout.write(JSON.stringify({ MODULES, AMP, LFOS, GLOBAL, CHORD, ARPDEF, TUNINGS, SCALES }));")
     r = subprocess.run(["node", "-e", prog], capture_output=True, text=True)
     if r.returncode:
         sys.exit("make_ui: node: " + r.stderr)
@@ -51,8 +56,9 @@ def main():
             opts.extend(names)
         return opt_ix[key]
 
-    out = ["/* Written by make_ui.py from web/src/1-data.js: the page's module, AMP and LFO pages. Don't edit. */",
-           "typedef struct { const char *l; uint8_t t, mod; int8_t lo, hi; uint16_t opt; float def; } ui_param_t;",
+    out = ["/* Written by make_ui.py from web/src (1-data.js, 5c-tools.js): the page's modules, AMP, LFO, GLOBAL, SEL and ARP pages, tunings, scales. Don't edit. */",
+           "#pragma once",
+           "typedef struct { const char *l; uint8_t t, mod; int16_t lo, hi; uint16_t opt; float def; } ui_param_t;",
            "enum { UT_NUM, UT_BIP, UT_LIST, UT_INT };",
            "typedef struct { const char *name, *blurb; uint8_t id, kind, npages, nparams; const uint8_t *pages;"
            " const ui_param_t *p; uint8_t nouts; const char *outs[2]; } ui_mod_t;"]
@@ -90,6 +96,22 @@ def main():
                     f" UP_{name}, {len(outs)}, {{{o}}}}},")
     a_pg, a_n = params("AMP", d["AMP"]["pages"])
     l_pg, l_n = params("LFO", d["LFOS"]["pages"])
+    g_pg, g_n = params("GLO", d["GLOBAL"]["pages"][:GLO_PAGES] + [[]])
+    s_pg, s_n = params("SEL", d["CHORD"]["pages"])
+    r_pg, r_n = params("ARP", d["ARPDEF"]["pages"])
+    tune = d["TUNINGS"]
+    tables.append("static const float TUNE_CENTS[] = {" + ", ".join(f"{c:.2f}f" for t in tune for c in t[1]) + "};")
+    at = 0
+    tat = []
+    for t in tune:
+        tat.append(at)
+        at += len(t[1])
+    tables.append(f"static const uint16_t TUNE_AT[] = {{{', '.join(map(str, tat))}}};")
+    tables.append(f"static const uint8_t TUNE_N[] = {{{', '.join(str(len(t[1])) for t in tune)}}};")
+    sc = list(d["SCALES"].values())
+    tables.append("static const uint8_t SCALE_DEG[][8] = {" + ", ".join("{" + ", ".join(map(str, x)) + "}" for x in sc) + "};")
+    tables.append(f"static const uint8_t SCALE_N[] = {{{', '.join(str(len(x)) for x in sc)}}};")
+    tables.append(f"#define NTUNE {len(tune)}\n#define NSCALE {len(sc)}")
     out.append("static const char *const UI_OPT[] = {\n" +
                "\n".join("    " + ", ".join(cstr(x) for x in opts[i:i + 8]) + "," for i in range(0, len(opts), 8)) + "\n};")
     out += tables
@@ -97,6 +119,9 @@ def main():
     out.append("static const ui_mod_t UI_MODS[UI_NMODS] = {\n" + "\n".join(mods) + "\n};")
     out.append(f"static const ui_mod_t UI_AMP = {{\"AMP\", \"ENVELOPES\", 0, 4, {a_pg}, {a_n}, UG_AMP, UP_AMP, 0, {{0}}}};")
     out.append(f"static const ui_mod_t UI_LFO = {{\"LFO\", \"THREE LFOS\", 0, 5, {l_pg}, {l_n}, UG_LFO, UP_LFO, 0, {{0}}}};")
+    out.append(f"static const ui_mod_t UI_GLO = {{\"GLOBAL\", \"SETTINGS\", 0, 6, {g_pg}, {g_n}, UG_GLO, UP_GLO, 0, {{0}}}};")
+    out.append(f"static const ui_mod_t UI_SEL = {{\"SCALE + CHORD\", \"KEYS TO SCALE\", 0, 7, {s_pg}, {s_n}, UG_SEL, UP_SEL, 0, {{0}}}};")
+    out.append(f"static const ui_mod_t UI_ARP = {{\"ARP\", \"ARPEGGIATOR\", 0, 8, {r_pg}, {r_n}, UG_ARP, UP_ARP, 0, {{0}}}};")
     OUT.write_text("\n".join(out) + "\n")
     print(f"ui: {len(mods)} modules, {len(opts)} option names -> {OUT.name}")
 

@@ -1,5 +1,6 @@
 /* Written by make_ui.py from web/src/1-data.js: the page's module, AMP and LFO pages. Don't edit. */
-typedef struct { const char *l; uint8_t t, mod; int8_t lo, hi; uint16_t opt; float def; } ui_param_t;
+#pragma once
+typedef struct { const char *l; uint8_t t, mod; int16_t lo, hi; uint16_t opt; float def; } ui_param_t;
 enum { UT_NUM, UT_BIP, UT_LIST, UT_INT };
 typedef struct { const char *name, *blurb; uint8_t id, kind, npages, nparams; const uint8_t *pages; const ui_param_t *p; uint8_t nouts; const char *outs[2]; } ui_mod_t;
 static const char *const UI_OPT[] = {
@@ -23,7 +24,23 @@ static const char *const UI_OPT[] = {
     "TEMPO", "FREE", "PLATE", "HALL", "SHIMMER", "CHORUS", "FLANGER", "VIBRATO",
     "POLY", "MONO", "LEGATO", "UNI 2", "UNI 4", "SINE", "TRI", "SAW",
     "SQUARE", "S&H", "DRIFT", "FREE", "1/16", "1/8", "1/4", "1/2",
-    "1 BAR", "2 BARS", "BI", "UNI",
+    "1 BAR", "2 BARS", "BI", "UNI", "OMNI", "1", "2", "3",
+    "4", "5", "6", "7", "8", "9", "10", "11",
+    "12", "13", "14", "15", "16", "AUTO", "1", "2",
+    "3", "4", "5", "6", "INT", "MIDI", "FULL", "CALM",
+    "STILL", "EQUAL", "JUST", "PYTHAG", "MEANTONE", "WERCK III", "KIRNB III", "RAST",
+    "BAYATI", "SLENDRO", "PELOG", "19-EDO", "24-EDO", "31-EDO", "C", "C#",
+    "D", "D#", "E", "F", "F#", "G", "G#", "A",
+    "A#", "B", "OFF", "NOTES", "+CC", "1", "2", "3",
+    "4", "5", "6", "7", "8", "9", "10", "11",
+    "12", "13", "14", "15", "16", "ON", "OFF", "MAJOR",
+    "MINOR", "DORIAN", "MIXOLYD", "PENT MAJ", "PENT MIN", "HARM MIN", "WHOLE", "LYDIAN",
+    "OFF", "TRIAD", "7TH", "9TH", "11TH", "SUS4", "6TH", "POWER",
+    "CLOSE", "LEAD", "OPEN", "INV1", "INV2", "+OCT", "OFF", "SNAP",
+    "ALL", "WHITE", "KEY", "FREE", "OFF", "UP", "DOWN", "UPDN",
+    "DNUP", "RANDOM", "ORDER", "CHORD", "REPEAT", "UP+8", "CONV", "DIVG",
+    "PINKY", "THUMB", "TURING", "1/4", "1/8", "1/8T", "1/16", "1/16T",
+    "1/32",
 };
 static const ui_param_t UP_PLAITS[] = {
     {"MODEL", 2, 0, 0, 23, 0, 8.0f},
@@ -212,6 +229,57 @@ static const ui_param_t UP_LFO[] = {
     {"1SHOT 3", 2, 0, 0, 1, 24, 0.0f},
 };
 static const uint8_t UG_LFO[] = {4, 4, 4, 4, 4, 4};
+static const ui_param_t UP_GLO[] = {
+    {"TEMPO", 3, 0, 60, 180, 0, 112.0f},
+    {"MIDI CH", 2, 0, 0, 16, 164, 0.0f},
+    {"VOICES", 2, 0, 0, 6, 181, 0.0f},
+    {"CLOCK", 2, 0, 0, 1, 188, 0.0f},
+    {"VEL CURVE", 0, 1, 0, 1, 0, 0.5f},
+    {"ANIMATION", 2, 0, 0, 2, 190, 0.0f},
+    {"LED BRIGHT", 0, 1, 0, 1, 0, 0.8f},
+    {"TUNING", 2, 0, 0, 12, 193, 0.0f},
+    {"T ROOT", 2, 0, 0, 11, 206, 0.0f},
+    {"A4 HZ", 3, 0, 400, 480, 0, 440.0f},
+    {"BEND", 3, 0, 0, 24, 0, 2.0f},
+    {"PROG CHG", 2, 0, 0, 1, 24, 1.0f},
+    {"MIDI OUT", 2, 0, 0, 2, 218, 0.0f},
+    {"OUT CH", 2, 0, 0, 15, 221, 0.0f},
+    {"LOCAL", 2, 0, 0, 1, 237, 0.0f},
+    {"LOW EQ", 1, 1, -1, 1, 0, 0.0f},
+    {"MID EQ", 1, 1, -1, 1, 0, 0.0f},
+    {"HIGH EQ", 1, 1, -1, 1, 0, 0.0f},
+    {"COMP", 0, 1, 0, 1, 0, 0.0f},
+};
+static const uint8_t UG_GLO[] = {4, 3, 4, 4, 4, 0};
+static const ui_param_t UP_SEL[] = {
+    {"SCALE", 2, 0, 0, 8, 239, 0.0f},
+    {"ROOT", 2, 0, 0, 11, 206, 0.0f},
+    {"CHORD", 2, 0, 0, 7, 248, 0.0f},
+    {"VOICING", 2, 0, 0, 5, 256, 0.0f},
+    {"QNT", 2, 0, 0, 3, 262, 0.0f},
+    {"HARMONY", 2, 0, 0, 1, 266, 0.0f},
+    {"ZONE", 2, 0, 0, 1, 237, 0.0f},
+    {"STRUM", 0, 1, 0, 1, 0, 0.0f},
+};
+static const uint8_t UG_SEL[] = {4, 4};
+static const ui_param_t UP_ARP[] = {
+    {"MODE", 2, 0, 0, 14, 268, 0.0f},
+    {"RATE", 2, 0, 0, 5, 283, 3.0f},
+    {"OCTAVE", 3, 0, 1, 4, 0, 1.0f},
+    {"GATE", 0, 1, 0, 1, 0, 0.5f},
+    {"HOLD", 2, 0, 0, 1, 24, 0.0f},
+    {"MUTATE", 0, 1, 0, 1, 0, 0.1f},
+    {"LOOP", 3, 0, 1, 16, 0, 8.0f},
+    {"SWING", 0, 1, 0, 1, 0, 0.0f},
+};
+static const uint8_t UG_ARP[] = {4, 4};
+static const float TUNE_CENTS[] = {0.00f, 100.00f, 200.00f, 300.00f, 400.00f, 500.00f, 600.00f, 700.00f, 800.00f, 900.00f, 1000.00f, 1100.00f, 0.00f, 111.73f, 203.91f, 315.64f, 386.31f, 498.04f, 590.22f, 701.96f, 813.69f, 884.36f, 1017.60f, 1088.27f, 0.00f, 90.22f, 203.91f, 294.13f, 407.82f, 498.04f, 611.73f, 701.96f, 792.18f, 905.87f, 996.09f, 1109.78f, 0.00f, 76.05f, 193.16f, 310.26f, 386.31f, 503.42f, 579.47f, 696.58f, 772.63f, 889.74f, 1006.84f, 1082.89f, 0.00f, 90.22f, 192.18f, 294.13f, 390.22f, 498.04f, 588.27f, 696.09f, 792.18f, 888.27f, 996.09f, 1092.18f, 0.00f, 90.22f, 193.16f, 294.13f, 386.31f, 498.04f, 590.22f, 696.58f, 792.18f, 889.74f, 996.09f, 1088.27f, 0.00f, 100.00f, 200.00f, 300.00f, 350.00f, 500.00f, 600.00f, 700.00f, 800.00f, 900.00f, 1000.00f, 1050.00f, 0.00f, 150.00f, 200.00f, 300.00f, 400.00f, 500.00f, 600.00f, 700.00f, 800.00f, 900.00f, 1000.00f, 1100.00f, 0.00f, 240.00f, 480.00f, 720.00f, 960.00f, 0.00f, 120.00f, 270.00f, 540.00f, 670.00f, 785.00f, 950.00f, 0.00f, 63.16f, 126.32f, 189.47f, 252.63f, 315.79f, 378.95f, 442.11f, 505.26f, 568.42f, 631.58f, 694.74f, 757.89f, 821.05f, 884.21f, 947.37f, 1010.53f, 1073.68f, 1136.84f, 0.00f, 50.00f, 100.00f, 150.00f, 200.00f, 250.00f, 300.00f, 350.00f, 400.00f, 450.00f, 500.00f, 550.00f, 600.00f, 650.00f, 700.00f, 750.00f, 800.00f, 850.00f, 900.00f, 950.00f, 1000.00f, 1050.00f, 1100.00f, 1150.00f, 0.00f, 38.71f, 77.42f, 116.13f, 154.84f, 193.55f, 232.26f, 270.97f, 309.68f, 348.39f, 387.10f, 425.81f, 464.52f, 503.23f, 541.94f, 580.65f, 619.35f, 658.06f, 696.77f, 735.48f, 774.19f, 812.90f, 851.61f, 890.32f, 929.03f, 967.74f, 1006.45f, 1045.16f, 1083.87f, 1122.58f, 1161.29f};
+static const uint16_t TUNE_AT[] = {0, 12, 24, 36, 48, 60, 72, 84, 96, 101, 108, 127, 151};
+static const uint8_t TUNE_N[] = {12, 12, 12, 12, 12, 12, 12, 12, 5, 7, 19, 24, 31};
+static const uint8_t SCALE_DEG[][8] = {{0, 2, 4, 5, 7, 9, 11}, {0, 2, 3, 5, 7, 8, 10}, {0, 2, 3, 5, 7, 9, 10}, {0, 2, 4, 5, 7, 9, 10}, {0, 2, 4, 7, 9}, {0, 3, 5, 7, 10}, {0, 2, 3, 5, 7, 8, 11}, {0, 2, 4, 6, 8, 10}, {0, 2, 4, 6, 7, 9, 11}};
+static const uint8_t SCALE_N[] = {7, 7, 7, 7, 5, 5, 7, 6, 7};
+#define NTUNE 13
+#define NSCALE 9
 #define UI_NMODS 10
 static const ui_mod_t UI_MODS[UI_NMODS] = {
     {"PLAITS", "MACRO OSC / 24 MODELS", 1, 0, 4, 14, UG_PLAITS, UP_PLAITS, 0, {0}},
@@ -227,3 +295,6 @@ static const ui_mod_t UI_MODS[UI_NMODS] = {
 };
 static const ui_mod_t UI_AMP = {"AMP", "ENVELOPES", 0, 4, 6, 22, UG_AMP, UP_AMP, 0, {0}};
 static const ui_mod_t UI_LFO = {"LFO", "THREE LFOS", 0, 5, 6, 24, UG_LFO, UP_LFO, 0, {0}};
+static const ui_mod_t UI_GLO = {"GLOBAL", "SETTINGS", 0, 6, 6, 19, UG_GLO, UP_GLO, 0, {0}};
+static const ui_mod_t UI_SEL = {"SCALE + CHORD", "KEYS TO SCALE", 0, 7, 2, 8, UG_SEL, UP_SEL, 0, {0}};
+static const ui_mod_t UI_ARP = {"ARP", "ARPEGGIATOR", 0, 8, 2, 8, UG_ARP, UP_ARP, 0, {0}};

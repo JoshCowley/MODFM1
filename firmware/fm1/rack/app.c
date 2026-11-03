@@ -1,30 +1,33 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Modelled on fm1-base's template/app.c (Copyright (C) 2026 Charles Vestal, MPL-2.0), whose helpers it adapts. */
 /* FM1 Rack (Lite) firmware: the screen and the controls (part of fm1-base's unity build, after the platform:
- * gfx.c and lib/touch.h are in scope). The sound is rack_core.c's.
+ * gfx.c and lib/touch.h are in scope). The sound is rack_core.c's; how keys and MIDI become notes (scales, chords, the
+ * arpeggiator, tunings, MIDI in and out) is play.c's; the pages are menus.c's (editing), save.c's (SAVE, the library).
  *
- * This is the first stage of the port: the factory presets played from the keys and USB/TRS MIDI, with the four
- * macros on K1-K4. Editing modules and parameters, the sequencer, the arpeggiator, chords, tunings and user
- * presets are still to come from the page (web/src).
- *
+ * On the home page:
  *   PRESET        the next / previous preset (loads when you stop turning)
  *   ALGORITHM     the next / previous category
  *   SELECT        voices, 1-6 (poly presets)
  *   K1-K4         macros 1-4
- *   OCT- / OCT+   octave          HOME   all notes off          SAVE   remember the preset and octave */
+ *   OCT- / OCT+   octave          HOME   the rack          SAVE   name and store what is playing
+ *   EDIT ENV LFO FX ARP SEL GLO   the pages (menus.c) */
 #include "fastmath.h"
 #define RC_IN_UNITY
 #include "rack_core.c"
 
-#define SET_MAGIC 0x524B4C31u                 /* "RKL1": the settings record; another magic loads defaults */
+#define SET_MAGIC 0x524B4C32u                 /* "RKL2": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC1 0x524B4C31u
 typedef struct {
     uint32_t magic;
     uint8_t preset;
     int8_t octave;
-    uint8_t voices;                           /* 0: the preset's own */
+    uint8_t voices;                           /* 0: the preset's own (GLOBAL > VOICES AUTO) */
     uint8_t rsv;
+    float glo[19], sel[8], arp[8];            /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*) */
 } settings_t;
 static settings_t set;
+#include "ui_defs.h"
+#include "play.c"
 
 static const char *module_name(int id)
 {
@@ -47,25 +50,34 @@ static const char *const MODE_NAME[] = {"POLY", "MONO", "LEGATO", "UNI 2", "UNI 
 /* ------------------------------------------------------------------ sound --- */
 static float gain_now;                        /* glides to MASTER: no step at a block's edge */
 static volatile uint32_t midi_count;
-static volatile uint32_t midi_note;           /* the last MIDI note-on (note | vel << 8 | 1 << 16), for the screen */
 
 static void midi_in(void)                     /* audio interrupt: the packets that came in, played at once */
 {
     uint32_t pkt;
-    int port;
+    int port, want = GI(G_MIDICH);
     while (plat_midi_in(&pkt, &port)) {
         uint32_t st = (pkt >> 8) & 0xFFu, d1 = (pkt >> 16) & 0x7Fu, d2 = pkt >> 24;
-        if (st == 0xF8u || st == 0xFEu)
+        if (st == 0xF8u) {                    /* the clock: CLOCK MIDI steps the arp */
+            pl_clock_tick();
+            continue;
+        }
+        if (st == 0xFAu)
+            pl_clock_start();
+        if (st >= 0xF0u)
+            continue;
+        if (want && (int)(st & 15u) + 1 != want)   /* GLOBAL > MIDI CH */
             continue;
         midi_count++;
-        if ((st & 0xF0u) == 0x90u && d2) {
-            rc_do(RCE_ON, 0, (float)d1, (float)d2 / 127.0f);
-            midi_note = d1 | d2 << 8 | 1u << 16;
-        }
+        if ((st & 0xF0u) == 0x90u && d2)
+            pl_key_on((int)d1, (int)d1, (float)d2 / 127.0f);
         else if ((st & 0xF0u) == 0x80u || (st & 0xF0u) == 0x90u)
-            rc_do(RCE_OFF, 0, (float)d1, 0.0f);
-        else if ((st & 0xF0u) == 0xE0u)       /* pitch bend: +-2 semitones */
-            rc_do(RCE_BEND, 0, ((float)((int32_t)(d2 << 7 | d1) - 8192) / 8192.0f) * 2.0f, 0.0f);
+            pl_key_off((int)d1);
+        else if ((st & 0xF0u) == 0xE0u)       /* pitch bend: +- GLOBAL > BEND semitones */
+            rc_do(RCE_BEND, 0, ((float)((int32_t)(d2 << 7 | d1) - 8192) / 8192.0f) * (float)GI(G_BEND), 0.0f);
+        else if ((st & 0xF0u) == 0xC0u && GI(G_PROG))
+            pl_prog_req = (int)d1 + 1;
+        else if ((st & 0xF0u) == 0xB0u && d1 == 64u)
+            pl_sustain(d2 >= 64u);
         else if ((st & 0xF0u) == 0xB0u && (d1 == 123u || d1 == 120u))
             rc_do(RCE_ALL_OFF, 0, 0.0f, 0.0f);
         else if ((st & 0xF0u) == 0xB0u && d1 >= 20u && d1 <= 23u)   /* CC 20-23: the macros */
@@ -79,6 +91,7 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
     uint32_t i;
     if (!rc_audio.pause_req)
         midi_in();
+    pl_block(n);                              /* the arp's steps and the strums falling due */
     rc_render(lr, n, 8300000.0f);
     for (i = 0; i < n; i++) {                 /* MASTER, gliding over about 5 ms */
         float g;
@@ -113,7 +126,9 @@ static void load_preset(int k)
         rk_set_voices(START_VOICES);          /* (SELECT asks for more) */
         rc_patch.voices_now = START_VOICES;
     }
+    glo_apply();                              /* what GLOBAL keeps across presets: tempo, EQ, tuning */
     rc_resume();
+    rc_push(PLE_RESET, 0, 0.0f, 0.0f);        /* the notes counted sounding went with the old preset */
 }
 
 
@@ -125,7 +140,7 @@ static struct {
     char msg[2][24];
     uint32_t msg_until;
     int redraw, clear;
-    uint8_t held[NKEYS];                      /* the note each held key plays (the octave may change meanwhile) */
+    uint32_t zkeys;                           /* the keys held as SEL's zone keys */
 } ui;
 static int cur_entry;                         /* the preset playing: < NPRESETS a factory one, else user slot - NPRESETS */
 
@@ -440,6 +455,7 @@ static void draw_home(void)
         cv_text(114 - text_w(&FONT_XS, "TOO HEAVY FOR FM-1: MUTED") / 2, 14, &FONT_XS, "TOO HEAVY FOR FM-1: MUTED", K_WARN);
     else
         scope(228, 42, K_FG);
+    home_chips();
     cv_blit(6, 29);
     /* the chain as tiles: source, shaper, modulators, effects (red: unloaded, no room) */
     cv_begin(240, 38, K_BG);
@@ -480,7 +496,9 @@ static uint32_t page_leds(void)
     case PG_SHP: case PG_AMP: return 1u << B_ENV;
     case PG_MODA: case PG_MODB: case PG_LFO: return 1u << B_LFO;
     case PG_FX1: case PG_FX2: return 1u << B_FX;
-    case PG_MATRIX: return 1u << B_ARP;
+    case PG_MATRIX: case PG_ARP: return 1u << B_ARP;
+    case PG_SEL: return 1u << B_SEL;
+    case PG_GLO: return 1u << B_GLO;
     }
     return 0;
 }
@@ -520,9 +538,10 @@ static void draw_well_only(void)
             cv_text(114 - text_w(&FONT_XS, "TOO HEAVY FOR FM-1: MUTED") / 2, 14, &FONT_XS, "TOO HEAVY FOR FM-1: MUTED", K_WARN);
         else
             vis_draw(-1, 0, 0, K_FG);
+        home_chips();
         cv_blit(6, 29);
     } else {
-        well(mn.page, page_mod(mn.page), slot_colour(page_slot(mn.page)));
+        well(mn.page, page_mod(mn.page), is_fixed(mn.page) ? fixed_colour(mn.page) : slot_colour(page_slot(mn.page)));
     }
 }
 
@@ -550,24 +569,54 @@ static void draw(void)
     draw_toast();
 }
 
+/* the lights: the page's button lit, the others glowing (GLOBAL > LED BRIGHT: off, low, high), SEL and ARP half lit
+ * while chords, QNT or the arp are on; on the SEL pages the keys in the scale glow, the zone keys half lit */
+static void leds(uint32_t lit, uint32_t keys)
+{
+    float lb = set.glo[G_LED];
+    int glow = lb < 0.2f ? 0 : lb < 0.6f ? 1 : 2;
+    uint32_t dim = glow ? ((1u << NB) - 1u) & ~lit : 0u, mid = 0u, dimk = 0u, midk = 0u, play = 1u << B_PLAY, k;
+    if (CI(C_TYPE) != CT_OFF || CI(C_QNT))
+        mid |= 1u << B_SEL;
+    if (AI(A_MODE) != AM_OFF)
+        mid |= 1u << B_ARP;
+    if (mn.page == PG_SEL)
+        for (k = 0; k < NKEYS; k++) {
+            if (k < 7u && zone_on())
+                midk |= 1u << k;
+            else if (in_scale(53 + (int)k))
+                dimk |= 1u << k;
+        }
+    lit = (lit & ~play) | (lit & play ? LED_PLAY_GREEN : 0u);
+    dim = (dim & ~play) | (dim & play ? LED_PLAY_GREEN : 0u);
+    plat_lights(lit, keys, dim, dimk, glow ? glow : dimk ? 1 : 0);
+    plat_lights_mid(mid & ~lit, midk & ~keys);
+}
+
 static void input(void)
 {
     uint32_t keys, btn = plat_buttons(), press = btn & ~ui.btn, k;
     int32_t e;
     touch_poll();
     keys = touch_keys();
-    for (k = 0; k < NKEYS; k++) {             /* key 0 is F3 (MIDI 53) */
+    for (k = 0; k < NKEYS; k++) {             /* key 0 is F3 (MIDI 53); play.c makes the notes */
         uint32_t bit = 1u << k;
         if ((keys & bit) && !(ui.keys & bit)) {
             int note = 53 + (int)k + 12 * set.octave;
             uint32_t v = touch_vel(k);
-            ui.held[k] = (uint8_t)note;
-            rc_note_on(note, (float)v / 127.0f);
-            vis_note(note, (int)v);
-            plat_midi_send(0x09u | 0x90u << 8 | (uint32_t)note << 16 | v << 24, TO_USB);
+            if (k < 7u && zone_on()) {        /* SEL > ZONE: the lowest keys change the chord */
+                ui.zkeys |= bit;
+                rc_push(PLE_ZONE, (int)k, 1.0f, 0.0f);
+            } else {
+                rc_push(PLE_KEY_ON, PL_RAW_KEY + (int)k, (float)note, (float)v / 127.0f);
+            }
         } else if (!(keys & bit) && (ui.keys & bit)) {
-            rc_note_off(ui.held[k]);
-            plat_midi_send(0x08u | 0x80u << 8 | (uint32_t)ui.held[k] << 16, TO_USB);
+            if (ui.zkeys & bit) {
+                ui.zkeys &= ~bit;
+                rc_push(PLE_ZONE, (int)k, 0.0f, 0.0f);
+            } else {
+                rc_push(PLE_KEY_OFF, PL_RAW_KEY + (int)k, 0.0f, 0.0f);
+            }
         }
     }
     if (keys != ui.keys)
@@ -575,8 +624,7 @@ static void input(void)
     ui.keys = keys;
     if (save_input(press)) {                 /* the SAVE page and the library take every control */
         ui.btn = btn;
-        plat_glow(1);
-        plat_leds(btn | page_leds(), keys);
+        leds(btn | page_leds(), keys);
         return;
     }
     if ((e = plat_enc(EN_PRESET)) != 0) {    /* PRESET: the presets, factory then user, on every page (as the page) */
@@ -594,8 +642,7 @@ static void input(void)
         save_open();
     if (menu_input(press)) {                 /* a menu page: its own encoders */
         ui.btn = btn;
-        plat_glow(1);
-        plat_leds(btn | page_leds(), keys);
+        leds(btn | page_leds(), keys);
         return;
     }
     if ((e = plat_enc(EN_ALGO)) != 0) {
@@ -608,6 +655,8 @@ static void input(void)
         char t[4];
         v = v < 1 ? 1 : v > RC_MAXV ? RC_MAXV : v;
         set.voices = (uint8_t)v;
+        set.glo[G_VOICES] = (float)v;
+        settings_touch();
         rc_voices(v);
         int_text(v, t);
         app_say("VOICES", t);
@@ -617,11 +666,13 @@ static void input(void)
             float m = rc_patch.macro[k] + (float)e * 0.02f;
             m = m < 0.0f ? 0.0f : m > 1.0f ? 1.0f : m;
             rc_macro((int)k, m);
+            if (GI(G_MOUT) == 2)              /* MIDI OUT +CC: the macros as CC 21-24 (the page's) */
+                plat_midi_send(0x0Bu | (0xB0u | ((uint32_t)GI(G_OUTCH) & 15u)) << 8 | (21u + k) << 16
+                               | (uint32_t)(m * 127.0f + 0.5f) << 24, TO_USB);
             ui.redraw = 1;
         }
     ui.btn = btn;
-    plat_glow(1);
-    plat_leds(btn | page_leds(), keys);
+    leds(btn | page_leds(), keys);
 }
 
 void app_input_only(void) { input(); }
@@ -642,10 +693,6 @@ void app_frame(void)
     menu_tick();
     /* PRESET or ALGORITHM stopped turning: load what is shown */
     if (ui.shown != cur_entry && now - ui.turned_at > 180u) {
-        uint32_t k;
-        for (k = 0; k < NKEYS; k++)           /* the keys held let go first: their notes belong to the old preset */
-            if (ui.keys >> k & 1u)
-                plat_midi_send(0x08u | 0x80u << 8 | (uint32_t)ui.held[k] << 16, TO_USB);
         load_entry(ui.shown);
         if (ui.shown < NPRESETS)
             say_preset(ui.shown);
@@ -656,11 +703,31 @@ void app_frame(void)
         ui.clear = 1;
         ui.redraw = 1;
     }
-    if (midi_note >> 16) {                   /* a MIDI note for the visualisers */
-        uint32_t m = midi_note;
-        midi_note = 0;
-        vis_note((int)(m & 0x7Fu), (int)(m >> 8 & 0x7Fu));
+    {                                         /* the notes played (keys, chords, arp, MIDI) for the visualisers */
+        static uint32_t ring_r;
+        uint32_t w = pv.ring_w;
+        if (w - ring_r > 16u)
+            ring_r = w - 16u;
+        for (; ring_r != w; ring_r++)
+            vis_note(pv.ring_n[ring_r & 15u], pv.ring_v[ring_r & 15u]);
     }
+    if (pl_prog_req) {                        /* MIDI program change (GLOBAL > PROG CHG): factory, then user */
+        int p = pl_prog_req - 1;
+        pl_prog_req = 0;
+        if (p < NPRESETS || (p < NPRESETS + NUSER && us.used[p - NPRESETS])) {
+            ui.shown = p;
+            ui.turned_at = now - 1000u;
+        }
+    }
+    if (GI(G_CLOCK) == 1 && pv.bpm_in > 30.0f && now - pv.clock_at < 500u) {   /* MIDI clock: its tempo */
+        float b = (float)(int32_t)(pv.bpm_in + 0.5f);
+        b = b < 30.0f ? 30.0f : b > 300.0f ? 300.0f : b;
+        if (b != set.glo[G_TEMPO]) {
+            set.glo[G_TEMPO] = b;
+            rk_set_param(RS_GLO, 0, b);
+        }
+    }
+    settings_tick();
     vis_tick();
     if (now - last_draw > 100u)               /* the level and CPU, ten times a second */
         ui.redraw = 1;
@@ -668,7 +735,7 @@ void app_frame(void)
         ui.redraw = 0;
         last_draw = now;
         draw();
-    } else if (now - last_well > 33u) {      /* the well, about 30 times a second */
+    } else if (now - last_well > (GI(G_ANIM) == 0 ? 33u : GI(G_ANIM) == 1 ? 50u : 166u)) {   /* the well: 30, 20, 6 a second */
         last_well = now;
         draw_well_only();
     }
@@ -677,18 +744,36 @@ void app_frame(void)
 
 void app_init(void)
 {
+    int n, i;
     if (plat_cpu2_set(1) == 0)                /* the second core (now: the one time it may start) renders half the voices */
         rk_set_worker(plat_cpu2_run, plat_cpu2_wait);
-    if (plat_store_load(OBJ_SETTINGS, &set, sizeof set) != (int)sizeof set || set.magic != SET_MAGIC
-        || set.preset >= NPRESETS + NUSER || set.octave < -3 || set.octave > 3 || set.voices > RC_MAXV) {
+    n = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
+    if (n != (int)sizeof set || set.magic != SET_MAGIC) {
+        int ok1 = n >= 8 && set.magic == SET_MAGIC1;   /* stage 2's record: its preset, octave and voices stay */
+        uint8_t p = set.preset, v = set.voices;
+        int8_t o = set.octave;
+        settings_defaults();
         set.magic = SET_MAGIC;
+        set.preset = ok1 ? p : 0;
+        set.octave = ok1 ? o : 0;
+        set.voices = ok1 ? v : 0;
+    }
+    if (set.preset >= NPRESETS + NUSER || set.octave < -3 || set.octave > 3 || set.voices > RC_MAXV) {
         set.preset = 0;
         set.octave = 0;
         set.voices = 0;
     }
+    for (i = 0; i < NG; i++)                  /* each setting inside its range (a NaN fails both tests) */
+        if (!(set.glo[i] >= (float)UP_GLO[i].lo && set.glo[i] <= (float)UP_GLO[i].hi)) set.glo[i] = UP_GLO[i].def;
+    for (i = 0; i < NC; i++)
+        if (!(set.sel[i] >= (float)UP_SEL[i].lo && set.sel[i] <= (float)UP_SEL[i].hi)) set.sel[i] = UP_SEL[i].def;
+    for (i = 0; i < NA; i++)
+        if (!(set.arp[i] >= (float)UP_ARP[i].lo && set.arp[i] <= (float)UP_ARP[i].hi)) set.arp[i] = UP_ARP[i].def;
+    set.glo[G_VOICES] = (float)set.voices;
+    rc_ext = pl_event;
     users_load();
     if (set.preset >= NPRESETS && !us.used[set.preset - NPRESETS])
         set.preset = 0;
     load_entry(set.preset);
-    vz.t0 = plat_ms();
+    vz.t0 = vz.at_ms = plat_ms();
 }

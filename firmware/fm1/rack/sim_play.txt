@@ -1,0 +1,73 @@
+wait 500
+tap SEL
+wait 200
+shot sel0.png
+turn K3 2
+wait 100
+key w7 down 100
+wait 120
+shot sel_chord.png
+key w7 up
+wait 50
+key w11 down 90
+wait 80
+shot sel_chord2.png
+key w11 up
+turn K4 1
+wait 100
+turn SELECT 1
+turn K1 1
+wait 200
+shot sel_keys.png
+turn SELECT -1
+tap ARP
+tap ARP
+wait 200
+shot arp_off.png
+turn K1 3
+key w7 down 100
+key w9 down 100
+key w11 down 100
+wait 700
+shot arp_updn.png
+key w7 up
+key w9 up
+key w11 up
+turn K1 11
+wait 100
+key w7 down 100
+key w11 down 100
+wait 600
+shot arp_turing.png
+key w7 up
+key w11 up
+turn K1 -14
+tap GLO
+wait 300
+shot glo0.png
+turn SELECT 1
+wait 200
+shot glo1.png
+turn SELECT 1
+turn K1 1
+wait 200
+shot glo2.png
+turn K1 9
+wait 200
+shot glo2b.png
+turn SELECT 1
+turn K2 1
+wait 200
+shot glo3.png
+turn SELECT 1
+turn K1 20
+turn K3 -15
+turn K4 30
+wait 200
+shot glo4.png
+turn SELECT 1
+wait 1500
+shot glo5.png
+tap HOME
+wait 300
+shot home.png

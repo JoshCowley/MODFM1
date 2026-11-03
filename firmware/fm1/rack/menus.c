@@ -4,22 +4,28 @@
  *
  *   EDIT   the source (SRC)               ENV   AMP, then the shaper (SHP)
  *   LFO    MOD A, MOD B, then the LFOs    FX    FX 1, then FX 2
- *   ARP    the matrix                     HOME  home; on home, the rack and back
+ *   ARP    the matrix, then the arp       HOME  home; on home, the rack and back
+ *   SEL    scale + chord, then the keys   GLO   GLOBAL: settings, playing, tuning, MIDI, master, system
  *
  * On a module's page: SELECT turns its pages, K1-K4 its four parameters, ALGORITHM opens the picker (press the
  * slot's button again to load the module shown; HOME closes it). On AMP and the LFOs the same; the LFOs' last three
  * pages are each LFO's two direct targets (K1 / K3 a destination, K2 / K4 its amount). On the matrix: SELECT the
  * row, K1 source, K2 destination, K3 amount, K4 via. Parameters and modules come from ui_defs.h (make_ui.py, from
- * the page's own definitions). SAVE and the library: save.c; the wells: vis.c. Still to come from the page: GLOBAL,
- * SEL (scale and chords), ARP, the sequencer, MSEQ and TOOLS. */
+ * the page's own definitions). SEL, GLO and ARP are settings, not the patch's: their values live in set (play.c plays
+ * them) and are saved by themselves a few seconds after they change. SAVE and the library: save.c; the wells: vis.c,
+ * vis3.c. Still to come from the page: the sequencer, MSEQ and TOOLS. */
 #include "ui_defs.h"
 static void entry_name(int e, char *t);
 
-enum { PG_HOME, PG_RACK, PG_SRC, PG_SHP, PG_MODA, PG_MODB, PG_FX1, PG_FX2, PG_AMP, PG_LFO, PG_MATRIX };
+enum { PG_HOME, PG_RACK, PG_SRC, PG_SHP, PG_MODA, PG_MODB, PG_FX1, PG_FX2, PG_AMP, PG_LFO, PG_MATRIX, PG_SEL, PG_GLO,
+       PG_ARP };
 #define K_AMP RGB(255, 122, 107)
 #define K_LFO RGB(201, 167, 255)
 #define K_MX RGB(255, 210, 122)
 #define K_SEL RGB(36, 35, 30)
+#define K_GLO RGB(216, 215, 211)
+#define K_CHD RGB(155, 227, 122)
+#define K_ARP RGB(127, 214, 255)
 
 static struct {
     int page, sub, row;                       /* the page, its page within (SELECT), the matrix row */
@@ -46,8 +52,17 @@ static const ui_mod_t *ui_mod(int id)
 }
 
 static int page_slot(int pg) { return pg >= PG_SRC && pg <= PG_FX2 ? pg - PG_SRC : pg == PG_AMP ? RS_AMP : pg == PG_LFO ? RS_LFO : -1; }
+static int is_fixed(int pg) { return pg >= PG_SEL && pg <= PG_ARP; }
+static float *page_vals(int pg) { return pg == PG_GLO ? set.glo : pg == PG_SEL ? set.sel : pg == PG_ARP ? set.arp : 0; }
+static uint16_t fixed_colour(int pg) { return pg == PG_GLO ? K_GLO : pg == PG_SEL ? K_CHD : K_ARP; }
 static const ui_mod_t *page_mod(int pg)
 {
+    if (pg == PG_GLO)
+        return &UI_GLO;
+    if (pg == PG_SEL)
+        return &UI_SEL;
+    if (pg == PG_ARP)
+        return &UI_ARP;
     if (pg == PG_AMP)
         return &UI_AMP;
     if (pg == PG_LFO)
@@ -247,6 +262,7 @@ static void adsr(int32_t w, int32_t h, uint16_t c)
 }
 
 #include "vis.c"
+#include "vis3.c"
 
 static void well(int pg, const ui_mod_t *m, uint16_t c)
 {
@@ -256,8 +272,11 @@ static void well(int pg, const ui_mod_t *m, uint16_t c)
     for (x = 12; x < 228; x += 12)
         for (i = 6; i < 42; i += 6)
             cv_pset(x, i, K_GRID);
-    vis_draw(slot, slot >= 0 && slot < 6 ? rc_patch.mod[slot] : 0, mn.sub, c);
-    if (m)
+    if (is_fixed(pg))
+        vis_fixed(pg, mn.sub, c);
+    else
+        vis_draw(slot, slot >= 0 && slot < 6 ? rc_patch.mod[slot] : 0, mn.sub, c);
+    if (m && !is_fixed(pg))
         cv_text(220 - text_w(&FONT_T, m->blurb), 2, &FONT_T, m->blurb, K_DIM);
     cv_blit(6, 28);
 }
@@ -354,9 +373,9 @@ static void draw_param_page(int pg)
 {
     const ui_mod_t *m = page_mod(pg);
     int slot = page_slot(pg), i, off;
-    uint16_t c = slot_colour(slot);
+    uint16_t c = is_fixed(pg) ? fixed_colour(pg) : slot_colour(slot);
     char title[24];
-    float *live = 0;
+    float *live = 0, *fv = page_vals(pg);
     if (!m) {                                 /* an empty slot */
         header(SLOT_TAG[slot], c, "EMPTY", IC_EMPTY, 1, 0);
         well(pg, 0, c);
@@ -368,6 +387,25 @@ static void draw_param_page(int pg)
     if (mn.sub >= npages(pg))
         mn.sub = npages(pg) - 1;
     title[0] = 0;
+    if (is_fixed(pg)) {
+        static const char *const GT[] = {"SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"};
+        static const char *const ST[] = {"SCALE + CHORD", "KEYS + STRUM"}, *const AT[] = {"ARPEGGIATOR", "HOLD + TURING"};
+        int ic = pg == PG_GLO ? (mn.sub == 3 ? IC_MIDI : mn.sub == 4 ? IC_OUT : IC_GLOBAL) : pg == PG_SEL ? (mn.sub ? IC_SCALE : IC_CHORD) : IC_ARP;
+        header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 6] : pg == PG_SEL ? ST[mn.sub & 1] : AT[mn.sub & 1],
+               ic, npages(pg), mn.sub);
+        well(pg, m, c);
+        off = page_first(m, mn.sub);
+        if (pg == PG_GLO && mn.sub == 5)
+            system_cells(c);
+        else
+            for (i = 0; i < 4; i++) {
+                const ui_param_t *p = i < m->pages[mn.sub] ? &m->p[off + i] : 0;
+                cell(i, p, p ? fv[off + i] : 0.0f, 0.0f, 0, c);
+            }
+        help(pg == PG_GLO && mn.sub == 5 ? "SELECT: PAGE   (MEASURED LIVE)" : pg == PG_ARP ? "SELECT: PAGE   K1-K4   ARP AGAIN: MATRIX"
+             : "SELECT: PAGE   K1-K4: VALUES");
+        return;
+    }
     if (pg == PG_LFO && mn.sub >= m->npages) {
         cat(title, "LFO ");
         title[4] = (char)('1' + mn.sub - m->npages);
@@ -603,6 +641,28 @@ static void edited(void)
     ui.redraw = 1;
 }
 
+/* a setting on SEL, GLO or ARP changed: what follows from it, then saved when the knobs rest */
+static void fixed_changed(int pg, int pi, float old, float v)
+{
+    if (pg == PG_GLO) {
+        if (pi == G_TEMPO) {
+            rk_set_param(RS_GLO, 0, v);
+            edited();                         /* a delay synced to the tempo may need a longer buffer */
+        } else if (pi == G_VOICES) {
+            set.voices = (uint8_t)GI(G_VOICES);
+            if (rc_patch.mode == RVM_POLY)
+                rc_voices(set.voices ? set.voices : rc_patch.voices > START_VOICES ? START_VOICES : rc_patch.voices);
+        } else if (pi == G_TUNE || pi == G_TROOT || pi == G_A4) {
+            tune_apply();
+        } else if (pi >= G_LOW) {
+            master_apply();
+        }
+    } else if (pg == PG_ARP && (pi == A_HOLD || (pi == A_MODE && ((old < 0.5f) != (v < 0.5f))))) {
+        rc_push(PLE_ARP_CLEAR, 0, 0.0f, 0.0f);   /* the arp on or off, HOLD changed: start from the keys held now */
+    }
+    settings_touch();
+}
+
 /* K1-K4 on a page */
 static void knob(int k, int32_t e)
 {
@@ -624,6 +684,18 @@ static void knob(int k, int32_t e)
     }
     if (!m)
         return;
+    if (is_fixed(mn.page)) {
+        int pi = page_first(m, mn.sub) + k;
+        float *fv = page_vals(mn.page), old;
+        if (k >= m->pages[mn.sub])
+            return;
+        old = fv[pi];
+        fv[pi] = step(&m->p[pi], old, e);
+        if (fv[pi] != old)
+            fixed_changed(mn.page, pi, old, fv[pi]);
+        ui.redraw = 1;
+        return;
+    }
     if (mn.page == PG_LFO && mn.sub >= m->npages) {
         int l = mn.sub - m->npages, r = 12 + l * 2 + (k >> 1), src, via;
         float amt;
@@ -657,15 +729,17 @@ static void knob(int k, int32_t e)
 static int menu_input(uint32_t press)
 {
     static const uint8_t ENV_CYC[] = {PG_AMP, PG_SHP}, LFO_CYC[] = {PG_MODA, PG_MODB, PG_LFO}, FX_CYC[] = {PG_FX1, PG_FX2};
-    static const uint8_t SRC_CYC[] = {PG_SRC}, ARP_CYC[] = {PG_MATRIX};
+    static const uint8_t SRC_CYC[] = {PG_SRC}, ARP_CYC[] = {PG_MATRIX, PG_ARP}, SEL_CYC[] = {PG_SEL}, GLO_CYC[] = {PG_GLO};
     int32_t e;
     int k;
     if (press >> B_EDIT & 1u) page_button(SRC_CYC, 1);
     if (press >> B_ENV & 1u) page_button(ENV_CYC, 2);
     if (press >> B_LFO & 1u) page_button(LFO_CYC, 3);
     if (press >> B_FX & 1u) page_button(FX_CYC, 2);
-    if (press >> B_ARP & 1u) page_button(ARP_CYC, 1);
-    if (press & (1u << B_SEL | 1u << B_GLO | 1u << B_SEQ | 1u << B_PLAY | 1u << B_REC))
+    if (press >> B_ARP & 1u) page_button(ARP_CYC, 2);
+    if (press >> B_SEL & 1u) page_button(SEL_CYC, 1);
+    if (press >> B_GLO & 1u) page_button(GLO_CYC, 1);
+    if (press & (1u << B_SEQ | 1u << B_PLAY | 1u << B_REC))
         app_say("NEXT STAGE", "OF THE PORT");
     if (press >> B_HOME & 1u) {
         if (mn.pick) { mn.pick = 0; ui.redraw = 1; }

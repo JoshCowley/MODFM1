@@ -193,6 +193,9 @@ static int rc_unison(float note, float *out)
     return 1;
 }
 
+/* other events (the firmware's play layer, app.c's play.c: keys, chords, the arpeggiator), and all notes off too */
+static void (*rc_ext)(int type, int a, float x, float y);
+
 /* one event, in the audio interrupt (from the queue, or MIDI in, which the interrupt reads itself) */
 static void rc_do(int type, int a, float x, float y)
 {
@@ -201,10 +204,11 @@ static void rc_do(int type, int a, float x, float y)
     switch (type) {
     case RCE_ON: k = rc_unison(x, n); for (i = 0; i < k; i++) rk_note_on(n[i], y); break;
     case RCE_OFF: k = rc_unison(x, n); for (i = 0; i < k; i++) rk_note_off(n[i]); break;
-    case RCE_ALL_OFF: rk_all_off(); break;
+    case RCE_ALL_OFF: rk_all_off(); if (rc_ext) rc_ext(type, a, x, y); break;
     case RCE_MACRO: rk_set_macro(a, x); break;
     case RCE_VOICES: rk_set_voices(a); rc_patch.voices_now = a; break;
     case RCE_BEND: rk_set_bend(x); break;
+    default: if (rc_ext) rc_ext(type, a, x, y);
     }
 }
 
