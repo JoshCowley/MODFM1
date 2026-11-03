@@ -225,74 +225,7 @@ static void octave_step(int d)
     app_say("OCTAVE", t);
 }
 
-static void input(void)
-{
-    uint32_t keys, btn = plat_buttons(), press = btn & ~ui.btn, k;
-    int32_t e;
-    touch_poll();
-    keys = touch_keys();
-    for (k = 0; k < NKEYS; k++) {             /* key 0 is F3 (MIDI 53) */
-        uint32_t bit = 1u << k;
-        if ((keys & bit) && !(ui.keys & bit)) {
-            int note = 53 + (int)k + 12 * set.octave;
-            uint32_t v = touch_vel(k);
-            ui.held[k] = (uint8_t)note;
-            rc_note_on(note, (float)v / 127.0f);
-            plat_midi_send(0x09u | 0x90u << 8 | (uint32_t)note << 16 | v << 24, TO_USB);
-        } else if (!(keys & bit) && (ui.keys & bit)) {
-            rc_note_off(ui.held[k]);
-            plat_midi_send(0x08u | 0x80u << 8 | (uint32_t)ui.held[k] << 16, TO_USB);
-        }
-    }
-    if (keys != ui.keys)
-        ui.redraw = 1;
-    ui.keys = keys;
-    if ((e = plat_enc(EN_PRESET)) != 0) {
-        ui.shown = (ui.shown + (int)e % NPRESETS + NPRESETS) % NPRESETS;
-        ui.turned_at = plat_ms();
-        ui.redraw = 1;
-    }
-    if ((e = plat_enc(EN_ALGO)) != 0) {
-        ui.shown = cat_step(ui.shown, e > 0 ? 1 : -1);
-        ui.turned_at = plat_ms();
-        ui.redraw = 1;
-    }
-    if ((e = plat_enc(EN_SELECT)) != 0 && rc_patch.mode == RVM_POLY) {
-        int v = rc_patch.voices_now + (int)e;
-        char t[4];
-        v = v < 1 ? 1 : v > RC_MAXV ? RC_MAXV : v;
-        set.voices = (uint8_t)v;
-        rc_voices(v);
-        int_text(v, t);
-        app_say("VOICES", t);
-    }
-    for (k = 0; k < 4u; k++)
-        if ((e = plat_enc(EN_K1 + (int)k)) != 0) {
-            float m = rc_patch.macro[k] + (float)e * 0.02f;
-            m = m < 0.0f ? 0.0f : m > 1.0f ? 1.0f : m;
-            rc_macro((int)k, m);
-            ui.redraw = 1;
-        }
-    if (press >> B_OCTDN & 1u)
-        octave_step(-1);
-    if (press >> B_OCTUP & 1u)
-        octave_step(1);
-    if (press >> B_HOME & 1u) {
-        rc_all_off();
-        app_say("ALL NOTES", "OFF");
-    }
-    if (press >> B_SAVE & 1u) {
-        set.preset = (uint8_t)rc_patch.index;
-        app_say(plat_store_save(OBJ_SETTINGS, &set, sizeof set) == 0 ? "SAVED" : "SAVE FAILED", "");
-    }
-    ui.btn = btn;
-    plat_glow(1);
-    plat_leds(btn, keys);
-}
 
-void app_input_only(void) { input(); }
-
-/* ------------------------------------------------------------------ the screen --- */
 /* ------------------------------------------------------------------ the screen --- */
 /* The page's look (web/src/2-screen.js): its colours, its 12 x 12 module icons, a header bar with the category in a
  * coloured tab, a dark well with a dot grid (here: the output's scope, with a soft halo), the chain as icon tiles, the
@@ -424,7 +357,56 @@ static void tile(int32_t x, int slot, uint16_t kind)
         cv_text(x + 18 - text_w(&FONT_T, n) / 2, 21, &FONT_T, n, lost ? K_WARN : K_DIM);
 }
 
-static void draw(void)
+static void draw_footer(void)
+{
+    char t[32], n[12];
+    int i;
+    /* the footer: CPU and RAM bars, the voices' lights (lit by their envelopes), cores and octave, the meter */
+    cv_begin(240, 26, K_BAR);
+    {
+        uint32_t cpu = plat_cpu_pct();
+        float ram = (float)rk_fm1_status(0) / (float)rk_fm1_status(1);
+        float pk = rc_audio.peak;
+        int32_t h;
+        cv_text(6, 2, &FONT_T, "CPU", cpu > 85u ? K_WARN : K_DIM);
+        vbar(6, 16, 44, 3, (float)cpu / 100.0f, cpu > 85u ? K_WARN : cpu > 70u ? K_GOLD : K_OK);
+        cv_text(56, 2, &FONT_T, "RAM", K_DIM);
+        vbar(56, 16, 44, 3, ram, ram > 0.95f ? K_GOLD : K_OK);
+        for (i = 0; i < RC_MAXV; i++) {
+            int on = i < rc_patch.voices_now && i < rk_fm1_status(2);
+            float e = on ? rk_voice_env(i) : 0.0f;
+            uint32_t a = (uint32_t)(38.0f + 218.0f * (e > 1.0f ? 1.0f : e));
+            rrect(108 + i * 8, 9, 6, 8, on ? mix565(K_OK, K_OFF, a) : K_OFF, 1);
+        }
+        t[0] = 0;
+        if (rc_heavy)
+            cat(t, "HEAVY");
+        else if (rc_shed_count) {
+            cat(t, "SHED ");
+            int_text((int32_t)rc_shed_count, n);
+            cat(t, n);
+        } else {
+            cat(t, plat_cpu2_on() ? "2C " : plat_cpu2_gave_up() ? "1C* " : "1C ");
+            cat(t, MODE_NAME[rc_patch.mode < 5 ? rc_patch.mode : 0]);
+        }
+        cv_text(160, 2, &FONT_T, t, rc_heavy ? K_WARN : rc_shed_count ? K_GOLD : K_DIM);
+        t[0] = 'O';
+        t[1] = 'C';
+        t[2] = 'T';
+        t[3] = set.octave < 0 ? '-' : '+';
+        t[4] = (char)('0' + (set.octave < 0 ? -set.octave : set.octave));
+        t[5] = 0;
+        cv_text(160, 13, &FONT_T, t, ui.keys ? K_OK : K_DIM);
+        rc_audio.peak = 0.0f;
+        pk = pk > 1.0f ? 1.0f : pk * 1.3f > 1.0f ? 1.0f : pk * 1.3f;
+        h = (int32_t)(18.0f * pk + 0.5f);
+        cv_rect(228, 4, 6, 18, K_FAINT);
+        cv_rect(228, 22 - h, 6, h, pk > 0.9f ? K_WARN : K_OK);
+    }
+    cv_blit(0, 214);
+}
+
+static void draw_home(void)
 {
     char t[32], n[12];
     uint32_t now = plat_ms();
@@ -489,50 +471,109 @@ static void draw(void)
         vbar(6, 36, 100, 4, v, K_GOLD);
         cv_blit(i & 1 ? 122u : 6u, i < 2 ? 116u : 166u);
     }
-    /* the footer: CPU and RAM bars, the voices' lights (lit by their envelopes), cores and octave, the meter */
-    cv_begin(240, 26, K_BAR);
-    {
-        uint32_t cpu = plat_cpu_pct();
-        float ram = (float)rk_fm1_status(0) / (float)rk_fm1_status(1);
-        float pk = rc_audio.peak;
-        int32_t h;
-        cv_text(6, 2, &FONT_T, "CPU", cpu > 85u ? K_WARN : K_DIM);
-        vbar(6, 16, 44, 3, (float)cpu / 100.0f, cpu > 85u ? K_WARN : cpu > 70u ? K_GOLD : K_OK);
-        cv_text(56, 2, &FONT_T, "RAM", K_DIM);
-        vbar(56, 16, 44, 3, ram, ram > 0.95f ? K_GOLD : K_OK);
-        for (i = 0; i < RC_MAXV; i++) {
-            int on = i < rc_patch.voices_now && i < rk_fm1_status(2);
-            float e = on ? rk_voice_env(i) : 0.0f;
-            uint32_t a = (uint32_t)(38.0f + 218.0f * (e > 1.0f ? 1.0f : e));
-            rrect(108 + i * 8, 9, 6, 8, on ? mix565(K_OK, K_OFF, a) : K_OFF, 1);
-        }
-        t[0] = 0;
-        if (rc_heavy)
-            cat(t, "HEAVY");
-        else if (rc_shed_count) {
-            cat(t, "SHED ");
-            int_text((int32_t)rc_shed_count, n);
-            cat(t, n);
-        } else {
-            cat(t, plat_cpu2_on() ? "2C " : plat_cpu2_gave_up() ? "1C* " : "1C ");
-            cat(t, MODE_NAME[rc_patch.mode < 5 ? rc_patch.mode : 0]);
-        }
-        cv_text(160, 2, &FONT_T, t, rc_heavy ? K_WARN : rc_shed_count ? K_GOLD : K_DIM);
-        t[0] = 'O';
-        t[1] = 'C';
-        t[2] = 'T';
-        t[3] = set.octave < 0 ? '-' : '+';
-        t[4] = (char)('0' + (set.octave < 0 ? -set.octave : set.octave));
-        t[5] = 0;
-        cv_text(160, 13, &FONT_T, t, ui.keys ? K_OK : K_DIM);
-        rc_audio.peak = 0.0f;
-        pk = pk > 1.0f ? 1.0f : pk * 1.3f > 1.0f ? 1.0f : pk * 1.3f;
-        h = (int32_t)(18.0f * pk + 0.5f);
-        cv_rect(228, 4, 6, 18, K_FAINT);
-        cv_rect(228, 22 - h, 6, h, pk > 0.9f ? K_WARN : K_OK);
-    }
-    cv_blit(0, 214);
+    draw_footer();
 }
+
+#include "menus.c"
+
+/* the lit buttons: the page's button (as the page's syncLeds) */
+static uint32_t page_leds(void)
+{
+    switch (mn.page) {
+    case PG_HOME: case PG_RACK: return 1u << B_HOME;
+    case PG_SRC: return 1u << B_EDIT;
+    case PG_SHP: case PG_AMP: return 1u << B_ENV;
+    case PG_MODA: case PG_MODB: case PG_LFO: return 1u << B_LFO;
+    case PG_FX1: case PG_FX2: return 1u << B_FX;
+    case PG_MATRIX: return 1u << B_ARP;
+    }
+    return 0;
+}
+
+static void draw(void)
+{
+    static int shown = -1;                    /* the page on the screen: a new one starts from a clear screen */
+    int now = mn.page | mn.pick << 5;
+    if (now != shown) {
+        lcd_fill(0, 0, 240, 240, K_BG);
+        shown = now;
+    }
+    if (mn.page == PG_HOME)
+        draw_home();
+    else {
+        draw_menu();
+        draw_footer();
+    }
+}
+
+static void input(void)
+{
+    uint32_t keys, btn = plat_buttons(), press = btn & ~ui.btn, k;
+    int32_t e;
+    touch_poll();
+    keys = touch_keys();
+    for (k = 0; k < NKEYS; k++) {             /* key 0 is F3 (MIDI 53) */
+        uint32_t bit = 1u << k;
+        if ((keys & bit) && !(ui.keys & bit)) {
+            int note = 53 + (int)k + 12 * set.octave;
+            uint32_t v = touch_vel(k);
+            ui.held[k] = (uint8_t)note;
+            rc_note_on(note, (float)v / 127.0f);
+            plat_midi_send(0x09u | 0x90u << 8 | (uint32_t)note << 16 | v << 24, TO_USB);
+        } else if (!(keys & bit) && (ui.keys & bit)) {
+            rc_note_off(ui.held[k]);
+            plat_midi_send(0x08u | 0x80u << 8 | (uint32_t)ui.held[k] << 16, TO_USB);
+        }
+    }
+    if (keys != ui.keys)
+        ui.redraw = 1;
+    ui.keys = keys;
+    if ((e = plat_enc(EN_PRESET)) != 0) {    /* PRESET: the presets, on every page (as the page) */
+        ui.shown = (ui.shown + (int)e % NPRESETS + NPRESETS) % NPRESETS;
+        ui.turned_at = plat_ms();
+        ui.redraw = 1;
+    }
+    if (press >> B_OCTDN & 1u)
+        octave_step(-1);
+    if (press >> B_OCTUP & 1u)
+        octave_step(1);
+    if (press >> B_SAVE & 1u) {
+        set.preset = (uint8_t)rc_patch.index;
+        app_say(plat_store_save(OBJ_SETTINGS, &set, sizeof set) == 0 ? "SAVED" : "SAVE FAILED", "");
+    }
+    if (menu_input(press)) {                 /* a menu page: its own encoders */
+        ui.btn = btn;
+        plat_glow(1);
+        plat_leds(btn | page_leds(), keys);
+        return;
+    }
+    if ((e = plat_enc(EN_ALGO)) != 0) {
+        ui.shown = cat_step(ui.shown, e > 0 ? 1 : -1);
+        ui.turned_at = plat_ms();
+        ui.redraw = 1;
+    }
+    if ((e = plat_enc(EN_SELECT)) != 0 && rc_patch.mode == RVM_POLY) {
+        int v = rc_patch.voices_now + (int)e;
+        char t[4];
+        v = v < 1 ? 1 : v > RC_MAXV ? RC_MAXV : v;
+        set.voices = (uint8_t)v;
+        rc_voices(v);
+        int_text(v, t);
+        app_say("VOICES", t);
+    }
+    for (k = 0; k < 4u; k++)
+        if ((e = plat_enc(EN_K1 + (int)k)) != 0) {
+            float m = rc_patch.macro[k] + (float)e * 0.02f;
+            m = m < 0.0f ? 0.0f : m > 1.0f ? 1.0f : m;
+            rc_macro((int)k, m);
+            ui.redraw = 1;
+        }
+    ui.btn = btn;
+    plat_glow(1);
+    plat_leds(btn | page_leds(), keys);
+}
+
+void app_input_only(void) { input(); }
 
 void app_ui_init(void)
 {
@@ -547,6 +588,7 @@ void app_frame(void)
     static uint32_t last_draw;
     uint32_t now = plat_ms();
     input();
+    menu_tick();
     /* PRESET or ALGORITHM stopped turning: load what is shown */
     if (ui.shown != rc_patch.index && now - ui.turned_at > 180u) {
         uint32_t k;

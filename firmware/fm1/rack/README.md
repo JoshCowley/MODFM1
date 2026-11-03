@@ -9,16 +9,36 @@ engine in the audio interrupt, and the benchmark is what tells us that's afforda
 The 57 factory presets that use only Lite modules (Plaits, Braids, Rings, filter, Tides, Peaks, Grids, delay,
 reverb, chorus), played from the keys (with velocity) and from USB or TRS MIDI.
 
-| Control | Does |
+Stage 1 of the menus (sound editing) is in: the page's own pages, buttons and knobs (`menus.c`; the parameters
+come from the page's definitions through `make_ui.py` -> `ui_defs.h`).
+
+| Button (printed) | Page |
 |---|---|
-| PRESET | next / previous preset; it loads when you stop turning |
-| ALGORITHM | next / previous category (INIT, BASS, LEAD, PAD, KEYS, FX, OTHER) |
-| SELECT | voices, 1-6 (poly presets) |
-| K1-K4 | macros 1-4 (also MIDI CC 20-23) |
-| OCT- / OCT+ | octave, -3 to +3 |
-| HOME | all notes off |
-| SAVE | remember the preset, octave and voices for the next power-on |
-| MASTER | volume |
+| HOME | home: the preset, scope, chain, macros. Press again: the RACK overview; again: home (and all notes off) |
+| EDIT | the source (Plaits or Braids) |
+| ENV | AMP (envelopes, voice mode), then the shaper (Rings or filter) |
+| LFO | MOD A, MOD B, then the three LFOs (and each LFO's two direct targets) |
+| FX | FX 1, then FX 2 |
+| ARP | the 12-row matrix |
+| SAVE | remember the preset, octave and voices for the next power-on (user presets: stage 2) |
+| SEL, GLO, SEQ, PLAY, REC | not yet: "NEXT STAGE OF THE PORT" |
+
+| Knob | Home | A module's page, AMP, LFO | Matrix |
+|---|---|---|---|
+| PRESET | presets (load when you stop turning) | the same | the same |
+| ALGORITHM | category | the module picker (press the slot's button to load, HOME to close) | - |
+| SELECT | voices, 1-6 | the page within | the row |
+| K1-K4 | macros 1-4 (also MIDI CC 20-23) | the page's four parameters | source, destination, amount, via |
+| OCT- / OCT+, MASTER | octave, volume | | |
+
+A module's page shows the page's cells: label, value, a bar (ticks for a list), and in the slot's colour the value
+modulation has moved it to. The well shows the output (AMP's first page: its envelope). Loading a module stops the
+sound for a moment (the arena is laid out again) and says how many voices fit; an edit that needs a bigger buffer (a
+longer delay, STR+VERB, SHIMMER) fits it again when the knobs rest ("MEMORY FITTED"). Edits are not kept when the
+preset changes until stage 2 (SAVE). `sim_menus.txt` drives every page in fm1-base's host simulator
+(`tools/build.py ../MODFM1/firmware/fm1/rack --host`, then `build/host/fm1rack_host sim_menus.txt OUTDIR`).
+
+![A module's page](screen-module.png) ![The matrix](screen-matrix.png)
 
 **After the benchmark (3 Nov 2026):** one FM-1 core played about 2 voices (`../../results/README.md`). The
 second core now renders half the voices (the screen shows 2 CORES; 1 CORE* if fm1-base gave it up), and poly

@@ -24,3 +24,5 @@ vendored = ["units/"]
 licence = "GPL-3.0"               # the firmware as a whole (FM1 Rack's engine); app.c and app.h are MPL-2.0, from fm1-base's template
 tagline = "a modular synth voice from Mutable Instruments modules"
 credits = "Mutable Instruments' open-source module code (github.com/pichenettes/eurorack)"
+boot_pack = true
+unity_opt = "z"

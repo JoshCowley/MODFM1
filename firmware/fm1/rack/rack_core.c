@@ -37,6 +37,10 @@ float *rk_out_r(void);
 int rk_fm1_status(int what);
 void rk_fm1_fit(void);
 float rk_voice_env(int i);
+int rk_fm1_fit_needed(void);
+float rk_get_param(int slot, int param);
+float rk_get_route(int i, int *out);
+float *rk_monitor(int slot);
 void rk_set_worker(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void));
 uint32_t rk_worker_blocks(void);
 
@@ -118,6 +122,35 @@ static void rc_load(int k)
     rk_set_voices(rc_patch.voices);
     rc_patch.voices_now = rc_patch.voices;
     rc_patch.index = k;
+}
+
+/* ------------------------------------------------------------------ editing (the menus) --- */
+/* A parameter from the main loop: one float the render reads (a word written whole: no tear); the voice mode and the
+ * unison detune also set what the voice side keeps of them. */
+static void rc_set(int slot, int param, float v)
+{
+    rk_set_param(slot, param, v);
+    if (slot == RS_AMP && param == 12)
+        rc_patch.detune = v;
+}
+/* the main loop, with the audio interrupt standing aside (rc_pause): a module into a slot (0: empty), its ranges, its
+ * parameters at their defaults (vals: one per parameter, n of them), then the buffers fitted again */
+static void rc_swap(int slot, int id, const float *vals, int n)
+{
+    int i;
+    rk_set_module(slot, id);
+    rc_patch.mod[slot] = (int8_t)id;
+    for (i = 0; i < n; i++)
+        rk_set_param(slot, i, vals[i]);
+    rc_meta(slot, id);
+    rk_fm1_fit();
+    rc_patch.voices_now = rk_fm1_status(3);
+}
+/* the main loop, audio standing aside: the buffers sized again for what the patch now reaches (a longer delay, ...) */
+static void rc_refit(void)
+{
+    rk_fm1_fit();
+    rc_patch.voices_now = rk_fm1_status(3);
 }
 
 /* ------------------------------------------------------------------ notes --- */

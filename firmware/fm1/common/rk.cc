@@ -30,6 +30,10 @@ float *rk_out_r(void) { return out_r(); }
 int rk_fm1_status(int what) { return fm1_status(what); }
 void rk_fm1_fit(void) { fm1_fit(); }
 float rk_voice_env(int i) { return voice_env(i); }
+int rk_fm1_fit_needed(void) { return fm1_fit_needed(); }
+float rk_get_param(int slot, int param) { return get_param(slot, param); }
+float rk_get_route(int i, int *out) { return get_route(i, out); }
+float *rk_monitor(int slot) { return monitor(slot); }
 // the second core: the platform's worker (plat_cpu2_run, plat_cpu2_wait) renders half the voices (rack.cc)
 void rk_set_worker(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void)) { set_worker(run, wait); }
 uint32_t rk_worker_blocks(void) { return worker_blocks(); }

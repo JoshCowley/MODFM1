@@ -324,6 +324,13 @@ EXPORT float* out_r() { return out_r_; }
 EXPORT float* scope() { return scope_; }
 
 EXPORT void set_param(int slot, int param, float value) { base_[slot][param] = value; }
+EXPORT float get_param(int slot, int param) { return slot >= 0 && slot < NSLOT && param >= 0 && param < NP ? base_[slot][param] : 0.0f; }
+// a matrix row as set: out[0] source, [1] slot, [2] param, [3] via; returns its amount
+EXPORT float get_route(int i, int* out) {
+  if (i < 0 || i >= NROUTE) { out[0] = out[1] = out[2] = out[3] = 0; return 0.0f; }
+  out[0] = routes_[i].src; out[1] = routes_[i].slot; out[2] = routes_[i].param; out[3] = routes_[i].via;
+  return routes_[i].amt;
+}
 EXPORT void set_meta(int slot, int param, float lo, float hi, float span) {
   lo_[slot][param] = lo; hi_[slot][param] = hi; span_[slot][param] = span;
 }
@@ -467,7 +474,7 @@ static void fm1_layout() {
 // After a patch has loaded (its modules, parameters and routes): size the big buffers to what it can use and lay the
 // arena out again, so the room left goes to voices. The sound is the same, sample for sample, as with the full sizes.
 static bool routed(int slot, int param) { return (routed_[slot + 1] >> param & 1u) != 0; }
-EXPORT void fm1_fit() {
+static void fm1_fit_calc() {
   static const float beats[] = { 0.25f, 0.5f, 0.75f, 1.0f, 2.0f, 1.0f / 3.0f, 2.0f / 3.0f, 1.5f, 3.0f };
   int dl = 0, pre = 0; bool shim = false, rrev = false;
   for (int s = S_FX1; s <= S_FX2; ++s) {
@@ -493,9 +500,21 @@ EXPORT void fm1_fit() {
   if (req_[S_SHP] == M_RINGS && (routed(S_SHP, 0) || PI(S_SHP, 0, 0) == 5)) rrev = true;
   int mask = 63; while (mask < pre) mask = mask * 2 + 1;
   fit_dlen_ = dl ? dl : DLEN; fit_pre_mask_ = mask; fit_shim_ = shim; fit_rings_rev_ = rrev;
+}
+EXPORT void fm1_fit() {
+  fm1_fit_calc();
   if (delay_w_ >= fit_dlen_) delay_w_ = 0;
-  pre_w_ &= mask;
+  pre_w_ &= fit_pre_mask_;
   fm1_layout();
+}
+// 1 when the parameters and routes now reach past what fm1_fit sized (a longer delay, more pre-delay, SHIMMER,
+// STR+VERB): the platform then fits again, between renders
+EXPORT int fm1_fit_needed() {
+  int dl = fit_dlen_, mask = fit_pre_mask_; bool shim = fit_shim_, rrev = fit_rings_rev_;
+  fm1_fit_calc();
+  bool more = fit_dlen_ > dl || fit_pre_mask_ > mask || (fit_shim_ && !shim) || (fit_rings_rev_ && !rrev);
+  fit_dlen_ = dl; fit_pre_mask_ = mask; fit_shim_ = shim; fit_rings_rev_ = rrev;
+  return more ? 1 : 0;
 }
 // what the platform layer shows: 0 arena bytes used, 1 arena size, 2 voices that fit, 3 voices playing,
 // 4 unloaded slots (bit per slot: 0 SRC, 1 SHP, 4 FX1, 5 FX2)

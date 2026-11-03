@@ -48,7 +48,9 @@ float* out_r(void);
 
 // screen data
 float* monitor(int slot);
-float voice_env(int i);           // voice i's amplitude envelope, 0-1 (the screen's voice lights)        // 200 values: live parameters, envelopes, voices, LFOs, levels
+float voice_env(int i);
+float get_param(int slot, int param);   // a parameter as set (before modulation)
+float get_route(int i, int* out);       // a matrix row: out[0] source, [1] slot, [2] param, [3] via; returns the amount           // voice i's amplitude envelope, 0-1 (the screen's voice lights)        // 200 values: live parameters, envelopes, voices, LFOs, levels
 float* scope(void);              // 128 samples for the scope
 
 #ifdef RACK_FM1
@@ -58,6 +60,7 @@ int fm1_status(int what);
 // after a patch has loaded: size the delay, the reverb's pre-delay and shimmer, and Rings' reverb to what the patch can
 // use, and lay the arena out again (more voices; the same sound)
 void fm1_fit(void);
+int fm1_fit_needed(void);       // 1: the patch now reaches past what fm1_fit sized (fit again, between renders)
 // the second core: run(fn, arg) hands fn(arg) to it (1) or declines (0); wait() returns 0 when done, -1 when it
 // dropped the job. With a worker set, 2 or more voices are split between the cores. worker_blocks: blocks shared
 void set_worker(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void));
