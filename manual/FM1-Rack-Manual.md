@@ -1,8 +1,8 @@
-# FM1 Rack 1.8 Manual
+# FM1 Rack 1.9 Manual
 
 Oct 26, 2026 · Josh Cowley
 
-FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.8 browser build, which runs the original module code.
+FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.9 browser build, which runs the original module code.
 
 ## Quick start
 
@@ -866,6 +866,16 @@ LOW EQ (a shelf at 150 Hz), MID EQ (a peak at 1 kHz) and HIGH EQ (a shelf at 5 k
 A live readout of the audio engine: **CPU** (the share of real time spent rendering), **PEAK** (the slowest recent block) and **LATE** (blocks that took longer than real time, each a possible click), with a graph, beside the FM-1 budget estimate in units. These are browser measurements; on the FM-1 the same readout will tell us the real costs.
 
 **STEP ADV** (ON or OFF): whether the NOTES cursor moves on a step after you enter a note.
+
+**HARDWARE (page 7, new in 1.9): the FM-1 preview.** FM1 Rack is not FM-1 firmware yet. This page makes the browser version behave as closely as currently possible to what would fit on the real FM-1.
+
+- **TARGET**: FM-1 (the default) applies the limits below; BROWSER removes them (6 voices of anything, 2 s delay).
+- **FREE RAM** (256K, 384K or 512K): memory left for sound. The FM-1's RAM isn't published; about 578 KB of SRAM is unverified, and the firmware, a 240×240 screen buffer and audio buffers need some of it. 384K is the middle guess.
+- **CPU SPEED** (SLOW, MID or FAST): how fast the Mutable code runs on the FM-1's pi32v2 core, which no one has measured yet.
+
+In FM-1 mode each module's memory is its real size in the engine (for example Plaits 25 KB per voice, Rings and Elements about 172–175 KB per voice, Clouds 188 KB, the delay 188 KB), and each module's CPU cost is measured relative to the others. The voice count drops to what fits; the footer's CPU or RAM label turns gold when it is the limit, and a patch that can't fit at all shows **OVER RAM** or **OVER CPU** and plays one voice. The delay is capped at 1 s and stored at 16-bit, as a port would. In the SAVE library, ✕ marks presets that won't fit and a gold voice count marks ones that fit with fewer voices. The page itself shows what the current patch needs and its biggest memory user.
+
+The page still runs at 48 kHz; the stock FM-1 reportedly runs at 44,118 Hz, and how a port handles that is an open question.
 
 ### MIDI over USB
 
