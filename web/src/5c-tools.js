@@ -416,18 +416,18 @@ function visHardware(X, Y, W, H, c) {
   if (!bg.hw) {
     T(X + 8, Y + 14, "BROWSER: FM-1 LIMITS OFF", { size: 10, c: C.gold });
     T(X + 8, Y + 28, `6 VOICES OF ANYTHING · DELAY 2 S, 32-BIT`, { size: 9, c: C.dim });
-    T(X + 8, Y + 42, `AT ${bg.voices} VOICES IT NEEDS ${bg.ram}K RAM`, { size: 9, c: C.dim });
+    T(X + 8, Y + 42, `AT ${bg.voices} VOICES IT NEEDS ${Math.round(bg.ram)}K RAM`, { size: 9, c: C.dim });
     T(X + 8, Y + 56, "SET TARGET TO FM-1 FOR THE PREVIEW", { size: 8, c: C.dim });
     return;
   }
   const cap = amp.p[A_MODE] === 1 || amp.p[A_MODE] === 2 ? 1 : glo.p[G_VOICES] || MAXV;
-  T(X + 8, Y + 14, bg.over ? `WON'T FIT: OVER ON ${bg.over}` : `FITS · ${bg.voices} OF ${cap} VOICES`, { size: 10, c: bg.over ? C.warn : bg.limit ? C.gold : C.ok });
+  T(X + 8, Y + 14, bg.dropped.length ? `NO RAM: ${bg.dropped.map((d) => rack[d].mod).join(" + ")} UNLOADED` : bg.over ? "OVER ON CPU: WOULD GLITCH" : `FITS · ${bg.voices} OF ${cap} VOICES`, { size: 10, c: bg.over ? C.warn : bg.limit ? C.gold : C.ok });
   if (bg.limit && !bg.over) T(X + W - 8, Y + 14, `${bg.limit} LIMITS`, { size: 9, a: "right", c: C.gold });
-  T(X + 8, Y + 28, `RAM ${bg.ram}/${bg.pool}K · CPU ${bg.cpu}/${bg.B}`, { size: 9 });
+  T(X + 8, Y + 28, `RAM ${Math.round(bg.ram)}/${bg.pool}K · CPU ${bg.cpu}/${bg.B}`, { size: 9 });
   // the biggest memory user
   let big = null;
-  for (const s of SLOTS) { const m = MODULES[rack[s.id].mod]; if (!m) continue; const k = m.ram + m.ramV * bg.voices; if (!big || k > big.k) big = { n: rack[s.id].mod, k, v: m.ramV }; }
-  if (big) T(X + 8, Y + 42, `MOST RAM: ${big.n} ${big.v ? `${big.v}K × ${bg.voices}V` : `${big.k}K`}`, { size: 9, c: C.dim });
+  for (const s of SLOTS) { const m = MODULES[rack[s.id].mod]; if (!m || bg.dropped.includes(s.id)) continue; const k = m.ram + m.ramV * bg.voices; if (!big || k > big.k) big = { n: rack[s.id].mod, k, v: m.ramV }; }
+  if (big) T(X + 8, Y + 42, `MOST RAM: ${big.n} ${big.v ? `${Math.round(big.v)}K × ${bg.voices}V` : `${Math.round(big.k)}K`}`, { size: 9, c: C.dim });
   T(X + 8, Y + 56, "FREE RAM + CPU SPEED ARE ASSUMED", { size: 8, c: C.dim });
 }
 

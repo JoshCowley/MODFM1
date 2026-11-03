@@ -126,7 +126,7 @@ function footer() {
   const pl = Math.min(1, (mon[48] || 0) * 1.3), pr = Math.min(1, (mon[49] || 0) * 1.3);
   rect(228, 218, 3, 18, C.faint); rect(232, 218, 3, 18, C.faint);
   rect(228, 236 - 18 * pl, 3, 18 * pl, pl > .9 ? C.warn : C.ok); rect(232, 236 - 18 * pr, 3, 18 * pr, pr > .9 ? C.warn : C.ok);
-  if (bg.over && phrase.state !== "armed" && phrase.state !== "rec" && phrase.state !== "loop") T(162, 232, `OVER ${bg.over}`, { size: 9, c: C.warn });
+  if (bg.over && phrase.state !== "armed" && phrase.state !== "rec" && phrase.state !== "loop") T(162, 232, bg.dropped.length ? `${bg.dropped.map((d) => d.replace("FX", "FX ")).join("+")} OFF` : `OVER ${bg.over}`, { size: 9, c: C.warn });
   if (phrase.state === "armed") { if (Math.floor(performance.now() / 300) % 2) dot(164, 228, 3, C.warn, false); T(170, 232, "ARMED", { size: 9, c: C.warn }); }
   else if (phrase.state === "rec") { dot(164, 228, 3, C.warn); T(170, 232, `${((performance.now() - phrase.t0) / 1000).toFixed(1)}S`, { size: 9, c: C.warn }); }
   else if (phrase.state === "loop") {

@@ -31,7 +31,8 @@ function syncEngine() {
   const put = (key, call) => { const v = JSON.stringify(call); if (sent[key] !== v) { sent[key] = v; calls.push(call); } };
   SLOTS.forEach((s, si) => {
     const name = rack[s.id].mod, m = MODULES[name];
-    put(`mod${si}`, ["set_module", si, m ? MID[name] : 0]);
+    const off = hwOn() && budget().dropped.includes(s.id);   // the FM-1 engine unloads what doesn't fit; the preview does too
+    put(`mod${si}`, ["set_module", si, m && !off ? MID[name] : 0]);
     if (m) m.pages.flat().forEach((p, pi) => { put(`meta${si}.${pi}`, ["set_meta", si, pi, ...meta(p)]); put(`p${si}.${pi}`, ["set_param", si, pi, rack[s.id].p[pi]]); });
   });
   AMP.pages.flat().forEach((p, pi) => { put(`meta6.${pi}`, ["set_meta", 6, pi, ...meta(p)]); put(`p6.${pi}`, ["set_param", 6, pi, amp.p[pi]]); });

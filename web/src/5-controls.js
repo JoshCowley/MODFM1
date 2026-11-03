@@ -265,7 +265,7 @@ function press(act) {
     if (picker && picker.slot === slot.id) {
       const ch = slot.choices[picker.ix];
       const f = fitOf(slot.id, ch);
-      if (!f.ok) { const m = MODULES[ch]; say(f.why === "CPU" ? `${ch} NEEDS MORE CPU ON FM-1` : f.why.startsWith("IN ") ? `${ch} IS ALREADY ${f.why}` : `${ch} NEEDS ${m.ram + m.ramV}K · ${hwPool()}K FREE RAM`); return; }
+      if (!f.ok) { const m = MODULES[ch]; say(f.why === "CPU" ? `${ch} NEEDS MORE CPU ON FM-1` : f.why.startsWith("IN ") ? `${ch} IS ALREADY ${f.why}` : `${ch} NEEDS ${Math.round(m.ram + m.ramV)}K · ${hwPool()}K FREE RAM`); return; }
       rack[slot.id] = { mod: ch, p: blankParams(MODULES[ch]) }; picker = null; subpage = 0;
       delete vs.rings; delete vs.clouds; delete vs.verb;
       say(ch ? `${ch} LOADED · ${budget().voices} VOICES` : `${slot.name} EMPTIED`, ch || "EMPTY"); noteEdit(ch ? `${ch} LOADED` : `${slot.name} EMPTIED`); return;

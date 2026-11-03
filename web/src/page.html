@@ -126,7 +126,7 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
 <main>
   <div class="top">
     <div>
-      <h1>FM1 Rack <span>1.9</span></h1>
+      <h1>FM1 Rack <span>1.9.1</span></h1>
       <p>A sound-design firmware for the M-VAVE FM-1: open-source eurorack modules in swappable slots, a 12-row mod matrix and four performance macros. This is the browser build, running the original module code.</p>
     </div>
     <a class="manual" href="/*MANUAL*/" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h4.5A1.5 1.5 0 0 1 8 4v10a1.5 1.5 0 0 0-1.5-1.5H2zM14 2.5H9.5A1.5 1.5 0 0 0 8 4v10a1.5 1.5 0 0 1 1.5-1.5H14z"/></svg>Open the manual</a>
@@ -168,7 +168,7 @@ kbd { font: 12px var(--f-dot); border: 1px solid var(--rule); padding: 0 4px; bo
         <li><b>SEL</b> sets the scale and root, and turns each key into a chord with its voicing. While chords are on, the lowest seven keys change the chord you hold: DIM, MIN, MAJ (MIN+MAJ for SUS) and 6, m7, M7, 9.</li>
         <li><b>HOME</b> three times opens TOOLS: undo and compare, morph A↔B, randomize, favourites. <b>ARP</b> twice is the arpeggiator.</li>
         <li><b>SAVE</b> names a patch into one of 64 user slots (4 pages of 16) with a category. OCT+ on SAVE opens the library of every preset: Knob 1 scrolls, Knob 2 picks the tab, Knob 3 picks LOAD, COPY, RENAME or DELETE, OCT+ does it.</li>
-        <li><b>FM-1 preview</b> is on by default (GLOBAL &gt; HARDWARE). The CPU and RAM bars use each module's real memory needs and measured cost, against an assumed FM-1 budget you can change there; the voice count drops to what fits, and a patch that can't fit shows <b>OVER</b>. The delay is capped at 1 s and stored at 16-bit, as a port would. Set TARGET to BROWSER for no limits. FM1 Rack is not FM-1 firmware yet: this page only previews what might fit.</li>
+        <li><b>FM-1 preview</b> is on by default (GLOBAL &gt; HARDWARE). The CPU and RAM bars use each module's real memory needs and measured cost, against an assumed FM-1 budget you can change there; the voice count drops to what fits, and if a patch can't fit at all the FM-1 engine unloads modules (FX 2, FX 1, then the shaper) and the footer says which, e.g. <b>SHP OFF</b>. The preview matches the firmware-ready engine in the repo's firmware/ folder. The delay is capped at 1 s and stored at 16-bit, as a port would. Set TARGET to BROWSER for no limits. FM1 Rack is not FM-1 firmware yet: this page only previews what might fit.</li>
         <li>Full MIDI over USB where the browser allows it: notes, bend, pressure, program changes, clock in and out, CC 70–73 for the four knobs, and notes out from the keys, sequencer and arp.</li>
       </ul>
     </div>
