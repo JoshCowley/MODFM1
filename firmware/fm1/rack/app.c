@@ -293,18 +293,135 @@ static void input(void)
 void app_input_only(void) { input(); }
 
 /* ------------------------------------------------------------------ the screen --- */
-static void bar(int32_t x, int32_t y, int32_t w, float v, uint16_t c)
+/* ------------------------------------------------------------------ the screen --- */
+/* The page's look (web/src/2-screen.js): its colours, its 12 x 12 module icons, a header bar with the category in a
+ * coloured tab, a dark well with a dot grid (here: the output's scope, with a soft halo), the chain as icon tiles, the
+ * macros as cells with rounded bars, and a footer with CPU and RAM bars, the voices' lights and the output meter.
+ * Drawn in bands (the canvas is 240 x 40 pixels: the pool goes to the engine's arena). */
+#include "icons.h"
+#define K_BG RGB(0, 0, 0)
+#define K_FG RGB(242, 239, 230)
+#define K_DIM RGB(125, 122, 114)
+#define K_FAINT RGB(43, 42, 39)
+#define K_WELL RGB(11, 11, 10)
+#define K_GRID RGB(21, 21, 19)
+#define K_MID RGB(29, 29, 27)
+#define K_BAR RGB(17, 17, 16)
+#define K_CELL RGB(18, 18, 17)
+#define K_OFF RGB(26, 26, 24)
+#define K_WARN RGB(255, 107, 94)
+#define K_OK RGB(95, 224, 138)
+#define K_GOLD RGB(255, 210, 122)
+#define K_SRC RGB(255, 179, 71)
+#define K_SHP RGB(79, 209, 197)
+#define K_MOD RGB(180, 140, 255)
+#define K_FX RGB(106, 169, 255)
+
+/* a over b, t of the way (0-256), in RGB565 */
+static uint16_t mix565(uint16_t a, uint16_t b, uint32_t t)
 {
-    cv_rect(x, y, w, 4, C_LINE);
-    cv_rect(x, y, (int32_t)((float)w * v + 0.5f), 4, c);
+    uint32_t r = ((a >> 11) * t + (b >> 11) * (256u - t)) >> 8;
+    uint32_t g = (((a >> 5) & 63u) * t + ((b >> 5) & 63u) * (256u - t)) >> 8;
+    uint32_t l = ((a & 31u) * t + (b & 31u) * (256u - t)) >> 8;
+    return (uint16_t)(r << 11 | g << 5 | l);
 }
 
-static int32_t mod_text(int32_t x, int32_t y, const char *label, int slot)
+/* a rectangle with corners rounded by r (0-4) */
+static void rrect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c, int32_t r)
 {
-    const char *n = module_name(rc_patch.mod[slot]);
-    int lost = rk_fm1_status(4) >> slot & 1;  /* asked for but unloaded: no room in the arena */
-    x = cv_text(x, y, &FONT_XS, label, C_DIM) + 4;
-    return cv_text(x, y, &FONT_XS, n ? n : "-", lost ? RGB(255, 80, 60) : n ? C_HI : C_DIM) + 10;
+    static const uint8_t INSET[5][4] = {{0}, {1}, {1, 0}, {2, 1, 0}, {2, 1, 0, 0}};
+    int32_t i;
+    if (r > 4)
+        r = 4;
+    if (r * 2 > h)
+        r = h / 2;
+    cv_rect(x, y + r, w, h - 2 * r, c);
+    for (i = 0; i < r; i++) {
+        int32_t in = INSET[r][i];
+        cv_rect(x + in, y + i, w - 2 * in, 1, c);
+        cv_rect(x + in, y + h - 1 - i, w - 2 * in, 1, c);
+    }
+}
+
+/* the page's bar(): a faint track, the value over it, rounded */
+static void vbar(int32_t x, int32_t y, int32_t w, int32_t h, float v, uint16_t c)
+{
+    int32_t f;
+    v = v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v;
+    f = (int32_t)((float)w * v + 0.5f);
+    rrect(x, y, w, h, K_FAINT, h / 2);
+    if (f < h)
+        f = h;
+    rrect(x, y, f, h, c, h / 2);
+}
+
+static void icon(int ic, int32_t x, int32_t y, uint16_t c)
+{
+    int32_t r, b;
+    for (r = 0; r < 12; r++)
+        for (b = 0; b < 12; b++)
+            if (ICON[ic][r] >> (11 - b) & 1u)
+                cv_pset(x + b, y + r, c);
+}
+
+static int module_icon(int id)
+{
+    switch (id) {
+    case 1: return IC_PLAITS;
+    case 2: return IC_BRAIDS;
+    case 10: return IC_RINGS;
+    case 12: return IC_FILTER;
+    case 20: return IC_PEAKS;
+    case 21: return IC_TIDES;
+    case 23: return IC_GRIDS;
+    case 31: return IC_DELAY;
+    case 32: return IC_REVERB;
+    case 33: return IC_CHORUS;
+    default: return IC_EMPTY;
+    }
+}
+
+/* the scope: the output, a rising zero crossing near the start so a steady note stands still, every second frame
+ * (about 10 ms across), drawn twice as the page's glow(): a soft halo, then the line */
+static void scope(int32_t w, int32_t h, uint16_t c)
+{
+    static int16_t y[228];
+    uint32_t end = rc_scope_w, start = end - RC_SCOPE_N + 8u, k, i;
+    int32_t mid = h / 2, x, prev;
+    uint16_t halo = mix565(c, K_WELL, 46);
+    for (k = 0; k < 400u; k++) {              /* the first rise through zero in the oldest part */
+        int16_t a = rc_scope[(start + k) & (RC_SCOPE_N - 1u)], b = rc_scope[(start + k + 1u) & (RC_SCOPE_N - 1u)];
+        if (a < 0 && b >= 0)
+            break;
+    }
+    if (k == 400u)
+        k = 0;
+    for (x = 0; x < w && x < 228; x++) {
+        int32_t v = rc_scope[(start + k + 2u * (uint32_t)x) & (RC_SCOPE_N - 1u)];
+        int32_t py = mid - (v * (mid - 3)) / 16384;
+        y[x] = (int16_t)(py < 1 ? 1 : py > h - 2 ? h - 2 : py);
+    }
+    for (i = 0; i < 2; i++)
+        for (x = 1, prev = y[0]; x < w && x < 228; prev = y[x], x++) {
+            if (i == 0) {
+                cv_line(x - 1, prev - 1, x, y[x] - 1, halo);
+                cv_line(x - 1, prev + 1, x, y[x] + 1, halo);
+            } else {
+                cv_line(x - 1, prev, x, y[x], c);
+            }
+        }
+}
+
+static void tile(int32_t x, int slot, uint16_t kind)
+{
+    int id = rc_patch.mod[slot];
+    const char *n = module_name(id);
+    int lost = rk_fm1_status(4) >> slot & 1;   /* asked for but unloaded: no room in the arena */
+    uint16_t c = lost ? K_WARN : n ? kind : K_FAINT;
+    rrect(x, 0, 36, 38, n ? K_CELL : K_BG, 4);
+    icon(lost ? module_icon(id) : n ? module_icon(id) : IC_EMPTY, x + 12, 5, c);
+    if (n)
+        cv_text(x + 18 - text_w(&FONT_T, n) / 2, 21, &FONT_T, n, lost ? K_WARN : K_DIM);
 }
 
 static void draw(void)
@@ -314,110 +431,113 @@ static void draw(void)
     int32_t x;
     int i, pending = ui.shown != rc_patch.index;
     const rk_preset_t *p = &PRESETS[ui.shown];
-    /* the preset: its name, its category and place */
-    cv_begin(240, 40, C_BLACK);
+    /* the header: the source's icon, the category in a tab, the preset; its place on the right */
+    cv_begin(240, 26, K_BAR);
+    icon(module_icon(rc_patch.mod[RS_SRC]), 6, 7, K_SRC);
+    x = text_w(&FONT_T, p->cat) + 8;
+    rrect(22, 6, x, 15, K_SRC, 3);
+    cv_text(26, 7, &FONT_T, p->cat, K_BG);
     if (now < ui.msg_until) {
-        x = cv_text(6, 4, &FONT_B, ui.msg[0], C_WHITE);
-        cv_text(x + 8, 4, &FONT_B, ui.msg[1], C_HI);
+        int32_t e = cv_text(28 + x, 5, &FONT_B, ui.msg[0], K_FG);
+        cv_text(e + 6, 5, &FONT_B, ui.msg[1], K_GOLD);
     } else {
-        cv_text(6, 4, &FONT_B, p->name, pending ? C_GRAY : C_WHITE);
+        cv_text(28 + x, 5, &FONT_B, p->name, pending ? K_DIM : K_FG);
+        if (pending) {
+            cv_text(234 - text_w(&FONT_T, "LOADING"), 8, &FONT_T, "LOADING", K_GOLD);
+        } else {
+            int_text(ui.shown + 1, t);
+            cat(t, "/");
+            int_text(NPRESETS, n);
+            cat(t, n);
+            cv_text(234 - text_w(&FONT_T, t), 8, &FONT_T, t, K_DIM);
+        }
     }
-    t[0] = 0;
-    cat(t, p->cat);
-    cat(t, "  ");
-    int_text(ui.shown + 1, n);
-    cat(t, n);
-    cat(t, "/");
-    int_text(NPRESETS, n);
-    cat(t, n);
-    cv_text(6, 24, &FONT_XS, t, C_GRAY);
-    if (pending)
-        cv_text(234 - text_w(&FONT_XS, "LOADING"), 24, &FONT_XS, "LOADING", C_AMB);
     cv_blit(0, 0);
-    /* the chain: source, shaper, modulators, effects (red: unloaded, no room) */
-    cv_begin(240, 40, C_BLACK);
-    x = mod_text(6, 2, "SRC", RS_SRC);
-    mod_text(x, 2, "SHP", RS_SHP);
-    x = mod_text(6, 16, "MOD", RS_MODA);
-    if (rc_patch.mod[RS_MODB])
-        x = mod_text(x - 6, 16, "", RS_MODB);
-    mod_text(x, 16, "FX", RS_FX1);
-    if (rc_patch.mod[RS_FX2])
-        mod_text(x + 60, 16, "", RS_FX2);
-    cv_rect(6, 36, 228, 1, C_LINE);
-    cv_blit(0, 40);
-    /* the macros on K1-K4 */
-    cv_begin(240, 40, C_BLACK);
+    /* the well: the output's scope over the page's dot grid */
+    cv_begin(228, 42, K_BG);
+    rrect(0, 0, 228, 42, K_WELL, 4);
+    for (x = 12; x < 228; x += 12)
+        for (i = 6; i < 42; i += 6)
+            cv_pset(x, i, K_GRID);
+    cv_rect(4, 21, 220, 1, K_MID);
+    if (rc_heavy)
+        cv_text(114 - text_w(&FONT_XS, "TOO HEAVY FOR FM-1: MUTED") / 2, 14, &FONT_XS, "TOO HEAVY FOR FM-1: MUTED", K_WARN);
+    else
+        scope(228, 42, K_FG);
+    cv_blit(6, 29);
+    /* the chain as tiles: source, shaper, modulators, effects (red: unloaded, no room) */
+    cv_begin(240, 38, K_BG);
+    tile(6, RS_SRC, K_SRC);
+    tile(44, RS_SHP, K_SHP);
+    tile(82, RS_MODA, K_MOD);
+    tile(120, RS_MODB, K_MOD);
+    tile(158, RS_FX1, K_FX);
+    tile(196, RS_FX2, K_FX);
+    cv_blit(0, 74);
+    /* the macros on K1-K4: cells as the page's, a rounded bar */
     for (i = 0; i < 4; i++) {
-        int32_t bx = 6 + i * 58;
-        t[0] = 'M';
+        float v = rc_patch.macro[i];
+        cv_begin(112, 46, K_BG);
+        rrect(0, 0, 112, 46, K_CELL, 4);
+        t[0] = 'K';
         t[1] = (char)('1' + i);
         t[2] = 0;
-        cv_text(bx, 4, &FONT_XS, t, C_GRAY);
-        int_text((int32_t)(rc_patch.macro[i] * 100.0f + 0.5f), n);
-        cv_text(bx + 50 - text_w(&FONT_XS, n), 4, &FONT_XS, n, C_HI);
-        bar(bx, 22, 50, rc_patch.macro[i], C_HI);
+        cv_text(6, 3, &FONT_T, t, K_DIM);
+        cv_text(22, 3, &FONT_T, "MACRO", K_DIM);
+        int_text((int32_t)(v * 100.0f + 0.5f), n);
+        cv_text(6, 16, &FONT_B, n, K_FG);
+        vbar(6, 36, 100, 4, v, K_GOLD);
+        cv_blit(i & 1 ? 122u : 6u, i < 2 ? 116u : 166u);
     }
-    cv_blit(0, 84);
-    /* voices, mode, octave, CPU */
-    cv_begin(240, 40, C_BLACK);
-    t[0] = 0;
-    cat(t, "VOICES ");
-    int_text(rc_patch.voices_now, n);
-    cat(t, n);
-    cat(t, "/");
-    int_text(rk_fm1_status(2), n);
-    cat(t, n);
-    cat(t, "  ");
-    cat(t, MODE_NAME[rc_patch.mode < 5 ? rc_patch.mode : 0]);
-    /* the cores rendering: 2, or 1 (1* when the second core started and was given up: fm1-base's fallback) */
-    cat(t, plat_cpu2_on() ? "  2 CORES" : plat_cpu2_gave_up() ? "  1 CORE*" : "  1 CORE");
-    cv_text(6, 4, &FONT_XS, t, C_GRAY);
-    t[0] = 0;
-    cat(t, "OCT ");
-    n[0] = set.octave < 0 ? '-' : '+';
-    n[1] = (char)('0' + (set.octave < 0 ? -set.octave : set.octave));
-    n[2] = 0;
-    cat(t, n);
-    cv_text(170, 4, &FONT_XS, t, C_GRAY);
-    t[0] = 0;
-    cat(t, "CPU ");
-    int_text((int32_t)plat_cpu_pct(), n);
-    cat(t, n);
-    cat(t, "%   XRUNS ");
-    int_text((int32_t)plat_xruns(), n);
-    cat(t, n);
-    if (rc_heavy) {
-        t[0] = 0;
-        cat(t, "TOO HEAVY FOR FM-1: MUTED, PICK ANOTHER");
-    } else if (rc_shed_count) {
-        cat(t, "   SHED ");
-        int_text((int32_t)rc_shed_count, n);
-        cat(t, n);
-    }
-    cv_text(6, 20, &FONT_XS, t, rc_heavy || plat_cpu_pct() > 85u ? RGB(255, 80, 60) : C_GRAY);
-    cv_blit(0, 124);
-    /* the level, and the keys held */
-    cv_begin(240, 40, C_BLACK);
+    /* the footer: CPU and RAM bars, the voices' lights (lit by their envelopes), cores and octave, the meter */
+    cv_begin(240, 26, K_BAR);
     {
+        uint32_t cpu = plat_cpu_pct();
+        float ram = (float)rk_fm1_status(0) / (float)rk_fm1_status(1);
         float pk = rc_audio.peak;
+        int32_t h;
+        cv_text(6, 2, &FONT_T, "CPU", cpu > 85u ? K_WARN : K_DIM);
+        vbar(6, 16, 44, 3, (float)cpu / 100.0f, cpu > 85u ? K_WARN : cpu > 70u ? K_GOLD : K_OK);
+        cv_text(56, 2, &FONT_T, "RAM", K_DIM);
+        vbar(56, 16, 44, 3, ram, ram > 0.95f ? K_GOLD : K_OK);
+        for (i = 0; i < RC_MAXV; i++) {
+            int on = i < rc_patch.voices_now && i < rk_fm1_status(2);
+            float e = on ? rk_voice_env(i) : 0.0f;
+            uint32_t a = (uint32_t)(38.0f + 218.0f * (e > 1.0f ? 1.0f : e));
+            rrect(108 + i * 8, 9, 6, 8, on ? mix565(K_OK, K_OFF, a) : K_OFF, 1);
+        }
+        t[0] = 0;
+        if (rc_heavy)
+            cat(t, "HEAVY");
+        else if (rc_shed_count) {
+            cat(t, "SHED ");
+            int_text((int32_t)rc_shed_count, n);
+            cat(t, n);
+        } else {
+            cat(t, plat_cpu2_on() ? "2C " : plat_cpu2_gave_up() ? "1C* " : "1C ");
+            cat(t, MODE_NAME[rc_patch.mode < 5 ? rc_patch.mode : 0]);
+        }
+        cv_text(160, 2, &FONT_T, t, rc_heavy ? K_WARN : rc_shed_count ? K_GOLD : K_DIM);
+        t[0] = 'O';
+        t[1] = 'C';
+        t[2] = 'T';
+        t[3] = set.octave < 0 ? '-' : '+';
+        t[4] = (char)('0' + (set.octave < 0 ? -set.octave : set.octave));
+        t[5] = 0;
+        cv_text(160, 13, &FONT_T, t, ui.keys ? K_OK : K_DIM);
         rc_audio.peak = 0.0f;
-        bar(6, 4, 228, pk > 1.0f ? 1.0f : pk, pk >= 1.0f ? RGB(255, 80, 60) : C_HI);
+        pk = pk > 1.0f ? 1.0f : pk * 1.3f > 1.0f ? 1.0f : pk * 1.3f;
+        h = (int32_t)(18.0f * pk + 0.5f);
+        cv_rect(228, 4, 6, 18, K_FAINT);
+        cv_rect(228, 22 - h, 6, h, pk > 0.9f ? K_WARN : K_OK);
     }
-    for (i = 0; i < NKEYS; i++)
-        cv_rect(6 + i * 8, 16, 7, 14, ui.keys >> i & 1u ? C_HI : C_LINE);
-    cv_blit(0, 164);
-    /* the footer */
-    cv_begin(240, 36, C_BLACK);
-    cv_text(6, 4, &FONT_XS, "PRESET: SOUND  ALGO: TYPE  K1-4: MACROS", C_DIM);
-    cv_text(6, 18, &FONT_XS, "SELECT: VOICES  HOME: NOTES OFF  SAVE", C_DIM);
-    cv_blit(0, 204);
+    cv_blit(0, 214);
 }
 
 void app_ui_init(void)
 {
     touch_on(1);
-    lcd_fill(0, 0, 240, 240, C_BLACK);
+    lcd_fill(0, 0, 240, 240, K_BG);
     ui.shown = rc_patch.index;
     ui.redraw = 1;
 }

@@ -35,6 +35,8 @@ void rk_render(int n);
 float *rk_out_l(void);
 float *rk_out_r(void);
 int rk_fm1_status(int what);
+void rk_fm1_fit(void);
+float rk_voice_env(int i);
 void rk_set_worker(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void));
 uint32_t rk_worker_blocks(void);
 
@@ -110,6 +112,7 @@ static void rc_load(int k)
         rc_run(PRESET_OPS + p->at, p->len);
     for (s = 0; s < RS_N; s++)               /* each module's ranges (slots 6-8: the slot's own) */
         rc_meta(s, s >= RS_AMP ? 100 + s : rc_patch.mod[s]);
+    rk_fm1_fit();                            /* the big buffers sized to this preset: the room left goes to voices */
     rc_patch.mode = p->mode;
     rc_patch.voices = p->mode == RVM_MONO || p->mode == RVM_LEGATO ? 1 : p->voices < 1 ? 1 : p->voices > RC_MAXV ? RC_MAXV : p->voices;
     rk_set_voices(rc_patch.voices);
@@ -233,6 +236,11 @@ static struct {
     volatile int pause_req, paused;           /* paused: the interrupt saw the request (shown, not needed) */
 } rc_audio;
 static float rc_buf_l[1025], rc_buf_r[1025];  /* position 0: the last frame; then this block's */
+/* the screen's scope: the last 1024 output frames (mono, 16-bit), written by the audio interrupt, read by the main
+ * loop (a frame torn between the two only draws one wrong pixel) */
+#define RC_SCOPE_N 1024u
+static int16_t rc_scope[RC_SCOPE_N];
+static volatile uint32_t rc_scope_w;
 
 /* n output frames at the codec's rate into lr (stereo, interleaved), gain: full scale (24-bit) times MASTER */
 static void rc_render(int32_t *lr, uint32_t n, float gain)
@@ -276,7 +284,9 @@ static void rc_render(int32_t *lr, uint32_t n, float gain)
         b = b > 1.0f ? 1.0f : b < -1.0f ? -1.0f : b;
         lr[2u * i] = (int32_t)(a * gain);
         lr[2u * i + 1u] = (int32_t)(b * gain);
+        rc_scope[(rc_scope_w + i) & (RC_SCOPE_N - 1u)] = (int16_t)((a + b) * 16383.0f);
     }
+    rc_scope_w += n;
     rc_audio.hist_l = rc_buf_l[m];
     rc_audio.hist_r = rc_buf_r[m];
     rc_audio.t = pos_end - (float)m;

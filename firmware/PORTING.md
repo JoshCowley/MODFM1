@@ -91,7 +91,7 @@ In order. Don't start a step until the one before passes its check. The develope
 
 | Question | Why it matters | Where it goes |
 |---|---|---|
-| Free RAM for the app (Felucca's map gives POOL 352 KB; how much of it the screen needs) | Sets `RACK_ARENA_KB` and the page's FREE RAM setting | build flags, `web/src/1-data.js` RAM_OPTS |
+| Free RAM for the app (Felucca's map gives POOL 352 KB; how much of it the screen needs). **Now: arena 308 KB; the big buffers sized per preset (fm1_fit) and Rings' strings 16-bit: see fm1/rack/README.md** | Sets `RACK_ARENA_KB` and the page's FREE RAM setting | build flags, `web/src/1-data.js` RAM_OPTS |
 | Can the codec run at 48 kHz? (Felucca runs it at 44.1 kHz) | The engine is 48 kHz: resample, or move the engine | `hw/fm1_app.cc` (`fm1_app_init`) |
 | Audio block size and the time budget per block | CPU limit | page CPU_OPTS, voice limits |
 | ~~Does the core run the `fprev1` float instructions?~~ **Yes** (fm1/bench, 3 Nov 2026) | Float modules need it | `fm1/bench` |
@@ -125,3 +125,10 @@ In order. Don't start a step until the one before passes its check. The develope
 
 See the guide's Testing and Releasing sections: desktop regression (`node firmware/tests/run_tests.mjs`), audio
 capture against the desktop render, clock jitter, power-loss save, a recovery drill, GPL-3.0 source with every build.
+
+## Flash, November 2026
+
+FM1 Rack (Lite) with the second core, the compact buffers and the new screen: **572 KB of the 568 KB app area's
+581,632 bytes, about 9 KB left.** Porting the editing pages will need room: fm1-base's `boot_pack` (about 9 KB back on a
+large app), the engine's units at -Os instead of -O2 (to measure: it costs CPU), or dropping unused Braids or Plaits
+models.

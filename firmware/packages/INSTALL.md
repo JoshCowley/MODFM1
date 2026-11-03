@@ -7,13 +7,13 @@ build check passed, the three JieLi SDK files matched fm1-base's reference hashe
 | File | What | Identity |
 |---|---|---|
 | `packages/fm1bench.fwsc` | The benchmark: FPU check + 116 timed cases (105, then 11 on two cores). Silent. **Install first.** | FM-1_7700 |
-| `packages/fm1rack.fwsc` | FM1 Rack Lite, first stage: 57 presets, keys + MIDI, macros on K1-K4. Rebuilt 3 Nov after the benchmark: the second core renders half the voices (up to 6 to start on two cores, 4 on one); a lighter engine; a preset too heavy even at 1 voice is muted with a message | FM-1_7800 |
+| `packages/fm1rack.fwsc` | FM1 Rack Lite, first stage: 57 presets, keys + MIDI, macros on K1-K4. Rebuilt 3 Nov after the benchmark: the second core renders half the voices (up to 6 to start on two cores, 4 on one); a lighter engine; the big buffers sized to each preset and Rings' strings in 16-bit (more voices for the delay, reverb and Rings presets); the page's graphics on the screen; a preset too heavy even at 1 voice is muted with a message | FM-1_7800 |
 
 SHA-256 (also in `packages/SHA256SUMS`):
 
 ```
-4e9d0c01766231606212a09eac19c01db1409eff06719296ad55df8f77ce1d3e  fm1bench.fwsc
-3da504c24869e73e4eb2138d7d253b7a38906d38351b7bd894608286c1ee6861  fm1rack.fwsc
+e013585a27c75219e8011ebf762be21dbdd2ab08bea2e7f7ec53f937750a3f96  fm1bench.fwsc
+f53cf6477e5a1e76887f95ef05d2c0c8aa4a6fe6587b4fc7de7252e2d0078d65  fm1rack.fwsc
 ```
 
 ## Step 0: the recovery round trip (once, before anything here)

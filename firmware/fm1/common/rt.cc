@@ -10,9 +10,12 @@ extern "C" {
 }
 
 extern "C" {
-// static objects with destructors register them; nothing is ever destroyed in a firmware
+// static objects with destructors register them; nothing is ever destroyed in a firmware (fm1-base's host
+// simulator links the computer's C++ runtime, which has these)
+#ifndef PLAT_HOST
 void *__dso_handle = 0;
 int __cxa_atexit(void (*)(void *), void *, void *) { return 0; }
+#endif
 // a pure virtual function called: never, in the modules
 void __cxa_pure_virtual(void) { for (;;) { } }
 

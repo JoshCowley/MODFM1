@@ -44,6 +44,7 @@ static void play_engine(int k, int full, float *out)
         run_full(FULL[0].ops, FULL[0].n);
         if (k > 0)
             run_full(FULL[k].ops, FULL[k].n);
+        rk_fm1_fit();                          /* as rc_load does after the preset's calls */
         rk_set_voices(PRESETS[k].mode == RVM_MONO || PRESETS[k].mode == RVM_LEGATO ? 1 : PRESETS[k].voices > RC_MAXV ? RC_MAXV : PRESETS[k].voices);
     } else {
         rc_load(k);

@@ -187,6 +187,8 @@ static int delay_max_ = DLEN - 1, delay_q16_ = 0;   // the browser's FM-1 previe
 #endif
 static inline float q16(float x) { x *= 0.5f; x = x > 1.0f ? 1.0f : x < -1.0f ? -1.0f : x; return (float)(int)(x * 32767.0f + (x >= 0 ? 0.5f : -0.5f)) * (2.0f / 32767.0f); }   // as the FM-1 build's 16-bit lines
 static int delay_w_ = 0;
+static int dlen_ = DLEN;           // the delay line's length (fm1_fit: what the patch needs, on the FM-1)
+static int pre_mask_ = 8191;       // the reverb's pre-delay lines: a power of two, less one (fm1_fit)
 #ifdef RACK_FM1
 static dsamp_t *chorus_l_, *chorus_r_;
 #else
@@ -356,7 +358,13 @@ static void reset_voice_modules(int slot) {
       if (mod_id_[S_SRC] == M_ELEMENTS) { elements_[i].Init(elements_rev_[i]); }
 #endif
     } else if (slot == S_SHP) {
+#ifdef RACK_FM1
+      // no reverb buffer when the patch can't reach STR+VERB (fm1_fit): Rings' reverb is then never run (the shim's
+      // fx_engine.h leaves a null buffer alone), and render_voice keeps the model off STR+VERB
+      if (mod_id_[S_SHP] == M_RINGS) { rings_[i].Init(rings_rev_ ? rings_rev_[i] : nullptr); rings_[i].set_polyphony(1); }
+#else
       if (mod_id_[S_SHP] == M_RINGS) { rings_[i].Init(rings_rev_[i]); rings_[i].set_polyphony(1); }
+#endif
 #ifndef RACK_LITE
       if (mod_id_[S_SHP] == M_WARPS) warps_[i].Init(96000.0f);
 #endif
@@ -372,8 +380,8 @@ static void init_fx(int id) {
     clouds_.set_num_channels(2); clouds_.set_low_fidelity(false); clouds_quality_ = 0;
   }
 #endif
-  if (id == M_REVERB) { reverb_.Init(reverb_buf_); memset(shim_buf_, 0, 4096 * 2); memset(pre_buf_l_, 0, 8192 * 2); memset(pre_buf_r_, 0, 8192 * 2); shim_fb_ = 0; }
-  if (id == M_DELAY) { memset(delay_l_, 0, DLEN * sizeof(dsamp_t)); memset(delay_r_, 0, DLEN * sizeof(dsamp_t)); }
+  if (id == M_REVERB) { reverb_.Init(reverb_buf_); if (shim_buf_) memset(shim_buf_, 0, 4096 * 2); memset(pre_buf_l_, 0, (pre_mask_ + 1) * 2); memset(pre_buf_r_, 0, (pre_mask_ + 1) * 2); shim_fb_ = 0; }
+  if (id == M_DELAY) { memset(delay_l_, 0, dlen_ * sizeof(dsamp_t)); memset(delay_r_, 0, dlen_ * sizeof(dsamp_t)); }
   if (id == M_CHORUS) { memset(chorus_l_, 0, 4096 * sizeof(dsamp_t)); memset(chorus_r_, 0, 4096 * sizeof(dsamp_t)); }
 }
 
@@ -391,6 +399,13 @@ static uint8_t arena_[RACK_ARENA_KB * 1024] RACK_ARENA_ATTR __attribute__((align
 static int req_[NSLOT];           // what the patch asks for
 static int want_voices_ = 2, dropped_ = 0;
 static size_t arena_used_ = 0;
+// What the patch needs of the big buffers (fm1_fit; until then, the full sizes): the delay line's length, the reverb's
+// pre-delay lines (a power of two), the shimmer's line, Rings' reverb (STR+VERB only). A parameter that a matrix row
+// can move counts at its full range, so nothing a patch can do outgrows its buffer.
+static int fit_dlen_ = DLEN, fit_pre_mask_ = 8191;
+static bool fit_shim_ = true, fit_rings_rev_ = true;
+static void fm1_layout();
+static void fit_reset() { fit_dlen_ = DLEN; fit_pre_mask_ = 8191; fit_shim_ = true; fit_rings_rev_ = true; }
 static size_t carve(const int* eff, int nv, bool commit) {
   size_t at = 0;
   auto take = [&](size_t n) -> uint8_t* { at = (at + 15) & ~(size_t)15; uint8_t* p = arena_ + at; at += n; return p; };
@@ -399,9 +414,10 @@ static size_t carve(const int* eff, int nv, bool commit) {
 #ifndef RACK_LITE
     if (id == M_CLOUDS) { uint8_t* a = take(CL_LARGE); uint8_t* b = take(CL_SMALL); if (commit) { clouds_large_ = a; clouds_small_ = b; } }
 #endif
-    if (id == M_REVERB) { uint8_t* a = take(32768); uint8_t* b = take(8192); uint8_t* c = take(16384); uint8_t* d = take(16384);
-                          if (commit) { reverb_buf_ = (uint16_t*)a; shim_buf_ = (int16_t*)b; pre_buf_l_ = (int16_t*)c; pre_buf_r_ = (int16_t*)d; } }
-    if (id == M_DELAY) { uint8_t* a = take(DLEN * 2); uint8_t* b = take(DLEN * 2); if (commit) { delay_l_ = (int16_t*)a; delay_r_ = (int16_t*)b; } }
+    if (id == M_REVERB) { uint8_t* a = take(32768); uint8_t* b = fit_shim_ ? take(8192) : nullptr;
+                          size_t pl = (size_t)(fit_pre_mask_ + 1) * 2; uint8_t* c = take(pl); uint8_t* d = take(pl);
+                          if (commit) { reverb_buf_ = (uint16_t*)a; shim_buf_ = (int16_t*)b; pre_buf_l_ = (int16_t*)c; pre_buf_r_ = (int16_t*)d; pre_mask_ = fit_pre_mask_; } }
+    if (id == M_DELAY) { uint8_t* a = take(fit_dlen_ * 2); uint8_t* b = take(fit_dlen_ * 2); if (commit) { delay_l_ = (int16_t*)a; delay_r_ = (int16_t*)b; dlen_ = fit_dlen_; delay_max_ = fit_dlen_ - 128; } }
     if (id == M_CHORUS) { uint8_t* a = take(8192); uint8_t* b = take(8192); if (commit) { chorus_l_ = (int16_t*)a; chorus_r_ = (int16_t*)b; } }
   }
   if (nv > 0) {
@@ -410,7 +426,7 @@ static size_t carve(const int* eff, int nv, bool commit) {
 #ifndef RACK_LITE
     if (eff[S_SRC] == M_ELEMENTS) { uint8_t* a = take(nv * sizeof(elements::Part)); uint8_t* b = take(nv * 65536); if (commit) { elements_ = (elements::Part*)a; elements_rev_ = (uint16_t (*)[32768])b; } }
 #endif
-    if (eff[S_SHP] == M_RINGS) { uint8_t* a = take(nv * sizeof(rings::Part)); uint8_t* b = take(nv * 65536); if (commit) { rings_ = (rings::Part*)a; rings_rev_ = (uint16_t (*)[32768])b; } }
+    if (eff[S_SHP] == M_RINGS) { uint8_t* a = take(nv * sizeof(rings::Part)); uint8_t* b = fit_rings_rev_ ? take(nv * 65536) : nullptr; if (commit) { rings_ = (rings::Part*)a; rings_rev_ = (uint16_t (*)[32768])b; } }
 #ifndef RACK_LITE
     if (eff[S_SHP] == M_WARPS) { uint8_t* a = take(nv * sizeof(warps::Modulator)); if (commit) warps_ = (warps::Modulator*)a; }
 #endif
@@ -447,6 +463,39 @@ static void fm1_layout() {
   int n = want_voices_ < nalloc_ ? want_voices_ : nalloc_; if (n < 1) n = 1;
   for (int i = n; i < MAXV; ++i) { vs_[i].gate = false; vs_[i].active = false; vs_[i].stage = 0; vs_[i].env = 0; }
   nvoices_ = n;
+}
+// After a patch has loaded (its modules, parameters and routes): size the big buffers to what it can use and lay the
+// arena out again, so the room left goes to voices. The sound is the same, sample for sample, as with the full sizes.
+static bool routed(int slot, int param) { return (routed_[slot + 1] >> param & 1u) != 0; }
+EXPORT void fm1_fit() {
+  static const float beats[] = { 0.25f, 0.5f, 0.75f, 1.0f, 2.0f, 1.0f / 3.0f, 2.0f / 3.0f, 1.5f, 3.0f };
+  int dl = 0, pre = 0; bool shim = false, rrev = false;
+  for (int s = S_FX1; s <= S_FX2; ++s) {
+    if (req_[s] == M_DELAY) {
+      int need;
+      if (routed(s, 0) || routed(s, 9) || routed(s, 10) || routed(S_GLO, 0)) need = DLEN;   // its time can move
+      else {
+        float bpm = base_[S_GLO][0] > 1.0f ? base_[S_GLO][0] : 112.0f;
+        int ti = PI(s, 0, 0); ti = ti < 0 ? 0 : ti > 8 ? 8 : ti;
+        int samples = PI(s, 9, 0) == 1 ? (int)(0.01f * powf(200.0f, P(s, 10, 0)) * SR) : (int)(beats[ti] * 60.0f / bpm * SR);
+        need = samples + 128 + 1;            // + TAPE's wow, as the 1 s line keeps
+        if (need > DLEN) need = DLEN;
+        if (need < 4096) need = 4096;
+      }
+      if (need > dl) dl = need;
+    }
+    if (req_[s] == M_REVERB) {
+      int p = routed(s, 5) ? 8191 : (int)(P(s, 5, 0) * 0.15f * SR); if (p > 7999) p = 7999;
+      if (p > pre) pre = p;
+      if (routed(s, 4) || PI(s, 4, 0) == 2) shim = true;
+    }
+  }
+  if (req_[S_SHP] == M_RINGS && (routed(S_SHP, 0) || PI(S_SHP, 0, 0) == 5)) rrev = true;
+  int mask = 63; while (mask < pre) mask = mask * 2 + 1;
+  fit_dlen_ = dl ? dl : DLEN; fit_pre_mask_ = mask; fit_shim_ = shim; fit_rings_rev_ = rrev;
+  if (delay_w_ >= fit_dlen_) delay_w_ = 0;
+  pre_w_ &= mask;
+  fm1_layout();
 }
 // what the platform layer shows: 0 arena bytes used, 1 arena size, 2 voices that fit, 3 voices playing,
 // 4 unloaded slots (bit per slot: 0 SRC, 1 SHP, 4 FX1, 5 FX2)
@@ -525,6 +574,9 @@ EXPORT void note_off(float note) {
 EXPORT void all_off() { for (int i = 0; i < MAXV; ++i) { vs_[i].gate = false; if (vs_[i].stage) vs_[i].stage = 4; } any_gate_ = false; }
 
 EXPORT void init() {
+#ifdef RACK_FM1
+  fit_reset();
+#endif
   memset(base_, 0, sizeof(base_));
   for (int s = 0; s < NSLOT; ++s) for (int p = 0; p < NP; ++p) { lo_[s][p] = -1e9f; hi_[s][p] = 1e9f; span_[s][p] = 1.0f; }
   for (int i = 0; i < MAXV; ++i) { memset(&vs_[i], 0, sizeof(VoiceState)); svf_[i].Init(); svf2_[i].Init(); card_[i] = randf() * 2.0f - 1.0f; vdrift_[i] = 0.0f; }
@@ -900,7 +952,11 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
   int shp = mod_id_[S_SHP];
   if (shp == M_RINGS) {
     rings::Part& r = rings_[i];
-    r.set_model((rings::ResonatorModel)PI(S_SHP, 0, &v));
+    int rmodel = PI(S_SHP, 0, &v);
+#ifdef RACK_FM1
+    if (rmodel == 5 && !rings_rev_) rmodel = 2;   // STR+VERB without its buffer (fm1_fit found it unreachable): STRING
+#endif
+    r.set_model((rings::ResonatorModel)rmodel);
     rings::Patch rp; rp.structure = P(S_SHP, 1, &v); rp.brightness = P(S_SHP, 2, &v);
     rp.damping = P(S_SHP, 3, &v); rp.position = P(S_SHP, 4, &v);
     rings::PerformanceState ps;
@@ -1137,13 +1193,13 @@ static void run_fx(int slot, float* l, float* r) {
     int pre = (int)(P(slot, 5, 0) * 0.15f * SR); if (pre > 7999) pre = 7999;
     float lc = P(slot, 7, 0), width = P(slot, 8, 0), duck = P(slot, 9, 0);
     float lcc = lc > 0.0f ? 1.0f - expf(-6.2831853f * (20.0f + lc * lc * 980.0f) / SR) : 0.0f;
-    float shim = type == 2 ? P(slot, 6, 0) : 0.0f;
+    float shim = type == 2 && shim_buf_ ? P(slot, 6, 0) : 0.0f;
     clouds::FloatFrame fr[BLOCK];
     float dry_l[BLOCK], dry_r[BLOCK];
     for (int n = 0; n < BLOCK; ++n) {
       dry_l[n] = l[n]; dry_r[n] = r[n];
       pre_buf_l_[pre_w_] = (int16_t)(clampf(l[n], -1.0f, 1.0f) * 32767.0f); pre_buf_r_[pre_w_] = (int16_t)(clampf(r[n], -1.0f, 1.0f) * 32767.0f);
-      int rd = (pre_w_ - pre) & 8191; pre_w_ = (pre_w_ + 1) & 8191;
+      int rd = (pre_w_ - pre) & pre_mask_; pre_w_ = (pre_w_ + 1) & pre_mask_;
       float in_l = pre_buf_l_[rd] / 32768.0f, in_r = pre_buf_r_[rd] / 32768.0f;
       if (lc > 0.0f) { rv_lc_l_ += (in_l - rv_lc_l_) * lcc; rv_lc_r_ += (in_r - rv_lc_r_) * lcc; in_l -= rv_lc_l_; in_r -= rv_lc_r_; }   // LO CUT: thin the tail
       if (shim > 0.0f) {         // the tail, an octave up, back into the tank
@@ -1186,8 +1242,8 @@ static void run_fx(int slot, float* l, float* r) {
         tape_ph2_ += 6.3f / SR; if (tape_ph2_ >= 1.0f) tape_ph2_ -= 1.0f;
         dsamp += wow * (sinf(tape_ph1_ * 6.2831853f) * 90.0f + sinf(tape_ph2_ * 6.2831853f) * 6.0f);
       }
-      float pos = delay_w_ - dsamp; while (pos < 0) pos += (float)DLEN;
-      int i0 = (int)pos; float fr2 = pos - i0; int i1 = (i0 + 1) % DLEN; i0 %= DLEN;
+      float pos = delay_w_ - dsamp; while (pos < 0) pos += (float)dlen_;
+      int i0 = (int)pos; float fr2 = pos - i0; int i1 = (i0 + 1) % dlen_; i0 %= dlen_;
       float dl = DG(delay_l_[i0]) * (1 - fr2) + DG(delay_l_[i1]) * fr2, dr = DG(delay_r_[i0]) * (1 - fr2) + DG(delay_r_[i1]) * fr2;
       delay_tone_l_ += (dl - delay_tone_l_) * lp; delay_tone_r_ += (dr - delay_tone_r_) * lp;
       if (lc > 0.0f) { dl_lc_l_ += (delay_tone_l_ - dl_lc_l_) * lcc; dl_lc_r_ += (delay_tone_r_ - dl_lc_r_) * lcc; delay_tone_l_ -= dl_lc_l_; delay_tone_r_ -= dl_lc_r_; }
@@ -1203,7 +1259,7 @@ static void run_fx(int slot, float* l, float* r) {
 #ifndef RACK_FM1
       if (delay_q16_) { delay_l_[delay_w_] = q16(delay_l_[delay_w_]); delay_r_[delay_w_] = q16(delay_r_[delay_w_]); }
 #endif
-      delay_w_ = (delay_w_ + 1) % DLEN;
+      delay_w_ = (delay_w_ + 1) % dlen_;
       float wl = delay_tone_l_, wr = delay_tone_r_, wm = mix;
       if (width != 0.0f) { float m = (wl + wr) * 0.5f, sd = (wl - wr) * 0.5f * (1.0f + width); wl = m + sd; wr = m - sd; }
       if (duck > 0.0f) { float x = fmaxf(fabsf(l[n]), fabsf(r[n])); dl_duck_ += (x - dl_duck_) * (x > dl_duck_ ? 0.01f : 0.0002f); wm *= 1.0f - duck * clampf(dl_duck_ * 3.0f, 0.0f, 1.0f); }

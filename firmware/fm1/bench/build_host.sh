@@ -9,7 +9,7 @@ ENG=../../../engine
 OUT=build/host
 mkdir -p $OUT
 ARENA=$(sed -n 's/.*-DRACK_ARENA_KB=\([0-9]*\).*/\1/p' fm1.toml)
-CXX="${CXX:-c++} -O2 -ffp-contract=off -fno-exceptions -fno-rtti -std=gnu++11 -w -DTEST -DRACK_FM1 -DRACK_LITE -DRACK_ARENA_KB=$ARENA -I$ENG/shim -I$EURORACK"
+CXX="${CXX:-c++} -O2 -ffp-contract=off -fno-exceptions -fno-rtti -std=gnu++11 -w -DTEST -DRACK_FM1 -DRACK_LITE -DRACK_ARENA_KB=$ARENA -DRACK_RINGS16 -I$ENG/shim -I$EURORACK"
 for src in $(grep -vE '^(elements|warps|clouds|marbles)/' $ENG/sources.txt) ; do
   o="$OUT/$(echo "$src" | sed 's#/#_#g; s#\.cc$##').o"
   [ -f "$o" ] || { echo "c++ $src"; $CXX -c "$EURORACK/$src" -o "$o"; }
