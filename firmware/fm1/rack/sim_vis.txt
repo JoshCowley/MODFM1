@@ -1,0 +1,34 @@
+wait 400
+tap FX
+turn ALGO -2
+wait 50
+shot picker.png
+tap FX
+wait 300
+key w9 down 110
+wait 120
+key w9 up
+wait 400
+shot delay.png
+tap FX
+turn ALGO 2
+tap FX
+wait 300
+key w7 down 110
+wait 500
+shot reverb.png
+key w7 up
+tap LFO
+turn ALGO 3
+tap LFO
+wait 1500
+shot grids.png
+tap SAVE
+press OCT+
+release OCT+
+wait 50
+shot lib.png
+tap HOME
+tap HOME
+wait 300
+shot home.png

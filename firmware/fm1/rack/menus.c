@@ -10,9 +10,10 @@
  * slot's button again to load the module shown; HOME closes it). On AMP and the LFOs the same; the LFOs' last three
  * pages are each LFO's two direct targets (K1 / K3 a destination, K2 / K4 its amount). On the matrix: SELECT the
  * row, K1 source, K2 destination, K3 amount, K4 via. Parameters and modules come from ui_defs.h (make_ui.py, from
- * the page's own definitions). Still to come from the page: GLOBAL, SEL (scale and chords), ARP, the sequencer,
- * MSEQ, TOOLS and SAVE / the library. */
+ * the page's own definitions). SAVE and the library: save.c; the wells: vis.c. Still to come from the page: GLOBAL,
+ * SEL (scale and chords), ARP, the sequencer, MSEQ and TOOLS. */
 #include "ui_defs.h"
+static void entry_name(int e, char *t);
 
 enum { PG_HOME, PG_RACK, PG_SRC, PG_SHP, PG_MODA, PG_MODB, PG_FX1, PG_FX2, PG_AMP, PG_LFO, PG_MATRIX };
 #define K_AMP RGB(255, 122, 107)
@@ -216,12 +217,7 @@ static void header(const char *tag, uint16_t c, const char *title, int ic, int p
     w = text_w(&FONT_T, tag) + 8;
     rrect(22, 6, w, 15, c, 3);
     cv_text(26, 7, &FONT_T, tag, K_BG);
-    if (plat_ms() < ui.msg_until) {
-        int32_t e = cv_text(28 + w, 5, &FONT_B, ui.msg[0], K_FG);
-        cv_text(e + 6, 5, &FONT_B, ui.msg[1], K_GOLD);
-    } else {
-        cv_text(28 + w, 5, &FONT_B, title, K_FG);
-    }
+    cv_text(28 + w, 5, &FONT_B, title, K_FG);
     for (i = 0; i < pages && pages > 1; i++) {
         int32_t x = 232 - (pages - 1 - i) * 9, r = i == sub ? 3 : 2;
         rrect(x - r, 13 - r, 2 * r + 1, 2 * r + 1, i == sub ? K_FG : K_DIM, r);
@@ -250,20 +246,17 @@ static void adsr(int32_t w, int32_t h, uint16_t c)
     (void)w;
 }
 
+#include "vis.c"
+
 static void well(int pg, const ui_mod_t *m, uint16_t c)
 {
-    int32_t x, i;
+    int32_t x, i, slot = page_slot(pg);
     cv_begin(228, 42, K_BG);
     rrect(0, 0, 228, 42, K_WELL, 4);
     for (x = 12; x < 228; x += 12)
         for (i = 6; i < 42; i += 6)
             cv_pset(x, i, K_GRID);
-    if (pg == PG_AMP && mn.sub == 0) {
-        adsr(228, 42, c);
-    } else {
-        cv_rect(4, 21, 220, 1, K_MID);
-        scope(228, 42, mix565(c, K_WELL, 150));
-    }
+    vis_draw(slot, slot >= 0 && slot < 6 ? rc_patch.mod[slot] : 0, mn.sub, c);
     if (m)
         cv_text(220 - text_w(&FONT_T, m->blurb), 2, &FONT_T, m->blurb, K_DIM);
     cv_blit(6, 28);
@@ -383,7 +376,7 @@ static void draw_param_page(int pg)
     } else {
         cat(title, m->name);
     }
-    header(SLOT_TAG[slot], c, title, pg == PG_AMP ? IC_AMP : pg == PG_LFO ? IC_TIDES : module_icon(m->id), npages(pg), mn.sub);
+    header(SLOT_TAG[slot], c, title, pg == PG_AMP ? IC_AMP : pg == PG_LFO ? IC_LFO : module_icon(m->id), npages(pg), mn.sub);
     well(pg, pg == PG_AMP || pg == PG_LFO ? 0 : m, c);
     if (pg == PG_LFO && mn.sub >= m->npages) {
         draw_lfo_targets(mn.sub - m->npages);
@@ -455,7 +448,7 @@ static void draw_matrix(void)
     cat(t, "ROW ");
     int_text(mn.row + 1, t + 4);
     cat(t, "/12");
-    header("MATRIX", K_MX, t, IC_GRIDS, 1, 0);
+    header("MATRIX", K_MX, t, IC_MATRIX, 1, 0);
     cv_begin(240, 16, K_BG);
     cv_text(8, 2, &FONT_T, "SOURCE", K_DIM);
     cv_text(72, 2, &FONT_T, "DESTINATION", K_DIM);
@@ -501,11 +494,11 @@ static void rack_tile(int32_t x, const char *tag, int slot, uint16_t c, const ch
 
 static void draw_rack(void)
 {
-    const rk_preset_t *p = &PRESETS[rc_patch.index < 0 ? 0 : rc_patch.index];
-    char t[16];
+    char t[24];
     int i, routes = 0, src, via;
     float amt;
-    header("RACK", K_FG, p->name, IC_GRIDS, 1, 0);
+    entry_name(cur_entry, t);
+    header("RACK", K_FG, t, IC_RACK, 1, 0);
     for (i = 0; i < 12; i++)
         if (route_dst(i, &src, &via, &amt))
             routes++;
@@ -527,7 +520,7 @@ static void draw_rack(void)
     cv_begin(240, 40, K_BG);
     rack_tile(6, "FX 1", RS_FX1, K_FX, 0, 0);
     rack_tile(84, "FX 2", RS_FX2, K_FX, 0, 0);
-    rack_tile(162, "OUT", -1, K_OK, "MASTER", IC_DELAY);
+    rack_tile(162, "OUT", -1, K_OK, "MASTER", IC_OUT);
     cv_blit(0, 100);
     cv_begin(240, 14, K_BG);
     cv_text(8, 0, &FONT_T, "MODULATION", K_DIM);
@@ -538,7 +531,7 @@ static void draw_rack(void)
     cat(t, " ROUTES");
     rack_tile(6, "MOD A", RS_MODA, K_MOD, 0, 0);
     rack_tile(84, "MOD B", RS_MODB, K_MOD, 0, 0);
-    rack_tile(162, "MATRIX", -1, K_MX, t, IC_GRIDS);
+    rack_tile(162, "MATRIX", -1, K_MX, t, IC_MATRIX);
     cv_blit(0, 156);
     help("EDIT ENV LFO FX ARP: PAGES   HOME: BACK");
 }
@@ -695,16 +688,14 @@ static int menu_input(uint32_t press)
         int slot = page_slot(mn.page), n, i;
         const uint8_t *ch;
         choices(slot, &ch, &n);
-        if (!mn.pick) {
+        if (!mn.pick) {                       /* the picker opens on the module loaded, and the turn moves it (the page's) */
             mn.pick = 1;
             mn.pick_ix = 0;
             for (i = 0; i < n; i++)
                 if (ch[i] == rc_patch.mod[slot])
                     mn.pick_ix = i;
-        } else {
-            mn.pick_ix += e > 0 ? 1 : -1;
-            mn.pick_ix = mn.pick_ix < 0 ? 0 : mn.pick_ix >= n ? n - 1 : mn.pick_ix;
         }
+        mn.pick_ix = (mn.pick_ix + (e > 0 ? 1 : -1) + n) % n;   /* round: from EMPTY, one more is the first */
         ui.redraw = 1;
     }
     for (k = 0; k < 4; k++)

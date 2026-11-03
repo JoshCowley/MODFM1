@@ -18,8 +18,10 @@ void app_overload(void);
 #define APP_CANVAS_PX (240u * 40u)
 
 /* the store: the settings (preset, octave, voices), the panel calibration (the platform's), Bluetooth's (unused) */
-enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_BLE, OBJ_NOBJ };
-#define APP_STORE_MAP {0xFC000u, 0xDC000u, 0xDE000u}
+/* and the 64 user presets, 8 to an object (save.c): 8 A/B sector pairs in the data area, 0xC8000-0xD7FFF */
+enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_BLE, OBJ_USER0, OBJ_NOBJ = OBJ_USER0 + 8 };
+#define APP_STORE_MAP {0xFC000u, 0xDC000u, 0xDE000u, 0xC8000u, 0xCA000u, 0xCC000u, 0xCE000u, 0xD0000u, 0xD2000u, \
+                       0xD4000u, 0xD6000u}
 
 /* the contract: the platform calls these */
 void app_init(void);

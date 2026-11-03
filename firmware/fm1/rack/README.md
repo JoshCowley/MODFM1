@@ -9,7 +9,7 @@ engine in the audio interrupt, and the benchmark is what tells us that's afforda
 The 57 factory presets that use only Lite modules (Plaits, Braids, Rings, filter, Tides, Peaks, Grids, delay,
 reverb, chorus), played from the keys (with velocity) and from USB or TRS MIDI.
 
-Stage 1 of the menus (sound editing) is in: the page's own pages, buttons and knobs (`menus.c`; the parameters
+Stages 1 and 2 of the menus (sound editing; save and the library) are in: the page's own pages, buttons and knobs (`menus.c`; the parameters
 come from the page's definitions through `make_ui.py` -> `ui_defs.h`).
 
 | Button (printed) | Page |
@@ -20,22 +20,44 @@ come from the page's definitions through `make_ui.py` -> `ui_defs.h`).
 | LFO | MOD A, MOD B, then the three LFOs (and each LFO's two direct targets) |
 | FX | FX 1, then FX 2 |
 | ARP | the 12-row matrix |
-| SAVE | remember the preset, octave and voices for the next power-on (user presets: stage 2) |
-| SEL, GLO, SEQ, PLAY, REC | not yet: "NEXT STAGE OF THE PORT" |
+| SAVE | the SAVE page: name, slot and category; SAVE again stores it (and it comes back at power-on). OCT+ the library |
+| SEL, GLO, SEQ, PLAY, REC | not yet (stages 3 and 4): "NEXT STAGE OF THE PORT" |
 
 | Knob | Home | A module's page, AMP, LFO | Matrix |
 |---|---|---|---|
-| PRESET | presets (load when you stop turning) | the same | the same |
+| PRESET | presets, factory then user (load when you stop turning) | the same | the same |
 | ALGORITHM | category | the module picker (press the slot's button to load, HOME to close) | - |
 | SELECT | voices, 1-6 | the page within | the row |
 | K1-K4 | macros 1-4 (also MIDI CC 20-23) | the page's four parameters | source, destination, amount, via |
 | OCT- / OCT+, MASTER | octave, volume | | |
 
+**Save and the library** (`save.c`, after the page's SAVE): 64 user presets, 8 to a store object (A/B sectors,
+torn-write safe, in the data area at 0xC8000-0xD7FFF). A user preset keeps the factory preset it started from (for
+what the menus don't reach: master EQ, tuning), the six modules and their parameters, AMP, the LFOs, the 18 routes,
+the macros and the tempo, a 10-character name and a category: 422 bytes.
+
+| SAVE page | NAME + SLOT | LIBRARY (OCT+ from NAME) |
+|---|---|---|
+| SELECT | the letter (past the last: the library) | back to NAME (left) |
+| ALGORITHM, K1 | change the letter (A-Z 0-9 - # .) | the row (PRESET too) |
+| K2 / K3 / K4 | the slot / the category / the page of 16 | the tab (ALL USR BS PD LD CH FX OTH) / the action / - |
+| SAVE | store it there (renaming: keep the new name) | back to NAME |
+| OCT+ / OCT- | the library / - | do the action (LOAD, COPY, RENAME, DELETE: twice) / back |
+| HOME | close | close |
+
+**The wells move** (`vis.c`, after the page's visualisers): Plaits' wave by model (a field of dots for the noise models,
+bursts for the drums), Braids' three stepped waves by bit depth and rate, Rings' ripples on each note, the filter's
+response curve, Peaks' and Tides' outputs scrolling, Grids' three lanes with the playhead, the delay's repeats, the
+reverb's cloud, the chorus' two voices, the LFOs' shapes, AMP's envelope and the voices' levels. The well redraws about
+30 times a second, the rest ten. Messages show as the page's toast, a light box over the lower part of the screen.
+
+![Save](screen-save.png) ![Library](screen-library.png)
+
 A module's page shows the page's cells: label, value, a bar (ticks for a list), and in the slot's colour the value
 modulation has moved it to. The well shows the output (AMP's first page: its envelope). Loading a module stops the
 sound for a moment (the arena is laid out again) and says how many voices fit; an edit that needs a bigger buffer (a
 longer delay, STR+VERB, SHIMMER) fits it again when the knobs rest ("MEMORY FITTED"). Edits are not kept when the
-preset changes until stage 2 (SAVE). `sim_menus.txt` drives every page in fm1-base's host simulator
+preset changes unless saved (SAVE). `sim_menus.txt`, `sim_save.txt` and `sim_vis.txt` drive the pages in fm1-base's host simulator
 (`tools/build.py ../MODFM1/firmware/fm1/rack --host`, then `build/host/fm1rack_host sim_menus.txt OUTDIR`).
 
 ![A module's page](screen-module.png) ![The matrix](screen-matrix.png)

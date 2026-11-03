@@ -1,0 +1,85 @@
+wait 500
+key w7 down 110
+wait 150
+shot home.png
+key w7 up
+tap EDIT
+key w7 down 110
+wait 300
+shot plaits.png
+key w7 up
+turn ALGO 1
+turn ALGO 1
+tap EDIT
+wait 400
+key w5 down 100
+wait 100
+shot braids.png
+key w5 up
+tap ENV
+tap ENV
+turn ALGO 1
+turn ALGO -2
+tap ENV
+wait 500
+key w4 down 120
+wait 250
+shot rings.png
+key w4 up
+turn ALGO 1
+turn ALGO 1
+tap ENV
+wait 500
+shot filter.png
+tap LFO
+turn ALGO 1
+tap LFO
+wait 1200
+shot tides.png
+tap FX
+turn ALGO 1
+turn ALGO -1
+tap FX
+wait 400
+key w7 down 100
+wait 300
+shot delay.png
+key w7 up
+tap SAVE
+wait 100
+turn K1 13
+turn SELECT 1
+turn K1 9
+turn K3 2
+wait 100
+shot savename.png
+tap SAVE
+wait 800
+shot saved.png
+tap SAVE
+press OCT+
+release OCT+
+turn K2 1
+wait 100
+shot lib.png
+turn K2 -1
+turn K1 5
+press OCT+
+release OCT+
+wait 500
+tap SAVE
+press OCT+
+release OCT+
+turn K2 1
+turn K3 1
+press OCT+
+release OCT+
+wait 400
+shot copied.png
+tap HOME
+turn PRESET -1
+wait 600
+shot user.png
+reboot
+wait 800
+shot reboot.png
