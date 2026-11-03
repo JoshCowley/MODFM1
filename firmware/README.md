@@ -13,6 +13,8 @@ an FM-1) and steps 4 onwards (running on the board) are still to do.
 | `engine/rack.h` | The engine's C interface, for the platform layer |
 | `desktop/build.sh` | Builds the engine natively, the trace players and a pretend FM-1 board |
 | `desktop/build_wasm32.sh` | Builds the FM-1 trace player for a 32-bit target, for exact memory numbers |
+| `desktop/size_pi32v2.sh` | Compiles everything with JieLi's FM-1 compiler and reports flash and RAM per module |
+| `hw/cxx/` | The few C++ standard headers the Mutable code needs, which JieLi's toolchain doesn't have |
 | `desktop/rack_cli.cc` | Plays a trace (engine calls with times) through the engine and reports levels, memory and voices |
 | `desktop/fake_board.cc` | A pretend FM-1: drives `hw/fm1_app.cc` with 64-frame audio blocks, keys and MIDI, writes a WAV |
 | `hw/fm1_platform.h` | The seam between FM1 Rack and the board: what the app gets called with, and what the board must provide |
@@ -85,6 +87,12 @@ The tests:
 
 `tests/record_calls.mjs` re-records the traces from the page (with Playwright) when presets or the page change;
 then run `tests/make_trace.mjs`.
+
+## Flash: measured with the FM-1's own compiler
+
+`desktop/size_pi32v2.sh` compiles everything with JieLi's pi32v2 compiler (it all compiles) and links it:
+**1,093 KB of flash**, against 568 KB for Felucca's whole app. Elements alone is 384 KB. See PORTING.md for the
+breakdown and the ways down; this has to be settled before the engine goes onto the board.
 
 ## What the tests can't tell you
 

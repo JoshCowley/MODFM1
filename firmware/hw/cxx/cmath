@@ -1,0 +1,11 @@
+// Minimal <cmath> for JieLi's pi32v2 clang 4.0.1 (no C++ standard library): the C maths functions, also in std.
+#pragma once
+#include <math.h>
+namespace std {
+using ::sqrt; using ::sqrtf; using ::sin; using ::sinf; using ::cos; using ::cosf; using ::tan; using ::tanf;
+using ::exp; using ::expf; using ::log; using ::logf; using ::pow; using ::powf; using ::fabs; using ::fabsf;
+using ::floor; using ::floorf; using ::ceil; using ::ceilf; using ::fmod; using ::fmodf; using ::atan; using ::atanf;
+using ::atan2; using ::atan2f; using ::tanh; using ::tanhf; using ::log10; using ::log10f; using ::log2; using ::log2f;
+inline float abs(float x) { return fabsf(x); }
+inline double abs(double x) { return fabs(x); }
+}
