@@ -2,7 +2,20 @@
 
 A sound-design firmware design for the M-VAVE FM-1 pocket synth. You build a voice by slotting open-source eurorack modules into a fixed chain (source → shaper → amp, two modulators, two effects), patch them with a 12-row mod matrix, and play them through four macros, scale chords (SCL), a Clipper-style sequencer (SEQ, PLAY, REC: up to 64 steps, a piano roll, live and free-take recording, hold layers, parameter locks, ratchets, fills, spice and pattern generators), an arpeggiator with a Turing mode (ARP), modulation lanes, undo / morph / randomize tools, 13 tunings, a master EQ / compressor / limiter and full MIDI in and out over USB. 1.4 adds deeper editing pages on every menu: a filter with LP24, notch and peak types, its own ADSR, velocity, saturation styles and audio-rate FM; envelope delay, hold and curves; pitch envelope; LFO fade, phase, polarity and one-shot; the modules' hidden settings (Braids' AD envelope, Plaits' envelope amounts and AUX, Rings' internal exciter, Clouds' quality, Marbles' scales); and more delay, reverb and chorus controls. 1.5 adds granular controls to Clouds (tempo-synced grains, spray, pitch scatter with quantise, size scatter, scan and a wet-only tone) and lets the LFOs reach every effect parameter, switches included, with two direct targets per LFO. 1.6 reworks SEL (scale, root, chord and voicing on one page, Melodee-style QNT, and ChordStep's chord zone on the lowest keys) and adds Melodee-style pattern banks A-H, a 16-row song with transpose, jam-to-song, capture and quantize-on-take. 1.7 adds a library of 30 categorised presets (Bass, Pads, Lead, Chord, FX). 1.8 gives SAVE 64 named user slots (4 pages of 16, each with a category, stored compactly) and a second SAVE page that browses every preset by category, with load, copy, rename and delete. 1.9 adds an FM-1 hardware preview (GLOBAL > HARDWARE, on by default): each module's real memory size and measured CPU cost are checked against an assumed FM-1 budget, voices drop to what fits, patches that can't fit are flagged, and the delay is capped at 1 s in 16-bit. 1.9.1 adds `firmware/`: the engine made ready for FM-1 firmware (one memory arena, voices limited to what fits, 1 s 16-bit delay), built and tested on a computer, with the board interface and app glue; the page's FM-1 preview now matches that engine exactly. 1.9.2 adds 25 presets for electronic-music instruments (bass, leads, pads, keys, stabs, plucks, brass, textures; no drums) and FM1 Rack Lite (`build.py --lite`), the prototype of the FM-1 module set with a flash budget. This repo holds the 1.9.2 browser build, which runs the original module code compiled to WebAssembly.
 
-**Status:** plays in a browser. It has not yet been built for or run on the FM-1 hardware.
+**Status:** plays in a browser. FM-1 firmware is built and ready for its first hardware test (`firmware/packages/`), but **nothing has run on an FM-1 yet**.
+
+## Try it on an FM-1
+
+Two installable packages are in [`firmware/packages/`](firmware/packages/), with their SHA-256 sums and [step-by-step instructions](firmware/packages/INSTALL.md):
+
+| Package | What it is | Install |
+| --- | --- | --- |
+| `fm1bench.fwsc` | Test firmware: checks the FPU, then times every Lite module (105 cases). Silent. | First |
+| `fm1rack.fwsc` | FM1 Rack Lite, first stage: 57 presets from the keys and MIDI, macros on K1-K4, voice modes | Only after the benchmark shows **FPU OK** |
+
+Before installing anything, do the recovery round trip once: install Felucca with its [web installer](https://hugelton.github.io/Felucca/), then **Return to official V15**. Install over USB with fm1-base's `tools/fm1_install.py`. Untested firmware: install at your own risk.
+
+To rebuild the packages yourself: `sh firmware/tools/build_packages.sh` (fetches fm1-base, the Mutable code, JieLi's toolchain and the hash-checked SDK files; Docker on a Mac).
 
 ## Run it in your browser
 
@@ -21,7 +34,7 @@ Keys: `Z`–`/` and `Q`–`O` play notes, `-` and `=` shift the octave, `Space` 
 | `web/` | The page (`index.html`), the AudioWorklet (`worklet.js`), the engine (`rack.wasm`), the factory patches and the page sources in `src/`. Rebuild the page with `python3 build.py "<manual url>" --standalone` |
 | `engine/` | The C++ rack engine (`rack.cc`) (the same source builds the browser engine and, with `-DRACK_FM1`, the firmware-ready one) and `build.sh`, which rebuilds `rack.wasm` from scratch with clang 18 for wasm32-wasi. Set `EURORACK` to a checkout of github.com/pichenettes/eurorack |
 | `sound/` | The 12 factory patches and a Node harness that renders each one through `rack.wasm`: `node sound/harness.js` |
-| `firmware/` | The engine made ready for FM-1 firmware (`-DRACK_FM1`, and `-DRACK_LITE` for the Lite module set), a desktop build, tests over the factory presets, the board interface and app glue, the porting checklist, and `firmware/fm1/bench`: a test firmware on fm1-base that checks the FM-1's FPU and times every Lite module (you build it; not yet run on an FM-1). Not FM1 Rack firmware: see `firmware/README.md` |
+| `firmware/` | The engine made ready for FM-1 firmware (`-DRACK_FM1`, and `-DRACK_LITE` for the Lite module set), a desktop build, tests over the factory presets, the board interface and app glue, and the porting checklist. `fm1/bench/`: the benchmark firmware. `fm1/rack/`: FM1 Rack Lite, first stage. `packages/`: both built and ready to install. `tools/build_packages.sh`: rebuilds them. See `firmware/README.md` |
 | `manual/` | The full user manual in Markdown, with screen images |
 
 ## Credits

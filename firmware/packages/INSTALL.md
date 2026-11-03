@@ -26,9 +26,10 @@ install Felucca, play it, then **Return to official V15**. This proves you can g
 In Terminal on the Mac:
 
 ```
-cd ~/Documents/iClaude/Projects/FM1-Rack/test-kit
-(cd packages && shasum -a 256 -c SHA256SUMS)   # both lines must say OK
+cd MODFM1/firmware/packages      # wherever you downloaded the repo
+shasum -a 256 -c SHA256SUMS   # both lines must say OK
 pip3 install mido python-rtmidi
+git clone https://github.com/charlesvestal/fm1-base ~/fm1-base
 ```
 
 Close anything else that uses MIDI (DAWs, browser tabs with Web MIDI) before installing.
@@ -36,23 +37,22 @@ Close anything else that uses MIDI (DAWs, browser tabs with Web MIDI) before ins
 ## Step 2: the benchmark
 
 ```
-python3 installer/fm1_install.py packages/fm1bench.fwsc
+python3 ~/fm1-base/tools/fm1_install.py fm1bench.fwsc
 ```
 
 1. Note the top line of the screen. Expected: **FPU OK: HARDWARE FLOAT, EXACT**. A photo is fine. If you see a crash
    screen instead, stop here and go back to stock (below).
 2. Let it run (about a minute).
-3. Open `benchmark-reader/reader.html` in Chrome, press **Listen**, then press **PLAY** on the FM-1. Save the CSV into
-   `Projects/FM1-Rack/results/` and tell Claude.
+3. Open `../fm1/bench/reader.html` in Chrome, press **Listen**, then press **PLAY** on the FM-1. Save the CSV.
 
 ## Step 3: FM1 Rack Lite (only if step 2 said FPU OK)
 
 ```
-python3 installer/fm1_install.py packages/fm1rack.fwsc
+python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc
 ```
 
 Play presets (PRESET knob; ALGORITHM changes category), try K1-K4, SELECT for voices. Note the CPU % and any dropout
-count on the screen, and any preset that sounds wrong. Controls are in `RACK-README.md`.
+count on the screen, and any preset that sounds wrong. Controls are in `../fm1/rack/README.md`.
 
 ## Getting back to stock
 
@@ -69,6 +69,6 @@ In order of what to try (from fm1-base and Felucca; not yet tried with these two
 - SDK files: `uboot.boot`, `cfg_tool.bin`, `cfg/eq_cfg_hw.bin` from AC79 SDK V1.2.1 (revision d179b44). JieLi's
   GitHub copy of that SDK is no longer public, so they came from **JieLi's own Gitee repository**
   (gitee.com/Jieli-Tech, "珠海杰理科技", JieLi's official account), at the same revision. All three are byte-identical
-  to fm1-base's reference (SHA-256 checked). `build_fm1.sh` now points there too.
+  to fm1-base's reference (SHA-256 checked). `../tools/build_packages.sh` fetches from there.
 - Mutable code: pichenettes/eurorack f4cfa76. fm1-base: 2d8ed74.
 - `build-checks.txt` has fm1-base's check lines for both builds.

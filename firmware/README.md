@@ -3,6 +3,7 @@
 **Status: not FM1 Rack firmware yet, and nothing here has run on an FM-1.** Two things build into installable packages
 (you build them yourself, with fm1-base): `fm1/bench/`, a test firmware that times the engine, and `fm1/rack/`, the
 first stage of FM1 Rack Lite. Run the benchmark first.
+Both are built in `packages/` (with `INSTALL.md`); `tools/build_packages.sh` rebuilds them.
 This folder is steps 2 and 3 of the roadmap in the developer guide: the engine made portable, shrunk to a
 memory budget, built on a computer and tested. Step 1 (building Felucca and proving you can flash and recover
 an FM-1) and steps 4 onwards (running on the board) are still to do.
@@ -26,6 +27,8 @@ an FM-1) and steps 4 onwards (running on the board) are still to do.
 | `fm1/rack/` | FM1 Rack (Lite) firmware, first stage: the 57 Lite presets played from keys and MIDI, macros on K1-K4 |
 | `fm1/common/` | The engine's C names and the C++ runtime and maths for fm1-base builds |
 | `hw/libc/` | C headers for fm1-base builds, which link no C library |
+| `packages/` | Both firmwares built (3 Nov 2026), with SHA-256 sums and install steps |
+| `tools/build_packages.sh` | Rebuilds the packages from this repo (fm1-base, Mutable code, JieLi's toolchain, hash-checked SDK files) |
 | `PORTING.md` | What's left, in order, with the open questions |
 
 ## The FM-1 build of the engine
