@@ -1,5 +1,12 @@
 // FM1 Rack engine: Mutable Instruments modules (MIT; GPL-3 project) slotted
-// into one voice chain, for the browser mockup. Block = 24 frames @ 48 kHz.
+// into one voice chain. Block = 24 frames @ 48 kHz.
+//
+// One source, two builds:
+//   default    the browser build (rack.wasm): every buffer is a fixed array, 6 voices of anything.
+//   RACK_FM1   the firmware-ready build: the big buffers come from one memory arena of RACK_ARENA_KB,
+//              carved up for the modules actually loaded; voices are limited to what fits; the delay
+//              (1 s) and chorus lines are 16-bit. Nothing here touches hardware: a platform layer
+//              (firmware/hw) calls the functions declared in firmware/engine/rack.h.
 
 #include <math.h>
 #include <string.h>
@@ -33,7 +40,17 @@ extern const uint8_t node_0[], node_1[], node_2[], node_3[], node_4[], node_5[],
   node_20[], node_21[], node_22[], node_23[], node_24[];
 }
 
+#if defined(__wasm__)
 #define EXPORT extern "C" __attribute__((visibility("default")))
+#else
+#define EXPORT extern "C"
+#endif
+#ifdef RACK_FM1
+#include <new>
+#ifndef RACK_ARENA_KB
+#define RACK_ARENA_KB 340   // the 384K FREE RAM setting less the engine's 44 KB of fixed memory
+#endif
+#endif
 
 using namespace stmlib;
 
@@ -85,6 +102,14 @@ struct VoiceState {
 };
 
 static VoiceState vs_[MAXV];
+#ifdef RACK_FM1
+// carved from arena_ by fm1_layout() for the modules loaded
+static plaits::Voice* plaits_; static char (*plaits_buf_)[16384];
+static braids::MacroOscillator* braids_;
+static rings::Part* rings_; static uint16_t (*rings_rev_)[32768];
+static elements::Part* elements_; static uint16_t (*elements_rev_)[32768];
+static warps::Modulator* warps_;
+#else
 static plaits::Voice plaits_[MAXV];
 static char plaits_buf_[MAXV][16384];
 static braids::MacroOscillator braids_[MAXV];
@@ -92,8 +117,9 @@ static rings::Part rings_[MAXV];
 static uint16_t rings_rev_[MAXV][32768];
 static elements::Part elements_[MAXV];
 static uint16_t elements_rev_[MAXV][32768];
-static Svf svf_[MAXV], svf2_[MAXV];
 static warps::Modulator warps_[MAXV];
+#endif
+static Svf svf_[MAXV], svf2_[MAXV];
 static int nvoices_ = 2;
 static int last_voice_ = 0;
 static uint32_t age_counter_ = 0;
@@ -104,21 +130,52 @@ static int clouds_quality_ = 0;
 static float cl_scan_ = 0.0f, cl_tone_l_ = 0.0f, cl_tone_r_ = 0.0f;
 static int cl_grid_ = -1;
 namespace clouds { extern const float lut_xfade_in[]; extern const float lut_xfade_out[]; }
-static uint8_t clouds_large_[118784];
-static uint8_t clouds_small_[65536 - 128];
-static clouds::Reverb reverb_;
+static const int CL_LARGE = 118784, CL_SMALL = 65536 - 128, DLEN_MAX = 96000;
+// delay and chorus lines: floats in the browser, 16-bit on the FM-1
+#ifdef RACK_FM1
+typedef int16_t dsamp_t;
+static const int DLEN = 48000;   // 1 s
+static inline float DG(int16_t v) { return v * (1.0f / 32767.0f); }
+static inline int16_t DS(float x) { x = x > 1.0f ? 1.0f : x < -1.0f ? -1.0f : x; return (int16_t)(x * 32767.0f + (x >= 0 ? 0.5f : -0.5f)); }
+static uint8_t* clouds_large_; static uint8_t* clouds_small_;
+static uint16_t* reverb_buf_;
+static dsamp_t *delay_l_, *delay_r_;
+#else
+typedef float dsamp_t;
+static const int DLEN = DLEN_MAX;
+static inline float DG(float v) { return v; }
+static inline float DS(float x) { return x; }
+static uint8_t clouds_large_[CL_LARGE];
+static uint8_t clouds_small_[CL_SMALL];
 static uint16_t reverb_buf_[16384];
-static float delay_l_[96000], delay_r_[96000];
-static int delay_max_ = 95999, delay_q16_ = 0;   // FM-1 preview: 1 s cap, 16-bit storage
+static float delay_l_[DLEN_MAX], delay_r_[DLEN_MAX];
+#endif
+static clouds::Reverb reverb_;
+// the longest delay; TAPE wow swings the read point up to ~100 samples further, so the FM-1's 1 s line keeps 128 spare
+static const int DMAX_FM1 = 48000 - 128;
+#ifdef RACK_FM1
+static int delay_max_ = DMAX_FM1, delay_q16_ = 1;
+#else
+static int delay_max_ = DLEN - 1, delay_q16_ = 0;   // the browser's FM-1 preview (set_hw) switches to DMAX_FM1 and 16-bit values
+#endif
 static inline float q16(float x) { x = x > 1.0f ? 1.0f : x < -1.0f ? -1.0f : x; return (float)(int)(x * 32767.0f + (x >= 0 ? 0.5f : -0.5f)) / 32767.0f; }
 static int delay_w_ = 0;
+#ifdef RACK_FM1
+static dsamp_t *chorus_l_, *chorus_r_;
+#else
 static float chorus_l_[4096], chorus_r_[4096];
+#endif
 static int chorus_w_ = 0;
 static float chorus_phase_ = 0.0f;
 static float delay_tone_l_ = 0.0f, delay_tone_r_ = 0.0f;
 // shimmer: an octave-up pitch shifter (two crossfaded grains) feeding the reverb
-static int16_t shim_buf_[4096]; static int shim_w_ = 0; static float shim_ph_ = 0.0f, shim_fb_ = 0.0f;
-static int16_t pre_buf_l_[8192], pre_buf_r_[8192]; static int pre_w_ = 0;
+#ifdef RACK_FM1
+static int16_t *shim_buf_, *pre_buf_l_, *pre_buf_r_;
+#else
+static int16_t shim_buf_[4096], pre_buf_l_[8192], pre_buf_r_[8192];
+#endif
+static int shim_w_ = 0; static float shim_ph_ = 0.0f, shim_fb_ = 0.0f;
+static int pre_w_ = 0;
 static float tape_ph1_ = 0.0f, tape_ph2_ = 0.0f;
 static float rv_lc_l_ = 0, rv_lc_r_ = 0, rv_duck_ = 0, dl_lc_l_ = 0, dl_lc_r_ = 0, dl_duck_ = 0, ch_fb_l_ = 0, ch_fb_r_ = 0;
 
@@ -239,8 +296,14 @@ EXPORT void set_route(int i, int src, int slot, int param, float amt, int via) {
   routes_[i].amt = amt; routes_[i].via = via;
 }
 
+#ifdef RACK_FM1
+static int nalloc_ = 0;   // voices the arena holds module state for
+#define NALLOC nalloc_
+#else
+#define NALLOC MAXV
+#endif
 static void reset_voice_modules(int slot) {
-  for (int i = 0; i < MAXV; ++i) {
+  for (int i = 0; i < NALLOC; ++i) {
     if (slot == S_SRC) {
       BufferAllocator alloc(plaits_buf_[i], 16384);
       if (mod_id_[S_SRC] == M_PLAITS) plaits_[i].Init(&alloc);
@@ -254,7 +317,84 @@ static void reset_voice_modules(int slot) {
   }
 }
 
+static void init_fx(int id) {
+  if (id == M_CLOUDS) {
+    clouds_.Init(clouds_large_, CL_LARGE, clouds_small_, CL_SMALL);
+    clouds_.set_num_channels(2); clouds_.set_low_fidelity(false); clouds_quality_ = 0;
+  }
+  if (id == M_REVERB) { reverb_.Init(reverb_buf_); memset(shim_buf_, 0, 4096 * 2); memset(pre_buf_l_, 0, 8192 * 2); memset(pre_buf_r_, 0, 8192 * 2); shim_fb_ = 0; }
+  if (id == M_DELAY) { memset(delay_l_, 0, DLEN * sizeof(dsamp_t)); memset(delay_r_, 0, DLEN * sizeof(dsamp_t)); }
+  if (id == M_CHORUS) { memset(chorus_l_, 0, 4096 * sizeof(dsamp_t)); memset(chorus_r_, 0, 4096 * sizeof(dsamp_t)); }
+}
+
+#ifdef RACK_FM1
+// ------------------------------------------------------------------ the FM-1 memory arena
+// The sources, shapers and effects that need big buffers share one block of RAM. fm1_layout() lays it out
+// for what is loaded: the effects first, then as many voices as fit (up to MAXV). If even the effects or one
+// voice won't fit, it unloads modules (FX 2, FX 1, then the shaper, then the source) rather than overrun.
+static uint8_t arena_[RACK_ARENA_KB * 1024] __attribute__((aligned(16)));
+static int req_[NSLOT];           // what the patch asks for
+static int want_voices_ = 2, dropped_ = 0;
+static size_t arena_used_ = 0;
+static size_t carve(const int* eff, int nv, bool commit) {
+  size_t at = 0;
+  auto take = [&](size_t n) -> uint8_t* { at = (at + 15) & ~(size_t)15; uint8_t* p = arena_ + at; at += n; return p; };
+  for (int s = S_FX1; s <= S_FX2; ++s) {
+    int id = eff[s];
+    if (id == M_CLOUDS) { uint8_t* a = take(CL_LARGE); uint8_t* b = take(CL_SMALL); if (commit) { clouds_large_ = a; clouds_small_ = b; } }
+    if (id == M_REVERB) { uint8_t* a = take(32768); uint8_t* b = take(8192); uint8_t* c = take(16384); uint8_t* d = take(16384);
+                          if (commit) { reverb_buf_ = (uint16_t*)a; shim_buf_ = (int16_t*)b; pre_buf_l_ = (int16_t*)c; pre_buf_r_ = (int16_t*)d; } }
+    if (id == M_DELAY) { uint8_t* a = take(DLEN * 2); uint8_t* b = take(DLEN * 2); if (commit) { delay_l_ = (int16_t*)a; delay_r_ = (int16_t*)b; } }
+    if (id == M_CHORUS) { uint8_t* a = take(8192); uint8_t* b = take(8192); if (commit) { chorus_l_ = (int16_t*)a; chorus_r_ = (int16_t*)b; } }
+  }
+  if (nv > 0) {
+    if (eff[S_SRC] == M_PLAITS) { uint8_t* a = take(nv * sizeof(plaits::Voice)); uint8_t* b = take(nv * 16384); if (commit) { plaits_ = (plaits::Voice*)a; plaits_buf_ = (char (*)[16384])b; } }
+    if (eff[S_SRC] == M_BRAIDS) { uint8_t* a = take(nv * sizeof(braids::MacroOscillator)); if (commit) braids_ = (braids::MacroOscillator*)a; }
+    if (eff[S_SRC] == M_ELEMENTS) { uint8_t* a = take(nv * sizeof(elements::Part)); uint8_t* b = take(nv * 65536); if (commit) { elements_ = (elements::Part*)a; elements_rev_ = (uint16_t (*)[32768])b; } }
+    if (eff[S_SHP] == M_RINGS) { uint8_t* a = take(nv * sizeof(rings::Part)); uint8_t* b = take(nv * 65536); if (commit) { rings_ = (rings::Part*)a; rings_rev_ = (uint16_t (*)[32768])b; } }
+    if (eff[S_SHP] == M_WARPS) { uint8_t* a = take(nv * sizeof(warps::Modulator)); if (commit) warps_ = (warps::Modulator*)a; }
+  }
+  return at;
+}
+static void fm1_layout() {
+  const size_t cap = sizeof(arena_);
+  int eff[NSLOT]; for (int s = 0; s < NSLOT; ++s) eff[s] = req_[s];
+  dropped_ = 0;
+  if (carve(eff, 0, false) > cap && eff[S_FX2]) { eff[S_FX2] = 0; dropped_ |= 1 << S_FX2; }
+  if (carve(eff, 0, false) > cap && eff[S_FX1]) { eff[S_FX1] = 0; dropped_ |= 1 << S_FX1; }
+  int nv = MAXV;
+  while (nv > 0 && carve(eff, nv, false) > cap) --nv;
+  if (nv == 0 && eff[S_SHP]) { eff[S_SHP] = 0; dropped_ |= 1 << S_SHP; nv = MAXV; while (nv > 0 && carve(eff, nv, false) > cap) --nv; }
+  if (nv == 0 && eff[S_SRC]) { eff[S_SRC] = 0; dropped_ |= 1 << S_SRC; nv = MAXV; }
+  arena_used_ = carve(eff, nv, true);
+  memset(arena_, 0, arena_used_);   // the modules expect zeroed memory, as static objects are
+  nalloc_ = nv;
+  for (int i = 0; i < nv; ++i) {   // construct the module objects in place
+    if (eff[S_SRC] == M_PLAITS) new (&plaits_[i]) plaits::Voice();
+    if (eff[S_SRC] == M_BRAIDS) new (&braids_[i]) braids::MacroOscillator();
+    if (eff[S_SRC] == M_ELEMENTS) new (&elements_[i]) elements::Part();
+    if (eff[S_SHP] == M_RINGS) new (&rings_[i]) rings::Part();
+    if (eff[S_SHP] == M_WARPS) new (&warps_[i]) warps::Modulator();
+  }
+  mod_id_[S_SRC] = eff[S_SRC]; mod_id_[S_SHP] = eff[S_SHP]; mod_id_[S_FX1] = eff[S_FX1]; mod_id_[S_FX2] = eff[S_FX2];
+  reset_voice_modules(S_SRC); reset_voice_modules(S_SHP);
+  init_fx(eff[S_FX1]); init_fx(eff[S_FX2]);
+  int n = want_voices_ < nalloc_ ? want_voices_ : nalloc_; if (n < 1) n = 1;
+  for (int i = n; i < MAXV; ++i) { vs_[i].gate = false; vs_[i].active = false; vs_[i].stage = 0; vs_[i].env = 0; }
+  nvoices_ = n;
+}
+// what the platform layer shows: 0 arena bytes used, 1 arena size, 2 voices that fit, 3 voices playing,
+// 4 unloaded slots (bit per slot: 0 SRC, 1 SHP, 4 FX1, 5 FX2)
+EXPORT int fm1_status(int what) {
+  switch (what) { case 0: return (int)arena_used_; case 1: return (int)sizeof(arena_); case 2: return nalloc_; case 3: return nvoices_; case 4: return dropped_; }
+  return 0;
+}
+#endif
+
 EXPORT void set_module(int slot, int id) {
+#ifdef RACK_FM1
+  if (slot == S_SRC || slot == S_SHP || slot == S_FX1 || slot == S_FX2) { if (req_[slot] == id) return; req_[slot] = id; fm1_layout(); return; }
+#endif
   if (mod_id_[slot] == id) return;
   mod_id_[slot] = id;
   if (slot == S_SRC || slot == S_SHP) reset_voice_modules(slot);
@@ -266,20 +406,19 @@ EXPORT void set_module(int slot, int id) {
     marbles_t_env_[k] = 0.0f; grids_env_[k][0] = grids_env_[k][1] = 0.0f;
     mod_out_[k * 2] = mod_out_[k * 2 + 1] = 0.0f;
   }
-  if (slot == S_FX1 || slot == S_FX2) {
-    if (id == M_CLOUDS) {
-      clouds_.Init(clouds_large_, sizeof(clouds_large_), clouds_small_, sizeof(clouds_small_));
-      clouds_.set_num_channels(2); clouds_.set_low_fidelity(false); clouds_quality_ = 0;
-    }
-    if (id == M_REVERB) { reverb_.Init(reverb_buf_); memset(shim_buf_, 0, sizeof(shim_buf_)); memset(pre_buf_l_, 0, sizeof(pre_buf_l_)); memset(pre_buf_r_, 0, sizeof(pre_buf_r_)); shim_fb_ = 0; }
-    if (id == M_DELAY) { memset(delay_l_, 0, sizeof(delay_l_)); memset(delay_r_, 0, sizeof(delay_r_)); }
-    if (id == M_CHORUS) { memset(chorus_l_, 0, sizeof(chorus_l_)); memset(chorus_r_, 0, sizeof(chorus_r_)); }
-  }
+  if (slot == S_FX1 || slot == S_FX2) init_fx(id);
 }
 
-EXPORT void set_hw(int on) { delay_max_ = on ? 47999 : 95999; delay_q16_ = on ? 1 : 0; }
+#ifdef RACK_FM1
+EXPORT void set_hw(int) {}   // always on in this build
+#else
+EXPORT void set_hw(int on) { delay_max_ = on ? DMAX_FM1 : DLEN - 1; delay_q16_ = on ? 1 : 0; }
+#endif
 EXPORT void set_voices(int n) {
   n = n < 1 ? 1 : n > MAXV ? MAXV : n;
+#ifdef RACK_FM1
+  want_voices_ = n; if (n > nalloc_) n = nalloc_ < 1 ? 1 : nalloc_;
+#endif
   if (n < nvoices_) for (int i = n; i < MAXV; ++i) { vs_[i].gate = false; vs_[i].active = false; vs_[i].stage = 0; vs_[i].env = 0; }
   nvoices_ = n;
 }
@@ -324,6 +463,9 @@ EXPORT void init() {
   for (int i = 0; i < NROUTE; ++i) routes_[i].src = SR_NONE;
   marbles_rng_.Init(0x2357bd1);
   marbles_stream_.Init(&marbles_rng_);
+#ifdef RACK_FM1
+  fm1_layout();
+#endif
 }
 
 // ------------------------------------------------------------------ envelopes
@@ -950,22 +1092,24 @@ static void run_fx(int slot, float* l, float* r) {
         tape_ph2_ += 6.3f / SR; if (tape_ph2_ >= 1.0f) tape_ph2_ -= 1.0f;
         dsamp += wow * (sinf(tape_ph1_ * 6.2831853f) * 90.0f + sinf(tape_ph2_ * 6.2831853f) * 6.0f);
       }
-      float pos = delay_w_ - dsamp; while (pos < 0) pos += 96000.0f;
-      int i0 = (int)pos; float fr2 = pos - i0; int i1 = (i0 + 1) % 96000; i0 %= 96000;
-      float dl = delay_l_[i0] * (1 - fr2) + delay_l_[i1] * fr2, dr = delay_r_[i0] * (1 - fr2) + delay_r_[i1] * fr2;
+      float pos = delay_w_ - dsamp; while (pos < 0) pos += (float)DLEN;
+      int i0 = (int)pos; float fr2 = pos - i0; int i1 = (i0 + 1) % DLEN; i0 %= DLEN;
+      float dl = DG(delay_l_[i0]) * (1 - fr2) + DG(delay_l_[i1]) * fr2, dr = DG(delay_r_[i0]) * (1 - fr2) + DG(delay_r_[i1]) * fr2;
       delay_tone_l_ += (dl - delay_tone_l_) * lp; delay_tone_r_ += (dr - delay_tone_r_) * lp;
       if (lc > 0.0f) { dl_lc_l_ += (delay_tone_l_ - dl_lc_l_) * lcc; dl_lc_r_ += (delay_tone_r_ - dl_lc_r_) * lcc; delay_tone_l_ -= dl_lc_l_; delay_tone_r_ -= dl_lc_r_; }
       if (mode == 0) {           // ping-pong
-        delay_l_[delay_w_] = l[n] + delay_tone_r_ * fb;
-        delay_r_[delay_w_] = r[n] * 0.5f + delay_tone_l_ * fb;
+        delay_l_[delay_w_] = DS(l[n] + delay_tone_r_ * fb);
+        delay_r_[delay_w_] = DS(r[n] * 0.5f + delay_tone_l_ * fb);
       } else if (mode == 1) {
         float m = (l[n] + r[n]) * 0.5f;
-        delay_l_[delay_w_] = m + delay_tone_l_ * fb; delay_r_[delay_w_] = m + delay_tone_r_ * fb;
+        delay_l_[delay_w_] = DS(m + delay_tone_l_ * fb); delay_r_[delay_w_] = DS(m + delay_tone_r_ * fb);
       } else {
-        delay_l_[delay_w_] = SoftClip(l[n] + delay_tone_l_ * fb * 1.05f); delay_r_[delay_w_] = SoftClip(r[n] + delay_tone_r_ * fb * 1.05f);
+        delay_l_[delay_w_] = DS(SoftClip(l[n] + delay_tone_l_ * fb * 1.05f)); delay_r_[delay_w_] = DS(SoftClip(r[n] + delay_tone_r_ * fb * 1.05f));
       }
+#ifndef RACK_FM1
       if (delay_q16_) { delay_l_[delay_w_] = q16(delay_l_[delay_w_]); delay_r_[delay_w_] = q16(delay_r_[delay_w_]); }
-      delay_w_ = (delay_w_ + 1) % 96000;
+#endif
+      delay_w_ = (delay_w_ + 1) % DLEN;
       float wl = delay_tone_l_, wr = delay_tone_r_, wm = mix;
       if (width != 0.0f) { float m = (wl + wr) * 0.5f, sd = (wl - wr) * 0.5f * (1.0f + width); wl = m + sd; wr = m - sd; }
       if (duck > 0.0f) { float x = fmaxf(fabsf(l[n]), fabsf(r[n])); dl_duck_ += (x - dl_duck_) * (x > dl_duck_ ? 0.01f : 0.0002f); wm *= 1.0f - duck * clampf(dl_duck_ * 3.0f, 0.0f, 1.0f); }
@@ -979,12 +1123,12 @@ static void run_fx(int slot, float* l, float* r) {
     for (int n = 0; n < BLOCK; ++n) {
       chorus_phase_ += rate / SR; if (chorus_phase_ >= 1.0f) chorus_phase_ -= 1.0f;
       float s = sinf(chorus_phase_ * 6.2831853f);
-      chorus_l_[chorus_w_] = cfb > 0.0f ? l[n] + ch_fb_l_ * cfb : l[n]; chorus_r_[chorus_w_] = cfb > 0.0f ? r[n] + ch_fb_r_ * cfb : r[n];
+      chorus_l_[chorus_w_] = DS(cfb > 0.0f ? l[n] + ch_fb_l_ * cfb : l[n]); chorus_r_[chorus_w_] = DS(cfb > 0.0f ? r[n] + ch_fb_r_ * cfb : r[n]);
       float dl = base + (1.0f + s) * depth * swing, dr = base + (1.0f - s * width) * depth * swing;
-      auto tap = [](float* buf, int w, float d) {
+      auto tap = [](dsamp_t* buf, int w, float d) {
         float pos = w - d; while (pos < 0) pos += 4096.0f;
         int i0 = (int)pos; float fr = pos - i0;
-        return buf[i0 & 4095] * (1.0f - fr) + buf[(i0 + 1) & 4095] * fr;
+        return DG(buf[i0 & 4095]) * (1.0f - fr) + DG(buf[(i0 + 1) & 4095]) * fr;
       };
       float wl = tap(chorus_l_, chorus_w_, dl), wr = tap(chorus_r_, chorus_w_, dr);
       chorus_w_ = (chorus_w_ + 1) & 4095;
