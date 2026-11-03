@@ -38,6 +38,10 @@ void app_panic(void) { }
 
 void app_init(void)
 {
+    if (plat_cpu2_set(1) == 0) {             /* the second core, for the 2 CORES cases (now: the one time it starts) */
+        bench_cpu2_run = plat_cpu2_run;
+        bench_cpu2_wait = plat_cpu2_wait;
+    }
     bench_cases();
 }
 

@@ -9,7 +9,7 @@ Rack: it plays no sound and saves nothing. It answers two questions on the board
    built the same way, then checks a known single-precision sum at power-on.
 2. **How much of the CPU does each module take?** It runs FM1 Rack's real engine (`engine/rack.cc`, built
    `-DRACK_FM1 -DRACK_LITE`) and times 105 cases: every Plaits model, every Braids shape, every Rings model, the
-   filter, Tides, Peaks, Grids, the delay, reverb and chorus, 1 to 6 voices, and 10 factory presets.
+   filter, Tides, Peaks, Grids, the delay, reverb and chorus, 1 to 6 voices, and 10 factory presets; then, when the second core starts, 11 of them again on two cores (the 2 CORES group: the second core renders half the voices).
 
 ## What you see
 

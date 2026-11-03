@@ -5,6 +5,10 @@ usb_manufacturer = "MODFM1"
 usb_product = "FM1 RACK BENCH"
 words = "words.tsv"
 ble = false
+# the second core (fm1-base's plat_cpu2_*), for the 2 CORES cases; with the fallback, a unit whose second core
+# misbehaves runs on one core instead of restarting
+cpu2 = true
+cpu2_fallback = true
 # the engine and the Mutable modules as C++ units, at -O2 with the FM-1's float flags (build.py adds -mcpu=r3
 # -mfprev1 -ffp-contract=off): units/ is written by make_units.py before each build (gen below)
 gen = ["make_units.py"]

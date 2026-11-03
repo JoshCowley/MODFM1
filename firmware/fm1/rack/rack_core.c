@@ -35,6 +35,8 @@ void rk_render(int n);
 float *rk_out_l(void);
 float *rk_out_r(void);
 int rk_fm1_status(int what);
+void rk_set_worker(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void));
+uint32_t rk_worker_blocks(void);
 
 typedef struct { const char *name, *cat; uint16_t at, len; uint8_t voices, mode; } rk_preset_t;
 typedef struct { uint8_t param; float lo, hi, span; } rk_meta_t;

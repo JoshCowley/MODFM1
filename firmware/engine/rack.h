@@ -13,6 +13,7 @@
 // while render() is running: queue them from the UI and apply them at the start of the audio callback
 // (the browser build does the same through its AudioWorklet message queue).
 #pragma once
+#include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,6 +54,10 @@ float* scope(void);              // 128 samples for the scope
 // 0 arena bytes used, 1 arena size, 2 voices that fit, 3 voices playing,
 // 4 unloaded slots (bit per slot: 0 SRC, 1 SHP, 4 FX 1, 5 FX 2)
 int fm1_status(int what);
+// the second core: run(fn, arg) hands fn(arg) to it (1) or declines (0); wait() returns 0 when done, -1 when it
+// dropped the job. With a worker set, 2 or more voices are split between the cores. worker_blocks: blocks shared
+void set_worker(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void));
+uint32_t worker_blocks(void);
 #endif
 
 #ifdef __cplusplus

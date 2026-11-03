@@ -14,6 +14,14 @@
 #include "bench.c"
 #include "cases_full.h"
 
+/* the second core on the computer: the job runs when the first core waits for it, so the voices draw their random
+ * numbers in the same order as on one core and the sound differs only by the order the voices are added in (on the
+ * FM-1 the cores run at once, so voices that use random numbers, drift or noise, draw them in another order) */
+static void (*host_job)(uint32_t);
+static uint32_t host_arg;
+static int host_cpu2_run(void (*fn)(uint32_t), uint32_t arg) { host_job = fn; host_arg = arg; return 1; }
+static int host_cpu2_wait(void) { if (host_job) { host_job(host_arg); host_job = 0; } return 0; }
+
 static uint32_t host_ticks(void)   /* 24 ticks a microsecond, as the FM-1's plat_ticks24 */
 {
     struct timespec ts;
@@ -40,6 +48,22 @@ static float play(const bpreset_t *p, int diff, float *buf, int n)
     return 0;
 }
 
+/* one case, played by a fresh process: 1 s (left) and the blocks the second core shared */
+static int case_played(const char *self, int k, float *buf, uint32_t *shared)
+{
+    char cmd[512];
+    FILE *f;
+    size_t n, m;
+    snprintf(cmd, sizeof cmd, "'%s' --case %d", self, k);
+    f = popen(cmd, "r");
+    if (!f)
+        return -1;
+    n = fread(buf, sizeof(float), 48000, f);
+    m = fread(shared, sizeof *shared, 1, f);
+    pclose(f);
+    return n == 48000 && m == 1 ? 0 : -1;
+}
+
 /* one preset, played by a fresh process: its first 48000 samples (left) */
 static int played(const char *self, int k, int full, float *buf)
 {
@@ -60,12 +84,30 @@ int main(int argc, char **argv)
     static float a[48000], b[48000];
     int k, i, fails = 0;
     uint32_t took, fpu;
+    if (argc == 3 && !strcmp(argv[1], "--case")) {   /* one case, fresh: 1 s (left), then the blocks shared */
+        uint32_t shared;
+        bench_cpu2_run = host_cpu2_run;
+        bench_cpu2_wait = host_cpu2_wait;
+        bench_cases();
+        k = atoi(argv[2]);
+        bench_setup(k);
+        for (i = 0; i < 100; i++) {
+            rk_render(480);
+            memcpy(a + 480 * i, rk_out_l(), 480 * sizeof(float));
+        }
+        shared = rk_worker_blocks();
+        fwrite(a, sizeof(float), 48000, stdout);
+        fwrite(&shared, sizeof shared, 1, stdout);
+        return 0;
+    }
     if (argc == 4 && !strcmp(argv[1], "--play")) {
         k = atoi(argv[2]);
         play(atoi(argv[3]) ? &PRESETS_FULL[k] : &PRESETS[k], 0, a, 48000);
         fwrite(a, sizeof(float), 48000, stdout);
         return 0;
     }
+    bench_cpu2_run = host_cpu2_run;
+    bench_cpu2_wait = host_cpu2_wait;
     bench_cases();
     printf("%d cases\n", bncases);
     for (k = 0; k < bncases; k++) {
@@ -86,6 +128,46 @@ int main(int argc, char **argv)
             if (r->bad || silent)
                 fails++;
         }
+    }
+    /* each 2 CORES case against its one-core twin (same preset and notes): the same sound but for the order the
+     * voices are added in, and the second core really took its share */
+    {
+        int c2, c1, worst_k = -1;
+        float worst = 0;
+        for (c2 = 0; c2 < bncases; c2++) {
+            if (bcases[c2].group != G_CORES2)
+                continue;
+            for (c1 = 0; c1 < bncases; c1++)
+                if (bcases[c1].group != G_CORES2 && bcases[c1].preset == bcases[c2].preset
+                    && bcases[c1].notes == bcases[c2].notes && bcases[c1].ch[0][0] == 0)
+                    break;
+            if (c1 == bncases) {
+                printf("2 cores %-14s no one-core twin\n", bcases[c2].name);
+                fails++;
+                continue;
+            }
+            {
+                uint32_t s1 = 0, s2 = 0;
+                float d = 0;
+                if (case_played(argv[0], c1, a, &s1) || case_played(argv[0], c2, b, &s2)) {
+                    printf("2 cores %-14s could not play\n", bcases[c2].name);
+                    fails++;
+                    continue;
+                }
+                for (i = 0; i < 48000; i++)
+                    if (fabsf(a[i] - b[i]) > d)
+                        d = fabsf(a[i] - b[i]);
+                if (d > worst) { worst = d; worst_k = c2; }
+                /* rounding from the new order can grow in the effects (STRING MACH: 0.00017); 0.001 is -60 dB. A preset the
+                 * arena gives one voice has nothing to share */
+                if (d > 1e-3f || s1 != 0 || (bres[c2].voices_on >= 2 && s2 == 0)) {
+                    printf("2 cores %-14s differs by %g, blocks shared %u (one core: %u)\n", bcases[c2].name, d,
+                           (unsigned)s2, (unsigned)s1);
+                    fails++;
+                }
+            }
+        }
+        printf("2 cores: worst difference from one core %g (%s)\n", worst, worst_k >= 0 ? bcases[worst_k].name : "-");
     }
     for (k = 1; k < NPRESETS; k++) {
         float d = 0;

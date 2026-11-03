@@ -31,6 +31,12 @@ void rk_render(int n);
 float *rk_out_l(void);
 float *rk_out_r(void);
 int rk_fm1_status(int what);
+void rk_set_worker(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void));
+uint32_t rk_worker_blocks(void);
+/* the second core, when the platform has it (app.c: plat_cpu2_*; bench_host.c: a worker that runs the job at once):
+ * the 2 CORES cases hand it half the voices; every other case runs on one core */
+static int (*bench_cpu2_run)(void (*)(uint32_t), uint32_t);
+static int (*bench_cpu2_wait)(void);
 
 typedef struct { uint8_t fn, a, b, c, d; float x, y, z, w; } bop_t;
 typedef struct { const char *name; const bop_t *ops; uint16_t nops; uint8_t voices, mode; } bpreset_t;
@@ -60,9 +66,9 @@ static void run_ops(const bop_t *o, int n)
 }
 
 /* ------------------------------------------------------------------ the cases --- */
-enum { G_CORE, G_PLAITS, G_BRAIDS, G_RINGS, G_SHP, G_MOD, G_FX, G_VOICES, G_PRESET, NGROUP };
+enum { G_CORE, G_PLAITS, G_BRAIDS, G_RINGS, G_SHP, G_MOD, G_FX, G_VOICES, G_PRESET, G_CORES2, NGROUP };
 static const char *const GROUP[NGROUP] = {"CORE", "PLAITS", "BRAIDS", "RINGS", "FILTER", "MOD", "FX", "VOICES",
-                                           "PRESETS"};
+                                           "PRESETS", "2 CORES"};
 static const char *const PLAITS_MODEL[24] = {"VA VCF", "PHASE D", "6OP FM 1", "6OP FM 2", "6OP FM 3", "TERRAIN",
     "STR MACH", "CHIPTUNE", "PAIR VA", "WAVESHP", "2OP FM", "FORMANT", "ADDITIVE", "WAVETBL", "CHORDS", "SPEECH",
     "SWARM", "NOISE", "PARTICLE", "STRING", "MODAL", "BASS DR", "SNARE", "HI-HAT"};
@@ -181,6 +187,16 @@ static void bench_cases(void)
         const bpreset_t *p = &PRESETS[i];
         bc_add(G_PRESET, i, p->mode ? 1 : p->voices > 6 ? 6 : p->voices, p->name);
     }
+    /* the same on two cores (the second core renders the upper half of the voices): VA VCF with 2, 4 and 6 notes,
+     * and the presets with 6 voices; CPU % is the first core's time, waiting for the second included */
+    if (!bench_cpu2_run)                     /* one core only (it didn't start): no 2 CORES cases */
+        return;
+    bc_add(G_CORES2, P_INIT, 2, "VA VCF x2");
+    bc_add(G_CORES2, P_INIT, 4, "VA VCF x4");
+    bc_add(G_CORES2, P_INIT, 6, "VA VCF x6");
+    for (i = P_PLAYED; i < NPRESETS; i++)
+        if (!PRESETS[i].mode && PRESETS[i].voices >= 6)
+            bc_add(G_CORES2, i, 6, PRESETS[i].name);
 }
 
 /* ------------------------------------------------------------------ running one --- */
@@ -205,6 +221,7 @@ static void bench_setup(int k)
     const bpreset_t *p = &PRESETS[c->preset];
     int i;
     rk_seed(0x21u);
+    rk_set_worker(c->group == G_CORES2 ? bench_cpu2_run : 0, bench_cpu2_wait);
     rk_init();
     run_ops(PRESETS[P_INIT].ops, PRESETS[P_INIT].nops);
     if (c->preset != P_INIT)

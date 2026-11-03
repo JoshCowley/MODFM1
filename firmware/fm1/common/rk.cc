@@ -28,4 +28,7 @@ void rk_render(int n) { render(n); }
 float *rk_out_l(void) { return out_l(); }
 float *rk_out_r(void) { return out_r(); }
 int rk_fm1_status(int what) { return fm1_status(what); }
+// the second core: the platform's worker (plat_cpu2_run, plat_cpu2_wait) renders half the voices (rack.cc)
+void rk_set_worker(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void)) { set_worker(run, wait); }
+uint32_t rk_worker_blocks(void) { return worker_blocks(); }
 }

@@ -95,9 +95,10 @@ void app_panic(void)
 
 /* ------------------------------------------------------------------ presets --- */
 /* poly presets start with this many voices, unless SAVE remembered another number: on the FM-1 the benchmark
- * (3 Nov 2026) measured about 27 % of a core for the engine plus about 22 % per Plaits voice, so 2 voices fit the
- * 90 % line and 3 do not */
-#define START_VOICES 2
+ * (3 Nov 2026) measured about 27 % of a core for the engine plus about 22 % per Plaits voice on one core, so 2
+ * voices fit the 90 % line and 3 did not. With the second core taking half the voices, 4 to start; the shedding
+ * takes off what doesn't fit, and SELECT asks for more */
+#define START_VOICES (plat_cpu2_on() ? 4 : 2)
 static void load_preset(int k)
 {
     rc_pause();
@@ -114,6 +115,8 @@ static void load_preset(int k)
 
 void app_init(void)
 {
+    if (plat_cpu2_set(1) == 0)                /* the second core (now: the one time it may start) renders half the voices */
+        rk_set_worker(plat_cpu2_run, plat_cpu2_wait);
     if (plat_store_load(OBJ_SETTINGS, &set, sizeof set) != (int)sizeof set || set.magic != SET_MAGIC
         || set.preset >= NPRESETS || set.octave < -3 || set.octave > 3 || set.voices > RC_MAXV) {
         set.magic = SET_MAGIC;
@@ -367,6 +370,8 @@ static void draw(void)
     cat(t, n);
     cat(t, "  ");
     cat(t, MODE_NAME[rc_patch.mode < 5 ? rc_patch.mode : 0]);
+    /* the cores rendering: 2, or 1 (1* when the second core started and was given up: fm1-base's fallback) */
+    cat(t, plat_cpu2_on() ? "  2 CORES" : plat_cpu2_gave_up() ? "  1 CORE*" : "  1 CORE");
     cv_text(6, 4, &FONT_XS, t, C_GRAY);
     t[0] = 0;
     cat(t, "OCT ");

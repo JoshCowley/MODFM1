@@ -94,8 +94,8 @@ In order. Don't start a step until the one before passes its check. The develope
 | Can the codec run at 48 kHz? (Felucca runs it at 44.1 kHz) | The engine is 48 kHz: resample, or move the engine | `hw/fm1_app.cc` (`fm1_app_init`) |
 | Audio block size and the time budget per block | CPU limit | page CPU_OPTS, voice limits |
 | ~~Does the core run the `fprev1` float instructions?~~ **Yes** (fm1/bench, 3 Nov 2026) | Float modules need it | `fm1/bench` |
-| Second core usable? (fm1-base's `cpu2`) | One core plays about 2 voices (fm1/bench) | engine split |
-| What is the engine's fixed 27 %? | The biggest single cost | a bench variant |
+| Second core usable? (fm1-base's `cpu2`) | One core plays about 2 voices (fm1/bench) | **Done, not yet measured:** rack.cc `render_voices`, bench's 2 CORES cases |
+| What is the engine's fixed 27 %? | The biggest single cost | **Mostly the limiter's look-ahead scan** (callgrind); now a running maximum, same output. To measure again |
 | Cycle counter readable? (fm1-base has `plat_ticks24()`, 24 ticks a microsecond) | CPU measurement | `fm1_hal_cycles()` |
 | Flash region for patches and its erase size | Storage | `fm1_hal_flash_*()` |
 

@@ -54,3 +54,18 @@ The first run of `fm1/bench` on a real FM-1 (installed from M-VAVE's V15 firmwar
    a variant of the benchmark: the master EQ / compressor / limiter, the LFOs and matrix, the 48 kHz rate (the codec
    plays 44.1 kHz, so the engine renders about 9 % more frames than it plays), and the 256-frame block.
 4. **The second core** (fm1-base's `cpu2`: a worker the render hands jobs to) could take half the voices. Not tried.
+
+## Changes after this run (3 Nov 2026, not yet measured on the FM-1)
+
+- **A lighter engine, same sound.** Two hot spots found by counting instructions on a computer (callgrind):
+  the limiter read all 48 look-ahead samples for every sample (now a running maximum: the same peak), and every
+  parameter read scanned all 18 matrix rows (now skipped for parameters no row reaches). All 57 presets come out
+  bit for bit the same as before. On the computer, the engine with no voice went from 175 to 26 million
+  instructions for 2 s, and one Plaits voice from 225 to 71 million. How much of that the FM-1 sees isn't known
+  until the benchmark runs again: its float maths and library calls cost differently.
+- **The second core.** With 2 or more voices, the second core renders the upper half of them while the first core
+  renders the rest (the first also runs the modulators, effects and master). fm1-base's `cpu2_fallback`: a unit whose
+  second core misbehaves carries on with one core. Its stack (2.5 KB usable, trapped below that) held the deepest
+  voice measured on the computer (1.3 KB, 64-bit) with room to spare.
+- **The benchmark** now adds 11 **2 CORES** cases (VA VCF x2, x4, x6 and the 6-voice presets) when the second core
+  starts, so the next run shows both changes against this one.

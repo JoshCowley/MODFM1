@@ -93,6 +93,16 @@ static float pitch_mod_dummy;
 struct Route { int src, slot, param, via; float amt; };
 static const int NROUTE = 18;   // 12 matrix rows, then two direct targets per LFO
 static Route routes_[NROUTE];
+// the params some route reaches, per slot (slot -1, the voice's pitch and pan, at 0): mod_sum skips the 18 rows for
+// the rest. Kept by set_route and init. Same result as scanning: an unrouted param sums nothing either way.
+static uint32_t routed_[NSLOT + 1];
+static void routed_rebuild() {
+  memset(routed_, 0, sizeof(routed_));
+  for (int i = 0; i < NROUTE; ++i) {
+    const Route& r = routes_[i];
+    if (r.src != SR_NONE && r.slot >= -1 && r.slot < NSLOT && r.param >= 0 && r.param < 32) routed_[r.slot + 1] |= 1u << r.param;
+  }
+}
 
 // ------------------------------------------------------------------ voice
 struct VoiceState {
@@ -286,6 +296,7 @@ static float source_value(int s, const VoiceState* v) {
 }
 
 static float mod_sum(int slot, int param, const VoiceState* v) {
+  if (slot >= -1 && slot < NSLOT && param >= 0 && param < 32 && !(routed_[slot + 1] >> param & 1u)) return 0.0f;
   float m = 0.0f;
   for (int i = 0; i < NROUTE; ++i) {
     const Route& r = routes_[i];
@@ -326,6 +337,7 @@ EXPORT void set_route(int i, int src, int slot, int param, float amt, int via) {
   if (i < 0 || i >= NROUTE) return;
   routes_[i].src = src; routes_[i].slot = slot; routes_[i].param = param;
   routes_[i].amt = amt; routes_[i].via = via;
+  routed_rebuild();
 }
 
 #ifdef RACK_FM1
@@ -520,6 +532,7 @@ EXPORT void init() {
   for (int i = 0; i < 6; ++i) ext_tgt_[i] = ext_cur_[i] = 0.0f;
   for (int k = 0; k < 2; ++k) { peaks_lfo_[k].Init(); peaks_env_[k].Init(); tides_[k].Init(); tap_period_[k] = 0.5f; }
   for (int i = 0; i < NROUTE; ++i) routes_[i].src = SR_NONE;
+  routed_rebuild();
 #ifndef RACK_LITE
   marbles_rng_.Init(0x2357bd1);
   marbles_stream_.Init(&marbles_rng_);
@@ -775,9 +788,12 @@ static void run_lfos() {
 }
 
 // ------------------------------------------------------------------ voice render
-static float vbuf_[BLOCK], vaux_[BLOCK], tmp_[BLOCK];
+// each core's own scratch (RACK_FM1's second core renders some voices: render_voice(.., core 1))
+static float vbuf_c_[2][BLOCK], vaux_c_[2][BLOCK];
 
-static void render_voice(int i, float* mix_l, float* mix_r) {
+static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
+  float* const vbuf_ = vbuf_c_[core];
+  float* const vaux_ = vaux_c_[core];
   VoiceState& v = vs_[i];
   if (!v.active && v.stage == 0) return;
   run_env(v);
@@ -875,10 +891,10 @@ static void render_voice(int i, float* mix_l, float* mix_r) {
     }
 #endif
   } else {
-    memset(vbuf_, 0, sizeof(vbuf_));
+    memset(vbuf_, 0, BLOCK * sizeof(float));
   }
   bool stereo = src == M_ELEMENTS;
-  if (!stereo) memcpy(vaux_, vbuf_, sizeof(vbuf_));
+  if (!stereo) memcpy(vaux_, vbuf_, BLOCK * sizeof(float));
 
   // ---- SHP
   int shp = mod_id_[S_SHP];
@@ -1002,6 +1018,10 @@ static Biquad eq_[2][3];
 static float eq_db_[3] = { 0, 0, 0 }, eq_cur_[3] = { 0, 0, 0 }, comp_amt_ = 0.0f;
 static float comp_env_ = 0.0f, comp_gr_db_ = 0.0f, lim_gain_ = 1.0f, lim_gr_db_ = 0.0f;
 static float lim_buf_l_[64], lim_buf_r_[64]; static int lim_w_ = 0;
+// the limiter's look-ahead peak: the largest |sample| of the last 48, kept as a falling queue (each sample goes in
+// once and out once) instead of reading all 48 for every sample. The same peak exactly; NaN counts as 0, as fmaxf
+// skipped it.
+static float lim_qv_[64]; static uint32_t lim_qi_[64], lim_qh_ = 0, lim_qt_ = 0, lim_n_ = 0;
 EXPORT void set_master_fx(float low, float mid, float high, float comp) { eq_db_[0] = low; eq_db_[1] = mid; eq_db_[2] = high; comp_amt_ = comp; }
 static void run_master(float* l, float* r) {
   // EQ: the gains glide, the filters are re-designed only when they move
@@ -1029,7 +1049,11 @@ static void run_master(float* l, float* r) {
   // limiter: looks 48 samples (1 ms) ahead, so a loud attack is already turned down when it arrives
   for (int n = 0; n < BLOCK; ++n) {
     lim_buf_l_[lim_w_] = l[n]; lim_buf_r_[lim_w_] = r[n];
-    float peak = 0.0f; for (int k = 0; k < 48; ++k) { int i2 = (lim_w_ - k) & 63; peak = fmaxf(peak, fmaxf(fabsf(lim_buf_l_[i2]), fabsf(lim_buf_r_[i2]))); }
+    float a = fmaxf(fabsf(l[n]), fabsf(r[n])); if (!(a == a)) a = 0.0f;
+    while (lim_qt_ != lim_qh_ && lim_qv_[(lim_qt_ - 1u) & 63u] <= a) --lim_qt_;
+    lim_qv_[lim_qt_ & 63u] = a; lim_qi_[lim_qt_ & 63u] = lim_n_; ++lim_qt_;
+    while (lim_n_ - lim_qi_[lim_qh_ & 63u] >= 48u) ++lim_qh_;
+    float peak = lim_qv_[lim_qh_ & 63u]; ++lim_n_;
     float target = peak > 0.89f ? 0.89f / peak : 1.0f;
     lim_gain_ += (target - lim_gain_) * (target < lim_gain_ ? 0.3f : 0.0005f);
     int rd = (lim_w_ - 47) & 63;
@@ -1213,6 +1237,43 @@ static void run_fx(int slot, float* l, float* r) {
 }
 
 // ------------------------------------------------------------------ block + render
+#ifdef RACK_FM1
+// The FM-1's second core (the platform's worker, given by set_worker): with 2 or more voices it renders the upper
+// half (the larger half: the first core also runs the modulators, effects and master) into its own mix while the
+// first core renders the rest; then the two mixes are added. Without a worker, or when it can't take the job or
+// drops it, the first core renders every voice. The voices share nothing they write (each its own state and
+// scratch; stmlib's Random is shared, so its numbers may repeat across cores); the parameters, routes and
+// modulators they read only change between blocks.
+typedef int (*rack_run_fn)(void (*)(uint32_t), uint32_t);
+typedef int (*rack_wait_fn)(void);
+static rack_run_fn par_run_ = 0;
+static rack_wait_fn par_wait_ = 0;
+static float par_l_[BLOCK], par_r_[BLOCK];
+static int par_from_ = 0;
+static uint32_t par_blocks_ = 0;    // blocks the second core took a share of
+EXPORT void set_worker(rack_run_fn run, rack_wait_fn wait) { par_run_ = run; par_wait_ = wait; }
+EXPORT uint32_t worker_blocks() { return par_blocks_; }
+static void par_job(uint32_t) {
+  memset(par_l_, 0, sizeof(par_l_)); memset(par_r_, 0, sizeof(par_r_));
+  for (int i = par_from_; i < nvoices_; ++i) render_voice(i, par_l_, par_r_, 1);
+}
+static void render_voices() {
+  int split = nvoices_;
+  if (par_run_ && nvoices_ >= 2) {
+    par_from_ = nvoices_ / 2;
+    if (par_run_(par_job, 0)) split = par_from_;
+  }
+  for (int i = 0; i < split; ++i) render_voice(i, blk_l_, blk_r_);
+  if (split < nvoices_) {
+    if (par_wait_() == 0) {
+      for (int n = 0; n < BLOCK; ++n) { blk_l_[n] += par_l_[n]; blk_r_[n] += par_r_[n]; }
+      ++par_blocks_;
+    } else {
+      for (int i = split; i < nvoices_; ++i) render_voice(i, blk_l_, blk_r_);   // dropped: the first core does it
+    }
+  }
+}
+#endif
 static void process_block() {
   float bpm = base_[S_GLO][0] > 1.0f ? base_[S_GLO][0] : 112.0f;
   clk_advance(BLOCK / SR * bpm / 60.0f * 4.0f);
@@ -1220,7 +1281,11 @@ static void process_block() {
   run_lfos();
   run_mod(0); run_mod(1);
   memset(blk_l_, 0, sizeof(blk_l_)); memset(blk_r_, 0, sizeof(blk_r_));
+#ifdef RACK_FM1
+  render_voices();
+#else
   for (int i = 0; i < nvoices_; ++i) render_voice(i, blk_l_, blk_r_);
+#endif
   run_fx(S_FX1, blk_l_, blk_r_);
   run_fx(S_FX2, blk_l_, blk_r_);
   for (int n = 0; n < BLOCK; ++n) { blk_l_[n] *= master_ * 0.9f; blk_r_[n] *= master_ * 0.9f; }
