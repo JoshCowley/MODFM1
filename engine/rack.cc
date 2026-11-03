@@ -109,6 +109,8 @@ static uint8_t clouds_small_[65536 - 128];
 static clouds::Reverb reverb_;
 static uint16_t reverb_buf_[16384];
 static float delay_l_[96000], delay_r_[96000];
+static int delay_max_ = 95999, delay_q16_ = 0;   // FM-1 preview: 1 s cap, 16-bit storage
+static inline float q16(float x) { x = x > 1.0f ? 1.0f : x < -1.0f ? -1.0f : x; return (float)(int)(x * 32767.0f + (x >= 0 ? 0.5f : -0.5f)) / 32767.0f; }
 static int delay_w_ = 0;
 static float chorus_l_[4096], chorus_r_[4096];
 static int chorus_w_ = 0;
@@ -275,6 +277,7 @@ EXPORT void set_module(int slot, int id) {
   }
 }
 
+EXPORT void set_hw(int on) { delay_max_ = on ? 47999 : 95999; delay_q16_ = on ? 1 : 0; }
 EXPORT void set_voices(int n) {
   n = n < 1 ? 1 : n > MAXV ? MAXV : n;
   if (n < nvoices_) for (int i = n; i < MAXV; ++i) { vs_[i].gate = false; vs_[i].active = false; vs_[i].stage = 0; vs_[i].env = 0; }
@@ -936,7 +939,7 @@ static void run_fx(int slot, float* l, float* r) {
                                       : (int)(beats[ti] * 60.0f / bpm * SR);
     float width = P(slot, 6, 0), duck = P(slot, 7, 0), lc = P(slot, 8, 0);
     float lcc = lc > 0.0f ? 1.0f - expf(-6.2831853f * (20.0f + lc * lc * 980.0f) / SR) : 0.0f;
-    if (samples > 95999) samples = 95999;
+    if (samples > delay_max_) samples = delay_max_;
     float fb = P(slot, 1, 0) * 0.92f, tone = P(slot, 2, 0), mix = P(slot, 3, 0);
     int mode = PI(slot, 4, 0); float wow = P(slot, 5, 0);      // 0 PING, 1 MONO, 2 TAPE
     float lp = 0.05f + tone * 0.9f;
@@ -961,6 +964,7 @@ static void run_fx(int slot, float* l, float* r) {
       } else {
         delay_l_[delay_w_] = SoftClip(l[n] + delay_tone_l_ * fb * 1.05f); delay_r_[delay_w_] = SoftClip(r[n] + delay_tone_r_ * fb * 1.05f);
       }
+      if (delay_q16_) { delay_l_[delay_w_] = q16(delay_l_[delay_w_]); delay_r_[delay_w_] = q16(delay_r_[delay_w_]); }
       delay_w_ = (delay_w_ + 1) % 96000;
       float wl = delay_tone_l_, wr = delay_tone_r_, wm = mix;
       if (width != 0.0f) { float m = (wl + wr) * 0.5f, sd = (wl - wr) * 0.5f * (1.0f + width); wl = m + sd; wr = m - sd; }
