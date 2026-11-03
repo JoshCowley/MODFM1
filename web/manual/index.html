@@ -16,9 +16,9 @@ img{max-width:100%;height:auto;border-radius:6px}code,kbd{background:var(--code)
 </style>
 <div class="top"><a href="../">← Back to FM1 Rack</a></div>
 <main>
-<h1>FM1 Rack 1.8 Manual</h1>
+<h1>FM1 Rack 1.9 Manual</h1>
 <p>Oct 26, 2026 · Josh Cowley</p>
-<p>FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.8 browser build, which runs the original module code.</p>
+<p>FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Instruments modules into a fixed voice chain, patch them with a 12-row matrix, and play them through four macros. This manual covers the 1.9 browser build, which runs the original module code.</p>
 <h2>Quick start</h2>
 <p>You can go from switch-on to a saved patch of your own in five steps.</p>
 <ol>
@@ -2067,6 +2067,14 @@ img{max-width:100%;height:auto;border-radius:6px}code,kbd{background:var(--code)
 <h3>Page 6: SYSTEM</h3>
 <p>A live readout of the audio engine: <strong>CPU</strong> (the share of real time spent rendering), <strong>PEAK</strong> (the slowest recent block) and <strong>LATE</strong> (blocks that took longer than real time, each a possible click), with a graph, beside the FM-1 budget estimate in units. These are browser measurements; on the FM-1 the same readout will tell us the real costs.</p>
 <p><strong>STEP ADV</strong> (ON or OFF): whether the NOTES cursor moves on a step after you enter a note.</p>
+<p><strong>HARDWARE (page 7, new in 1.9): the FM-1 preview.</strong> FM1 Rack is not FM-1 firmware yet. This page makes the browser version behave as closely as currently possible to what would fit on the real FM-1.</p>
+<ul>
+<li><strong>TARGET</strong>: FM-1 (the default) applies the limits below; BROWSER removes them (6 voices of anything, 2 s delay).</li>
+<li><strong>FREE RAM</strong> (256K, 384K or 512K): memory left for sound. The FM-1's RAM isn't published; about 578 KB of SRAM is unverified, and the firmware, a 240×240 screen buffer and audio buffers need some of it. 384K is the middle guess.</li>
+<li><strong>CPU SPEED</strong> (SLOW, MID or FAST): how fast the Mutable code runs on the FM-1's pi32v2 core, which no one has measured yet.</li>
+</ul>
+<p>In FM-1 mode each module's memory is its real size in the engine (for example Plaits 25 KB per voice, Rings and Elements about 172–175 KB per voice, Clouds 188 KB, the delay 188 KB), and each module's CPU cost is measured relative to the others. The voice count drops to what fits; the footer's CPU or RAM label turns gold when it is the limit, and a patch that can't fit at all shows <strong>OVER RAM</strong> or <strong>OVER CPU</strong> and plays one voice. The delay is capped at 1 s and stored at 16-bit, as a port would. In the SAVE library, ✕ marks presets that won't fit and a gold voice count marks ones that fit with fewer voices. The page itself shows what the current patch needs and its biggest memory user.</p>
+<p>The page still runs at 48 kHz; the stock FM-1 reportedly runs at 44,118 Hz, and how a port handles that is an open question.</p>
 <h3>MIDI over USB</h3>
 <p>Plug in any class-compliant USB MIDI keyboard or controller. In the browser the rack asks for MIDI access when you switch it on; on the FM-1 it would arrive over the USB port.</p>
 <p>In 1.2 the rack speaks MIDI both ways over the same USB connection. Set the channel it listens on with <strong>MIDI CH</strong> (page 1) and what it sends on the <strong>MIDI</strong> page below.</p>
