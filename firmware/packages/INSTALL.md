@@ -7,13 +7,13 @@ build check passed, the three JieLi SDK files matched fm1-base's reference hashe
 | File | What | Identity |
 |---|---|---|
 | `packages/fm1bench.fwsc` | The benchmark: FPU check + 105 timed cases. Silent. **Install first.** | FM-1_7700 |
-| `packages/fm1rack.fwsc` | FM1 Rack Lite, first stage: 57 presets, keys + MIDI, macros on K1-K4 | FM-1_7800 |
+| `packages/fm1rack.fwsc` | FM1 Rack Lite, first stage: 57 presets, keys + MIDI, macros on K1-K4. Rebuilt 3 Nov after the benchmark: poly presets start at 2 voices; a preset too heavy even at 1 voice is muted with a message | FM-1_7800 |
 
 SHA-256 (also in `packages/SHA256SUMS`):
 
 ```
 e1938634b2048ba63ef1aff9dc43c3f08240ab81cd9fa0d8f2b539db847b1dbd  fm1bench.fwsc
-9d8e222be6fe31926d0b81e8373d00fee024f0333df55ad22721a2ec2689366b  fm1rack.fwsc
+083f01e3ddf51818059d1d35d1910b89acaa087b6c20fbae41b7114aea5be28f  fm1rack.fwsc
 ```
 
 ## Step 0: the recovery round trip (once, before anything here)

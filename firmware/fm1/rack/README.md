@@ -20,6 +20,11 @@ reverb, chorus), played from the keys (with velocity) and from USB or TRS MIDI.
 | SAVE | remember the preset, octave and voices for the next power-on |
 | MASTER | volume |
 
+**After the benchmark (3 Nov 2026):** one FM-1 core plays about 2 voices (`../../results/README.md`), so poly
+presets start at 2 voices unless SAVE remembered another number (SELECT still asks for up to 6). A preset that
+overloads the core even at one voice (Rings' MODAL measured 102 %) is muted until you pick another, with
+**TOO HEAVY FOR FM-1** on the screen, so the screen and controls keep working.
+
 MIDI in: notes, pitch bend (±2 semitones), CC 120/123 (all off), CC 20-23 (macros). The keys also go out over
 USB-MIDI. The voice modes play as on the page: MONO, LEGATO, and UNI 2 / UNI 4 (each key plays 2 or 4 detuned
 voices). If a block of sound takes over 90 % of its time, the firmware drops a voice and shows how many it shed.

@@ -94,6 +94,10 @@ void app_panic(void)
 }
 
 /* ------------------------------------------------------------------ presets --- */
+/* poly presets start with this many voices, unless SAVE remembered another number: on the FM-1 the benchmark
+ * (3 Nov 2026) measured about 27 % of a core for the engine plus about 22 % per Plaits voice, so 2 voices fit the
+ * 90 % line and 3 do not */
+#define START_VOICES 2
 static void load_preset(int k)
 {
     rc_pause();
@@ -101,6 +105,9 @@ static void load_preset(int k)
     if (set.voices && rc_patch.mode == RVM_POLY) {
         rk_set_voices(set.voices);
         rc_patch.voices_now = set.voices;
+    } else if (rc_patch.mode == RVM_POLY && rc_patch.voices_now > START_VOICES) {
+        rk_set_voices(START_VOICES);          /* the benchmark: one core plays about 2 voices (SELECT asks for more) */
+        rc_patch.voices_now = START_VOICES;
     }
     rc_resume();
 }
@@ -375,12 +382,15 @@ static void draw(void)
     cat(t, "%   XRUNS ");
     int_text((int32_t)plat_xruns(), n);
     cat(t, n);
-    if (rc_shed_count) {
+    if (rc_heavy) {
+        t[0] = 0;
+        cat(t, "TOO HEAVY FOR FM-1: MUTED, PICK ANOTHER");
+    } else if (rc_shed_count) {
         cat(t, "   SHED ");
         int_text((int32_t)rc_shed_count, n);
         cat(t, n);
     }
-    cv_text(6, 20, &FONT_XS, t, plat_cpu_pct() > 85u ? RGB(255, 80, 60) : C_GRAY);
+    cv_text(6, 20, &FONT_XS, t, rc_heavy || plat_cpu_pct() > 85u ? RGB(255, 80, 60) : C_GRAY);
     cv_blit(0, 124);
     /* the level, and the keys held */
     cv_begin(240, 40, C_BLACK);

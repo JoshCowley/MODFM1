@@ -182,12 +182,26 @@ static void rc_apply(void)
 }
 
 /* the audio interrupt, when a block took over 90 % of its time: one voice fewer (not below one), at most every
- * 20 blocks; a preset load or the voices setting gives them back */
+ * 20 blocks; a preset load or the voices setting gives them back.
+ * Too heavy even with one voice (the benchmark measured Rings' MODAL at 102 % of a core with one voice): after
+ * RC_HEAVY_N overloads at one voice, each within RC_HEAVY_GAP blocks of the last, the render plays silence until the
+ * next preset load, so the interrupt no longer takes the whole core and the screen and controls keep working. */
+#define RC_HEAVY_N 16u
+#define RC_HEAVY_GAP 4u
 static uint32_t rc_shed_wait;
 static uint32_t rc_shed_count;
+static uint32_t rc_blocks, rc_heavy_last, rc_heavy_streak;
+static volatile int rc_heavy;                 /* 1: muted, too heavy for one core (shown on the screen) */
 static void rc_overload(void)
 {
-    if (rc_shed_wait || rc_patch.voices_now <= 1)
+    if (rc_patch.voices_now <= 1) {
+        rc_heavy_streak = rc_blocks - rc_heavy_last <= RC_HEAVY_GAP ? rc_heavy_streak + 1u : 1u;
+        rc_heavy_last = rc_blocks;
+        if (rc_heavy_streak >= RC_HEAVY_N)
+            rc_heavy = 1;
+        return;
+    }
+    if (rc_shed_wait)
         return;
     rc_do(RCE_VOICES, rc_patch.voices_now - 1, 0.0f, 0.0f);
     rc_shed_wait = 20u;
@@ -229,9 +243,14 @@ static void rc_render(int32_t *lr, uint32_t n, float gain)
         return;
     }
     rc_audio.paused = 0;
+    rc_blocks++;
     if (rc_shed_wait)
         rc_shed_wait--;
     rc_apply();
+    if (rc_heavy) {                           /* too heavy for one core: silence until another preset loads */
+        memset(lr, 0, 8u * n);
+        return;
+    }
     pos_end = rc_audio.t + (float)n * RC_STEP;
     m = (uint32_t)pos_end;                    /* engine frames this block: positions 1..m */
     if (m > 1024u)
@@ -273,5 +292,7 @@ static void rc_resume(void)
     rc_qtail = rc_qhead;                      /* notes queued for the old preset are dropped */
     rc_audio.hist_l = rc_audio.hist_r = 0.0f;
     rc_audio.t = 0.0f;
+    rc_heavy = 0;
+    rc_heavy_streak = 0;
     rc_audio.pause_req = 0;
 }

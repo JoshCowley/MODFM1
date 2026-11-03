@@ -182,6 +182,30 @@ int main(int argc, char **argv)
             printf("4 %-14s mode %d: %d notes per key, detune %.3f\n", PRESETS[k].name, PRESETS[k].mode,
                    rc_unison(60.0f, n), rc_patch.detune);
         }
+    /* 5: the overload guard. Sheds one voice per 20 blocks down to one; at one voice, 16 overloads close together
+     * mute it (silence, not the engine) until the next load; spaced-out overloads don't */
+    {
+        int shed_to, heavy_close, heavy_spaced, quiet = 1, back;
+        rc_pause(); rc_load(0); rc_resume();
+        rc_do(RCE_VOICES, 6, 0.0f, 0.0f);
+        rc_note_on(60, 0.8f);
+        for (i = 0; i < 200; i++) { rc_render(lr, 256, 8388607.0f); rc_overload(); }
+        shed_to = rc_patch.voices_now;
+        for (i = 0; i < 40; i++) { rc_render(lr, 256, 8388607.0f); rc_overload(); }
+        heavy_close = rc_heavy;
+        rc_render(lr, 256, 8388607.0f);
+        for (k = 0; k < 512; k++) if (lr[k]) quiet = 0;
+        rc_pause(); rc_load(0); rc_resume();
+        back = !rc_heavy;
+        rc_do(RCE_VOICES, 1, 0.0f, 0.0f);
+        for (i = 0; i < 200; i++) { rc_render(lr, 256, 8388607.0f); if (i % 8 == 0) rc_overload(); }
+        heavy_spaced = rc_heavy;
+        printf("5 overload: shed to %d voice, muted after close overloads %d (silent %d), cleared by a load %d, "
+               "muted by spaced ones %d\n", shed_to, heavy_close, quiet, back, heavy_spaced);
+        if (shed_to != 1 || !heavy_close || !quiet || !back || heavy_spaced)
+            fails++;
+        rc_pause(); rc_load(0); rc_resume();
+    }
     printf(fails ? "%d FAILED\n" : "all passed\n", fails);
     return fails != 0;
 }

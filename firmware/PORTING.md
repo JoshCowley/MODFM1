@@ -47,6 +47,11 @@ In order. Don't start a step until the one before passes its check. The develope
   preset data) links to **551 KB of the 568 KB app area**. So the Lite set fits with room for FM1 Rack's UI only if
   that UI stays small; whether Warps, Clouds or Marbles also fit is for after the UI is ported.
 
+- **Measured on an FM-1 (3 Nov 2026, `fm1/bench`): FPU OK, hardware float, exact; all 105 cases OK.** The engine
+  costs about 27 % of one core before any voice, then about 22 % per Plaits voice, so one core plays about 2 voices.
+  Plaits models 42-59 % with one voice, Braids 45-51 %, Rings MODAL 102 % (too heavy), SYMPATH 92 %; filter 6.5 %,
+  Tides 6.9 %, Peaks 3.6 %, Grids 0.3 %, delay 7.1 %, reverb 11.1 %, chorus 6.8 %. Full results and what they mean:
+  [`results/README.md`](results/README.md).
 - **The FM-1 has a single-precision FPU, by the evidence so far** (this corrects the note that was here before).
   Felucca-Engines' plugin guide says "The FM-1's DSP has no floating point unit", and Felucca's own code is fixed
   point. But fm1-base, whose firmwares run on the FM-1 (CTL-1, Radio and others), compiles everything with
@@ -88,8 +93,9 @@ In order. Don't start a step until the one before passes its check. The develope
 | Free RAM for the app (Felucca's map gives POOL 352 KB; how much of it the screen needs) | Sets `RACK_ARENA_KB` and the page's FREE RAM setting | build flags, `web/src/1-data.js` RAM_OPTS |
 | Can the codec run at 48 kHz? (Felucca runs it at 44.1 kHz) | The engine is 48 kHz: resample, or move the engine | `hw/fm1_app.cc` (`fm1_app_init`) |
 | Audio block size and the time budget per block | CPU limit | page CPU_OPTS, voice limits |
-| Does the core run the `fprev1` float instructions? (fm1-base says yes, Felucca says no FPU) | Float modules need it | `fm1/bench` |
-| Second core usable? | Voices on one core, effects on the other | engine split |
+| ~~Does the core run the `fprev1` float instructions?~~ **Yes** (fm1/bench, 3 Nov 2026) | Float modules need it | `fm1/bench` |
+| Second core usable? (fm1-base's `cpu2`) | One core plays about 2 voices (fm1/bench) | engine split |
+| What is the engine's fixed 27 %? | The biggest single cost | a bench variant |
 | Cycle counter readable? (fm1-base has `plat_ticks24()`, 24 ticks a microsecond) | CPU measurement | `fm1_hal_cycles()` |
 | Flash region for patches and its erase size | Storage | `fm1_hal_flash_*()` |
 
