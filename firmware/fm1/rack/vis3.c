@@ -470,7 +470,7 @@ static void info_cell(int i, const char *label, const char *value, float f, uint
     cv_text(16, 3, &FONT_T, label, K_DIM);
     cv_text(6, 17, &FONT_B, value, K_FG);
     vbar(6, 45, 100, 4, f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f, warn && f > 0.9f ? K_WARN : c);
-    cv_blit(i & 1 ? 122u : 6u, i < 2 ? 74u : 134u);
+    cv_blit(i & 1 ? 122u : 6u, i < 2 ? 78u : 137u);
 }
 static void system_cells(uint16_t c)
 {

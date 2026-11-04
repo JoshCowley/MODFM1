@@ -1,0 +1,64 @@
+wait 500
+shot home.png
+tap EDIT
+wait 300
+shot src.png
+tap SEQ
+wait 200
+key w7 down 100
+wait 60
+key w7 up
+key w9 down 90
+wait 60
+key w9 up
+key w11 down 100
+key w4 down 100
+wait 60
+key w11 up
+key w4 up
+key w8 down 100
+wait 60
+key w8 up
+wait 100
+shot notes.png
+tap PLAY
+wait 700
+shot notes_play.png
+tap SEQ
+wait 200
+shot pattern.png
+tap SEQ
+turn K1 40
+wait 200
+shot spice.png
+tap SEQ
+turn K1 1
+turn ALGO 1
+wait 300
+shot gen.png
+tap SEQ
+wait 200
+shot banks.png
+tap SEQ
+turn K2 1
+wait 200
+shot song.png
+press SEQ
+wait 500
+key w2 down 100
+wait 100
+shot layer.png
+key w2 up
+release SEQ
+wait 100
+tap LFO
+tap LFO
+tap LFO
+tap LFO
+wait 400
+shot mseq.png
+tap HOME
+wait 400
+shot home_play.png
+tap PLAY
+wait 200

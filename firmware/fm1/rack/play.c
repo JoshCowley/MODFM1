@@ -22,6 +22,12 @@ enum { AM_OFF, AM_UP, AM_DOWN, AM_UPDN, AM_DNUP, AM_RANDOM, AM_ORDER, AM_CHORD, 
 enum { PLE_KEY_ON = 16, PLE_KEY_OFF, PLE_ZONE, PLE_RESET, PLE_ARP_CLEAR };
 
 #define GI(i) ((int)(set.glo[i] + 0.5f))
+/* the sequencer's (seq.c, after this file) */
+static void sq_note_in(int raw, const uint8_t *notes, int n);
+static void sq_note_out(int raw);
+static void sq_clock_tick(void);
+static void sq_reset_counts(void);
+static void ms_apply(void);
 #define CI(i) ((int)(set.sel[i] + 0.5f))
 #define AI(i) ((int)(set.arp[i] + 0.5f))
 #define PL_HZ 44100.0f                        /* the codec's frames: the clock */
@@ -426,6 +432,7 @@ static void pl_key_on(int raw, int note, float vel)
         pv.nchord = (uint8_t)n;
         pv.chord_seq++;
     }
+    sq_note_in(raw, notes, n);               /* the sequencer: REC, step entry, the last notes (seq.c) */
     if (AI(A_MODE) != AM_OFF) {
         arp_add(raw, notes, n);
         r->n = 0;                             /* the arp plays them */
@@ -450,6 +457,7 @@ static void pl_key_off(int raw)
         return;
     }
     pl_raw[raw].active = 0;
+    sq_note_out(raw);
     if (AI(A_MODE) != AM_OFF)
         arp_remove(raw);
     raw_release(raw);
@@ -490,6 +498,7 @@ static void pl_reset(int all)                 /* the engine was reset (a preset 
         if (pl_snd[i])
             midi_out_note(i, 0);
     memset(pl_snd, 0, sizeof pl_snd);
+    sq_reset_counts();
     pl_npend = 0;
     for (i = 0; i < PL_NRAW; i++) {
         pl_raw[i].on = 0;
@@ -643,6 +652,7 @@ static void pl_clock_tick(void)
     }
     pa.last_tick = pl_now;
     pv.clock_at = plat_ms();
+    sq_clock_tick();
     if (GI(G_CLOCK) != 1 || AI(A_MODE) == AM_OFF || !pa.count)
         return;
     if (pa.ticks++ % ARP_TICKS[AI(A_RATE) > 5 ? 5 : AI(A_RATE)] == 0u)
@@ -746,6 +756,7 @@ static void glo_apply(void)
     rk_set_param(RS_GLO, 0, tempo_bpm());
     master_apply();
     tune_apply();
+    ms_apply();                               /* MSEQ's smoothing (seqpages.c) */
 }
 
 static uint32_t set_dirty_at;                 /* a setting changed: saved when they rest */

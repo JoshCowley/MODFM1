@@ -18,10 +18,12 @@ void app_overload(void);
 #define APP_CANVAS_PX (240u * 40u)
 
 /* the store: the settings (preset, octave, voices), the panel calibration (the platform's), Bluetooth's (unused) */
-/* and the 64 user presets, 8 to an object (save.c): 8 A/B sector pairs in the data area, 0xC8000-0xD7FFF */
-enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_BLE, OBJ_USER0, OBJ_NOBJ = OBJ_USER0 + 8 };
+/* the 64 user presets, 8 to an object (save.c): 8 A/B sector pairs in the data area, 0xC8000-0xD7FFF; the
+ * sequencer's 8 banks and its song + MSEQ (seq.c): 9 more, 0xB6000-0xC7FFF */
+enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_BLE, OBJ_USER0, OBJ_BANK0 = OBJ_USER0 + 8, OBJ_SONG = OBJ_BANK0 + 8, OBJ_NOBJ };
 #define APP_STORE_MAP {0xFC000u, 0xDC000u, 0xDE000u, 0xC8000u, 0xCA000u, 0xCC000u, 0xCE000u, 0xD0000u, 0xD2000u, \
-                       0xD4000u, 0xD6000u}
+                       0xD4000u, 0xD6000u, 0xB6000u, 0xB8000u, 0xBA000u, 0xBC000u, 0xBE000u, 0xC0000u, 0xC2000u, \
+                       0xC4000u, 0xC6000u}
 
 /* the contract: the platform calls these */
 void app_init(void);

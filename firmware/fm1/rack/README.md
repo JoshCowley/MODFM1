@@ -9,8 +9,8 @@ engine in the audio interrupt, and the benchmark is what tells us that's afforda
 The 57 factory presets that use only Lite modules (Plaits, Braids, Rings, filter, Tides, Peaks, Grids, delay,
 reverb, chorus), played from the keys (with velocity) and from USB or TRS MIDI.
 
-Stages 1 to 3 of the menus (sound editing; save and the library; scales, chords, the arpeggiator, tunings and GLOBAL)
-are in: the page's own pages, buttons and knobs (`menus.c`; the parameters come from the page's definitions through
+Stages 1 to 4 of the menus (sound editing; save and the library; scales, chords, the arpeggiator, tunings and GLOBAL;
+the sequencer and the new frame) are in: the page's own pages, buttons and knobs (`menus.c`; the parameters come from the page's definitions through
 `make_ui.py` -> `ui_defs.h`).
 
 | Button (printed) | Page |
@@ -18,13 +18,14 @@ are in: the page's own pages, buttons and knobs (`menus.c`; the parameters come 
 | HOME | home: the preset, scope, chain, macros. Press again: the RACK overview; again: home (and all notes off). Hold half a second: LEARN |
 | EDIT | the source (Plaits or Braids), then OSC (a second oscillator and the mixer) |
 | ENV | AMP (envelopes, voice mode), then the shaper (Rings or filter) |
-| LFO | MOD A, MOD B, then the three LFOs (and each LFO's two direct targets) |
+| LFO | MOD A, MOD B, then the three LFOs (and each LFO's two direct targets), then MSEQ |
 | FX | FX 1, then FX 2 |
 | ARP | the 12-row matrix, then the arpeggiator |
 | SEL | scale + chord, then the keys (QNT, harmony, zone, strum) |
 | GLO | GLOBAL: settings, playing, tuning, MIDI, master, system |
 | SAVE | the SAVE page: name, slot and category; SAVE again stores it (and it comes back at power-on). OCT+ the library |
-| SEQ, PLAY, REC | not yet (stage 4): "NEXT STAGE OF THE PORT" |
+| SEQ | the sequencer: NOTES, PATTERN, SPICE, GEN, BANKS, SONG in turn. Hold: the step layer (the 16 white keys are steps) |
+| PLAY, REC | start / stop the sequencer; REC READY (stopped) or recording on / off (playing) |
 
 | Knob | Home | A module's page, AMP, LFO | Matrix |
 |---|---|---|---|
@@ -135,8 +136,31 @@ back after a reboot. Not yet heard on an FM-1.
 
 ![SEL](screen-sel.png) ![ARP](screen-arp.png) ![Tuning](screen-tuning.png)
 
-Flash: 519,788 of 581,632 bytes (60 KB free) with OSC and LEARN (3.9 KB); stage 3 cost 18.3 KB; the two size changes from the report
+Flash: 542,020 of 581,632 bytes (about 39 KB free) with stage 4 (22.2 KB); OSC and LEARN cost 3.9 KB; stage 3 cost 18.3 KB; the two size changes from the report
 (unused tables dropped with `-fdata-sections`, Tides built with only the modes FM1 Rack uses: 67 KB) made the room.
+
+**Stage 4: the frame, dials and the sequencer** (after the HTML mockup of 4 Nov; `frame.c`, `seq.c`, `seqpages.c`):
+
+- **The frame**: CPU and RAM moved from the bottom to a 10-row status strip at the top (voice lights, cores and voice
+  mode, CPU and RAM bars with numbers, octave, output meter). The bottom is now the modulation strip: one chip per route
+  that is set (source icon and name in the source's colour, the destination parameter in its slot's colour, a needle
+  that moves with the source); on a module, AMP, LFO or OSC page the routes into that page come first, lit.
+- **Dials**: the parameter cells and home's macros are dials. A dial being modulated shows its swept range as a band
+  in the source's colour, with a live arc and dot that move.
+- **The sequencer** (a port of the page's 5d-sequencer.js): 8 banks (A-H) of up to 64 steps, each step up to 6 notes
+  with their own length and force, ratchet, nudge, slide, chance; per bank length, division, swing, gate, SPICE and
+  DICE; GEN's 18 tools (EUCLID, RANDOM, ACID, ARP, BERLIN ...; ALGO left undoes); BANKS (copy, clear, double, halve;
+  switch now or at the loop end); SONG, 16 rows of bank, repeats and transpose. Step entry on NOTES (play a note or chord,
+  release, the cursor moves on); REC records into the steps as it plays. It plays in the audio interrupt by the codec's
+  frame, on the internal tempo or MIDI clock (MIDI start / stop when CLOCK is MIDI), and sends MIDI out.
+- **MSEQ** (LFO, last page): four lanes of 16 values on the tempo, the matrix's sources SEQ 1-4, with shapes.
+- **SAVE on a sequencer page** keeps the banks and the song (store objects in the data area at 0xB6000-0xC7FFF). The
+  sound stops for a moment while the flash is written, so it is never saved automatically while it plays.
+- Not yet from the page: parameter locks, the free take, capture, note repeat, FILL.
+
+Checked in the simulator (`sim_seq.txt`): step entry with a chord, playback at the tempo with MIDI out (velocity and
+gate as set), MIDI start / stop sent, a modulated dial moving, every sequencer page and the layer drawn; all the other
+simulator scripts pass, also under AddressSanitizer. Not yet heard on an FM-1.
 
 ## How it works
 

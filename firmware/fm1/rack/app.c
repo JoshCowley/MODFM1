@@ -28,6 +28,7 @@ typedef struct {
 static settings_t set;
 #include "ui_defs.h"
 #include "play.c"
+#include "seq.c"
 
 static const char *module_name(int id)
 {
@@ -61,8 +62,12 @@ static void midi_in(void)                     /* audio interrupt: the packets th
             pl_clock_tick();
             continue;
         }
-        if (st == 0xFAu)
+        if (st == 0xFAu) {
             pl_clock_start();
+            if (GI(G_CLOCK) == 1) sq.req = 1;
+        }
+        if (st == 0xFCu && GI(G_CLOCK) == 1)
+            sq.req = 2;
         if (st >= 0xF0u)
             continue;
         if (want && (int)(st & 15u) + 1 != want)   /* GLOBAL > MIDI CH */
@@ -92,6 +97,7 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
     if (!rc_audio.pause_req)
         midi_in();
     pl_block(n);                              /* the arp's steps and the strums falling due */
+    sq_block(n);                              /* the sequencer's and MSEQ's (seq.c) */
     rc_render(lr, n, 8300000.0f);
     for (i = 0; i < n; i++) {                 /* MASTER, gliding over about 5 ms */
         float g;
@@ -141,6 +147,7 @@ static struct {
     uint32_t msg_until;
     int redraw, clear;
     uint32_t zkeys;                           /* the keys held as SEL's zone keys */
+    uint32_t pkeys;                           /* the keys sounding (not the layer's steps) */
 } ui;
 static int cur_entry;                         /* the preset playing: < NPRESETS a factory one, else user slot - NPRESETS */
 
@@ -294,6 +301,43 @@ static void vbar(int32_t x, int32_t y, int32_t w, int32_t h, float v, uint16_t c
     rrect(x, y, f, h, c, h / 2);
 }
 
+/* a dial (stage 4's look): a ring of 270 degrees from the lower left. ring_arc draws its part from f0 to f1 (0-1) as
+ * squares of th pixels; dial() the track, the value's arc and its dot; with a modulation colour mc, the range the
+ * value has swept lately (lo-hi) as a wide pale band, the set value dimmed and the live value's arc in mc */
+static void ring_arc(int32_t cx, int32_t cy, int32_t r, float f0, float f1, int32_t th, uint16_t c)
+{
+    float a, a0, a1, st = 1.0f / (float)r;
+    f0 = f0 < 0.0f ? 0.0f : f0 > 1.0f ? 1.0f : f0;
+    f1 = f1 < 0.0f ? 0.0f : f1 > 1.0f ? 1.0f : f1;
+    if (f1 < f0) { float t = f0; f0 = f1; f1 = t; }
+    a0 = 2.3562f + 4.7124f * f0;
+    a1 = 2.3562f + 4.7124f * f1;
+    for (a = a0; a <= a1 + 0.0001f; a += st) {
+        float fx = fm_cosf(a) * (float)r, fy = fm_sinf(a) * (float)r;
+        int32_t x = cx + (int32_t)(fx + (fx < 0.0f ? -0.5f : 0.5f)), y = cy + (int32_t)(fy + (fy < 0.0f ? -0.5f : 0.5f));
+        cv_rect(x - th / 2, y - th / 2, th, th, c);
+    }
+}
+static void ring_dot(int32_t cx, int32_t cy, int32_t r, float f, uint16_t c)
+{
+    float a = 2.3562f + 4.7124f * (f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f);
+    int32_t x = cx + (int32_t)(fm_cosf(a) * (float)r + 0.5f), y = cy + (int32_t)(fm_sinf(a) * (float)r + 0.5f);
+    rrect(x - 2, y - 2, 5, 5, c, 2);
+}
+static void dial(int32_t cx, int32_t cy, int32_t r, float f, uint16_t c, uint16_t mc, float lo, float hi, float live, uint16_t bg)
+{
+    ring_arc(cx, cy, r, 0.0f, 1.0f, 3, K_FAINT);
+    if (mc) {
+        ring_arc(cx, cy, r, lo, hi, 6, mix565(mc, bg, 70));
+        ring_arc(cx, cy, r, 0.0f, f, 3, mix565(c, bg, 90));
+        ring_arc(cx, cy, r, 0.0f, live, 3, mc);
+        ring_dot(cx, cy, r, live, K_FG);
+    } else {
+        ring_arc(cx, cy, r, 0.0f, f, 3, c);
+        ring_dot(cx, cy, r, f, K_FG);
+    }
+}
+
 static void icon(int ic, int32_t x, int32_t y, uint16_t c)
 {
     int32_t r, b;
@@ -357,94 +401,22 @@ static void tile(int32_t x, int slot, uint16_t kind)
     const char *n = module_name(id);
     int lost = rk_fm1_status(4) >> slot & 1;   /* asked for but unloaded: no room in the arena */
     uint16_t c = lost ? K_WARN : n ? kind : K_FAINT;
-    rrect(x, 0, 36, 38, n ? K_CELL : K_BG, 4);
-    icon(lost ? module_icon(id) : n ? module_icon(id) : IC_EMPTY, x + 12, 5, c);
+    rrect(x, 0, 36, 28, n ? K_CELL : K_BG, 4);
+    icon(lost ? module_icon(id) : n ? module_icon(id) : IC_EMPTY, x + 12, 3, c);
     if (n)
-        cv_text(x + 18 - text_w(&FONT_T, n) / 2, 21, &FONT_T, n, lost ? K_WARN : K_DIM);
+        cv_text(x + 18 - text_w(&FONT_T, n) / 2, 14, &FONT_T, n, lost ? K_WARN : K_DIM);
 }
 
 #include "menus.c"
 #include "save.c"
 
-static void draw_footer(void)
-{
-    char t[32], n[12];
-    int i;
-    /* the footer: CPU and RAM bars, the voices' lights (lit by their envelopes), cores and octave, the meter */
-    cv_begin(240, 26, K_BAR);
-    {
-        uint32_t cpu = plat_cpu_pct();
-        float ram = (float)rk_fm1_status(0) / (float)rk_fm1_status(1);
-        float pk = rc_audio.peak;
-        int32_t h;
-        cv_text(6, 2, &FONT_T, "CPU", cpu > 85u ? K_WARN : K_DIM);
-        vbar(6, 16, 44, 3, (float)cpu / 100.0f, cpu > 85u ? K_WARN : cpu > 70u ? K_GOLD : K_OK);
-        cv_text(56, 2, &FONT_T, "RAM", K_DIM);
-        vbar(56, 16, 44, 3, ram, ram > 0.95f ? K_GOLD : K_OK);
-        for (i = 0; i < RC_MAXV; i++) {
-            int on = i < rc_patch.voices_now && i < rk_fm1_status(2);
-            float e = on ? rk_voice_env(i) : 0.0f;
-            uint32_t a = (uint32_t)(38.0f + 218.0f * (e > 1.0f ? 1.0f : e));
-            rrect(108 + i * 8, 9, 6, 8, on ? mix565(K_OK, K_OFF, a) : K_OFF, 1);
-        }
-        t[0] = 0;
-        if (rc_heavy)
-            cat(t, "HEAVY");
-        else if (rc_shed_count) {
-            cat(t, "SHED ");
-            int_text((int32_t)rc_shed_count, n);
-            cat(t, n);
-        } else {
-            cat(t, plat_cpu2_on() ? "2C " : plat_cpu2_gave_up() ? "1C* " : "1C ");
-            cat(t, MODE_NAME[rc_patch.mode < 5 ? rc_patch.mode : 0]);
-        }
-        cv_text(160, 2, &FONT_T, t, rc_heavy ? K_WARN : rc_shed_count ? K_GOLD : K_DIM);
-        t[0] = 'O';
-        t[1] = 'C';
-        t[2] = 'T';
-        t[3] = set.octave < 0 ? '-' : '+';
-        t[4] = (char)('0' + (set.octave < 0 ? -set.octave : set.octave));
-        t[5] = 0;
-        cv_text(160, 13, &FONT_T, t, ui.keys ? K_OK : K_DIM);
-        rc_audio.peak = 0.0f;
-        pk = pk > 1.0f ? 1.0f : pk * 1.3f > 1.0f ? 1.0f : pk * 1.3f;
-        h = (int32_t)(18.0f * pk + 0.5f);
-        cv_rect(228, 4, 6, 18, K_FAINT);
-        cv_rect(228, 22 - h, 6, h, pk > 0.9f ? K_WARN : K_OK);
-    }
-    cv_blit(0, 214);
-}
+#include "frame.c"
+#include "seqpages.c"
 
-static void draw_home(void)
+/* home's well: the output's scope over the dot grid, and tabs for SEL, ARP and a tuning when they are on */
+static void home_well(void)
 {
-    char t[32], n[12];
-    uint32_t now = plat_ms();
-    int32_t x;
-    int i, pending = ui.shown != cur_entry, c = entry_cat(ui.shown);
-    char name[24];
-    const char *tag = ui.shown < NPRESETS ? PRESETS[ui.shown].cat : CAT_NAME[c];
-    (void)now;
-    entry_name(ui.shown, name);
-    /* the header: the source's icon, the category in a tab (its colour), the preset; its place on the right */
-    cv_begin(240, 26, K_BAR);
-    icon(module_icon(rc_patch.mod[RS_SRC]), 6, 7, K_SRC);
-    x = text_w(&FONT_T, tag) + 8;
-    rrect(22, 6, x, 15, c ? CAT_COL[c] : K_SRC, 3);
-    cv_text(26, 7, &FONT_T, tag, K_BG);
-    cv_text(28 + x, 5, &FONT_B, name, pending ? K_DIM : K_FG);
-    if (pending) {
-        cv_text(234 - text_w(&FONT_T, "LOADING"), 8, &FONT_T, "LOADING", K_GOLD);
-    } else if (ui.shown < NPRESETS) {
-        int_text(ui.shown + 1, t);
-        cat(t, "/");
-        int_text(NPRESETS, n);
-        cat(t, n);
-        cv_text(234 - text_w(&FONT_T, t), 8, &FONT_T, t, K_DIM);
-    } else {
-        cv_text(234 - text_w(&FONT_T, "USER"), 8, &FONT_T, "USER", K_GOLD);
-    }
-    cv_blit(0, 0);
-    /* the well: the output's scope over the page's dot grid */
+    int32_t x, i;
     cv_begin(228, 42, K_BG);
     rrect(0, 0, 228, 42, K_WELL, 4);
     for (x = 12; x < 228; x += 12)
@@ -456,61 +428,111 @@ static void draw_home(void)
     else
         scope(228, 42, K_FG);
     home_chips();
-    cv_blit(6, 29);
-    /* the chain as tiles: source, shaper, modulators, effects (red: unloaded, no room) */
-    cv_begin(240, 38, K_BG);
-    tile(6, RS_SRC, K_SRC);
-    tile(44, RS_SHP, K_SHP);
-    tile(82, RS_MODA, K_MOD);
-    tile(120, RS_MODB, K_MOD);
-    tile(158, RS_FX1, K_FX);
-    tile(196, RS_FX2, K_FX);
-    cv_blit(0, 74);
-    /* the macros on K1-K4: cells as the page's, a rounded bar, and what each moves (the matrix's rows from M1-M4:
-     * the first one's destination, + how many more); LEARN: the macro being linked framed in gold, blinking */
-    for (i = 0; i < 4; i++) {
-        float v = rc_patch.macro[i];
+    cv_blit(6, 34);
+}
+
+static void draw_footer(void)                 /* (stage 4: the status strip on top, the modulation strip at the bottom) */
+{
+    status_strip();
+    mod_strip(frame_slot());
+}
+
+/* home's macros as dials (stage 4): each with what it moves underneath; LEARN: the macro being linked framed gold */
+static void home_macros(void)
+{
+    char t[24], n[8];
+    int i;
+    uint32_t now = plat_ms();
+    for (i = 0; i < 4; i++) {                 /* (one canvas each: the canvas holds 9600 pixels) */
+        int32_t x = 0;
+        float v = rc_patch.macro[i], amt;
         int r, nt = 0, src, via, sel = mn.learn && mn.learn_m == i;
         uint16_t first = 0;
-        float amt;
-        for (r = 0; r < 12; r++) {
+        for (r = 0; r < 18; r++) {
             uint16_t d = route_dst(r, &src, &via, &amt);
             if (d && src == 1 + i) {
                 if (!nt) first = d;
                 nt++;
             }
         }
-        cv_begin(112, 46, K_BG);
-        rrect(0, 0, 112, 46, sel ? RGB(40, 34, 18) : K_CELL, 4);
+        cv_begin(57, 54, K_BG);
+        rrect(x, 0, 57, 54, sel ? RGB(40, 34, 18) : K_CELL, 4);
         if (sel && (now / 250u) & 1u) {
-            cv_rect(0, 0, 112, 1, K_GOLD);
-            cv_rect(0, 45, 112, 1, K_GOLD);
-            cv_rect(0, 0, 1, 46, K_GOLD);
-            cv_rect(111, 0, 1, 46, K_GOLD);
+            cv_rect(x, 0, 57, 1, K_GOLD);
+            cv_rect(x, 53, 57, 1, K_GOLD);
+            cv_rect(x, 0, 1, 54, K_GOLD);
+            cv_rect(x + 56, 0, 1, 54, K_GOLD);
         }
         t[0] = 'M';
         t[1] = (char)('1' + i);
         t[2] = 0;
-        cv_text(6, 3, &FONT_T, t, sel ? K_GOLD : K_DIM);
+        cv_text(x + 3, -1, &FONT_T, t, sel ? K_GOLD : K_DIM);
+        dial(x + 28, 24, 13, v, nt ? K_GOLD : K_DIM, 0, 0.0f, 0.0f, v, K_CELL);
+        int_text((int32_t)(v * 100.0f + 0.5f), n);
+        cv_text(x + 28 - text_w(&FONT_T, n) / 2, 18, &FONT_T, n, K_FG);
         if (nt) {
             dst_name(first, t);
             if (nt > 1) {
-                cat(t, " +");
+                cat(t, "+");
                 int_text(nt - 1, n);
                 cat(t, n);
             }
-            cv_text(106 - text_w(&FONT_T, t), 3, &FONT_T, t, K_FG);
         } else {
-            cv_text(106 - text_w(&FONT_T, "UNASSIGNED"), 3, &FONT_T, "UNASSIGNED", K_FAINT);
+            t[0] = 0;
+            cat(t, "UNSET");
         }
-        int_text((int32_t)(v * 100.0f + 0.5f), n);
-        cv_text(6, 16, &FONT_B, n, K_FG);
-        vbar(6, 36, 100, 4, v, nt ? K_GOLD : K_DIM);
-        cv_blit(i & 1 ? 122u : 6u, i < 2 ? 116u : 166u);
+        while (text_w(&FONT_T, t) > 54 && t[0] && t[1]) {
+            int k = 0;
+            while (t[k]) k++;
+            t[k - 1] = 0;
+        }
+        cv_text(x + 28 - text_w(&FONT_T, t) / 2, 40, &FONT_T, t, nt ? K_FG : K_DIM);
+        cv_blit(2u + (uint32_t)i * 59u, 108);
     }
-    draw_footer();
 }
 
+static void draw_home(void)
+{
+    char t[32], n[12];
+    int32_t x;
+    int pending = ui.shown != cur_entry, c = entry_cat(ui.shown);
+    char name[24];
+    const char *tag = ui.shown < NPRESETS ? PRESETS[ui.shown].cat : CAT_NAME[c];
+    entry_name(ui.shown, name);
+    status_strip();
+    /* the header: the source's icon, the category in a tab (its colour), the preset; its place on the right */
+    cv_begin(240, 22, K_BAR);
+    icon(module_icon(rc_patch.mod[RS_SRC]), 6, 5, K_SRC);
+    x = text_w(&FONT_T, tag) + 8;
+    rrect(22, 4, x, 14, c ? CAT_COL[c] : K_SRC, 3);
+    cv_text(26, 4, &FONT_T, tag, K_BG);
+    cv_text(28 + x, 3, &FONT_B, name, pending ? K_DIM : K_FG);
+    if (pending) {
+        cv_text(234 - text_w(&FONT_T, "LOADING"), 5, &FONT_T, "LOADING", K_GOLD);
+    } else if (ui.shown < NPRESETS) {
+        int_text(ui.shown + 1, t);
+        cat(t, "/");
+        int_text(NPRESETS, n);
+        cat(t, n);
+        cv_text(234 - text_w(&FONT_T, t), 5, &FONT_T, t, K_DIM);
+    } else {
+        cv_text(234 - text_w(&FONT_T, "USER"), 5, &FONT_T, "USER", K_GOLD);
+    }
+    cv_blit(0, 10);
+    home_well();
+    /* the chain as tiles: source, shaper, modulators, effects (red: unloaded, no room) */
+    cv_begin(240, 28, K_BG);
+    tile(6, RS_SRC, K_SRC);
+    tile(44, RS_SHP, K_SHP);
+    tile(82, RS_MODA, K_MOD);
+    tile(120, RS_MODB, K_MOD);
+    tile(158, RS_FX1, K_FX);
+    tile(196, RS_FX2, K_FX);
+    cv_blit(0, 78);
+    home_macros();
+    seq_strip();
+    mod_strip(-1);
+}
 
 /* the lit buttons: the page's button (as the page's syncLeds) */
 static uint32_t page_leds(void)
@@ -525,6 +547,8 @@ static uint32_t page_leds(void)
     case PG_FX1: case PG_FX2: return 1u << B_FX;
     case PG_MATRIX: case PG_ARP: return 1u << B_ARP;
     case PG_SEL: return 1u << B_SEL;
+    case PG_SEQ: return 1u << B_SEQ;
+    case PG_MSEQ: return 1u << B_LFO;
     case PG_GLO: return 1u << B_GLO;
     }
     return 0;
@@ -552,30 +576,27 @@ static void draw_toast(void)
 /* the well alone, ~30 times a second between the full redraws: the visualisers move smoothly */
 static void draw_well_only(void)
 {
-    if (sv.open || mn.pick || mn.page == PG_RACK || mn.page == PG_MATRIX)
+    if (sv.open || mn.pick || sp.layer || mn.page == PG_RACK || mn.page == PG_MATRIX)
         return;
     if (mn.page == PG_HOME) {
-        int32_t x, i;
-        cv_begin(228, 42, K_BG);
-        rrect(0, 0, 228, 42, K_WELL, 4);
-        for (x = 12; x < 228; x += 12)
-            for (i = 6; i < 42; i += 6)
-                cv_pset(x, i, K_GRID);
-        if (rc_heavy)
-            cv_text(114 - text_w(&FONT_XS, "TOO HEAVY FOR FM-1: MUTED") / 2, 14, &FONT_XS, "TOO HEAVY FOR FM-1: MUTED", K_WARN);
-        else
-            vis_draw(-1, 0, 0, K_FG);
-        home_chips();
-        cv_blit(6, 29);
+        home_well();
+        seq_strip();
+        mod_strip(-1);
+    } else if (is_seq_page(mn.page)) {
+        seq_area();
+        mod_strip(-1);
     } else {
         well(mn.page, page_mod(mn.page), page_colour(mn.page));
+        if (!is_fixed(mn.page) && !(mn.page == PG_LFO && mn.sub >= UI_LFO.npages))
+            param_cells(mn.page);             /* the modulated dials move with the well */
+        mod_strip(frame_slot());
     }
 }
 
 static void draw(void)
 {
     static int shown = -1;                    /* the page on the screen: a new one starts from a clear screen */
-    int now = mn.page | mn.pick << 5 | sv.open << 6 | sv.lib << 7;
+    int now = mn.page | mn.pick << 5 | sv.open << 6 | sv.lib << 7 | sp.layer << 8;
     if (ui.clear) {                           /* a toast gone: what it covered is drawn again from clear */
         ui.clear = 0;
         shown = -1;
@@ -586,6 +607,13 @@ static void draw(void)
     }
     if (sv.open) {
         draw_save();
+        draw_footer();
+    } else if (sp.layer) {
+        status_strip();
+        draw_seq_layer();
+        mod_strip(-1);
+    } else if (is_seq_page(mn.page)) {
+        draw_seq_page();
         draw_footer();
     } else if (mn.page == PG_HOME)
         draw_home();
@@ -616,6 +644,10 @@ static void leds(uint32_t lit, uint32_t keys)
         }
     if (mn.learn && (plat_ms() / 250u) & 1u)  /* LEARN: HOME blinks */
         lit |= 1u << B_HOME;
+    if (sq.run)                               /* the sequencer: PLAY lit while it plays, REC while it records (blinking ready) */
+        lit |= 1u << B_PLAY;
+    if ((sq.rec && sq.run) || (sq.armed && (plat_ms() / 300u) & 1u))
+        lit |= 1u << B_REC;
     lit = (lit & ~play) | (lit & play ? LED_PLAY_GREEN : 0u);
     dim = (dim & ~play) | (dim & play ? LED_PLAY_GREEN : 0u);
     plat_lights(lit, keys, dim, dimk, glow ? glow : dimk ? 1 : 0);
@@ -628,9 +660,13 @@ static void input(void)
     int32_t e;
     touch_poll();
     keys = touch_keys();
+    seq_layer_keys(keys, ui.keys);            /* holding SEQ: the white keys are steps (seqpages.c) */
     for (k = 0; k < NKEYS; k++) {             /* key 0 is F3 (MIDI 53); play.c makes the notes */
         uint32_t bit = 1u << k;
-        if ((keys & bit) && !(ui.keys & bit)) {
+        if ((keys & bit) && !(ui.keys & bit) && sp.layer) {
+            continue;                         /* (a step, not a note) */
+        } else if ((keys & bit) && !(ui.keys & bit)) {
+            ui.pkeys |= bit;
             int note = 53 + (int)k + 12 * set.octave;
             uint32_t v = touch_vel(k);
             if (k < 7u && zone_on()) {        /* SEL > ZONE: the lowest keys change the chord */
@@ -639,7 +675,8 @@ static void input(void)
             } else {
                 rc_push(PLE_KEY_ON, PL_RAW_KEY + (int)k, (float)note, (float)v / 127.0f);
             }
-        } else if (!(keys & bit) && (ui.keys & bit)) {
+        } else if (!(keys & bit) && (ui.keys & bit) && (ui.pkeys & bit)) {
+            ui.pkeys &= ~bit;
             if (ui.zkeys & bit) {
                 ui.zkeys &= ~bit;
                 rc_push(PLE_ZONE, (int)k, 0.0f, 0.0f);
@@ -656,6 +693,15 @@ static void input(void)
         leds(btn | page_leds(), keys);
         return;
     }
+    seq_buttons(press, btn);                  /* SEQ (tap: the pages; hold: the layer), PLAY, REC */
+    if (sp.layer) {                           /* the layer: K1-K4 the held step's, OCT its page of 16 */
+        seq_layer_encoders();
+        if (press >> B_OCTDN & 1u && sp.layer_page > 0) { sp.layer_page--; ui.redraw = 1; }
+        if (press >> B_OCTUP & 1u && sp.layer_page < 3) { sp.layer_page++; ui.redraw = 1; }
+        ui.btn = btn;
+        leds(btn | page_leds() | 1u << B_SEQ, keys);
+        return;
+    }
     if ((e = plat_enc(EN_PRESET)) != 0) {    /* PRESET: the presets, factory then user, on every page (as the page) */
         int i;
         for (i = 0; i < (e > 0 ? e : -e) && i < 8; i++)
@@ -667,7 +713,9 @@ static void input(void)
         octave_step(-1);
     if (press >> B_OCTUP & 1u)
         octave_step(1);
-    if (press >> B_SAVE & 1u)                /* SAVE: the page to name and store what is playing */
+    if ((press >> B_SAVE & 1u) && is_seq_page(mn.page))   /* SAVE on a sequencer page: the sequencer */
+        seq_save();
+    else if (press >> B_SAVE & 1u)           /* SAVE: the page to name and store what is playing */
         save_open();
     if (menu_input(press, btn)) {                 /* a menu page: its own encoders */
         ui.btn = btn;
@@ -729,6 +777,7 @@ void app_frame(void)
     uint32_t now = plat_ms();
     input();
     menu_tick();
+    seq_tick();
     /* PRESET or ALGORITHM stopped turning: load what is shown */
     if (ui.shown != cur_entry && now - ui.turned_at > 180u) {
         load_entry(ui.shown);
@@ -809,6 +858,7 @@ void app_init(void)
         if (!(set.arp[i] >= (float)UP_ARP[i].lo && set.arp[i] <= (float)UP_ARP[i].hi)) set.arp[i] = UP_ARP[i].def;
     set.glo[G_VOICES] = (float)set.voices;
     rc_ext = pl_event;
+    sq_init();
     users_load();
     if (set.preset >= NPRESETS && !us.used[set.preset - NPRESETS])
         set.preset = 0;

@@ -26,7 +26,9 @@
 static void entry_name(int e, char *t);
 
 enum { PG_HOME, PG_RACK, PG_SRC, PG_SHP, PG_MODA, PG_MODB, PG_FX1, PG_FX2, PG_AMP, PG_LFO, PG_MATRIX, PG_SEL, PG_GLO,
-       PG_ARP, PG_OSC };
+       PG_ARP, PG_OSC, PG_SEQ, PG_MSEQ };
+static int is_seq_page(int pg);               /* the sequencer's pages (seqpages.c) */
+static void seq_encoders(void);
 #define OSC_P0 24                             /* OSC's first parameter on AMP (engine/rack.cc OSC_WAVE) */
 #define K_OSC RGB(255, 214, 150)
 #define K_AMP RGB(255, 122, 107)
@@ -36,6 +38,7 @@ enum { PG_HOME, PG_RACK, PG_SRC, PG_SHP, PG_MODA, PG_MODB, PG_FX1, PG_FX2, PG_AM
 #define K_GLO RGB(216, 215, 211)
 #define K_CHD RGB(155, 227, 122)
 #define K_ARP RGB(127, 214, 255)
+#define K_SEQC RGB(255, 143, 200)
 
 static struct {
     int page, sub, row;                       /* the page, its page within (SELECT), the matrix row */
@@ -52,8 +55,9 @@ static const uint8_t SHP_CH[] = {10, 12, 0};
 static const uint8_t MOD_CH[] = {20, 21, 23, 0};
 static const uint8_t FX_CH[] = {31, 32, 33, 0};
 static const char *const SRC_NAMES[] = {"-", "M1", "M2", "M3", "M4", "VELO", "KEY TRK", "RANDOM", "AMP ENV", "A OUT 1",
-                                        "A OUT 2", "B OUT 1", "B OUT 2", "LFO 1", "LFO 2", "LFO 3", "MOD ENV"};
-#define NSRC_UI 17
+                                        "A OUT 2", "B OUT 1", "B OUT 2", "LFO 1", "LFO 2", "LFO 3", "MOD ENV", "SEQ 1",
+                                        "SEQ 2", "SEQ 3", "SEQ 4"};
+#define NSRC_UI 21
 
 static const ui_mod_t *ui_mod(int id)
 {
@@ -91,7 +95,7 @@ static uint16_t slot_colour(int slot)
     return slot >= 0 && slot < 9 ? C[slot] : K_FG;
 }
 static const char *const SLOT_TAG[] = {"SRC", "SHP", "MOD A", "MOD B", "FX 1", "FX 2", "AMP", "GLO", "LFO"};
-static uint16_t page_colour(int pg) { return is_fixed(pg) ? fixed_colour(pg) : pg == PG_OSC ? K_OSC : slot_colour(page_slot(pg)); }
+static uint16_t page_colour(int pg) { return is_fixed(pg) ? fixed_colour(pg) : pg == PG_OSC ? K_OSC : pg == PG_SEQ ? K_SEQC : pg == PG_MSEQ ? K_LFO : slot_colour(page_slot(pg)); }
 static void choices(int slot, const uint8_t **ch, int *n)
 {
     if (slot == RS_SRC) { *ch = SRC_CH; *n = 2; }
@@ -228,6 +232,29 @@ static const char *src_name(int s)
     }
     return s >= 0 && s < NSRC_UI ? SRC_NAMES[s] : "?";
 }
+static uint16_t src_colour(int s)             /* the colour a modulation source is drawn in, everywhere */
+{
+    if (s >= 1 && s <= 4) return K_GOLD;                  /* the macros */
+    if (s == 5 || s == 6) return K_OK;                    /* velocity, key tracking */
+    if (s == 7) return K_FG;                              /* random */
+    if (s == 8 || s == 16) return K_AMP;                  /* the envelopes */
+    if (s >= 9 && s <= 12) return K_MOD;                  /* MOD A and B's outputs */
+    if (s >= 13 && s <= 15) return K_LFO;                 /* the LFOs */
+    if (s >= 17 && s <= 20) return K_SEQC;                /* MSEQ's lanes */
+    return K_DIM;
+}
+/* the colour of the first route into (slot, param), 0 none: a dial shows its modulation in it */
+static uint16_t mod_colour(int slot, int param)
+{
+    int r, src, via;
+    float amt;
+    uint16_t want = (uint16_t)((slot + 1) << 8 | param);
+    for (r = 0; r < 18; r++)
+        if (route_dst(r, &src, &via, &amt) == want && src && fm_fabsf(amt) > 0.001f)
+            return src_colour(src);
+    return 0;
+}
+
 static int src_step(int s, int k)
 {
     int n;
@@ -253,17 +280,17 @@ static uint16_t dst_step(uint16_t d, int k)
 static void header(const char *tag, uint16_t c, const char *title, int ic, int pages, int sub)
 {
     int32_t w, i;
-    cv_begin(240, 26, K_BAR);
-    icon(ic, 6, 7, c);
+    cv_begin(240, 22, K_BAR);                 /* (stage 4: under the status strip, 22 rows) */
+    icon(ic, 6, 5, c);
     w = text_w(&FONT_T, tag) + 8;
-    rrect(22, 6, w, 15, c, 3);
-    cv_text(26, 7, &FONT_T, tag, K_BG);
-    cv_text(28 + w, 5, &FONT_B, title, K_FG);
+    rrect(22, 4, w, 14, c, 3);
+    cv_text(26, 4, &FONT_T, tag, K_BG);
+    cv_text(28 + w, 3, &FONT_B, title, K_FG);
     for (i = 0; i < pages && pages > 1; i++) {
         int32_t x = 232 - (pages - 1 - i) * 9, r = i == sub ? 3 : 2;
-        rrect(x - r, 13 - r, 2 * r + 1, 2 * r + 1, i == sub ? K_FG : K_DIM, r);
+        rrect(x - r, 11 - r, 2 * r + 1, 2 * r + 1, i == sub ? K_FG : K_DIM, r);
     }
-    cv_blit(0, 0);
+    cv_blit(0, 10);
 }
 
 /* the AMP envelope's shape, from ATTACK DECAY SUSTAIN RELEASE */
@@ -306,70 +333,70 @@ static void well(int pg, const ui_mod_t *m, uint16_t c)
         vis_draw(slot, slot >= 0 && slot < 6 ? rc_patch.mod[slot] : 0, mn.sub, c);
     if (m && !is_fixed(pg) && pg != PG_OSC)
         cv_text(220 - text_w(&FONT_T, m->blurb), 2, &FONT_T, m->blurb, K_DIM);
-    cv_blit(6, 28);
+    cv_blit(6, 34);
 }
 
-/* the page's cells(): four parameters, each a number, label, value, and a bar (or ticks for a list), with a marker
- * where modulation has moved it */
-static void cell(int i, const ui_param_t *p, float v, float live, int has_live, uint16_t c)
+/* a page's cells (stage 4): four parameters, each a dial with its number, label and value; a parameter the matrix
+ * moves shows it in its source's colour: the range it has swept lately as a pale band, the set value dimmed, the live
+ * value's arc and its number (mc: the source's colour, 0 none) */
+static float cl_lo[4], cl_hi[4];
+static int cl_page = -1;
+static void cell(int i, const ui_param_t *p, float v, float live, uint16_t mc, uint16_t c)
 {
     char t[24];
-    int32_t x = i & 1 ? 122 : 6, y = i < 2 ? 74 : 134;
+    int32_t x = i & 1 ? 122 : 6, y = i < 2 ? 78 : 137;
+    float f, lf;
+    int key = mn.page << 4 | mn.sub;
+    if (key != cl_page) {                     /* a new page: the swept ranges start again */
+        int k;
+        cl_page = key;
+        for (k = 0; k < 4; k++)
+            cl_lo[k] = 2.0f, cl_hi[k] = -2.0f;
+    }
     cv_begin(112, 56, K_BG);
     rrect(0, 0, 112, 56, p ? K_CELL : RGB(10, 10, 9), 4);
     t[0] = (char)('1' + i);
     t[1] = 0;
-    cv_text(6, 3, &FONT_T, t, K_DIM);
+    cv_text(46, 2, &FONT_T, t, K_DIM);
     if (!p) {
-        cv_text(52, 20, &FONT_S, "-", K_FAINT);
+        ring_arc(23, 30, 15, 0.0f, 1.0f, 3, RGB(20, 20, 19));
         cv_blit((uint32_t)x, (uint32_t)y);
         return;
     }
-    cv_text(16, 3, &FONT_T, p->l, K_DIM);
+    cv_text(55, 2, &FONT_T, p->l, K_DIM);
+    f = frac(p, v);
+    lf = frac(p, live);
+    if (mc) {
+        if (cl_lo[i] > 1.5f) cl_lo[i] = cl_hi[i] = lf;
+        if (lf < cl_lo[i]) cl_lo[i] = lf; else cl_lo[i] += (lf - cl_lo[i]) * 0.01f;
+        if (lf > cl_hi[i]) cl_hi[i] = lf; else cl_hi[i] += (lf - cl_hi[i]) * 0.01f;
+    }
+    dial(23, 30, 15, f, c, mc, cl_lo[i], cl_hi[i], lf, K_CELL);
     fmt(p, v, t);
-    cv_text(6, 17, text_w(&FONT_B, t) > 100 ? &FONT_XS : &FONT_B, t, K_FG);
-    if (has_live) {
-        char u[24];
-        fmt(p, live, u);
-        cv_text(106 - text_w(&FONT_T, u), 20, &FONT_T, u, c);
-    }
-    if (p->t == UT_LIST) {
-        int n = p->hi - p->lo + 1, k, w;
-        if (n > 24) n = 24;
-        w = 100 / n;
-        for (k = 0; k < n; k++)
-            cv_rect(6 + k * w, 45, w > 1 ? w - 1 : 1, 4, k == (int)(v + 0.5f) - p->lo ? c : K_FAINT);
-    } else if (p->t == UT_BIP) {
-        float f = v < -1.0f ? -1.0f : v > 1.0f ? 1.0f : v;
-        int32_t e = 56 + (int32_t)(f * 50.0f);
-        rrect(6, 45, 100, 4, K_FAINT, 2);
-        cv_rect(e < 56 ? e : 56, 45, e < 56 ? 56 - e : e - 56, 4, c);
-        cv_rect(55, 43, 1, 8, K_DIM);
-    } else {
-        vbar(6, 45, 100, 4, frac(p, v), has_live ? mix565(c, K_CELL, 115) : c);
-    }
-    if (has_live && p->t != UT_LIST) {
-        int32_t mx = 6 + (int32_t)(100.0f * frac(p, live));
-        cv_rect(mx - 1, 42, 2, 10, c);
+    cv_text(46, 16, text_w(&FONT_B, t) > 62 ? (text_w(&FONT_XS, t) > 62 ? &FONT_T : &FONT_XS) : &FONT_B, t, mc ? mix565(K_FG, K_CELL, 170) : K_FG);
+    if (mc) {
+        char u[24] = "> ";
+        fmt(p, live, u + 2);
+        cv_text(46, 38, &FONT_T, u, mc);
     }
     cv_blit((uint32_t)x, (uint32_t)y);
 }
 
 static void help(const char *s)
 {
-    cv_begin(240, 20, K_BG);
+    cv_begin(240, 16, K_BG);
     if (mn.learn) {                           /* LEARN: a gold band in its place */
         char t[40] = "LEARN M";
         t[7] = (char)('1' + mn.learn_m);
         t[8] = 0;
         cat(t, ": TURN A KNOB   HOME: DONE");
-        rrect(2, 1, 236, 17, K_GOLD, 4);
-        icon(IC_KNOB, 6, 4, K_BG);
-        cv_text(22, 3, &FONT_T, t, K_BG);
+        rrect(2, 0, 236, 15, K_GOLD, 4);
+        icon(IC_KNOB, 6, 2, K_BG);
+        cv_text(22, 1, &FONT_T, t, K_BG);
     } else {
-        cv_text(6, 3, &FONT_T, s, K_DIM);
+        cv_text(6, 1, &FONT_T, s, K_DIM);
     }
-    cv_blit(0, 192);
+    cv_blit(0, 196);
 }
 
 /* the LFO's TARGET pages: two direct targets (routes 12-17) */
@@ -379,7 +406,7 @@ static void draw_lfo_targets(int l)
     float amt;
     char t[32];
     for (k = 0; k < 4; k++) {
-        int32_t x = k & 1 ? 122 : 6, y = k < 2 ? 74 : 134;
+        int32_t x = k & 1 ? 122 : 6, y = k < 2 ? 78 : 137;
         uint16_t d = route_dst(12 + l * 2 + (k >> 1), &src, &via, &amt);
         cv_begin(112, 56, K_BG);
         rrect(0, 0, 112, 56, K_CELL, 4);
@@ -407,13 +434,38 @@ static void draw_lfo_targets(int l)
     }
 }
 
+/* a module, AMP, LFO or OSC page's four dials (also ~30 times a second with the well: modulation moves them) */
+static void param_cells(int pg)
+{
+    const ui_mod_t *m = page_mod(pg);
+    int slot = page_slot(pg), i, off;
+    uint16_t c = page_colour(pg);
+    float *live = 0;
+    if (!m)
+        return;
+    if (slot >= 0 && slot != RS_LFO)
+        live = rk_monitor(slot);
+    off = page_first(m, mn.sub);
+    for (i = 0; i < 4; i++) {
+        int pi = off + i, ei = pofs(pg) + pi;   /* (OSC: AMP's 24-30) */
+        const ui_param_t *p = i < m->pages[mn.sub] ? &m->p[pi] : 0;
+        float v = p ? rk_get_param(slot, ei) : 0.0f, lv = v;
+        uint16_t mc = 0;
+        if (p && live && p->mod) {
+            lv = ei < 16 ? live[ei] : live[168 + ei - 16];
+            mc = mod_colour(slot, ei);
+        }
+        cell(i, p, v, lv, mc, c);
+    }
+}
+
 static void draw_param_page(int pg)
 {
     const ui_mod_t *m = page_mod(pg);
     int slot = page_slot(pg), i, off;
     uint16_t c = page_colour(pg);
     char title[24];
-    float *live = 0, *fv = page_vals(pg);
+    float *fv = page_vals(pg);
     if (!m) {                                 /* an empty slot */
         header(SLOT_TAG[slot], c, "EMPTY", IC_EMPTY, 1, 0);
         well(pg, 0, c);
@@ -460,20 +512,7 @@ static void draw_param_page(int pg)
         help("K1 K3: DESTINATION   K2 K4: AMOUNT");
         return;
     }
-    if (slot >= 0 && slot != RS_LFO)
-        live = rk_monitor(slot);
-    off = page_first(m, mn.sub);
-    for (i = 0; i < 4; i++) {
-        int pi = off + i, ei = pofs(pg) + pi;   /* (OSC: AMP's 24-30) */
-        const ui_param_t *p = i < m->pages[mn.sub] ? &m->p[pi] : 0;
-        float v = p ? rk_get_param(slot, ei) : 0.0f, lv = v;
-        int moved = 0;
-        if (p && live && p->mod) {
-            lv = ei < 16 ? live[ei] : live[168 + ei - 16];
-            moved = (p->t == UT_LIST || p->t == UT_INT) ? fm_fabsf(lv - v) > 0.5f : fm_fabsf(lv - v) > 0.015f;
-        }
-        cell(i, p, v, lv, moved, c);
-    }
+    param_cells(pg);
     help(pg == PG_OSC ? "SELECT: PAGE   K1-K4: VALUES   EDIT: SOURCE" : pg == PG_AMP || pg == PG_LFO ? "SELECT: PAGE   K1-K4: VALUES"
          : "SELECT: PAGE   K1-K4: VALUES   ALGO: MODULE");
 }
@@ -483,7 +522,7 @@ static void draw_picker(void)
     int slot = page_slot(mn.page), n, i;
     const uint8_t *ch;
     uint16_t c = slot_colour(slot);
-    char t[24];
+    char t[40];
     choices(slot, &ch, &n);
     header(SLOT_TAG[slot], c, "LOAD MODULE", module_icon(ch[mn.pick_ix]), 1, 0);
     for (i = 0; i < 4; i++) {
@@ -500,7 +539,7 @@ static void draw_picker(void)
             if (here)
                 cv_text(222 - text_w(&FONT_T, "LOADED"), 9, &FONT_T, "LOADED", K_OK);
         }
-        cv_blit(6, 30 + (uint32_t)i * 32);
+        cv_blit(6, 36 + (uint32_t)i * 31);
     }
     cv_begin(240, 52, K_BG);
     {
@@ -513,7 +552,7 @@ static void draw_picker(void)
         cat(t, " TO LOAD   HOME: BACK");
         cv_text(120 - text_w(&FONT_T, t) / 2, 26, &FONT_T, t, K_DIM);
     }
-    cv_blit(0, 160);
+    cv_blit(0, 162);
 }
 
 static void draw_matrix(void)
@@ -532,7 +571,7 @@ static void draw_matrix(void)
     cv_text(72, 2, &FONT_T, "DESTINATION", K_DIM);
     cv_text(158, 2, &FONT_T, "AMT", K_DIM);
     cv_text(196, 2, &FONT_T, "VIA", K_DIM);
-    cv_blit(0, 28);
+    cv_blit(0, 34);
     for (k = 0; k < 6; k++) {
         int i = top + k, src, via, sel = i == mn.row;
         float amt;
@@ -554,7 +593,7 @@ static void draw_matrix(void)
         int_text(a, t + (a >= 0));
         cv_text(176 - text_w(&FONT_T, t), 4, &FONT_T, t, c);
         cv_text(192, 4, &FONT_T, via ? src_name(via) : "-", K_DIM);
-        cv_blit(4, 46 + (uint32_t)k * 24);
+        cv_blit(4, 50 + (uint32_t)k * 24);
     }
     help("SELECT: ROW  K1 SRC  K2 DEST  K3 AMT  K4 VIA");
 }
@@ -582,7 +621,7 @@ static void draw_rack(void)
             routes++;
     cv_begin(240, 14, K_BG);
     cv_text(8, 0, &FONT_T, "PER VOICE", K_DIM);
-    cv_blit(0, 30);
+    cv_blit(0, 34);
     t[0] = 0;
     cat(t, "AMP ");
     int_text(rc_patch.voices_now, t + 4);
@@ -591,18 +630,18 @@ static void draw_rack(void)
     rack_tile(6, "SRC", RS_SRC, K_SRC, 0, 0);
     rack_tile(84, "SHP", RS_SHP, K_SHP, 0, 0);
     rack_tile(162, t, -1, K_AMP, "ADSR", IC_AMP);
-    cv_blit(0, 44);
+    cv_blit(0, 48);
     cv_begin(240, 14, K_BG);
     cv_text(8, 0, &FONT_T, "SHARED", K_DIM);
-    cv_blit(0, 86);
+    cv_blit(0, 90);
     cv_begin(240, 40, K_BG);
     rack_tile(6, "FX 1", RS_FX1, K_FX, 0, 0);
     rack_tile(84, "FX 2", RS_FX2, K_FX, 0, 0);
     rack_tile(162, "OUT", -1, K_OK, "MASTER", IC_OUT);
-    cv_blit(0, 100);
+    cv_blit(0, 104);
     cv_begin(240, 14, K_BG);
     cv_text(8, 0, &FONT_T, "MODULATION", K_DIM);
-    cv_blit(0, 142);
+    cv_blit(0, 146);
     cv_begin(240, 40, K_BG);
     t[0] = 0;
     int_text(routes, t);
@@ -610,7 +649,7 @@ static void draw_rack(void)
     rack_tile(6, "MOD A", RS_MODA, K_MOD, 0, 0);
     rack_tile(84, "MOD B", RS_MODB, K_MOD, 0, 0);
     rack_tile(162, "MATRIX", -1, K_MX, t, IC_MATRIX);
-    cv_blit(0, 156);
+    cv_blit(0, 160);
     help("EDIT ENV LFO FX ARP: PAGES   HOME: BACK");
 }
 
@@ -833,19 +872,17 @@ static void knob(int k, int32_t e)
 /* the buttons and encoders of the menus; 1 when they were the menus' (input() does the rest) */
 static int menu_input(uint32_t press, uint32_t btn)
 {
-    static const uint8_t ENV_CYC[] = {PG_AMP, PG_SHP}, LFO_CYC[] = {PG_MODA, PG_MODB, PG_LFO}, FX_CYC[] = {PG_FX1, PG_FX2};
+    static const uint8_t ENV_CYC[] = {PG_AMP, PG_SHP}, LFO_CYC[] = {PG_MODA, PG_MODB, PG_LFO, PG_MSEQ}, FX_CYC[] = {PG_FX1, PG_FX2};
     static const uint8_t SRC_CYC[] = {PG_SRC, PG_OSC}, ARP_CYC[] = {PG_MATRIX, PG_ARP}, SEL_CYC[] = {PG_SEL}, GLO_CYC[] = {PG_GLO};
     int32_t e;
     int k;
     if (press >> B_EDIT & 1u) page_button(SRC_CYC, 2);
     if (press >> B_ENV & 1u) page_button(ENV_CYC, 2);
-    if (press >> B_LFO & 1u) page_button(LFO_CYC, 3);
+    if (press >> B_LFO & 1u) page_button(LFO_CYC, 4);
     if (press >> B_FX & 1u) page_button(FX_CYC, 2);
     if (press >> B_ARP & 1u) page_button(ARP_CYC, 2);
     if (press >> B_SEL & 1u) page_button(SEL_CYC, 1);
     if (press >> B_GLO & 1u) page_button(GLO_CYC, 1);
-    if (press & (1u << B_SEQ | 1u << B_PLAY | 1u << B_REC))
-        app_say("NEXT STAGE", "OF THE PORT");
     if (press >> B_HOME & 1u) {               /* HOME: a tap on letting go; held half a second, LEARN */
         mn.home_at = plat_ms() | 1u;
         mn.home_long = 0;
@@ -866,6 +903,10 @@ static int menu_input(uint32_t press, uint32_t btn)
     }
     if (mn.page == PG_HOME)
         return 0;
+    if (is_seq_page(mn.page)) {               /* the sequencer's pages: their own encoders */
+        seq_encoders();
+        return 1;
+    }
     if ((e = plat_enc(EN_SELECT)) != 0) {
         if (mn.page == PG_MATRIX) {
             mn.row += e > 0 ? 1 : -1;

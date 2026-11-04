@@ -512,7 +512,7 @@ static void draw_save_name(void)
     } else
         cat(t, "EMPTY SLOT");
     cv_text(30, 22, &FONT_T, t, us.used[sv.slot] && sv.rename < 0 ? K_WARN : K_DIM);
-    cv_blit(0, 28);
+    cv_blit(0, 32);
     cv_begin(240, 36, K_BG);
     for (i = 0; i < 10; i++) {
         int32_t x = 11 + i * 22, on = i == sv.cursor;
@@ -524,7 +524,7 @@ static void draw_save_name(void)
         if (on)
             cv_rect(x, 32, 19, 2, blink ? K_GOLD : RGB(122, 106, 58));
     }
-    cv_blit(0, 70);
+    cv_blit(0, 74);
     for (k = 0; k < 4; k++) {                 /* this page's 16 slots, with names and categories */
         cv_begin(240, 21, K_BG);
         for (i = 0; i < 4; i++) {
@@ -548,7 +548,7 @@ static void draw_save_name(void)
             } else
                 cv_text(x + 18, 5, &FONT_T, "-", K_FAINT);
         }
-        cv_blit(0, 106 + (uint32_t)k * 21);
+        cv_blit(0, 110 + (uint32_t)k * 21);
     }
     help(sv.rename >= 0 ? "K1 LETTER  K3 CAT  SAVE KEEPS  HOME BACK" : "K1 LETTER K2 SLOT K3 CAT K4 PAGE  OCT+ LIB");
 }
@@ -565,7 +565,7 @@ static void draw_library(void)
         rrect(x, 1, 27, 14, c, 3);
         cv_text(x + 14 - text_w(&FONT_T, TAB_SHORT[i]) / 2, 2, &FONT_T, TAB_SHORT[i], on ? K_BG : K_DIM);
     }
-    cv_blit(0, 28);
+    cv_blit(0, 32);
     top = sv.ix - 3;
     if (top > n - 7) top = n - 7;
     if (top < 0) top = 0;
@@ -588,7 +588,7 @@ static void draw_library(void)
             cv_text(120 - text_w(&FONT_XS, "NOTHING IN THIS TAB") / 2, 2, &FONT_XS,
                     sv.tab == LT_USER ? "NO USER PRESETS YET" : "NOTHING IN THIS TAB", K_DIM);
         }
-        cv_blit(0, 46 + (uint32_t)k * 20);
+        cv_blit(0, 50 + (uint32_t)k * 20);
     }
     cv_begin(240, 24, K_BG);
     {
@@ -614,7 +614,7 @@ static void draw_library(void)
         cv_text(86, 0, &FONT_T, t, K_DIM);
         cv_text(86, 11, &FONT_T, "K1 ROW K2 TAB K3 ACTION  OCT+ GO", K_DIM);
     }
-    cv_blit(0, 188);
+    cv_blit(0, 190);
 }
 
 static void draw_save(void)
