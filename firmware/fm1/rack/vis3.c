@@ -528,3 +528,53 @@ static void home_chips(void)
         cv_text(x + 3, 2, &FONT_T, t, K_BG);
     }
 }
+
+/* -------------------------------------------------- OSC: two cycles of its wave at its level, and the mixer's faders */
+static void vis_osc(uint16_t c)
+{
+    const float *mon = rk_monitor(RS_AMP);
+    int wave = (int)(rk_get_param(RS_AMP, OSC_P0) + 0.5f), x, oct = (int)rk_get_param(RS_AMP, OSC_P0 + 1);
+    int semi = (int)rk_get_param(RS_AMP, OSC_P0 + 2);
+    float pw = wave == 3 ? 0.5f : mon[168 + OSC_P0 + 4 - 16], lvl = mon[168 + OSC_P0 + 5 - 16], mainl = mon[168 + OSC_P0 + 6 - 16];
+    float amp = 15.0f * (0.25f + 0.75f * lvl), t = vis_t();
+    int16_t ys[80];
+    char s[24], n[8];
+    vz.rng = 4242u + (uint32_t)(t * 12.0f);
+    for (x = 0; x < 80; x++) {                /* 160 pixels: two cycles */
+        float ph = (float)(x % 40) / 40.0f, y;
+        switch (wave) {
+        case 0: y = fm_sinf(ph * TAU); break;
+        case 1: y = ph < 0.5f ? 4.0f * ph - 1.0f : 3.0f - 4.0f * ph; break;
+        case 2: y = 2.0f * ph - 1.0f; break;
+        case 5: y = rnd() * 2.0f - 1.0f; break;
+        default: y = ph < pw ? 1.0f : -1.0f;
+        }
+        ys[x] = ycl(21.0f - y * amp);
+    }
+    cv_rect(0, 21, 160, 1, K_MID);
+    glow(ys, 80, lvl > 0.0001f ? c : K_DIM);
+    s[0] = 0;
+    cat(s, UI_OPT[UP_OSC[0].opt + (wave < 0 ? 0 : wave > 5 ? 5 : wave)]);
+    if (oct || semi) {
+        cat(s, oct < 0 ? " " : " +");
+        int_text(oct * 12 + semi, n);
+        cat(s, n);
+        cat(s, "ST");
+    }
+    cv_text(4, 1, &FONT_T, s, lvl > 0.0001f ? K_FG : K_DIM);
+    if (lvl <= 0.0001f)
+        cv_text(4, 31, &FONT_T, "OFF: TURN OSC LVL", K_DIM);
+    {                                         /* the mixer: MAIN and OSC as faders */
+        static const char *const LB[2] = {"MAIN", "OSC"};
+        int k;
+        for (k = 0; k < 2; k++) {
+            float f = k ? lvl : mainl;
+            int32_t fx = 176 + k * 26, h = (int32_t)(f * 28.0f);
+            rrect(fx, 4, 10, 30, RGB(20, 20, 19), 2);
+            if (h > 0)
+                rrect(fx, 34 - h, 10, h, k ? c : K_SRC, 2);
+            cv_rect(fx - 2, 33 - h, 14, 2, K_FG);
+            cv_text(fx + 5 - text_w(&FONT_T, LB[k]) / 2, 34, &FONT_T, LB[k], K_DIM);
+        }
+    }
+}

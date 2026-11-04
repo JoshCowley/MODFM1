@@ -4,8 +4,9 @@
  *
  * A user preset keeps what the menus edit: the factory preset it started from (which brings what the menus don't
  * reach: master EQ, tuning, slews), the six slots' modules and parameters, AMP, the LFOs, the 18 routes (the matrix's
- * 12 and the LFOs' direct targets), the macros and the tempo; its name (10 characters) and category. 422 bytes, eight
- * to a store object (OBJ_USER0..7, torn-write safe A/B sectors in the data area).
+ * 12 and the LFOs' direct targets), the macros and the tempo; its name (10 characters) and category; OSC (its
+ * difference from the defaults, so stage 2's presets, read 422 bytes each, load with it off). 438 bytes, eight to a
+ * store object (OBJ_USER0..7, torn-write safe A/B sectors in the data area).
  *
  *   SAVE page 1, NAME:  SELECT the letter, ALGORITHM or K1 change it, K2 the slot, K3 the category, K4 the page of 16;
  *                       SAVE stores it; OCT+ the library; HOME closes.
@@ -21,7 +22,7 @@ static const uint16_t CAT_COL[NCAT] = {RGB(125, 122, 114), RGB(255, 179, 71), RG
 static const char CHARS[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 #define NCHARS ((int)sizeof CHARS - 1)
 
-typedef struct {                              /* one user preset: 422 bytes, no padding (int16 first) */
+typedef struct {                              /* one user preset: 438 bytes, no padding (int16 first) */
     int16_t p[6][16];                         /* the slots' parameters (lists, ints as they are; the rest x 10000) */
     int16_t amp[24], lfo[24];
     int16_t ramt[18];                         /* the routes: amount x 10000, source, slot, parameter, via */
@@ -34,7 +35,10 @@ typedef struct {                              /* one user preset: 422 bytes, no 
     uint8_t tempo;
     uint8_t macro[4];                         /* x 250 */
     uint8_t pad;
+    int16_t osc[8];                           /* OSC's 7 parameters less their defaults (lists, ints; the rest x 10000) */
 } upatch_t;
+#define UPATCH_V1 422                         /* stage 2's size: no OSC */
+typedef char upatch_size_check[sizeof(upatch_t) == 438 ? 1 : -1];
 
 static struct {
     char name[NUSER][10];
@@ -87,7 +91,18 @@ static void entry_name(int e, char *t)        /* "PD SHIMMER" or "U03 MY PAD" */
 /* ---------------------------------------------------------- the store */
 static int group_read(int g)                  /* -> ugroup; an object never saved reads as empty */
 {
-    if (plat_store_load(OBJ_USER0 + (uint32_t)g, ugroup, sizeof ugroup) != (int)sizeof ugroup) {
+    int n = plat_store_load(OBJ_USER0 + (uint32_t)g, ugroup, sizeof ugroup), i;
+    if (n == UPATCH_V1 * UP_PER_OBJ) {        /* stage 2's: spread out to the new size, OSC at its defaults */
+        uint8_t *b = (uint8_t *)ugroup;
+        for (i = UP_PER_OBJ - 1; i >= 0; i--) {
+            int j;
+            for (j = UPATCH_V1 - 1; j >= 0; j--)   /* (back to front: the copy lands past where it came from) */
+                b[(uint32_t)i * sizeof(upatch_t) + (uint32_t)j] = b[(uint32_t)i * UPATCH_V1 + (uint32_t)j];
+            memset(b + (uint32_t)i * sizeof(upatch_t) + UPATCH_V1, 0, sizeof(upatch_t) - UPATCH_V1);
+        }
+        return 1;
+    }
+    if (n != (int)sizeof ugroup) {
         memset(ugroup, 0, sizeof ugroup);
         return 0;
     }
@@ -163,6 +178,8 @@ static void snapshot(upatch_t *u, const char *name, int cat)
     for (i = 0; i < 4; i++)
         u->macro[i] = (uint8_t)(rc_patch.macro[i] * 250.0f + 0.5f);
     u->tempo = (uint8_t)(rk_get_param(RS_GLO, 0) + 0.5f);
+    for (i = 0; i < UI_OSC.nparams && i < 8; i++)
+        u->osc[i] = q_param(&UI_OSC.p[i], rk_get_param(RS_AMP, OSC_P0 + i) - UI_OSC.p[i].def);
 }
 
 /* a user preset into the engine (the audio standing aside): its factory preset first, then what it changed */
@@ -192,6 +209,8 @@ static void apply(const upatch_t *u)
     }
     if (u->tempo >= 40)
         rk_set_param(RS_GLO, 0, (float)u->tempo);
+    for (i = 0; i < UI_OSC.nparams && i < 8; i++)
+        rk_set_param(RS_AMP, OSC_P0 + i, UI_OSC.p[i].def + dq_param(&UI_OSC.p[i], u->osc[i]));
     rc_patch.mode = u->mode < 5 ? u->mode : 0;
     rk_set_legato(rc_patch.mode == RVM_MONO ? 0 : 1);
     rc_patch.voices = rc_patch.mode == RVM_MONO || rc_patch.mode == RVM_LEGATO ? 1 : RC_MAXV;
@@ -214,7 +233,9 @@ static void load_entry(int e)
             rk_set_voices(START_VOICES);
             rc_patch.voices_now = START_VOICES;
         }
+        glo_apply();                          /* GLOBAL's tempo, EQ and tuning, as for a factory preset */
         rc_resume();
+        rc_push(PLE_RESET, 0, 0.0f, 0.0f);
     }
     cur_entry = e;
 }

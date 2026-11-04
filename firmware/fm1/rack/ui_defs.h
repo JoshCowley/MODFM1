@@ -1,4 +1,4 @@
-/* Written by make_ui.py from web/src/1-data.js: the page's module, AMP and LFO pages. Don't edit. */
+/* Written by make_ui.py from web/src (1-data.js, 5c-tools.js): the page's modules, AMP, LFO, GLOBAL, SEL and ARP pages, tunings, scales; the firmware's OSC page. Don't edit. */
 #pragma once
 typedef struct { const char *l; uint8_t t, mod; int16_t lo, hi; uint16_t opt; float def; } ui_param_t;
 enum { UT_NUM, UT_BIP, UT_LIST, UT_INT };
@@ -24,23 +24,23 @@ static const char *const UI_OPT[] = {
     "TEMPO", "FREE", "PLATE", "HALL", "SHIMMER", "CHORUS", "FLANGER", "VIBRATO",
     "POLY", "MONO", "LEGATO", "UNI 2", "UNI 4", "SINE", "TRI", "SAW",
     "SQUARE", "S&H", "DRIFT", "FREE", "1/16", "1/8", "1/4", "1/2",
-    "1 BAR", "2 BARS", "BI", "UNI", "OMNI", "1", "2", "3",
-    "4", "5", "6", "7", "8", "9", "10", "11",
-    "12", "13", "14", "15", "16", "AUTO", "1", "2",
-    "3", "4", "5", "6", "INT", "MIDI", "FULL", "CALM",
-    "STILL", "EQUAL", "JUST", "PYTHAG", "MEANTONE", "WERCK III", "KIRNB III", "RAST",
-    "BAYATI", "SLENDRO", "PELOG", "19-EDO", "24-EDO", "31-EDO", "C", "C#",
-    "D", "D#", "E", "F", "F#", "G", "G#", "A",
-    "A#", "B", "OFF", "NOTES", "+CC", "1", "2", "3",
-    "4", "5", "6", "7", "8", "9", "10", "11",
-    "12", "13", "14", "15", "16", "ON", "OFF", "MAJOR",
-    "MINOR", "DORIAN", "MIXOLYD", "PENT MAJ", "PENT MIN", "HARM MIN", "WHOLE", "LYDIAN",
-    "OFF", "TRIAD", "7TH", "9TH", "11TH", "SUS4", "6TH", "POWER",
-    "CLOSE", "LEAD", "OPEN", "INV1", "INV2", "+OCT", "OFF", "SNAP",
-    "ALL", "WHITE", "KEY", "FREE", "OFF", "UP", "DOWN", "UPDN",
-    "DNUP", "RANDOM", "ORDER", "CHORD", "REPEAT", "UP+8", "CONV", "DIVG",
-    "PINKY", "THUMB", "TURING", "1/4", "1/8", "1/8T", "1/16", "1/16T",
-    "1/32",
+    "1 BAR", "2 BARS", "BI", "UNI", "SINE", "TRI", "SAW", "SQUARE",
+    "PULSE", "NOISE", "OMNI", "1", "2", "3", "4", "5",
+    "6", "7", "8", "9", "10", "11", "12", "13",
+    "14", "15", "16", "AUTO", "1", "2", "3", "4",
+    "5", "6", "INT", "MIDI", "FULL", "CALM", "STILL", "EQUAL",
+    "JUST", "PYTHAG", "MEANTONE", "WERCK III", "KIRNB III", "RAST", "BAYATI", "SLENDRO",
+    "PELOG", "19-EDO", "24-EDO", "31-EDO", "C", "C#", "D", "D#",
+    "E", "F", "F#", "G", "G#", "A", "A#", "B",
+    "OFF", "NOTES", "+CC", "1", "2", "3", "4", "5",
+    "6", "7", "8", "9", "10", "11", "12", "13",
+    "14", "15", "16", "ON", "OFF", "MAJOR", "MINOR", "DORIAN",
+    "MIXOLYD", "PENT MAJ", "PENT MIN", "HARM MIN", "WHOLE", "LYDIAN", "OFF", "TRIAD",
+    "7TH", "9TH", "11TH", "SUS4", "6TH", "POWER", "CLOSE", "LEAD",
+    "OPEN", "INV1", "INV2", "+OCT", "OFF", "SNAP", "ALL", "WHITE",
+    "KEY", "FREE", "OFF", "UP", "DOWN", "UPDN", "DNUP", "RANDOM",
+    "ORDER", "CHORD", "REPEAT", "UP+8", "CONV", "DIVG", "PINKY", "THUMB",
+    "TURING", "1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32",
 };
 static const ui_param_t UP_PLAITS[] = {
     {"MODEL", 2, 0, 0, 23, 0, 8.0f},
@@ -229,22 +229,32 @@ static const ui_param_t UP_LFO[] = {
     {"1SHOT 3", 2, 0, 0, 1, 24, 0.0f},
 };
 static const uint8_t UG_LFO[] = {4, 4, 4, 4, 4, 4};
+static const ui_param_t UP_OSC[] = {
+    {"WAVE", 2, 0, 0, 5, 164, 0.0f},
+    {"OCTAVE", 3, 0, -3, 2, 0, 0.0f},
+    {"SEMI", 3, 0, -12, 12, 0, 0.0f},
+    {"FINE", 1, 1, -1, 1, 0, 0.0f},
+    {"PW", 0, 1, 0, 1, 0, 0.5f},
+    {"OSC LVL", 0, 1, 0, 1, 0, 0.0f},
+    {"MAIN LVL", 0, 1, 0, 1, 0, 1.0f},
+};
+static const uint8_t UG_OSC[] = {4, 3};
 static const ui_param_t UP_GLO[] = {
     {"TEMPO", 3, 0, 60, 180, 0, 112.0f},
-    {"MIDI CH", 2, 0, 0, 16, 164, 0.0f},
-    {"VOICES", 2, 0, 0, 6, 181, 0.0f},
-    {"CLOCK", 2, 0, 0, 1, 188, 0.0f},
+    {"MIDI CH", 2, 0, 0, 16, 170, 0.0f},
+    {"VOICES", 2, 0, 0, 6, 187, 0.0f},
+    {"CLOCK", 2, 0, 0, 1, 194, 0.0f},
     {"VEL CURVE", 0, 1, 0, 1, 0, 0.5f},
-    {"ANIMATION", 2, 0, 0, 2, 190, 0.0f},
+    {"ANIMATION", 2, 0, 0, 2, 196, 0.0f},
     {"LED BRIGHT", 0, 1, 0, 1, 0, 0.8f},
-    {"TUNING", 2, 0, 0, 12, 193, 0.0f},
-    {"T ROOT", 2, 0, 0, 11, 206, 0.0f},
+    {"TUNING", 2, 0, 0, 12, 199, 0.0f},
+    {"T ROOT", 2, 0, 0, 11, 212, 0.0f},
     {"A4 HZ", 3, 0, 400, 480, 0, 440.0f},
     {"BEND", 3, 0, 0, 24, 0, 2.0f},
     {"PROG CHG", 2, 0, 0, 1, 24, 1.0f},
-    {"MIDI OUT", 2, 0, 0, 2, 218, 0.0f},
-    {"OUT CH", 2, 0, 0, 15, 221, 0.0f},
-    {"LOCAL", 2, 0, 0, 1, 237, 0.0f},
+    {"MIDI OUT", 2, 0, 0, 2, 224, 0.0f},
+    {"OUT CH", 2, 0, 0, 15, 227, 0.0f},
+    {"LOCAL", 2, 0, 0, 1, 243, 0.0f},
     {"LOW EQ", 1, 1, -1, 1, 0, 0.0f},
     {"MID EQ", 1, 1, -1, 1, 0, 0.0f},
     {"HIGH EQ", 1, 1, -1, 1, 0, 0.0f},
@@ -252,19 +262,19 @@ static const ui_param_t UP_GLO[] = {
 };
 static const uint8_t UG_GLO[] = {4, 3, 4, 4, 4, 0};
 static const ui_param_t UP_SEL[] = {
-    {"SCALE", 2, 0, 0, 8, 239, 0.0f},
-    {"ROOT", 2, 0, 0, 11, 206, 0.0f},
-    {"CHORD", 2, 0, 0, 7, 248, 0.0f},
-    {"VOICING", 2, 0, 0, 5, 256, 0.0f},
-    {"QNT", 2, 0, 0, 3, 262, 0.0f},
-    {"HARMONY", 2, 0, 0, 1, 266, 0.0f},
-    {"ZONE", 2, 0, 0, 1, 237, 0.0f},
+    {"SCALE", 2, 0, 0, 8, 245, 0.0f},
+    {"ROOT", 2, 0, 0, 11, 212, 0.0f},
+    {"CHORD", 2, 0, 0, 7, 254, 0.0f},
+    {"VOICING", 2, 0, 0, 5, 262, 0.0f},
+    {"QNT", 2, 0, 0, 3, 268, 0.0f},
+    {"HARMONY", 2, 0, 0, 1, 272, 0.0f},
+    {"ZONE", 2, 0, 0, 1, 243, 0.0f},
     {"STRUM", 0, 1, 0, 1, 0, 0.0f},
 };
 static const uint8_t UG_SEL[] = {4, 4};
 static const ui_param_t UP_ARP[] = {
-    {"MODE", 2, 0, 0, 14, 268, 0.0f},
-    {"RATE", 2, 0, 0, 5, 283, 3.0f},
+    {"MODE", 2, 0, 0, 14, 274, 0.0f},
+    {"RATE", 2, 0, 0, 5, 289, 3.0f},
     {"OCTAVE", 3, 0, 1, 4, 0, 1.0f},
     {"GATE", 0, 1, 0, 1, 0, 0.5f},
     {"HOLD", 2, 0, 0, 1, 24, 0.0f},
@@ -295,6 +305,7 @@ static const ui_mod_t UI_MODS[UI_NMODS] = {
 };
 static const ui_mod_t UI_AMP = {"AMP", "ENVELOPES", 0, 4, 6, 22, UG_AMP, UP_AMP, 0, {0}};
 static const ui_mod_t UI_LFO = {"LFO", "THREE LFOS", 0, 5, 6, 24, UG_LFO, UP_LFO, 0, {0}};
+static const ui_mod_t UI_OSC = {"OSC", "OSC + MIXER", 0, 0, 2, 7, UG_OSC, UP_OSC, 0, {0}};
 static const ui_mod_t UI_GLO = {"GLOBAL", "SETTINGS", 0, 6, 6, 19, UG_GLO, UP_GLO, 0, {0}};
 static const ui_mod_t UI_SEL = {"SCALE + CHORD", "KEYS TO SCALE", 0, 7, 2, 8, UG_SEL, UP_SEL, 0, {0}};
 static const ui_mod_t UI_ARP = {"ARP", "ARPEGGIATOR", 0, 8, 2, 8, UG_ARP, UP_ARP, 0, {0}};

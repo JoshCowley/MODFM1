@@ -466,19 +466,46 @@ static void draw_home(void)
     tile(158, RS_FX1, K_FX);
     tile(196, RS_FX2, K_FX);
     cv_blit(0, 74);
-    /* the macros on K1-K4: cells as the page's, a rounded bar */
+    /* the macros on K1-K4: cells as the page's, a rounded bar, and what each moves (the matrix's rows from M1-M4:
+     * the first one's destination, + how many more); LEARN: the macro being linked framed in gold, blinking */
     for (i = 0; i < 4; i++) {
         float v = rc_patch.macro[i];
+        int r, nt = 0, src, via, sel = mn.learn && mn.learn_m == i;
+        uint16_t first = 0;
+        float amt;
+        for (r = 0; r < 12; r++) {
+            uint16_t d = route_dst(r, &src, &via, &amt);
+            if (d && src == 1 + i) {
+                if (!nt) first = d;
+                nt++;
+            }
+        }
         cv_begin(112, 46, K_BG);
-        rrect(0, 0, 112, 46, K_CELL, 4);
-        t[0] = 'K';
+        rrect(0, 0, 112, 46, sel ? RGB(40, 34, 18) : K_CELL, 4);
+        if (sel && (now / 250u) & 1u) {
+            cv_rect(0, 0, 112, 1, K_GOLD);
+            cv_rect(0, 45, 112, 1, K_GOLD);
+            cv_rect(0, 0, 1, 46, K_GOLD);
+            cv_rect(111, 0, 1, 46, K_GOLD);
+        }
+        t[0] = 'M';
         t[1] = (char)('1' + i);
         t[2] = 0;
-        cv_text(6, 3, &FONT_T, t, K_DIM);
-        cv_text(22, 3, &FONT_T, "MACRO", K_DIM);
+        cv_text(6, 3, &FONT_T, t, sel ? K_GOLD : K_DIM);
+        if (nt) {
+            dst_name(first, t);
+            if (nt > 1) {
+                cat(t, " +");
+                int_text(nt - 1, n);
+                cat(t, n);
+            }
+            cv_text(106 - text_w(&FONT_T, t), 3, &FONT_T, t, K_FG);
+        } else {
+            cv_text(106 - text_w(&FONT_T, "UNASSIGNED"), 3, &FONT_T, "UNASSIGNED", K_FAINT);
+        }
         int_text((int32_t)(v * 100.0f + 0.5f), n);
         cv_text(6, 16, &FONT_B, n, K_FG);
-        vbar(6, 36, 100, 4, v, K_GOLD);
+        vbar(6, 36, 100, 4, v, nt ? K_GOLD : K_DIM);
         cv_blit(i & 1 ? 122u : 6u, i < 2 ? 116u : 166u);
     }
     draw_footer();
@@ -492,7 +519,7 @@ static uint32_t page_leds(void)
         return 1u << B_SAVE;
     switch (mn.page) {
     case PG_HOME: case PG_RACK: return 1u << B_HOME;
-    case PG_SRC: return 1u << B_EDIT;
+    case PG_SRC: case PG_OSC: return 1u << B_EDIT;
     case PG_SHP: case PG_AMP: return 1u << B_ENV;
     case PG_MODA: case PG_MODB: case PG_LFO: return 1u << B_LFO;
     case PG_FX1: case PG_FX2: return 1u << B_FX;
@@ -541,7 +568,7 @@ static void draw_well_only(void)
         home_chips();
         cv_blit(6, 29);
     } else {
-        well(mn.page, page_mod(mn.page), is_fixed(mn.page) ? fixed_colour(mn.page) : slot_colour(page_slot(mn.page)));
+        well(mn.page, page_mod(mn.page), page_colour(mn.page));
     }
 }
 
@@ -587,6 +614,8 @@ static void leds(uint32_t lit, uint32_t keys)
             else if (in_scale(53 + (int)k))
                 dimk |= 1u << k;
         }
+    if (mn.learn && (plat_ms() / 250u) & 1u)  /* LEARN: HOME blinks */
+        lit |= 1u << B_HOME;
     lit = (lit & ~play) | (lit & play ? LED_PLAY_GREEN : 0u);
     dim = (dim & ~play) | (dim & play ? LED_PLAY_GREEN : 0u);
     plat_lights(lit, keys, dim, dimk, glow ? glow : dimk ? 1 : 0);
@@ -640,7 +669,7 @@ static void input(void)
         octave_step(1);
     if (press >> B_SAVE & 1u)                /* SAVE: the page to name and store what is playing */
         save_open();
-    if (menu_input(press)) {                 /* a menu page: its own encoders */
+    if (menu_input(press, btn)) {                 /* a menu page: its own encoders */
         ui.btn = btn;
         leds(btn | page_leds(), keys);
         return;
@@ -648,6 +677,10 @@ static void input(void)
     if ((e = plat_enc(EN_ALGO)) != 0) {
         ui.shown = cat_step(ui.shown < NPRESETS ? ui.shown : 0, e > 0 ? 1 : -1);
         ui.turned_at = plat_ms();
+        ui.redraw = 1;
+    }
+    if (mn.learn && (e = plat_enc(EN_SELECT)) != 0) {   /* LEARN on home: SELECT picks the macro */
+        mn.learn_m = (mn.learn_m + (e > 0 ? 1 : 3)) & 3;
         ui.redraw = 1;
     }
     if ((e = plat_enc(EN_SELECT)) != 0 && rc_patch.mode == RVM_POLY) {
@@ -664,6 +697,11 @@ static void input(void)
     for (k = 0; k < 4u; k++)
         if ((e = plat_enc(EN_K1 + (int)k)) != 0) {
             float m = rc_patch.macro[k] + (float)e * 0.02f;
+            mn.learn_m = (int)k;              /* the macro LEARN links: the last one turned */
+            if (mn.learn) {                   /* LEARN: the knob picks its macro, its value stays */
+                ui.redraw = 1;
+                continue;
+            }
             m = m < 0.0f ? 0.0f : m > 1.0f ? 1.0f : m;
             rc_macro((int)k, m);
             if (GI(G_MOUT) == 2)              /* MIDI OUT +CC: the macros as CC 21-24 (the page's) */

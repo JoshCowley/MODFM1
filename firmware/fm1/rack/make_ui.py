@@ -56,7 +56,7 @@ def main():
             opts.extend(names)
         return opt_ix[key]
 
-    out = ["/* Written by make_ui.py from web/src (1-data.js, 5c-tools.js): the page's modules, AMP, LFO, GLOBAL, SEL and ARP pages, tunings, scales. Don't edit. */",
+    out = ["/* Written by make_ui.py from web/src (1-data.js, 5c-tools.js): the page's modules, AMP, LFO, GLOBAL, SEL and ARP pages, tunings, scales; the firmware's OSC page. Don't edit. */",
            "#pragma once",
            "typedef struct { const char *l; uint8_t t, mod; int16_t lo, hi; uint16_t opt; float def; } ui_param_t;",
            "enum { UT_NUM, UT_BIP, UT_LIST, UT_INT };",
@@ -96,6 +96,15 @@ def main():
                     f" UP_{name}, {len(outs)}, {{{o}}}}},")
     a_pg, a_n = params("AMP", d["AMP"]["pages"])
     l_pg, l_n = params("LFO", d["LFOS"]["pages"])
+    # OSC: the firmware's own page (not on the browser page): a plain oscillator per voice mixed with the source,
+    # on AMP's spare parameters 24-30 (engine/rack.cc osc_mix)
+    num = lambda l, d, mod=True: {"l": l, "t": "num", "def": d, **({} if mod else {"mod": False})}
+    osc = [[{"l": "WAVE", "t": "list", "opts": ["SINE", "TRI", "SAW", "SQUARE", "PULSE", "NOISE"], "def": 0, "mod": False},
+            {"l": "OCTAVE", "t": "int", "min": -3, "max": 2, "def": 0, "mod": False},
+            {"l": "SEMI", "t": "int", "min": -12, "max": 12, "def": 0, "mod": False},
+            {"l": "FINE", "t": "bip", "def": 0}],
+           [num("PW", 0.5), num("OSC LVL", 0.0), num("MAIN LVL", 1.0)]]
+    o_pg, o_n = params("OSC", osc)
     g_pg, g_n = params("GLO", d["GLOBAL"]["pages"][:GLO_PAGES] + [[]])
     s_pg, s_n = params("SEL", d["CHORD"]["pages"])
     r_pg, r_n = params("ARP", d["ARPDEF"]["pages"])
@@ -119,6 +128,7 @@ def main():
     out.append("static const ui_mod_t UI_MODS[UI_NMODS] = {\n" + "\n".join(mods) + "\n};")
     out.append(f"static const ui_mod_t UI_AMP = {{\"AMP\", \"ENVELOPES\", 0, 4, {a_pg}, {a_n}, UG_AMP, UP_AMP, 0, {{0}}}};")
     out.append(f"static const ui_mod_t UI_LFO = {{\"LFO\", \"THREE LFOS\", 0, 5, {l_pg}, {l_n}, UG_LFO, UP_LFO, 0, {{0}}}};")
+    out.append(f"static const ui_mod_t UI_OSC = {{\"OSC\", \"OSC + MIXER\", 0, 0, {o_pg}, {o_n}, UG_OSC, UP_OSC, 0, {{0}}}};")
     out.append(f"static const ui_mod_t UI_GLO = {{\"GLOBAL\", \"SETTINGS\", 0, 6, {g_pg}, {g_n}, UG_GLO, UP_GLO, 0, {{0}}}};")
     out.append(f"static const ui_mod_t UI_SEL = {{\"SCALE + CHORD\", \"KEYS TO SCALE\", 0, 7, {s_pg}, {s_n}, UG_SEL, UP_SEL, 0, {{0}}}};")
     out.append(f"static const ui_mod_t UI_ARP = {{\"ARP\", \"ARPEGGIATOR\", 0, 8, {r_pg}, {r_n}, UG_ARP, UP_ARP, 0, {{0}}}};")

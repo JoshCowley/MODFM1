@@ -84,6 +84,7 @@ static float card_[6], vdrift_[6];
 
 static const int NP = 32;
 static float base_[NSLOT][NP];
+static void osc_defaults();   // OSC (below): its ranges and defaults, on AMP's spare parameters
 static float lo_[NSLOT][NP], hi_[NSLOT][NP], span_[NSLOT][NP];
 static int mod_id_[NSLOT];
 static float macros_[4];
@@ -598,6 +599,7 @@ EXPORT void init() {
 #endif
   memset(base_, 0, sizeof(base_));
   for (int s = 0; s < NSLOT; ++s) for (int p = 0; p < NP; ++p) { lo_[s][p] = -1e9f; hi_[s][p] = 1e9f; span_[s][p] = 1.0f; }
+  osc_defaults();
   for (int i = 0; i < MAXV; ++i) { memset(&vs_[i], 0, sizeof(VoiceState)); svf_[i].Init(); svf2_[i].Init(); card_[i] = randf() * 2.0f - 1.0f; vdrift_[i] = 0.0f; }
   memset(tune_, 0, sizeof(tune_)); bend_ = 0.0f; vintage_ = 0.0f; legato_ = true;
   for (int i = 0; i < 6; ++i) ext_tgt_[i] = ext_cur_[i] = 0.0f;
@@ -858,6 +860,51 @@ static void run_lfos() {
   }
 }
 
+// ------------------------------------------------------------------ OSC: a plain oscillator per voice, mixed with the source
+// Its parameters ride on AMP's spare ones (24-30), so presets, the matrix and the monitor reach them as AMP's:
+//   24 WAVE (SINE TRI SAW SQUARE PULSE NOISE)  25 OCTAVE (-3..2)  26 SEMI (-12..12)  27 FINE (-1..1 semitone)
+//   28 PW (0.05-0.95)  29 OSC LVL (0: off, the default)  30 MAIN LVL (the source's level, 1 the default)
+// With OSC LVL at 0 and MAIN LVL at 1 a preset sounds exactly as before.
+enum { OSC_WAVE = 24, OSC_OCT, OSC_SEMI, OSC_FINE, OSC_PW, OSC_LVL, OSC_MAIN };
+static float osc_ph_[MAXV];
+static uint32_t osc_rng_[MAXV];
+static void osc_defaults() {
+  static const float LO[7] = {0, -3, -12, -1, 0.05f, 0, 0}, HI[7] = {5, 2, 12, 1, 0.95f, 1, 1};
+  for (int k = 0; k < 7; ++k) { lo_[S_AMP][OSC_WAVE + k] = LO[k]; hi_[S_AMP][OSC_WAVE + k] = HI[k]; span_[S_AMP][OSC_WAVE + k] = 1.0f; }
+  base_[S_AMP][OSC_PW] = 0.5f; base_[S_AMP][OSC_MAIN] = 1.0f;
+}
+static inline float osc_blep(float t, float dt) {   // PolyBLEP: the step's corner rounded off over one sample
+  if (t < dt) { t /= dt; return t + t - t * t - 1.0f; }
+  if (t > 1.0f - dt) { t = (t - 1.0f) / dt; return t * t + t + t + 1.0f; }
+  return 0.0f;
+}
+static void osc_mix(int i, const VoiceState& v, float note, float* buf, float* aux, bool stereo) {
+  float lvl = P(S_AMP, OSC_LVL, &v), main = P(S_AMP, OSC_MAIN, &v);
+  if (main < 0.9999f) for (int n = 0; n < BLOCK; ++n) { buf[n] *= main; if (stereo) aux[n] *= main; }
+  if (lvl <= 0.0001f) return;
+  int wave = PI(S_AMP, OSC_WAVE, &v);
+  float on = note + floorf(P(S_AMP, OSC_OCT, &v) + 0.5f) * 12.0f + floorf(P(S_AMP, OSC_SEMI, &v) + 0.5f) + P(S_AMP, OSC_FINE, &v);
+  float dt = clampf(440.0f * SemitonesToRatio(on - 69.0f) / SR, 0.00001f, 0.45f);
+  float pw = wave == 3 ? 0.5f : P(S_AMP, OSC_PW, &v), ph = osc_ph_[i], g = lvl * 0.5f;
+  uint32_t r = osc_rng_[i] ? osc_rng_[i] : 0x9E3779B9u + (uint32_t)i;
+  for (int n = 0; n < BLOCK; ++n) {
+    float s;
+    switch (wave) {
+      case 0: { float y = ph < 0.5f ? 16.0f * ph * (0.5f - ph) : -16.0f * (ph - 0.5f) * (1.0f - ph);
+                s = 0.225f * (y * fabsf(y) - y) + y; break; }                        // sine (Bhaskara, refined)
+      case 1: s = ph < 0.5f ? 4.0f * ph - 1.0f : 3.0f - 4.0f * ph; break;              // triangle
+      case 2: s = 2.0f * ph - 1.0f - osc_blep(ph, dt); break;                          // saw
+      case 5: r ^= r << 13; r ^= r >> 17; r ^= r << 5; s = (float)(int32_t)r * (1.0f / 2147483648.0f); break;   // noise
+      default: { float q = ph + 1.0f - pw; q -= floorf(q);                            // square, pulse
+                 s = (ph < pw ? 1.0f : -1.0f) + osc_blep(ph, dt) - osc_blep(q, dt); }
+    }
+    ph += dt; if (ph >= 1.0f) ph -= 1.0f;
+    buf[n] += s * g;
+    if (stereo) aux[n] += s * g;
+  }
+  osc_ph_[i] = ph; osc_rng_[i] = r;
+}
+
 // ------------------------------------------------------------------ voice render
 // each core's own scratch (RACK_FM1's second core renders some voices: render_voice(.., core 1))
 static float vbuf_c_[2][BLOCK], vaux_c_[2][BLOCK];
@@ -965,6 +1012,7 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
     memset(vbuf_, 0, BLOCK * sizeof(float));
   }
   bool stereo = src == M_ELEMENTS;
+  osc_mix(i, v, note, vbuf_, vaux_, stereo);   // OSC, and the source's MAIN LVL
   if (!stereo) memcpy(vaux_, vbuf_, BLOCK * sizeof(float));
 
   // ---- SHP

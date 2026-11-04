@@ -15,8 +15,8 @@ are in: the page's own pages, buttons and knobs (`menus.c`; the parameters come 
 
 | Button (printed) | Page |
 |---|---|
-| HOME | home: the preset, scope, chain, macros. Press again: the RACK overview; again: home (and all notes off) |
-| EDIT | the source (Plaits or Braids) |
+| HOME | home: the preset, scope, chain, macros. Press again: the RACK overview; again: home (and all notes off). Hold half a second: LEARN |
+| EDIT | the source (Plaits or Braids), then OSC (a second oscillator and the mixer) |
 | ENV | AMP (envelopes, voice mode), then the shaper (Rings or filter) |
 | LFO | MOD A, MOD B, then the three LFOs (and each LFO's two direct targets) |
 | FX | FX 1, then FX 2 |
@@ -88,6 +88,23 @@ blue effects; red: asked for but no room in the arena); the macros as cells with
 RAM bars, a light per voice lit by its envelope, the cores and voice mode (SHED n when voices were dropped, HEAVY when
 muted), the octave (green while keys are held) and the output meter.
 
+**OSC and the mixer** (the firmware's own; `engine/rack.cc` osc_mix, the OSC page in `menus.c`): a plain oscillator in
+each voice, mixed with the source before the shaper, so the filter or Rings, AMP and the effects take both. WAVE (SINE,
+TRI, SAW, SQUARE, PULSE, NOISE; the saw and pulses band-limited with PolyBLEP), OCTAVE (-3..+2), SEMI (±12), FINE (±1
+semitone); then the mixer: PW, OSC LVL (0: off, the default) and MAIN LVL (the source, 1 the default). FINE, PW and both
+levels are matrix destinations (OSC.). The engine keeps them on AMP's spare parameters 24-30; a preset that leaves OSC
+alone sounds exactly as before (every factory preset checked sample for sample against the engine without OSC). SAVE
+keeps OSC with the user preset; stage 2's user presets load with it off. The well: two cycles of the wave at its level,
+and MAIN and OSC as faders.
+
+**LEARN** (as the page): hold HOME half a second. It links the macro last turned on home (on home while learning,
+SELECT or K1-K4 pick M1-M4; the macro framed in gold, HOME blinking, a gold band on the pages). On a module, AMP, LFO or
+OSC page, turning a parameter's knob links the macro to it in the matrix, in the row it already has or the first free
+one of the 12, and the turn sets the amount ("M2>SRC.TIMBRE +24"). Tap HOME to finish. Home's macro cells now show what
+each macro moves (its first destination and how many more) or UNASSIGNED.
+
+![OSC](screen-osc.png) ![Macros after LEARN](screen-learn.png)
+
 **Stage 3: playing** (`play.c`, `vis3.c`, after the page's 5b-seq.js, 5c-tools.js and 6-engine.js). SEL, GLO and ARP
 are settings, not part of a preset: they stay when the preset changes and are saved on their own about 3 seconds
 after the last change (the settings record grew: stage 2's preset, octave and voices carry over).
@@ -118,7 +135,7 @@ back after a reboot. Not yet heard on an FM-1.
 
 ![SEL](screen-sel.png) ![ARP](screen-arp.png) ![Tuning](screen-tuning.png)
 
-Flash: 515,824 of 581,632 bytes (64 KB free) after stage 3, which cost 18.3 KB; the two size changes from the report
+Flash: 519,788 of 581,632 bytes (60 KB free) with OSC and LEARN (3.9 KB); stage 3 cost 18.3 KB; the two size changes from the report
 (unused tables dropped with `-fdata-sections`, Tides built with only the modes FM1 Rack uses: 67 KB) made the room.
 
 ## How it works

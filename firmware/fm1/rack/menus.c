@@ -2,7 +2,7 @@
 /* FM1 Rack firmware: the sound-editing menus, ported from the page (web/src/4-pages.js, 5-controls.js), part of
  * app.c (included after the screen's helpers). The page's buttons, as printed on the FM-1:
  *
- *   EDIT   the source (SRC)               ENV   AMP, then the shaper (SHP)
+ *   EDIT   the source (SRC), then OSC     ENV   AMP, then the shaper (SHP)
  *   LFO    MOD A, MOD B, then the LFOs    FX    FX 1, then FX 2
  *   ARP    the matrix, then the arp       HOME  home; on home, the rack and back
  *   SEL    scale + chord, then the keys   GLO   GLOBAL: settings, playing, tuning, MIDI, master, system
@@ -13,12 +13,22 @@
  * row, K1 source, K2 destination, K3 amount, K4 via. Parameters and modules come from ui_defs.h (make_ui.py, from
  * the page's own definitions). SEL, GLO and ARP are settings, not the patch's: their values live in set (play.c plays
  * them) and are saved by themselves a few seconds after they change. SAVE and the library: save.c; the wells: vis.c,
- * vis3.c. Still to come from the page: the sequencer, MSEQ and TOOLS. */
+ * vis3.c. Still to come from the page: the sequencer, MSEQ and TOOLS.
+ *
+ * OSC (the firmware's own, not on the page): a plain oscillator in each voice, mixed with the source before the
+ * shaper: WAVE OCTAVE SEMI FINE, then PW, OSC LVL and MAIN LVL (the mixer). Its parameters are AMP's 24-30 in the
+ * engine, so the matrix, the monitor and SAVE reach them as AMP's (shown as OSC.).
+ *
+ * LEARN (as the page): hold HOME half a second; the macro to link is the last one turned on home (SELECT or K1-K4 on
+ * home pick it while learning). On a module, AMP, LFO or OSC page, turning a parameter's knob links that macro to it
+ * in the matrix (the first free row, or the row it already has) and the turn sets the amount. Tap HOME to finish. */
 #include "ui_defs.h"
 static void entry_name(int e, char *t);
 
 enum { PG_HOME, PG_RACK, PG_SRC, PG_SHP, PG_MODA, PG_MODB, PG_FX1, PG_FX2, PG_AMP, PG_LFO, PG_MATRIX, PG_SEL, PG_GLO,
-       PG_ARP };
+       PG_ARP, PG_OSC };
+#define OSC_P0 24                             /* OSC's first parameter on AMP (engine/rack.cc OSC_WAVE) */
+#define K_OSC RGB(255, 214, 150)
 #define K_AMP RGB(255, 122, 107)
 #define K_LFO RGB(201, 167, 255)
 #define K_MX RGB(255, 210, 122)
@@ -32,6 +42,9 @@ static struct {
     int pick, pick_ix;                        /* the picker: open (1), the choice shown */
     uint32_t edited_at;                       /* the last edit: the buffers are checked when the knobs rest */
     int edited;
+    int learn, learn_m;                       /* LEARN on; the macro it links (0-3: M1-M4) */
+    uint32_t home_at;                         /* HOME went down (a hold starts LEARN), 0 up */
+    int home_long;
 } mn;
 
 static const uint8_t SRC_CH[] = {1, 2};
@@ -51,7 +64,8 @@ static const ui_mod_t *ui_mod(int id)
     return 0;
 }
 
-static int page_slot(int pg) { return pg >= PG_SRC && pg <= PG_FX2 ? pg - PG_SRC : pg == PG_AMP ? RS_AMP : pg == PG_LFO ? RS_LFO : -1; }
+static int page_slot(int pg) { return pg >= PG_SRC && pg <= PG_FX2 ? pg - PG_SRC : pg == PG_AMP || pg == PG_OSC ? RS_AMP : pg == PG_LFO ? RS_LFO : -1; }
+static int pofs(int pg) { return pg == PG_OSC ? OSC_P0 : 0; }   /* the page's first parameter in its slot */
 static int is_fixed(int pg) { return pg >= PG_SEL && pg <= PG_ARP; }
 static float *page_vals(int pg) { return pg == PG_GLO ? set.glo : pg == PG_SEL ? set.sel : pg == PG_ARP ? set.arp : 0; }
 static uint16_t fixed_colour(int pg) { return pg == PG_GLO ? K_GLO : pg == PG_SEL ? K_CHD : K_ARP; }
@@ -63,6 +77,8 @@ static const ui_mod_t *page_mod(int pg)
         return &UI_SEL;
     if (pg == PG_ARP)
         return &UI_ARP;
+    if (pg == PG_OSC)
+        return &UI_OSC;
     if (pg == PG_AMP)
         return &UI_AMP;
     if (pg == PG_LFO)
@@ -75,6 +91,7 @@ static uint16_t slot_colour(int slot)
     return slot >= 0 && slot < 9 ? C[slot] : K_FG;
 }
 static const char *const SLOT_TAG[] = {"SRC", "SHP", "MOD A", "MOD B", "FX 1", "FX 2", "AMP", "GLO", "LFO"};
+static uint16_t page_colour(int pg) { return is_fixed(pg) ? fixed_colour(pg) : pg == PG_OSC ? K_OSC : slot_colour(page_slot(pg)); }
 static void choices(int slot, const uint8_t **ch, int *n)
 {
     if (slot == RS_SRC) { *ch = SRC_CH; *n = 2; }
@@ -149,6 +166,10 @@ static int dst_list(uint16_t *out)
         for (i = 0; i < m->nparams; i++)
             if (m->p[i].mod && n < 160)
                 out[n++] = (uint16_t)((slot + 1) << 8 | i);
+        if (slot == RS_AMP)                   /* OSC, after AMP */
+            for (i = 0; i < UI_OSC.nparams; i++)
+                if (UI_OSC.p[i].mod && n < 160)
+                    out[n++] = (uint16_t)((slot + 1) << 8 | (OSC_P0 + i));
     }
     out[1] |= 0x8000u;                          /* PITCH, PAN: marked apart from "none" (both slot -1) */
     out[2] |= 0x8000u;
@@ -161,6 +182,11 @@ static void dst_name(uint16_t d, char *t)
     t[0] = 0;
     if (!d) { cat(t, "-"); return; }
     if (slot < 0) { cat(t, i ? "PAN" : "PITCH"); return; }
+    if (slot == RS_AMP && i >= OSC_P0) {
+        cat(t, "OSC.");
+        cat(t, i - OSC_P0 < UI_OSC.nparams ? UI_OSC.p[i - OSC_P0].l : "?");
+        return;
+    }
     m = slot == RS_AMP ? &UI_AMP : slot == RS_LFO ? &UI_LFO : ui_mod(rc_patch.mod[slot]);
     cat(t, SLOT_TAG[slot]);
     cat(t, ".");
@@ -274,9 +300,11 @@ static void well(int pg, const ui_mod_t *m, uint16_t c)
             cv_pset(x, i, K_GRID);
     if (is_fixed(pg))
         vis_fixed(pg, mn.sub, c);
+    else if (pg == PG_OSC)
+        vis_osc(c);
     else
         vis_draw(slot, slot >= 0 && slot < 6 ? rc_patch.mod[slot] : 0, mn.sub, c);
-    if (m && !is_fixed(pg))
+    if (m && !is_fixed(pg) && pg != PG_OSC)
         cv_text(220 - text_w(&FONT_T, m->blurb), 2, &FONT_T, m->blurb, K_DIM);
     cv_blit(6, 28);
 }
@@ -330,7 +358,17 @@ static void cell(int i, const ui_param_t *p, float v, float live, int has_live, 
 static void help(const char *s)
 {
     cv_begin(240, 20, K_BG);
-    cv_text(6, 3, &FONT_T, s, K_DIM);
+    if (mn.learn) {                           /* LEARN: a gold band in its place */
+        char t[40] = "LEARN M";
+        t[7] = (char)('1' + mn.learn_m);
+        t[8] = 0;
+        cat(t, ": TURN A KNOB   HOME: DONE");
+        rrect(2, 1, 236, 17, K_GOLD, 4);
+        icon(IC_KNOB, 6, 4, K_BG);
+        cv_text(22, 3, &FONT_T, t, K_BG);
+    } else {
+        cv_text(6, 3, &FONT_T, s, K_DIM);
+    }
     cv_blit(0, 192);
 }
 
@@ -373,7 +411,7 @@ static void draw_param_page(int pg)
 {
     const ui_mod_t *m = page_mod(pg);
     int slot = page_slot(pg), i, off;
-    uint16_t c = is_fixed(pg) ? fixed_colour(pg) : slot_colour(slot);
+    uint16_t c = page_colour(pg);
     char title[24];
     float *live = 0, *fv = page_vals(pg);
     if (!m) {                                 /* an empty slot */
@@ -414,8 +452,9 @@ static void draw_param_page(int pg)
     } else {
         cat(title, m->name);
     }
-    header(SLOT_TAG[slot], c, title, pg == PG_AMP ? IC_AMP : pg == PG_LFO ? IC_LFO : module_icon(m->id), npages(pg), mn.sub);
-    well(pg, pg == PG_AMP || pg == PG_LFO ? 0 : m, c);
+    header(pg == PG_OSC ? "OSC" : SLOT_TAG[slot], c, pg == PG_OSC ? (mn.sub ? "MIXER" : "OSCILLATOR") : title,
+           pg == PG_AMP ? IC_AMP : pg == PG_LFO ? IC_LFO : pg == PG_OSC ? IC_KNOB : module_icon(m->id), npages(pg), mn.sub);
+    well(pg, pg == PG_AMP || pg == PG_LFO || pg == PG_OSC ? 0 : m, c);
     if (pg == PG_LFO && mn.sub >= m->npages) {
         draw_lfo_targets(mn.sub - m->npages);
         help("K1 K3: DESTINATION   K2 K4: AMOUNT");
@@ -425,17 +464,18 @@ static void draw_param_page(int pg)
         live = rk_monitor(slot);
     off = page_first(m, mn.sub);
     for (i = 0; i < 4; i++) {
-        int pi = off + i;
+        int pi = off + i, ei = pofs(pg) + pi;   /* (OSC: AMP's 24-30) */
         const ui_param_t *p = i < m->pages[mn.sub] ? &m->p[pi] : 0;
-        float v = p ? rk_get_param(slot, pi) : 0.0f, lv = v;
+        float v = p ? rk_get_param(slot, ei) : 0.0f, lv = v;
         int moved = 0;
         if (p && live && p->mod) {
-            lv = pi < 16 ? live[pi] : live[168 + pi - 16];
+            lv = ei < 16 ? live[ei] : live[168 + ei - 16];
             moved = (p->t == UT_LIST || p->t == UT_INT) ? fm_fabsf(lv - v) > 0.5f : fm_fabsf(lv - v) > 0.015f;
         }
         cell(i, p, v, lv, moved, c);
     }
-    help(pg == PG_AMP || pg == PG_LFO ? "SELECT: PAGE   K1-K4: VALUES" : "SELECT: PAGE   K1-K4: VALUES   ALGO: MODULE");
+    help(pg == PG_OSC ? "SELECT: PAGE   K1-K4: VALUES   EDIT: SOURCE" : pg == PG_AMP || pg == PG_LFO ? "SELECT: PAGE   K1-K4: VALUES"
+         : "SELECT: PAGE   K1-K4: VALUES   ALGO: MODULE");
 }
 
 static void draw_picker(void)
@@ -663,6 +703,71 @@ static void fixed_changed(int pg, int pi, float old, float v)
     settings_touch();
 }
 
+/* ---------------------------------------------------------- LEARN */
+static void learn_set(int on)
+{
+    char t[4] = "M1";
+    mn.learn = on;
+    t[1] = (char)('1' + mn.learn_m);
+    app_say(on ? "LEARN" : "LEARN DONE", on ? t : "");
+    ui.redraw = 1;
+}
+static int learnable(int pg)
+{
+    if (pg == PG_LFO)
+        return mn.sub < UI_LFO.npages;        /* not the LFO target pages */
+    return pg == PG_AMP || pg == PG_OSC || (is_slot_page(pg) && page_mod(pg));
+}
+/* a knob turned while learning: the macro linked to its parameter, the turn its amount */
+static void learn_turn(int k, int32_t e)
+{
+    const ui_mod_t *m = page_mod(mn.page);
+    int slot = page_slot(mn.page), pi, r, row = -1, free_row = -1, src, via, msrc = 1 + mn.learn_m;
+    float amt;
+    uint16_t d;
+    char t[40], u[24];
+    if (!m || k >= m->pages[mn.sub])
+        return;
+    pi = page_first(m, mn.sub) + k;
+    if (!m->p[pi].mod) {
+        app_say(m->p[pi].l, "CAN'T BE MODULATED");
+        return;
+    }
+    d = (uint16_t)((slot + 1) << 8 | (pofs(mn.page) + pi));
+    for (r = 0; r < 12; r++) {
+        uint16_t rd = route_dst(r, &src, &via, &amt);
+        if (rd == d && src == msrc && row < 0)
+            row = r;
+        if (!rd && free_row < 0)
+            free_row = r;
+    }
+    if (row < 0) {
+        if (free_row < 0) {
+            app_say("MATRIX FULL", "FREE A ROW");
+            return;
+        }
+        row = free_row;
+        route_set(row, msrc, d, 0.0f, 0);
+    }
+    route_dst(row, &src, &via, &amt);
+    amt = fm_clampf(amt + (float)e * 0.02f, -1.0f, 1.0f);
+    route_set(row, msrc, d, amt, via);
+    t[0] = 'M';
+    t[1] = (char)('1' + mn.learn_m);
+    t[2] = '>';
+    t[3] = 0;
+    dst_name(d, u);
+    cat(t, u);
+    u[0] = 0;
+    {
+        int32_t a = (int32_t)(amt * 100.0f + (amt < 0.0f ? -0.5f : 0.5f));
+        if (a >= 0) cat(u, "+");
+        int_text(a, u + (a >= 0));
+    }
+    app_say(t, u);
+    edited();
+}
+
 /* K1-K4 on a page */
 static void knob(int k, int32_t e)
 {
@@ -713,9 +818,9 @@ static void knob(int k, int32_t e)
         if (k >= m->pages[mn.sub])
             return;
         p = &m->p[pi];
-        v = step(p, rk_get_param(slot, pi), e);
-        rc_set(slot, pi, v);
-        if (slot == RS_AMP && pi == 11) {     /* MODE: the voices follow */
+        v = step(p, rk_get_param(slot, pofs(mn.page) + pi), e);
+        rc_set(slot, pofs(mn.page) + pi, v);
+        if (mn.page == PG_AMP && pi == 11) {  /* MODE: the voices follow */
             int md = (int)(v + 0.5f);
             rc_patch.mode = md;
             rk_set_legato(md == RVM_MONO ? 0 : 1);
@@ -726,13 +831,13 @@ static void knob(int k, int32_t e)
 }
 
 /* the buttons and encoders of the menus; 1 when they were the menus' (input() does the rest) */
-static int menu_input(uint32_t press)
+static int menu_input(uint32_t press, uint32_t btn)
 {
     static const uint8_t ENV_CYC[] = {PG_AMP, PG_SHP}, LFO_CYC[] = {PG_MODA, PG_MODB, PG_LFO}, FX_CYC[] = {PG_FX1, PG_FX2};
-    static const uint8_t SRC_CYC[] = {PG_SRC}, ARP_CYC[] = {PG_MATRIX, PG_ARP}, SEL_CYC[] = {PG_SEL}, GLO_CYC[] = {PG_GLO};
+    static const uint8_t SRC_CYC[] = {PG_SRC, PG_OSC}, ARP_CYC[] = {PG_MATRIX, PG_ARP}, SEL_CYC[] = {PG_SEL}, GLO_CYC[] = {PG_GLO};
     int32_t e;
     int k;
-    if (press >> B_EDIT & 1u) page_button(SRC_CYC, 1);
+    if (press >> B_EDIT & 1u) page_button(SRC_CYC, 2);
     if (press >> B_ENV & 1u) page_button(ENV_CYC, 2);
     if (press >> B_LFO & 1u) page_button(LFO_CYC, 3);
     if (press >> B_FX & 1u) page_button(FX_CYC, 2);
@@ -741,10 +846,23 @@ static int menu_input(uint32_t press)
     if (press >> B_GLO & 1u) page_button(GLO_CYC, 1);
     if (press & (1u << B_SEQ | 1u << B_PLAY | 1u << B_REC))
         app_say("NEXT STAGE", "OF THE PORT");
-    if (press >> B_HOME & 1u) {
-        if (mn.pick) { mn.pick = 0; ui.redraw = 1; }
-        else if (mn.page == PG_HOME) go(PG_RACK);
-        else { if (mn.page == PG_RACK) rc_all_off(); go(PG_HOME); }
+    if (press >> B_HOME & 1u) {               /* HOME: a tap on letting go; held half a second, LEARN */
+        mn.home_at = plat_ms() | 1u;
+        mn.home_long = 0;
+    }
+    if (mn.home_at && (btn >> B_HOME & 1u) && !mn.home_long && plat_ms() - mn.home_at >= 500u) {
+        mn.home_long = 1;
+        if (!mn.learn)
+            learn_set(1);
+    }
+    if (mn.home_at && !(btn >> B_HOME & 1u)) {
+        if (!mn.home_long) {
+            if (mn.learn) learn_set(0);
+            else if (mn.pick) { mn.pick = 0; ui.redraw = 1; }
+            else if (mn.page == PG_HOME) go(PG_RACK);
+            else { if (mn.page == PG_RACK) rc_all_off(); go(PG_HOME); }
+        }
+        mn.home_at = 0;
     }
     if (mn.page == PG_HOME)
         return 0;
@@ -773,8 +891,12 @@ static int menu_input(uint32_t press)
         ui.redraw = 1;
     }
     for (k = 0; k < 4; k++)
-        if ((e = plat_enc(EN_K1 + k)) != 0 && mn.page != PG_RACK && !mn.pick)
-            knob(k, e);
+        if ((e = plat_enc(EN_K1 + k)) != 0 && mn.page != PG_RACK && !mn.pick) {
+            if (mn.learn && learnable(mn.page))
+                learn_turn(k, e);
+            else
+                knob(k, e);
+        }
     return 1;
 }
 

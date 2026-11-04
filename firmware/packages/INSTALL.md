@@ -7,14 +7,14 @@ build check passed, the three JieLi SDK files matched fm1-base's reference hashe
 | File | What | Identity |
 |---|---|---|
 | `packages/fm1bench.fwsc` | The benchmark: FPU check + 116 timed cases (105, then 11 on two cores). Silent. **Install first.** | FM-1_7700 |
-| `packages/fm1rack.fwsc` | FM1 Rack Lite, first stage: 57 presets, keys + MIDI, macros on K1-K4. Rebuilt 3 Nov after the benchmark: the second core renders half the voices (up to 6 to start on two cores, 4 on one); a lighter engine; the big buffers sized to each preset and Rings' strings in 16-bit (more voices for the delay, reverb and Rings presets); the page's graphics on the screen; menus stages 1-3 (module pages and picker, AMP, LFOs, matrix, rack; SAVE with 64 user presets and the library; SEL scales and chords, the arpeggiator, 13 tunings, GLOBAL with MIDI in and out options), moving visualisers; the engine at -Os; a preset too heavy even at 1 voice is muted with a message | FM-1_7800 |
+| `packages/fm1rack.fwsc` | FM1 Rack Lite, first stage: 57 presets, keys + MIDI, macros on K1-K4. Rebuilt 3 Nov after the benchmark: the second core renders half the voices (up to 6 to start on two cores, 4 on one); a lighter engine; the big buffers sized to each preset and Rings' strings in 16-bit (more voices for the delay, reverb and Rings presets); the page's graphics on the screen; menus stages 1-3 (module pages and picker, AMP, LFOs, matrix, rack; SAVE with 64 user presets and the library; SEL scales and chords, the arpeggiator, 13 tunings, GLOBAL with MIDI in and out options; OSC, a second oscillator per voice with a mixer; macro LEARN), moving visualisers; the engine at -Os; a preset too heavy even at 1 voice is muted with a message | FM-1_7800 |
 | `packages/fm1bench-os.fwsc` | The benchmark with the engine compiled for size (-Os): to measure what the 36 KB of flash it saves costs in CPU | FM-1_7700 |
 
 SHA-256 (also in `packages/SHA256SUMS`):
 
 ```
 e013585a27c75219e8011ebf762be21dbdd2ab08bea2e7f7ec53f937750a3f96  fm1bench.fwsc
-65c09074df7fd60700bf10d3f8946c3ae7a8409883cc2e52510ff92c14b79d69  fm1rack.fwsc
+c6d1ac82217d597732dbc27a421c9cf379fe4df64eec6c8abf1a051287158c5a  fm1rack.fwsc
 153a8747d621d29d05262be0cb01b6b16336c67a8dd2af42915e3c8be73e02c1  fm1bench-os.fwsc
 ```
 

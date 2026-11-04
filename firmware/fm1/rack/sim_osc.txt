@@ -1,0 +1,42 @@
+wait 400
+tap EDIT
+tap EDIT
+wait 200
+turn K1 2
+turn K2 -1
+turn SELECT 1
+turn K2 50
+turn K1 -20
+wait 100
+key w7 down 100
+wait 300
+shot osc_mix.png
+turn SELECT -1
+wait 100
+shot osc_page.png
+key w7 up
+tap HOME
+wait 100
+turn K2 1
+press HOME
+wait 700
+release HOME
+wait 100
+shot learn_home.png
+tap EDIT
+wait 100
+turn K3 12
+wait 100
+shot learn_src.png
+tap EDIT
+turn SELECT 1
+turn K1 -15
+wait 100
+tap HOME
+wait 200
+tap HOME
+wait 300
+shot home_macros.png
+tap ARP
+wait 200
+shot matrix_osc.png
