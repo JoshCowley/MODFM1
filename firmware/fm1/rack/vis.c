@@ -306,20 +306,6 @@ static void vis_chorus(const float *mon, uint16_t c)
     vlabel(UI_OPT[UP_CHORUS[4].opt + (((int)(P(mon, 4) + 0.5f)) % 3)]);
 }
 
-/* the voices' envelopes as bars (the AMP pages after the first) */
-static void vis_voices(const float *mon, uint16_t c)
-{
-    int i;
-    for (i = 0; i < 6; i++) {
-        float e = mon[16 + i];
-        int32_t h = (int32_t)(e * 32.0f);
-        rrect(10 + i * 36, 4, 28, 34, K_GRID, 3);
-        if (h > 0)
-            rrect(10 + i * 36, 38 - h, 28, h, mix565(c, K_WELL, (uint32_t)(80.0f + 176.0f * e)), 3);
-    }
-    vlabel("VOICES");
-}
-
 /* the history of the modulators' and LFOs' outputs, ~30 times a second */
 static void vis_tick(void)
 {
@@ -347,8 +333,7 @@ static void vis_draw(int slot, int id, int sub, uint16_t c)
     }
     mon = rk_monitor(slot == RS_LFO ? RS_AMP : slot);
     if (slot == RS_AMP) {
-        if (sub == 0) adsr(VW, VH, c);
-        else vis_voices(mon, c);
+        adsr(VW, VH, c);                      /* (every AMP page: the voices' bars are gone from it) */
         return;
     }
     if (slot == RS_LFO) {

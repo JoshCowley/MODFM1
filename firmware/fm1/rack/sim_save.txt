@@ -4,6 +4,7 @@ wait 150
 shot home.png
 key w7 up
 tap EDIT
+wait 350
 key w7 down 110
 wait 300
 shot plaits.png
@@ -11,6 +12,7 @@ key w7 up
 turn ALGO 1
 turn ALGO 1
 tap EDIT
+wait 350
 wait 400
 key w5 down 100
 wait 100

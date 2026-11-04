@@ -1,6 +1,7 @@
 wait 500
 shot home.png
 tap EDIT
+wait 350
 wait 300
 shot src.png
 tap SEQ
@@ -44,7 +45,7 @@ turn K2 1
 wait 200
 shot song.png
 press SEQ
-wait 500
+wait 800
 key w2 down 100
 wait 100
 shot layer.png

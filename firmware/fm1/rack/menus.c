@@ -45,7 +45,8 @@ static struct {
     int pick, pick_ix;                        /* the picker: open (1), the choice shown */
     uint32_t edited_at;                       /* the last edit: the buffers are checked when the knobs rest */
     int edited;
-    int learn, learn_m;                       /* LEARN on; the macro it links (0-3: M1-M4) */
+    int learn, learn_m;
+    uint32_t edit_at;                         /* EDIT tapped, waiting for a second tap */                       /* LEARN on; the macro it links (0-3: M1-M4) */
     uint32_t home_at;                         /* HOME went down (a hold starts LEARN), 0 up */
     int home_long;
 } mn;
@@ -234,13 +235,15 @@ static const char *src_name(int s)
 }
 static uint16_t src_colour(int s)             /* the colour a modulation source is drawn in, everywhere */
 {
-    if (s >= 1 && s <= 4) return K_GOLD;                  /* the macros */
-    if (s == 5 || s == 6) return K_OK;                    /* velocity, key tracking */
-    if (s == 7) return K_FG;                              /* random */
-    if (s == 8 || s == 16) return K_AMP;                  /* the envelopes */
-    if (s >= 9 && s <= 12) return K_MOD;                  /* MOD A and B's outputs */
-    if (s >= 13 && s <= 15) return K_LFO;                 /* the LFOs */
-    if (s >= 17 && s <= 20) return K_SEQC;                /* MSEQ's lanes */
+    /* each kind of modulation its own colour, the same on every page (the sliders' halos, the matrix) */
+    if (s >= 1 && s <= 4) return RGB(255, 210, 122);      /* the macros: gold */
+    if (s == 5) return RGB(95, 224, 138);                 /* velocity: green */
+    if (s == 6) return RGB(80, 205, 255);                 /* key tracking: sky blue */
+    if (s == 7) return RGB(242, 239, 230);                /* random: white */
+    if (s == 8 || s == 16) return RGB(255, 122, 107);     /* the envelopes: coral */
+    if (s >= 9 && s <= 12) return RGB(255, 160, 40);      /* MOD A and B's outputs: orange */
+    if (s >= 13 && s <= 15) return RGB(170, 120, 255);    /* the LFOs: violet */
+    if (s >= 17 && s <= 20) return RGB(255, 110, 190);    /* MSEQ's lanes: pink */
     return K_DIM;
 }
 /* the colour of the first route into (slot, param), 0 none: a dial shows its modulation in it */
@@ -336,49 +339,60 @@ static void well(int pg, const ui_mod_t *m, uint16_t c)
     cv_blit(6, 34);
 }
 
-/* a page's cells (stage 4): four parameters, each a dial with its number, label and value; a parameter the matrix
- * moves shows it in its source's colour: the range it has swept lately as a pale band, the set value dimmed, the live
- * value's arc and its number (mc: the source's colour, 0 none) */
-static float cl_lo[4], cl_hi[4];
+/* a page's cells (after stage 4): four parameters, each with its number, label, value and a slider; a parameter
+ * the matrix moves glows in its source's colour (the halo: the range it has swept lately round the track, the live
+ * value, a glow round the thumb and the cell's edge that brightens as the modulation moves; mc: the colour, 0 none) */
+static float cl_lo[4], cl_hi[4], cl_prev[4], cl_e[4];
 static int cl_page = -1;
 static void cell(int i, const ui_param_t *p, float v, float live, uint16_t mc, uint16_t c)
 {
     char t[24];
-    int32_t x = i & 1 ? 122 : 6, y = i < 2 ? 78 : 137;
+    int32_t x = i & 1 ? 122 : 6, y = CELL_Y(i);
     float f, lf;
     int key = mn.page << 4 | mn.sub;
     if (key != cl_page) {                     /* a new page: the swept ranges start again */
         int k;
         cl_page = key;
         for (k = 0; k < 4; k++)
-            cl_lo[k] = 2.0f, cl_hi[k] = -2.0f;
+            cl_lo[k] = 2.0f, cl_hi[k] = -2.0f, cl_prev[k] = -1.0f, cl_e[k] = 0.0f;
     }
-    cv_begin(112, 56, K_BG);
-    rrect(0, 0, 112, 56, p ? K_CELL : RGB(10, 10, 9), 4);
+    cv_begin(112, CELL_H, K_BG);
+    rrect(0, 0, 112, CELL_H, p ? K_CELL : RGB(10, 10, 9), 4);
     t[0] = (char)('1' + i);
     t[1] = 0;
-    cv_text(46, 2, &FONT_T, t, K_DIM);
+    cv_text(6, 2, &FONT_T, t, K_FAINT);
     if (!p) {
-        ring_arc(23, 30, 15, 0.0f, 1.0f, 3, RGB(20, 20, 19));
+        rrect(8, 52, 96, 4, RGB(20, 20, 19), 2);
         cv_blit((uint32_t)x, (uint32_t)y);
         return;
     }
-    cv_text(55, 2, &FONT_T, p->l, K_DIM);
+    cv_text(16, 2, &FONT_T, p->l, K_DIM);
     f = frac(p, v);
     lf = frac(p, live);
     if (mc) {
+        float d;
         if (cl_lo[i] > 1.5f) cl_lo[i] = cl_hi[i] = lf;
         if (lf < cl_lo[i]) cl_lo[i] = lf; else cl_lo[i] += (lf - cl_lo[i]) * 0.01f;
         if (lf > cl_hi[i]) cl_hi[i] = lf; else cl_hi[i] += (lf - cl_hi[i]) * 0.01f;
+        d = cl_prev[i] < 0.0f ? 0.0f : fm_fabsf(lf - cl_prev[i]) * 25.0f;
+        cl_prev[i] = lf;
+        cl_e[i] += ((d > 1.0f ? 1.0f : d) - cl_e[i]) * 0.3f;
+        {                                     /* the cell's edge glows */
+            uint16_t g = mix565(mc, K_CELL, 50u + (uint32_t)(cl_e[i] * 150.0f));
+            cv_rect(2, 0, 108, 1, g);
+            cv_rect(2, CELL_H - 1, 108, 1, g);
+            cv_rect(0, 2, 1, CELL_H - 4, g);
+            cv_rect(111, 2, 1, CELL_H - 4, g);
+        }
     }
-    dial(23, 30, 15, f, c, mc, cl_lo[i], cl_hi[i], lf, K_CELL);
     fmt(p, v, t);
-    cv_text(46, 16, text_w(&FONT_B, t) > 62 ? (text_w(&FONT_XS, t) > 62 ? &FONT_T : &FONT_XS) : &FONT_B, t, mc ? mix565(K_FG, K_CELL, 170) : K_FG);
+    cv_text(6, 16, text_w(&FONT_B, t) > 100 ? (text_w(&FONT_XS, t) > 100 ? &FONT_T : &FONT_XS) : &FONT_B, t, mc ? mix565(K_FG, K_CELL, 170) : K_FG);
     if (mc) {
         char u[24] = "> ";
         fmt(p, live, u + 2);
-        cv_text(46, 38, &FONT_T, u, mc);
+        cv_text(106 - text_w(&FONT_T, u), 34, &FONT_T, u, mc);
     }
+    slider(8, 52, 96, f, c, mc, cl_lo[i], cl_hi[i], lf, cl_e[i], K_CELL);
     cv_blit((uint32_t)x, (uint32_t)y);
 }
 
@@ -389,14 +403,14 @@ static void help(const char *s)
         char t[40] = "LEARN M";
         t[7] = (char)('1' + mn.learn_m);
         t[8] = 0;
-        cat(t, ": TURN A KNOB   HOME: DONE");
+        cat(t, ": TURN A KNOB   EDIT x2: DONE");
         rrect(2, 0, 236, 15, K_GOLD, 4);
         icon(IC_KNOB, 6, 2, K_BG);
         cv_text(22, 1, &FONT_T, t, K_BG);
     } else {
         cv_text(6, 1, &FONT_T, s, K_DIM);
     }
-    cv_blit(0, 196);
+    cv_blit(0, HELP_Y);
 }
 
 /* the LFO's TARGET pages: two direct targets (routes 12-17) */
@@ -406,10 +420,10 @@ static void draw_lfo_targets(int l)
     float amt;
     char t[32];
     for (k = 0; k < 4; k++) {
-        int32_t x = k & 1 ? 122 : 6, y = k < 2 ? 78 : 137;
+        int32_t x = k & 1 ? 122 : 6, y = CELL_Y(k);
         uint16_t d = route_dst(12 + l * 2 + (k >> 1), &src, &via, &amt);
-        cv_begin(112, 56, K_BG);
-        rrect(0, 0, 112, 56, K_CELL, 4);
+        cv_begin(112, CELL_H, K_BG);
+        rrect(0, 0, 112, CELL_H, K_CELL, 4);
         t[0] = (char)('1' + k);
         t[1] = 0;
         cv_text(6, 3, &FONT_T, t, K_DIM);
@@ -422,9 +436,10 @@ static void draw_lfo_targets(int l)
             int_text(a, t + (a >= 0));
             cv_text(6, 17, &FONT_B, t, amt != 0.0f ? K_LFO : K_DIM);
             {
-                int32_t e = 56 + (int32_t)(amt * 50.0f);
-                rrect(6, 45, 100, 4, K_FAINT, 2);
-                cv_rect(e < 56 ? e : 56, 45, e < 56 ? 56 - e : e - 56, 4, K_LFO);
+                int32_t e = 56 + (int32_t)(amt * 48.0f);
+                rrect(8, 52, 96, 4, K_FAINT, 2);
+                cv_rect(e < 56 ? e : 56, 52, e < 56 ? 56 - e : e - 56, 4, src_colour(13 + l));
+                rrect(e - 2, 48, 5, 12, K_FG, 2);
             }
         } else {
             dst_name(d, t);
@@ -492,7 +507,7 @@ static void draw_param_page(int pg)
                 const ui_param_t *p = i < m->pages[mn.sub] ? &m->p[off + i] : 0;
                 cell(i, p, p ? fv[off + i] : 0.0f, 0.0f, 0, c);
             }
-        help(pg == PG_GLO && mn.sub == 5 ? "SELECT: PAGE   (MEASURED LIVE)" : pg == PG_ARP ? "SELECT: PAGE   K1-K4   ARP AGAIN: MATRIX"
+        help(pg == PG_GLO && mn.sub == 5 ? "SELECT: PAGE   (MEASURED LIVE)" : pg == PG_ARP ? "SELECT: PAGE   K1-K4: VALUES"
              : "SELECT: PAGE   K1-K4: VALUES");
         return;
     }
@@ -584,7 +599,8 @@ static void draw_matrix(void)
             rrect(0, 0, 232, 22, K_SEL, 4);
             cv_rect(0, 0, 2, 22, K_MX);
         }
-        cv_text(5, 4, &FONT_T, src_name(src), c);
+        if (src) rrect(5, 8, 5, 5, on ? src_colour(src) : mix565(src_colour(src), K_BG, 100), 2);   /* its kind's colour */
+        cv_text(13, 4, &FONT_T, src_name(src), on ? src_colour(src) : c);
         dst_name(d, t);
         cv_text(68, 4, &FONT_T, t, c);
         t[0] = 0;
@@ -872,26 +888,34 @@ static void knob(int k, int32_t e)
 /* the buttons and encoders of the menus; 1 when they were the menus' (input() does the rest) */
 static int menu_input(uint32_t press, uint32_t btn)
 {
-    static const uint8_t ENV_CYC[] = {PG_AMP, PG_SHP}, LFO_CYC[] = {PG_MODA, PG_MODB, PG_LFO, PG_MSEQ}, FX_CYC[] = {PG_FX1, PG_FX2};
-    static const uint8_t SRC_CYC[] = {PG_SRC, PG_OSC}, ARP_CYC[] = {PG_MATRIX, PG_ARP}, SEL_CYC[] = {PG_SEL}, GLO_CYC[] = {PG_GLO};
+    static const uint8_t ENV_CYC[] = {PG_AMP, PG_SHP}, LFO_CYC[] = {PG_MODA, PG_MODB, PG_LFO, PG_MSEQ, PG_MATRIX}, FX_CYC[] = {PG_FX1, PG_FX2};
+    static const uint8_t SRC_CYC[] = {PG_SRC, PG_OSC}, ARP_CYC[] = {PG_ARP}, SEL_CYC[] = {PG_SEL}, GLO_CYC[] = {PG_GLO};
     int32_t e;
     int k;
-    if (press >> B_EDIT & 1u) page_button(SRC_CYC, 2);
+    if (press >> B_EDIT & 1u) {               /* EDIT: a tap turns the page once the double tap's time has passed; */
+        if (mn.edit_at && plat_ms() - mn.edit_at < EDIT_DOUBLE_MS) {   /* two taps: LEARN on or off */
+            mn.edit_at = 0;
+            learn_set(!mn.learn);
+        } else {
+            mn.edit_at = plat_ms() | 1u;
+        }
+    }
+    if (mn.edit_at && plat_ms() - mn.edit_at >= EDIT_DOUBLE_MS) {
+        mn.edit_at = 0;
+        page_button(SRC_CYC, 2);
+    }
     if (press >> B_ENV & 1u) page_button(ENV_CYC, 2);
-    if (press >> B_LFO & 1u) page_button(LFO_CYC, 4);
+    if (press >> B_LFO & 1u) page_button(LFO_CYC, 5);
     if (press >> B_FX & 1u) page_button(FX_CYC, 2);
-    if (press >> B_ARP & 1u) page_button(ARP_CYC, 2);
+    if (press >> B_ARP & 1u) page_button(ARP_CYC, 1);
     if (press >> B_SEL & 1u) page_button(SEL_CYC, 1);
     if (press >> B_GLO & 1u) page_button(GLO_CYC, 1);
-    if (press >> B_HOME & 1u) {               /* HOME: a tap on letting go; held half a second, LEARN */
+    if (press >> B_HOME & 1u) {               /* HOME: a tap on letting go (LEARN is EDIT's double tap now) */
         mn.home_at = plat_ms() | 1u;
         mn.home_long = 0;
     }
-    if (mn.home_at && (btn >> B_HOME & 1u) && !mn.home_long && plat_ms() - mn.home_at >= 500u) {
-        mn.home_long = 1;
-        if (!mn.learn)
-            learn_set(1);
-    }
+    if (mn.home_at && (btn >> B_HOME & 1u) && !mn.home_long && plat_ms() - mn.home_at >= HOLD_MS)
+        mn.home_long = 1;                     /* held: nothing (a long press is never a tap) */
     if (mn.home_at && !(btn >> B_HOME & 1u)) {
         if (!mn.home_long) {
             if (mn.learn) learn_set(0);
@@ -909,11 +933,10 @@ static int menu_input(uint32_t press, uint32_t btn)
     }
     if ((e = plat_enc(EN_SELECT)) != 0) {
         if (mn.page == PG_MATRIX) {
-            mn.row += e > 0 ? 1 : -1;
-            mn.row = mn.row < 0 ? 0 : mn.row > 11 ? 11 : mn.row;
+            mn.row = (mn.row + (e > 0 ? 1 : -1) + 12) % 12;   /* round (all pages loop) */
         } else if (!mn.pick) {
-            mn.sub += e > 0 ? 1 : -1;
-            mn.sub = mn.sub < 0 ? 0 : mn.sub >= npages(mn.page) ? npages(mn.page) - 1 : mn.sub;
+            int np = npages(mn.page);
+            mn.sub = (mn.sub + (e > 0 ? 1 : -1) + np) % np;
         }
         ui.redraw = 1;
     }

@@ -4,6 +4,7 @@ release HOME
 wait 200
 shot rack.png
 tap EDIT
+wait 350
 wait 200
 key w7 down 100
 wait 300
@@ -18,6 +19,7 @@ wait 200
 shot picker.png
 turn ALGO 1
 tap EDIT
+wait 350
 wait 600
 shot braids.png
 tap ENV
@@ -40,7 +42,9 @@ turn K1 3
 turn K2 30
 wait 600
 shot lfotgt.png
-tap ARP
+tap LFO
+wait 50
+tap LFO
 turn K1 2
 turn K2 5
 turn K3 40

@@ -36,12 +36,17 @@ static sq_bank_t *cur_bank(void) { return &sqb[sq.bank]; }
 static void sq_touch(void) { sq_dirty |= (uint8_t)(1u << sq.bank); ui.redraw = 1; }
 
 /* ------------------------------------------------------------------ drawing helpers --- */
-static void band(int b)                       /* draw the next things in the 228 x 32 band b of a 96-row picture */
+/* the area (after the stage 4 build: the sliders moved to the top, the area taller for the piano roll): 228 x AH,
+ * drawn in bands of AB rows (the canvas holds 9600 pixels) */
+#define AH 152
+#define AB 38
+#define AREA_Y 68
+static void band(int b)                       /* draw the next things in the 228 x AB band b of the area */
 {
-    cv_begin(228, 32, K_BG);
-    cv_oy = -32 * b;
+    cv_begin(228, AB, K_BG);
+    cv_oy = -AB * b;
     cv_y0 = 0;
-    cv_y1 = 32;
+    cv_y1 = AB;
 }
 static uint16_t lvl_col(int lvl, uint16_t c) { static const uint8_t A[5] = {70, 130, 200, 245, 255}; return mix565(c, K_WELL, A[lvl > 4 ? 2 : lvl]); }
 static float sq_pos(void)                     /* where the playhead is, in steps */
@@ -52,30 +57,26 @@ static float sq_pos(void)                     /* where the playhead is, in steps
 }
 static int flash_on(int i) { return sq.run && pl_now - sq_flash[i] < 6000u; }
 
-/* four dials in a row under the area: label, value, how far (0-1) */
+/* four sliders in a row at the top, over the area: number, label, value, how far (0-1) */
 static void seq_dials(const char *const *l, char v[4][16], const float *f, uint16_t c)
 {
     int i;
-    for (i = 0; i < 4; i++) {                 /* (one canvas each: the canvas holds 9600 pixels) */
-        int32_t x = 0;
+    for (i = 0; i < 4; i++) {                 /* (one canvas each) */
         char n[4] = "1";
-        cv_begin(54, 56, K_BG);
-        rrect(x, 0, 54, 56, l[i] ? K_CELL : RGB(10, 10, 9), 4);
-        if (!l[i]) {
-            cv_blit(6u + (uint32_t)i * 58u, 133);
-            continue;
+        cv_begin(57, 32, K_BG);
+        rrect(0, 0, 57, 32, l[i] ? K_CELL : RGB(10, 10, 9), 4);
+        if (l[i]) {
+            n[0] = (char)('1' + i);
+            cv_text(3, -1, &FONT_T, n, K_FAINT);
+            cv_text(11, -1, &FONT_T, l[i], K_DIM);
+            cv_text(4, 9, &FONT_T, v[i], K_FG);
+            slider(5, 23, 47, f[i], c, 0, 0.0f, 0.0f, f[i], 0.0f, K_CELL);
         }
-        n[0] = (char)('1' + i);
-        cv_text(x + 3, -1, &FONT_T, n, K_FAINT);
-        cv_text(x + 11, -1, &FONT_T, l[i], K_DIM);
-        dial(x + 27, 25, 12, f[i], c, 0, 0.0f, 0.0f, f[i], K_CELL);
-        cv_text(x + 27 - text_w(text_w(&FONT_XS, v[i]) > 50 ? &FONT_T : &FONT_XS, v[i]) / 2, 39,
-                text_w(&FONT_XS, v[i]) > 50 ? &FONT_T : &FONT_XS, v[i], K_FG);
-        cv_blit(6u + (uint32_t)i * 58u, 133);
+        cv_blit(2u + (uint32_t)i * 59u, 34);
     }
 }
 
-/* ------------------------------------------------------------------ the pictures (228 x 96) --- */
+/* ------------------------------------------------------------------ the pictures (228 x AH) --- */
 static void pic_roll(void)                    /* NOTES: a piano roll of 16 steps */
 {
     sq_bank_t *b = cur_bank();
@@ -90,12 +91,12 @@ static void pic_roll(void)                    /* NOTES: a piano roll of 16 steps
         }
     if (!any) { lo = 52; hi = 72; }
     lo -= 2; hi += 2;
-    if (hi - lo < 14) { int m = (hi + lo) / 2; lo = m - 7; hi = m + 7; }
+    if (hi - lo < 20) { int m = (hi + lo) / 2; lo = m - 10; hi = m + 10; }
     for (j = 0; j <= 16; j++) {
         int si = start + j;
         int32_t x = 4 + (int32_t)((float)j * sw);
-        if (si % 4 == 0) cv_rect(x, 3, 1, 90, si % 16 == 0 ? RGB(43, 42, 39) : RGB(24, 24, 22));
-        if (si >= L && j < 16) cv_rect(x, 2, (int32_t)sw, 92, RGB(6, 6, 6));
+        if (si % 4 == 0) cv_rect(x, 3, 1, AH - 6, si % 16 == 0 ? RGB(43, 42, 39) : RGB(24, 24, 22));
+        if (si >= L && j < 16) cv_rect(x, 2, (int32_t)sw, AH - 4, RGB(6, 6, 6));
     }
     for (j = 0; j < 16; j++) {
         int si = start + j;
@@ -107,7 +108,7 @@ static void pic_roll(void)                    /* NOTES: a piano roll of 16 steps
         if ((s->flags >> 1) & 3u)
             cv_text(x0 + 1, 1, &FONT_T, ((s->flags >> 1) & 3u) == 1u ? "F" : "x", K_GOLD);
         for (i = 0; i < s->cnt; i++) {
-            int32_t y = 92 - (s->n[i] - lo) * 88 / (hi - lo), w = (int32_t)((float)s->len[i] * 0.25f * sw) - 1, sel = si == sq_cursor && i == sp.note_ix;
+            int32_t y = AH - 4 - (s->n[i] - lo) * (AH - 10) / (hi - lo), w = (int32_t)((float)s->len[i] * 0.25f * sw) - 1, sel = si == sq_cursor && i == sp.note_ix;
             uint16_t col = lvl_col(s->lvl[i], K_SEQC);
             if (w < 2) w = 2;
             if (flash_on(si)) col = mix565(K_FG, col, 90);
@@ -128,12 +129,12 @@ static void pic_roll(void)                    /* NOTES: a piano roll of 16 steps
             }
         }
         if (si == sq_cursor && sp.note_ix < 0 && (plat_ms() / 300u) & 1u) {
-            cv_rect(x0, 2, (int32_t)sw, 1, K_DIM); cv_rect(x0, 93, (int32_t)sw, 1, K_DIM);
+            cv_rect(x0, 2, (int32_t)sw, 1, K_DIM); cv_rect(x0, AH - 3, (int32_t)sw, 1, K_DIM);
         }
     }
     if (pos >= (float)start && pos < (float)(start + 16)) {
         int32_t px = 4 + (int32_t)((pos - (float)start) * sw);
-        cv_rect(px, 2, 1, 92, K_SEQC);
+        cv_rect(px, 2, 1, AH - 4, K_SEQC);
     }
     t[0] = 0;
     int_text(start + 1, t);
@@ -154,30 +155,30 @@ static void pic_steps(int spice)              /* PATTERN, SPICE, GEN: the 64 ste
     int i, pc = sq.run ? sq.cur : -1;
     for (i = 0; i < SQ_STEPS; i++) {
         const sq_step_t *s = &b->s[i];
-        int32_t x = 4 + (i % 16) * 14 - (i % 16) / 4 * 0, y = 3 + (i / 16) * 23;
+        int32_t x = 4 + (i % 16) * 14 - (i % 16) / 4 * 0, y = 3 + (i / 16) * 37;
         int used = i < b->len, beat = i % 4 == 0;
         uint16_t col = !used ? RGB(6, 6, 6) : s->cnt ? (beat ? K_SEQC : mix565(K_SEQC, K_WELL, 150)) : (beat ? RGB(31, 30, 28) : RGB(20, 20, 19));
         if (used && s->cnt && flash_on(i)) col = mix565(K_FG, col, 120);
-        rrect(x, y, 12, 20, col, 2);
+        rrect(x, y, 12, 34, col, 2);
         if (used && s->cnt && s->chance < 100)
-            cv_rect(x, y + 20 - (100 - s->chance) * 20 / 100, 12, (100 - s->chance) * 20 / 100, RGB(40, 20, 30));
+            cv_rect(x, y + 34 - (100 - s->chance) * 34 / 100, 12, (100 - s->chance) * 34 / 100, RGB(40, 20, 30));
         if (used && ((s->flags >> 1) & 3u))
             cv_text(x + 2, y - 1, &FONT_T, ((s->flags >> 1) & 3u) == 1u ? "F" : "x", K_GOLD);
         if (spice && used && s->cnt && b->spice) {
             float sp2 = (float)b->spice * 0.01f;
-            if (hash01(b->dice, (uint32_t)i * 4u) < sp2 * 0.3f) cv_rect(x + 5, y + 9, 3, 3, K_WARN);
-            else if (hash01(b->dice, (uint32_t)i * 4u + 1u) < sp2 * 0.25f) cv_text(x + 3, y + 5, &FONT_T, hash01(b->dice, (uint32_t)i * 4u + 2u) < 0.5f ? "-" : "+", K_GOLD);
+            if (hash01(b->dice, (uint32_t)i * 4u) < sp2 * 0.3f) cv_rect(x + 5, y + 15, 3, 3, K_WARN);
+            else if (hash01(b->dice, (uint32_t)i * 4u + 1u) < sp2 * 0.25f) cv_text(x + 3, y + 11, &FONT_T, hash01(b->dice, (uint32_t)i * 4u + 2u) < 0.5f ? "-" : "+", K_GOLD);
         }
-        if (i == sq_cursor) { cv_rect(x - 1, y - 1, 14, 1, K_FG); cv_rect(x - 1, y + 20, 14, 1, K_FG); cv_rect(x - 1, y - 1, 1, 22, K_FG); cv_rect(x + 12, y - 1, 1, 22, K_FG); }
-        if (i == pc) cv_rect(x, y + 21, 12, 1, K_SEQC);
+        if (i == sq_cursor) { cv_rect(x - 1, y - 1, 14, 1, K_FG); cv_rect(x - 1, y + 34, 14, 1, K_FG); cv_rect(x - 1, y - 1, 1, 36, K_FG); cv_rect(x + 12, y - 1, 1, 36, K_FG); }
+        if (i == pc) cv_rect(x, y + 35, 12, 1, K_SEQC);
     }
 }
 static void pic_gen(void)
 {
-    int i, t0 = sp.gen_tool - 2;
+    int i, t0 = sp.gen_tool - 3;
     if (t0 < 0) t0 = 0;
-    if (t0 > NGEN - 5) t0 = NGEN - 5;
-    for (i = 0; i < 5; i++) {
+    if (t0 > NGEN - 8) t0 = NGEN - 8;
+    for (i = 0; i < 8; i++) {
         int k = t0 + i, on = k == sp.gen_tool;
         if (on) { rrect(4, 4 + i * 18, 84, 16, RGB(37, 36, 31), 3); cv_rect(4, 4 + i * 18, 2, 16, K_SEQC); }
         cv_text(10, 4 + i * 18, &FONT_XS, GEN_TOOLS[k], on ? K_FG : K_DIM);
@@ -189,7 +190,7 @@ static void pic_gen(void)
         for (i = 0; i < L; i++) {
             int hit = (i * k) % L < k, j = (i + rot) % L;
             float a = (float)j / (float)L * TAU - 1.5708f;
-            int32_t x = 150 + (int32_t)(fm_cosf(a) * 38.0f), y = 48 + (int32_t)(fm_sinf(a) * 38.0f);
+            int32_t x = 156 + (int32_t)(fm_cosf(a) * 56.0f), y = AH / 2 + (int32_t)(fm_sinf(a) * 56.0f);
             if (hit) rrect(x - 3, y - 3, 7, 7, K_SEQC, 3);
             else cv_rect(x - 1, y - 1, 3, 3, K_FAINT);
         }
@@ -197,11 +198,11 @@ static void pic_gen(void)
         cat(t, "/");
         int_text(L, u);
         cat(t, u);
-        cv_text(150 - text_w(&FONT_XS, t) / 2, 40, &FONT_XS, t, K_FG);
+        cv_text(156 - text_w(&FONT_XS, t) / 2, AH / 2 - 8, &FONT_XS, t, K_FG);
     } else {
-        cv_text(100, 30, &FONT_T, "ALGO RIGHT: MAKE IT", K_DIM);
-        cv_text(100, 44, &FONT_T, "ALGO LEFT: PUT IT BACK", K_DIM);
-        cv_text(100, 58, &FONT_T, "IN SEL'S SCALE AND KEY", K_DIM);
+        cv_text(100, 56, &FONT_T, "ALGO RIGHT: MAKE IT", K_DIM);
+        cv_text(100, 70, &FONT_T, "ALGO LEFT: PUT IT BACK", K_DIM);
+        cv_text(100, 84, &FONT_T, "IN SEL'S SCALE AND KEY", K_DIM);
     }
 }
 static void pic_banks(void)
@@ -212,17 +213,17 @@ static void pic_banks(void)
         int cur = b == sq.bank, q = b == sq.queue && (plat_ms() / 250u) & 1u, lo = 127, hi = 0;
         char t[4] = "A";
         sq_bank_t *bk = &sqb[b];
-        rrect(x, 4, 25, 88, cur ? RGB(42, 32, 38) : RGB(20, 20, 19), 4);
-        if (cur || q) { uint16_t e = cur ? K_SEQC : K_FG; cv_rect(x, 4, 25, 1, e); cv_rect(x, 91, 25, 1, e); cv_rect(x, 4, 1, 88, e); cv_rect(x + 24, 4, 1, 88, e); }
+        rrect(x, 4, 25, AH - 8, cur ? RGB(42, 32, 38) : RGB(20, 20, 19), 4);
+        if (cur || q) { uint16_t e = cur ? K_SEQC : K_FG; cv_rect(x, 4, 25, 1, e); cv_rect(x, AH - 5, 25, 1, e); cv_rect(x, 4, 1, AH - 8, e); cv_rect(x + 24, 4, 1, AH - 8, e); }
         for (i = 0; i < bk->len; i++)
             for (j = 0; j < bk->s[i].cnt; j++) { if (bk->s[i].n[j] < lo) lo = bk->s[i].n[j]; if (bk->s[i].n[j] > hi) hi = bk->s[i].n[j]; }
         if (hi < lo + 6) hi = lo + 6;
         for (i = 0; i < bk->len; i++)
             for (j = 0; j < bk->s[i].cnt; j++)
-                cv_rect(x + 3 + i * 19 / bk->len, 74 - (bk->s[i].n[j] - lo) * 54 / (hi - lo), 2, 2, cur ? K_SEQC : mix565(K_SEQC, K_BG, 140));
-        if (cur && sq.run && sq.cur >= 0) cv_rect(x + 3 + sq.cur * 19 / bk->len, 16, 1, 62, mix565(K_SEQC, K_BG, 180));
+                cv_rect(x + 3 + i * 19 / bk->len, AH - 24 - (bk->s[i].n[j] - lo) * (AH - 44) / (hi - lo), 2, 2, cur ? K_SEQC : mix565(K_SEQC, K_BG, 140));
+        if (cur && sq.run && sq.cur >= 0) cv_rect(x + 3 + sq.cur * 19 / bk->len, 16, 1, AH - 36, mix565(K_SEQC, K_BG, 180));
         t[0] = (char)('A' + b);
-        cv_text(x + 13 - text_w(&FONT_XS, t) / 2, 76, &FONT_XS, t, cur ? K_SEQC : K_DIM);
+        cv_text(x + 13 - text_w(&FONT_XS, t) / 2, AH - 22, &FONT_XS, t, cur ? K_SEQC : K_DIM);
         if (sq_bank_empty(b)) cv_text(x + 11, 5, &FONT_T, ".", K_DIM);
         else { char u[4]; int_text(bk->len, u); cv_text(x + 13 - text_w(&FONT_T, u) / 2, 5, &FONT_T, u, K_DIM); }
     }
@@ -244,46 +245,46 @@ static void pic_song(void)
         int on = sq.song_on && r == sq.song_row;
         uint16_t c = sqs.bank[r] < 0 ? RGB(12, 12, 11) : on ? mix565(K_SEQC, K_BG, 190) : mix565(K_SEQC, K_BG, 60);
         if (w < 2) w = 2;
-        rrect(x, 16, w - 1, 64, c, 2);
+        rrect(x, 16, w - 1, AH - 40, c, 2);
         if (sqs.bank[r] >= 0 && w > 9) {
             char bn[2] = "A";
             bn[0] = (char)('A' + sqs.bank[r]);
-            cv_text(x + w / 2 - 4, 32, &FONT_XS, bn, on ? K_BG : K_FG);
+            cv_text(x + w / 2 - 4, AH / 2 - 14, &FONT_XS, bn, on ? K_BG : K_FG);
             if (sqs.trn[r] && w > 14) {
                 u[0] = 0;
                 if (sqs.trn[r] > 0) cat(u, "+");
                 int_text(sqs.trn[r], u + (sqs.trn[r] > 0));
-                cv_text(x + w / 2 - text_w(&FONT_T, u) / 2, 52, &FONT_T, u, K_GOLD);
+                cv_text(x + w / 2 - text_w(&FONT_T, u) / 2, AH / 2 + 8, &FONT_T, u, K_GOLD);
             }
         }
-        if (r == sp.song_cur) { cv_rect(x, 14, w - 1, 1, K_FG); cv_rect(x, 81, w - 1, 1, K_FG); }
+        if (r == sp.song_cur) { cv_rect(x, 14, w - 1, 1, K_FG); cv_rect(x, AH - 23, w - 1, 1, K_FG); }
         x += w;
     }
-    if (empty) cv_text(10, 84, &FONT_T, "EMPTY: K2 GIVES A ROW A BANK", K_DIM);
+    if (empty) cv_text(10, AH - 18, &FONT_T, "EMPTY: K2 GIVES A ROW A BANK", K_DIM);
 }
 static void pic_mseq(void)
 {
     int i, l, row = 0;
     float sw = 220.0f / 16.0f;
-    cv_rect(4, 32, 220, 1, K_FAINT);
+    cv_rect(4, 50, 220, 1, K_FAINT);
     for (i = 0; i < 16; i++) {
         int v = sqs.ms[sp.ms_lane][i];
-        int32_t x = 4 + (int32_t)((float)i * sw), h = v * 28 / 100;
+        int32_t x = 4 + (int32_t)((float)i * sw), h = v * 44 / 100;
         uint16_t c = i == ms_cur ? K_LFO : mix565(K_LFO, K_WELL, 110);
-        if (h > 0) cv_rect(x + 1, 32 - h, (int32_t)sw - 2, h, c);
-        else if (h < 0) cv_rect(x + 1, 33, (int32_t)sw - 2, -h, c);
-        else cv_rect(x + 1, 32, (int32_t)sw - 2, 1, c);
-        if (i == sp.ms_cur && (plat_ms() / 300u) & 1u) { cv_rect(x, 2, (int32_t)sw, 1, K_FG); cv_rect(x, 62, (int32_t)sw, 1, K_FG); }
-        if (i == ms_cur) cv_rect(x + 1, 64, (int32_t)sw - 2, 2, K_FG);
+        if (h > 0) cv_rect(x + 1, 50 - h, (int32_t)sw - 2, h, c);
+        else if (h < 0) cv_rect(x + 1, 51, (int32_t)sw - 2, -h, c);
+        else cv_rect(x + 1, 50, (int32_t)sw - 2, 1, c);
+        if (i == sp.ms_cur && (plat_ms() / 300u) & 1u) { cv_rect(x, 2, (int32_t)sw, 1, K_FG); cv_rect(x, 97, (int32_t)sw, 1, K_FG); }
+        if (i == ms_cur) cv_rect(x + 1, 99, (int32_t)sw - 2, 2, K_FG);
     }
     for (l = 0; l < 4; l++) {
         char t[2] = "1";
         if (l == sp.ms_lane) continue;
         t[0] = (char)('1' + l);
-        cv_text(4, 66 + row * 9, &FONT_T, t, K_DIM);
+        cv_text(4, 104 + row * 15, &FONT_T, t, K_DIM);
         for (i = 0; i < 16; i++) {
             int v = sqs.ms[l][i] < 0 ? -sqs.ms[l][i] : sqs.ms[l][i];
-            cv_rect(14 + i * 13, 70 + row * 9, 12, 5, mix565(K_LFO, K_WELL, (uint32_t)(30 + v * 2) * (i == ms_cur ? 1u : 1u)));
+            cv_rect(14 + i * 13, 108 + row * 15, 12, 8, mix565(K_LFO, K_WELL, (uint32_t)(30 + v * 2) * (i == ms_cur ? 1u : 1u)));
         }
         row++;
     }
@@ -292,12 +293,12 @@ static void pic_mseq(void)
 static void seq_area(void)
 {
     int b;
-    for (b = 0; b < 3; b++) {
+    for (b = 0; b < AH / AB; b++) {
         int32_t x, y;
         band(b);
-        rrect(0, 0, 228, 96, K_WELL, 4);
+        rrect(0, 0, 228, AH, K_WELL, 4);
         for (x = 12; x < 228; x += 12)
-            for (y = 6; y < 96; y += 6)
+            for (y = 6; y < AH; y += 6)
                 cv_pset(x, y, K_GRID);
         if (mn.page == PG_MSEQ) pic_mseq();
         else switch (mn.sub) {
@@ -308,7 +309,7 @@ static void seq_area(void)
             case SQP_BANKS: pic_banks(); break;
             default: pic_song();
         }
-        cv_blit(6, 34u + 32u * (uint32_t)b);
+        cv_blit(6, (uint32_t)AREA_Y + (uint32_t)AB * (uint32_t)b);
     }
 }
 
@@ -501,38 +502,6 @@ static void draw_seq_layer(void)
     help("TAP: ON WITH THE LAST NOTES PLAYED / OFF");
 }
 
-/* home's strip: the bank, the state, 16 steps round the playhead */
-static void seq_strip(void)
-{
-    sq_bank_t *b = cur_bank();
-    int i, page = sq.run && sq.cur >= 0 ? sq.cur / 16 : 0, pc = sq.run ? sq.cur : -1;
-    char t[40], u[8];
-    cv_begin(228, 42, K_BG);
-    rrect(0, 0, 228, 42, K_WELL, 4);
-    t[0] = 'S'; t[1] = 'E'; t[2] = 'Q'; t[3] = ' '; t[4] = (char)('A' + sq.bank); t[5] = 0;
-    rrect(4, 2, text_w(&FONT_T, t) + 8, 13, K_SEQC, 3);
-    cv_text(8, 1, &FONT_T, t, K_BG);
-    {
-        const char *st = sq.rec && sq.run ? "REC" : sq.armed ? "REC READY" : sq.run ? "PLAY" : "STOP";
-        int32_t x = 18 + text_w(&FONT_T, t);
-        cv_text(x, 1, &FONT_T, st, sq.armed || sq.rec ? K_WARN : sq.run ? K_OK : K_DIM);
-        t[0] = 0;
-        int_text(b->len, u); cat(t, u); cat(t, " x "); cat(t, SQ_DIVS[b->div]); cat(t, "  ");
-        int_text((int32_t)(tempo_bpm() + 0.5f), u); cat(t, u); cat(t, " BPM");
-        if (sq.song_on) cat(t, "  SONG");
-        cv_text(x + text_w(&FONT_T, st) + 8, 1, &FONT_T, t, K_DIM);
-    }
-    for (i = 0; i < 16; i++) {
-        int si = page * 16 + i;
-        int32_t x = 4 + i * 14;
-        const sq_step_t *s = &b->s[si];
-        uint16_t c = si >= b->len ? RGB(8, 8, 8) : s->cnt ? (si % 4 == 0 ? K_SEQC : mix565(K_SEQC, K_WELL, 140)) : (si % 4 == 0 ? RGB(34, 33, 31) : RGB(22, 22, 21));
-        if (si < b->len && s->cnt && flash_on(si)) c = mix565(K_FG, c, 120);
-        rrect(x, 19, 12, 18, c, 2);
-        if (si == pc) { cv_rect(x - 1, 17, 14, 1, K_FG); cv_rect(x - 1, 38, 14, 1, K_FG); cv_rect(x - 1, 17, 1, 22, K_FG); cv_rect(x + 12, 17, 1, 22, K_FG); }
-    }
-    cv_blit(6, 164);
-}
 
 /* ------------------------------------------------------------------ editing --- */
 static void scale_note_k(int R, int k, int *out)  /* the page's scaleNote: SEL's scale, degree k above R */
@@ -786,7 +755,7 @@ static void seq_buttons(uint32_t press, uint32_t btn)
         sp.seq_at = plat_ms() | 1u;
         sp.turned = 0;
     }
-    if (sp.seq_at && (btn >> B_SEQ & 1u) && !sp.layer && plat_ms() - sp.seq_at > 250u) {
+    if (sp.seq_at && (btn >> B_SEQ & 1u) && !sp.layer && plat_ms() - sp.seq_at >= HOLD_MS) {
         sp.layer = 1;
         sp.held = -1;
         ui.clear = 1;

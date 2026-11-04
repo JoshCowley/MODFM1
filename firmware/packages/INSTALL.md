@@ -7,14 +7,14 @@ build check passed, the three JieLi SDK files matched fm1-base's reference hashe
 | File | What | Identity |
 |---|---|---|
 | `packages/fm1bench.fwsc` | The benchmark: FPU check + 116 timed cases (105, then 11 on two cores). Silent. **Install first.** | FM-1_7700 |
-| `packages/fm1rack.fwsc` | FM1 Rack Lite, first stage: 57 presets, keys + MIDI, macros on K1-K4. Rebuilt 3 Nov after the benchmark: the second core renders half the voices (up to 6 to start on two cores, 4 on one); a lighter engine; the big buffers sized to each preset and Rings' strings in 16-bit (more voices for the delay, reverb and Rings presets); the page's graphics on the screen; menus stages 1-3 (module pages and picker, AMP, LFOs, matrix, rack; SAVE with 64 user presets and the library; SEL scales and chords, the arpeggiator, 13 tunings, GLOBAL with MIDI in and out options; OSC, a second oscillator per voice with a mixer; macro LEARN), stage 4 (CPU and RAM in a status strip at the top, a moving modulation strip at the bottom, dials that show their modulation, the sequencer: 8 banks, GEN, SONG, MSEQ, step entry and REC), moving visualisers; the engine at -Os; a preset too heavy even at 1 voice is muted with a message | FM-1_7800 |
+| `packages/fm1rack.fwsc` | FM1 Rack Lite, first stage: 57 presets, keys + MIDI, macros on K1-K4. Rebuilt 3 Nov after the benchmark: the second core renders half the voices (up to 6 to start on two cores, 4 on one); a lighter engine; the big buffers sized to each preset and Rings' strings in 16-bit (more voices for the delay, reverb and Rings presets); the page's graphics on the screen; menus stages 1-3 (module pages and picker, AMP, LFOs, matrix, rack; SAVE with 64 user presets and the library; SEL scales and chords, the arpeggiator, 13 tunings, GLOBAL with MIDI in and out options; OSC, a second oscillator per voice with a mixer; macro LEARN), stage 4 (CPU and RAM in a status strip at the top, sliders with a halo in the modulation's colour, LEARN on two EDIT taps, the matrix on LFO, the sequencer: 8 banks, GEN, SONG, MSEQ, step entry and REC), moving visualisers; the engine at -Os; a preset too heavy even at 1 voice is muted with a message | FM-1_7800 |
 | `packages/fm1bench-os.fwsc` | The benchmark with the engine compiled for size (-Os): to measure what the 36 KB of flash it saves costs in CPU | FM-1_7700 |
 
 SHA-256 (also in `packages/SHA256SUMS`):
 
 ```
 e013585a27c75219e8011ebf762be21dbdd2ab08bea2e7f7ec53f937750a3f96  fm1bench.fwsc
-9bfafb1bbaa1c7796cd4f32156c311a2f633114fd811e5146272b2a6512f4d73  fm1rack.fwsc
+1d8b3e243914e1cef197eb1be13cbcb331e2c4d7a9006ae11612cb94c9c4c95c  fm1rack.fwsc
 153a8747d621d29d05262be0cb01b6b16336c67a8dd2af42915e3c8be73e02c1  fm1bench-os.fwsc
 ```
 

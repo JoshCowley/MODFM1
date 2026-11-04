@@ -462,15 +462,15 @@ static void vis_fixed(int pg, int sub, uint16_t c)
 static void info_cell(int i, const char *label, const char *value, float f, uint16_t c, int warn)
 {
     char t[2];
-    cv_begin(112, 56, K_BG);
-    rrect(0, 0, 112, 56, K_CELL, 4);
+    cv_begin(112, CELL_H, K_BG);
+    rrect(0, 0, 112, CELL_H, K_CELL, 4);
     t[0] = (char)('1' + i);
     t[1] = 0;
     cv_text(6, 3, &FONT_T, t, K_FAINT);
     cv_text(16, 3, &FONT_T, label, K_DIM);
     cv_text(6, 17, &FONT_B, value, K_FG);
-    vbar(6, 45, 100, 4, f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f, warn && f > 0.9f ? K_WARN : c);
-    cv_blit(i & 1 ? 122u : 6u, i < 2 ? 78u : 137u);
+    vbar(8, 52, 96, 4, f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f, warn && f > 0.9f ? K_WARN : c);
+    cv_blit(i & 1 ? 122u : 6u, (uint32_t)CELL_Y(i));
 }
 static void system_cells(uint16_t c)
 {

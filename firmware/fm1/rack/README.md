@@ -15,16 +15,16 @@ the sequencer and the new frame) are in: the page's own pages, buttons and knobs
 
 | Button (printed) | Page |
 |---|---|
-| HOME | home: the preset, scope, chain, macros. Press again: the RACK overview; again: home (and all notes off). Hold half a second: LEARN |
-| EDIT | the source (Plaits or Braids), then OSC (a second oscillator and the mixer) |
-| ENV | AMP (envelopes, voice mode), then the shaper (Rings or filter) |
-| LFO | MOD A, MOD B, then the three LFOs (and each LFO's two direct targets), then MSEQ |
+| HOME | home: the preset, scope, chain, macros. Press again: the RACK overview; again: home (and all notes off) |
+| EDIT | the source (Plaits or Braids), then OSC (a second oscillator and the mixer). Two quick taps: LEARN on / off |
+| ENV | AMP (envelopes, voice mode; its well shows the envelope on every page), then the shaper (Rings or filter) |
+| LFO | MOD A, MOD B, then the three LFOs (and each LFO's two direct targets), then MSEQ, then the 12-row matrix |
 | FX | FX 1, then FX 2 |
-| ARP | the 12-row matrix, then the arpeggiator |
+| ARP | the arpeggiator |
 | SEL | scale + chord, then the keys (QNT, harmony, zone, strum) |
 | GLO | GLOBAL: settings, playing, tuning, MIDI, master, system |
 | SAVE | the SAVE page: name, slot and category; SAVE again stores it (and it comes back at power-on). OCT+ the library |
-| SEQ | the sequencer: NOTES, PATTERN, SPICE, GEN, BANKS, SONG in turn. Hold: the step layer (the 16 white keys are steps) |
+| SEQ | the sequencer: NOTES, PATTERN, SPICE, GEN, BANKS, SONG in turn. Hold (0.6 s): the step layer (the 16 white keys are steps) |
 | PLAY, REC | start / stop the sequencer; REC READY (stopped) or recording on / off (playing) |
 
 | Knob | Home | A module's page, AMP, LFO | Matrix |
@@ -98,10 +98,10 @@ alone sounds exactly as before (every factory preset checked sample for sample a
 keeps OSC with the user preset; stage 2's user presets load with it off. The well: two cycles of the wave at its level,
 and MAIN and OSC as faders.
 
-**LEARN** (as the page): hold HOME half a second. It links the macro last turned on home (on home while learning,
+**LEARN**: tap EDIT twice quickly (within 0.3 s; a single EDIT tap turns the page once that time has passed). It links the macro last turned on home (on home while learning,
 SELECT or K1-K4 pick M1-M4; the macro framed in gold, HOME blinking, a gold band on the pages). On a module, AMP, LFO or
 OSC page, turning a parameter's knob links the macro to it in the matrix, in the row it already has or the first free
-one of the 12, and the turn sets the amount ("M2>SRC.TIMBRE +24"). Tap HOME to finish. Home's macro cells now show what
+one of the 12, and the turn sets the amount ("M2>SRC.TIMBRE +24"). Tap HOME, or EDIT twice, to finish. Home's macro cells now show what
 each macro moves (its first destination and how many more) or UNASSIGNED.
 
 ![OSC](screen-osc.png) ![Macros after LEARN](screen-learn.png)
@@ -136,30 +136,37 @@ back after a reboot. Not yet heard on an FM-1.
 
 ![SEL](screen-sel.png) ![ARP](screen-arp.png) ![Tuning](screen-tuning.png)
 
-Flash: 542,020 of 581,632 bytes (about 39 KB free) with stage 4 (22.2 KB); OSC and LEARN cost 3.9 KB; stage 3 cost 18.3 KB; the two size changes from the report
+Flash: 540,488 of 581,632 bytes (about 40 KB free) with stage 4 and its 5 Nov changes; OSC and LEARN cost 3.9 KB; stage 3 cost 18.3 KB; the two size changes from the report
 (unused tables dropped with `-fdata-sections`, Tides built with only the modes FM1 Rack uses: 67 KB) made the room.
 
-**Stage 4: the frame, dials and the sequencer** (after the HTML mockup of 4 Nov; `frame.c`, `seq.c`, `seqpages.c`):
+**Stage 4: the frame, sliders and the sequencer** (after the HTML mockup of 4 Nov; `frame.c`, `seq.c`, `seqpages.c`):
 
-- **The frame**: CPU and RAM moved from the bottom to a 10-row status strip at the top (voice lights, cores and voice
-  mode, CPU and RAM bars with numbers, octave, output meter). The bottom is now the modulation strip: one chip per route
-  that is set (source icon and name in the source's colour, the destination parameter in its slot's colour, a needle
-  that moves with the source); on a module, AMP, LFO or OSC page the routes into that page come first, lit.
-- **Dials**: the parameter cells and home's macros are dials. A dial being modulated shows its swept range as a band
-  in the source's colour, with a live arc and dot that move.
+- **The frame**: CPU and RAM sit in a 10-row status strip at the top (voice lights, cores and voice mode, CPU and RAM
+  bars with numbers, octave, output meter). The modulation strip first built at the bottom was removed again (5 Nov):
+  the sliders show the modulation instead, and the cells are taller.
+- **Sliders with a halo** (the dials of the first stage 4 build went back to sliders, 5 Nov): a parameter the matrix
+  moves glows in its source's colour: the range it has swept lately round the track, the live value filling it, the
+  set value as a tick, a glow round the thumb and the cell's edge that brightens as the modulation moves.
+- **Each kind of modulation has its colour**, the same on the sliders and in the matrix: macros gold, velocity green,
+  key tracking sky blue, random white, envelopes coral, MOD A / B orange, LFOs violet, MSEQ pink.
+- **Home**: a taller scope (84 rows), the chain, the macros as sliders; the sequencer is no longer on home.
+- **Pages loop**: SELECT goes round the pages (and the matrix's rows) in both directions.
+- **Holds** wait 0.6 s (SEQ's layer), so a quick press is never taken for a hold.
 - **The sequencer** (a port of the page's 5d-sequencer.js): 8 banks (A-H) of up to 64 steps, each step up to 6 notes
   with their own length and force, ratchet, nudge, slide, chance; per bank length, division, swing, gate, SPICE and
   DICE; GEN's 18 tools (EUCLID, RANDOM, ACID, ARP, BERLIN ...; ALGO left undoes); BANKS (copy, clear, double, halve;
   switch now or at the loop end); SONG, 16 rows of bank, repeats and transpose. Step entry on NOTES (play a note or chord,
   release, the cursor moves on); REC records into the steps as it plays. It plays in the audio interrupt by the codec's
   frame, on the internal tempo or MIDI clock (MIDI start / stop when CLOCK is MIDI), and sends MIDI out.
-- **MSEQ** (LFO, last page): four lanes of 16 values on the tempo, the matrix's sources SEQ 1-4, with shapes.
+- **The sequencer's pages**: its four values as sliders in a row at the top, the piano roll (or the page's picture)
+  in the rest, 152 rows tall.
+- **MSEQ** (LFO, after the LFOs): four lanes of 16 values on the tempo, the matrix's sources SEQ 1-4, with shapes.
 - **SAVE on a sequencer page** keeps the banks and the song (store objects in the data area at 0xB6000-0xC7FFF). The
   sound stops for a moment while the flash is written, so it is never saved automatically while it plays.
 - Not yet from the page: parameter locks, the free take, capture, note repeat, FILL.
 
 Checked in the simulator (`sim_seq.txt`): step entry with a chord, playback at the tempo with MIDI out (velocity and
-gate as set), MIDI start / stop sent, a modulated dial moving, every sequencer page and the layer drawn; all the other
+gate as set), MIDI start / stop sent, a modulated slider's halo moving, every sequencer page and the layer drawn; all the other
 simulator scripts pass, also under AddressSanitizer. Not yet heard on an FM-1.
 
 ## How it works

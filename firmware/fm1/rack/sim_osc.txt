@@ -1,6 +1,8 @@
 wait 400
 tap EDIT
+wait 350
 tap EDIT
+wait 350
 wait 200
 turn K1 2
 turn K2 -1
@@ -18,17 +20,19 @@ key w7 up
 tap HOME
 wait 100
 turn K2 1
-press HOME
-wait 700
-release HOME
+tap EDIT
+wait 100
+tap EDIT
 wait 100
 shot learn_home.png
 tap EDIT
+wait 350
 wait 100
 turn K3 12
 wait 100
 shot learn_src.png
 tap EDIT
+wait 350
 turn SELECT 1
 turn K1 -15
 wait 100
@@ -37,6 +41,14 @@ wait 200
 tap HOME
 wait 300
 shot home_macros.png
-tap ARP
+tap LFO
+wait 50
+tap LFO
+wait 50
+tap LFO
+wait 50
+tap LFO
+wait 50
+tap LFO
 wait 200
 shot matrix_osc.png

@@ -245,6 +245,12 @@ static void octave_step(int d)
  * macros as cells with rounded bars, and a footer with CPU and RAM bars, the voices' lights and the output meter.
  * Drawn in bands (the canvas is 240 x 40 pixels: the pool goes to the engine's arena). */
 #include "icons.h"
+/* the cells' place (after stage 4: the modulation strip gone, the cells taller) */
+#define CELL_H 68
+#define CELL_Y(i) ((i) < 2 ? 80 : 150)
+#define HELP_Y 224
+#define HOLD_MS 600u                          /* a button held this long is a hold: its second function (never a tap) */
+#define EDIT_DOUBLE_MS 300u                   /* two EDIT taps this close: LEARN */
 #define K_BG RGB(0, 0, 0)
 #define K_FG RGB(242, 239, 230)
 #define K_DIM RGB(125, 122, 114)
@@ -301,40 +307,33 @@ static void vbar(int32_t x, int32_t y, int32_t w, int32_t h, float v, uint16_t c
     rrect(x, y, f, h, c, h / 2);
 }
 
-/* a dial (stage 4's look): a ring of 270 degrees from the lower left. ring_arc draws its part from f0 to f1 (0-1) as
- * squares of th pixels; dial() the track, the value's arc and its dot; with a modulation colour mc, the range the
- * value has swept lately (lo-hi) as a wide pale band, the set value dimmed and the live value's arc in mc */
-static void ring_arc(int32_t cx, int32_t cy, int32_t r, float f0, float f1, int32_t th, uint16_t c)
+/* a slider (after stage 4): a track, the value's fill and a thumb. With a modulation colour mc, a halo in that colour:
+ * the range the value has swept lately (lo-hi) glows round the track, the live value fills it, the set value stays
+ * as a tick, and the thumb glows; e (0-1, how fast the modulation moves) brightens the glow, so it pulses with it */
+static void slider(int32_t x, int32_t y, int32_t w, float f, uint16_t c, uint16_t mc, float lo, float hi, float live, float e, uint16_t bg)
 {
-    float a, a0, a1, st = 1.0f / (float)r;
-    f0 = f0 < 0.0f ? 0.0f : f0 > 1.0f ? 1.0f : f0;
-    f1 = f1 < 0.0f ? 0.0f : f1 > 1.0f ? 1.0f : f1;
-    if (f1 < f0) { float t = f0; f0 = f1; f1 = t; }
-    a0 = 2.3562f + 4.7124f * f0;
-    a1 = 2.3562f + 4.7124f * f1;
-    for (a = a0; a <= a1 + 0.0001f; a += st) {
-        float fx = fm_cosf(a) * (float)r, fy = fm_sinf(a) * (float)r;
-        int32_t x = cx + (int32_t)(fx + (fx < 0.0f ? -0.5f : 0.5f)), y = cy + (int32_t)(fy + (fy < 0.0f ? -0.5f : 0.5f));
-        cv_rect(x - th / 2, y - th / 2, th, th, c);
-    }
-}
-static void ring_dot(int32_t cx, int32_t cy, int32_t r, float f, uint16_t c)
-{
-    float a = 2.3562f + 4.7124f * (f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f);
-    int32_t x = cx + (int32_t)(fm_cosf(a) * (float)r + 0.5f), y = cy + (int32_t)(fm_sinf(a) * (float)r + 0.5f);
-    rrect(x - 2, y - 2, 5, 5, c, 2);
-}
-static void dial(int32_t cx, int32_t cy, int32_t r, float f, uint16_t c, uint16_t mc, float lo, float hi, float live, uint16_t bg)
-{
-    ring_arc(cx, cy, r, 0.0f, 1.0f, 3, K_FAINT);
+    int32_t tx;
+    f = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f;
+    live = live < 0.0f ? 0.0f : live > 1.0f ? 1.0f : live;
     if (mc) {
-        ring_arc(cx, cy, r, lo, hi, 6, mix565(mc, bg, 70));
-        ring_arc(cx, cy, r, 0.0f, f, 3, mix565(c, bg, 90));
-        ring_arc(cx, cy, r, 0.0f, live, 3, mc);
-        ring_dot(cx, cy, r, live, K_FG);
+        uint32_t k = 70u + (uint32_t)((e < 0.0f ? 0.0f : e > 1.0f ? 1.0f : e) * 150.0f);
+        int32_t a = x + (int32_t)((lo < 0.0f ? 0.0f : lo) * (float)w), b = x + (int32_t)((hi > 1.0f ? 1.0f : hi) * (float)w);
+        if (b > a) {
+            rrect(a - 5, y - 6, b - a + 10, 16, mix565(mc, bg, k / 4u), 4);
+            rrect(a - 2, y - 3, b - a + 4, 10, mix565(mc, bg, k / 2u), 3);
+        }
+        rrect(x, y, w, 4, K_FAINT, 2);
+        tx = x + (int32_t)(live * (float)w);
+        if (tx > x) rrect(x, y, tx - x, 4, mc, 2);
+        cv_rect(x + (int32_t)(f * (float)w), y - 3, 1, 10, mix565(c, bg, 170));
+        rrect(tx - 7, y - 8, 15, 20, mix565(mc, bg, k / 3u), 4);
+        rrect(tx - 4, y - 6, 9, 16, mix565(mc, bg, (k * 3u) / 4u), 3);
+        rrect(tx - 2, y - 4, 5, 12, K_FG, 2);
     } else {
-        ring_arc(cx, cy, r, 0.0f, f, 3, c);
-        ring_dot(cx, cy, r, f, K_FG);
+        rrect(x, y, w, 4, K_FAINT, 2);
+        tx = x + (int32_t)(f * (float)w);
+        if (tx > x) rrect(x, y, tx - x, 4, c, 2);
+        rrect(tx - 2, y - 4, 5, 12, K_FG, 2);
     }
 }
 
@@ -366,6 +365,7 @@ static int module_icon(int id)
 
 /* the scope: the output, a rising zero crossing near the start so a steady note stands still, every second frame
  * (about 10 ms across), drawn twice as the page's glow(): a soft halo, then the line */
+static int scope_keep;                        /* 1: draw the trace taken last time (the next band of the same well) */
 static void scope(int32_t w, int32_t h, uint16_t c)
 {
     static int16_t y[228];
@@ -379,7 +379,7 @@ static void scope(int32_t w, int32_t h, uint16_t c)
     }
     if (k == 400u)
         k = 0;
-    for (x = 0; x < w && x < 228; x++) {
+    for (x = 0; x < w && x < 228 && !scope_keep; x++) {
         int32_t v = rc_scope[(start + k + 2u * (uint32_t)x) & (RC_SCOPE_N - 1u)];
         int32_t py = mid - (v * (mid - 3)) / 16384;
         y[x] = (int16_t)(py < 1 ? 1 : py > h - 2 ? h - 2 : py);
@@ -413,38 +413,47 @@ static void tile(int32_t x, int slot, uint16_t kind)
 #include "frame.c"
 #include "seqpages.c"
 
-/* home's well: the output's scope over the dot grid, and tabs for SEL, ARP and a tuning when they are on */
+/* home's well (after stage 4: taller, 84 rows, drawn in three bands of 28 as the canvas holds 9600 pixels): the
+ * output's scope over the dot grid, and tabs for SEL, ARP and a tuning when they are on */
+#define HOME_WH 84
 static void home_well(void)
 {
     int32_t x, i;
-    cv_begin(228, 42, K_BG);
-    rrect(0, 0, 228, 42, K_WELL, 4);
-    for (x = 12; x < 228; x += 12)
-        for (i = 6; i < 42; i += 6)
-            cv_pset(x, i, K_GRID);
-    cv_rect(4, 21, 220, 1, K_MID);
-    if (rc_heavy)
-        cv_text(114 - text_w(&FONT_XS, "TOO HEAVY FOR FM-1: MUTED") / 2, 14, &FONT_XS, "TOO HEAVY FOR FM-1: MUTED", K_WARN);
-    else
-        scope(228, 42, K_FG);
-    home_chips();
-    cv_blit(6, 34);
+    int bnd;
+    for (bnd = 0; bnd < 3; bnd++) {
+        cv_begin(228, 28, K_BG);
+        cv_band(-28 * bnd, 28);
+        cv_y0 = 0;
+        cv_y1 = 28;
+        rrect(0, 0, 228, HOME_WH, K_WELL, 4);
+        for (x = 12; x < 228; x += 12)
+            for (i = 6; i < HOME_WH; i += 6)
+                cv_pset(x, i, K_GRID);
+        cv_rect(4, HOME_WH / 2, 220, 1, K_MID);
+        if (rc_heavy)
+            cv_text(114 - text_w(&FONT_XS, "TOO HEAVY FOR FM-1: MUTED") / 2, HOME_WH / 2 - 8, &FONT_XS, "TOO HEAVY FOR FM-1: MUTED", K_WARN);
+        else {
+            scope_keep = bnd > 0;
+            scope(228, HOME_WH, K_FG);
+            scope_keep = 0;
+        }
+        home_chips();
+        cv_blit(6, 34u + 28u * (uint32_t)bnd);
+    }
 }
 
-static void draw_footer(void)                 /* (stage 4: the status strip on top, the modulation strip at the bottom) */
+static void draw_footer(void)                 /* (the status strip on top; the modulation strip is gone) */
 {
     status_strip();
-    mod_strip(frame_slot());
 }
 
-/* home's macros as dials (stage 4): each with what it moves underneath; LEARN: the macro being linked framed gold */
+/* home's macros as sliders: each with what it moves underneath; LEARN: the macro being linked framed gold */
 static void home_macros(void)
 {
     char t[24], n[8];
     int i;
     uint32_t now = plat_ms();
     for (i = 0; i < 4; i++) {                 /* (one canvas each: the canvas holds 9600 pixels) */
-        int32_t x = 0;
         float v = rc_patch.macro[i], amt;
         int r, nt = 0, src, via, sel = mn.learn && mn.learn_m == i;
         uint16_t first = 0;
@@ -455,21 +464,21 @@ static void home_macros(void)
                 nt++;
             }
         }
-        cv_begin(57, 54, K_BG);
-        rrect(x, 0, 57, 54, sel ? RGB(40, 34, 18) : K_CELL, 4);
+        cv_begin(57, 68, K_BG);
+        rrect(0, 0, 57, 68, sel ? RGB(40, 34, 18) : K_CELL, 4);
         if (sel && (now / 250u) & 1u) {
-            cv_rect(x, 0, 57, 1, K_GOLD);
-            cv_rect(x, 53, 57, 1, K_GOLD);
-            cv_rect(x, 0, 1, 54, K_GOLD);
-            cv_rect(x + 56, 0, 1, 54, K_GOLD);
+            cv_rect(0, 0, 57, 1, K_GOLD);
+            cv_rect(0, 67, 57, 1, K_GOLD);
+            cv_rect(0, 0, 1, 68, K_GOLD);
+            cv_rect(56, 0, 1, 68, K_GOLD);
         }
         t[0] = 'M';
         t[1] = (char)('1' + i);
         t[2] = 0;
-        cv_text(x + 3, -1, &FONT_T, t, sel ? K_GOLD : K_DIM);
-        dial(x + 28, 24, 13, v, nt ? K_GOLD : K_DIM, 0, 0.0f, 0.0f, v, K_CELL);
+        cv_text(4, 1, &FONT_T, t, sel ? K_GOLD : K_DIM);
         int_text((int32_t)(v * 100.0f + 0.5f), n);
-        cv_text(x + 28 - text_w(&FONT_T, n) / 2, 18, &FONT_T, n, K_FG);
+        cv_text(28 - text_w(&FONT_B, n) / 2, 14, &FONT_B, n, K_FG);
+        slider(7, 40, 43, v, nt ? K_GOLD : K_DIM, 0, 0.0f, 0.0f, v, 0.0f, K_CELL);
         if (nt) {
             dst_name(first, t);
             if (nt > 1) {
@@ -486,8 +495,8 @@ static void home_macros(void)
             while (t[k]) k++;
             t[k - 1] = 0;
         }
-        cv_text(x + 28 - text_w(&FONT_T, t) / 2, 40, &FONT_T, t, nt ? K_FG : K_DIM);
-        cv_blit(2u + (uint32_t)i * 59u, 108);
+        cv_text(28 - text_w(&FONT_T, t) / 2, 52, &FONT_T, t, nt ? K_FG : K_DIM);
+        cv_blit(2u + (uint32_t)i * 59u, 154);
     }
 }
 
@@ -528,10 +537,8 @@ static void draw_home(void)
     tile(120, RS_MODB, K_MOD);
     tile(158, RS_FX1, K_FX);
     tile(196, RS_FX2, K_FX);
-    cv_blit(0, 78);
+    cv_blit(0, 122);
     home_macros();
-    seq_strip();
-    mod_strip(-1);
 }
 
 /* the lit buttons: the page's button (as the page's syncLeds) */
@@ -545,7 +552,8 @@ static uint32_t page_leds(void)
     case PG_SHP: case PG_AMP: return 1u << B_ENV;
     case PG_MODA: case PG_MODB: case PG_LFO: return 1u << B_LFO;
     case PG_FX1: case PG_FX2: return 1u << B_FX;
-    case PG_MATRIX: case PG_ARP: return 1u << B_ARP;
+    case PG_ARP: return 1u << B_ARP;
+    case PG_MATRIX: return 1u << B_LFO;
     case PG_SEL: return 1u << B_SEL;
     case PG_SEQ: return 1u << B_SEQ;
     case PG_MSEQ: return 1u << B_LFO;
@@ -570,7 +578,7 @@ static void draw_toast(void)
         int32_t e = cv_text(26, 4, &FONT_XS, ui.msg[0], RGB(17, 17, 17));
         cv_text(e + 6, 4, &FONT_XS, ui.msg[1], RGB(120, 90, 30));
     }
-    cv_blit((uint32_t)x, 186);
+    cv_blit((uint32_t)x, 212);
 }
 
 /* the well alone, ~30 times a second between the full redraws: the visualisers move smoothly */
@@ -580,16 +588,13 @@ static void draw_well_only(void)
         return;
     if (mn.page == PG_HOME) {
         home_well();
-        seq_strip();
-        mod_strip(-1);
+        home_macros();
     } else if (is_seq_page(mn.page)) {
         seq_area();
-        mod_strip(-1);
     } else {
         well(mn.page, page_mod(mn.page), page_colour(mn.page));
         if (!is_fixed(mn.page) && !(mn.page == PG_LFO && mn.sub >= UI_LFO.npages))
-            param_cells(mn.page);             /* the modulated dials move with the well */
-        mod_strip(frame_slot());
+            param_cells(mn.page);             /* the modulated sliders' halos move with the well */
     }
 }
 
@@ -611,7 +616,6 @@ static void draw(void)
     } else if (sp.layer) {
         status_strip();
         draw_seq_layer();
-        mod_strip(-1);
     } else if (is_seq_page(mn.page)) {
         draw_seq_page();
         draw_footer();
