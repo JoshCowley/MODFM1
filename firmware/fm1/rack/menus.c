@@ -378,7 +378,7 @@ static void cell(int i, const ui_param_t *p, float v, float live, uint16_t mc, u
         cl_prev[i] = lf;
         cl_e[i] += ((d > 1.0f ? 1.0f : d) - cl_e[i]) * 0.3f;
         {                                     /* the cell's edge glows */
-            uint16_t g = mix565(mc, K_CELL, 50u + (uint32_t)(cl_e[i] * 150.0f));
+            uint16_t g = mix565(mc, K_CELL, 110u + (uint32_t)(cl_e[i] * 146.0f));
             cv_rect(2, 0, 108, 1, g);
             cv_rect(2, CELL_H - 1, 108, 1, g);
             cv_rect(0, 2, 1, CELL_H - 4, g);
@@ -386,7 +386,7 @@ static void cell(int i, const ui_param_t *p, float v, float live, uint16_t mc, u
         }
     }
     fmt(p, v, t);
-    cv_text(6, 16, text_w(&FONT_B, t) > 100 ? (text_w(&FONT_XS, t) > 100 ? &FONT_T : &FONT_XS) : &FONT_B, t, mc ? mix565(K_FG, K_CELL, 170) : K_FG);
+    cv_text(6, 16, text_w(&FONT_B, t) > 100 ? (text_w(&FONT_XS, t) > 100 ? &FONT_T : &FONT_XS) : &FONT_B, t, K_FG);
     if (mc) {
         char u[24] = "> ";
         fmt(p, live, u + 2);

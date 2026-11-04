@@ -136,7 +136,7 @@ back after a reboot. Not yet heard on an FM-1.
 
 ![SEL](screen-sel.png) ![ARP](screen-arp.png) ![Tuning](screen-tuning.png)
 
-Flash: 540,488 of 581,632 bytes (about 40 KB free) with stage 4 and its 5 Nov changes; OSC and LEARN cost 3.9 KB; stage 3 cost 18.3 KB; the two size changes from the report
+Flash: 540,584 of 581,632 bytes (about 40 KB free) with stage 4 and its 5 Nov changes; OSC and LEARN cost 3.9 KB; stage 3 cost 18.3 KB; the two size changes from the report
 (unused tables dropped with `-fdata-sections`, Tides built with only the modes FM1 Rack uses: 67 KB) made the room.
 
 **Stage 4: the frame, sliders and the sequencer** (after the HTML mockup of 4 Nov; `frame.c`, `seq.c`, `seqpages.c`):
@@ -151,6 +151,7 @@ Flash: 540,488 of 581,632 bytes (about 40 KB free) with stage 4 and its 5 Nov ch
   key tracking sky blue, random white, envelopes coral, MOD A / B orange, LFOs violet, MSEQ pink.
 - **Home**: a taller scope (84 rows), the chain, the macros as sliders; the sequencer is no longer on home.
 - **Pages loop**: SELECT goes round the pages (and the matrix's rows) in both directions.
+- **Contrast** (5 Nov): brighter labels, tracks and grid, a darker well, stronger halos, so they stand out on the black.
 - **Holds** wait 0.6 s (SEQ's layer), so a quick press is never taken for a hold.
 - **The sequencer** (a port of the page's 5d-sequencer.js): 8 banks (A-H) of up to 64 steps, each step up to 6 notes
   with their own length and force, ratchet, nudge, slide, chance; per bank length, division, swing, gate, SPICE and

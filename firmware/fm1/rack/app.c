@@ -253,13 +253,13 @@ static void octave_step(int d)
 #define EDIT_DOUBLE_MS 300u                   /* two EDIT taps this close: LEARN */
 #define K_BG RGB(0, 0, 0)
 #define K_FG RGB(242, 239, 230)
-#define K_DIM RGB(125, 122, 114)
-#define K_FAINT RGB(43, 42, 39)
-#define K_WELL RGB(11, 11, 10)
-#define K_GRID RGB(21, 21, 19)
-#define K_MID RGB(29, 29, 27)
+#define K_DIM RGB(172, 168, 158)
+#define K_FAINT RGB(62, 60, 56)
+#define K_WELL RGB(5, 5, 5)
+#define K_GRID RGB(34, 34, 31)
+#define K_MID RGB(48, 48, 45)
 #define K_BAR RGB(17, 17, 16)
-#define K_CELL RGB(18, 18, 17)
+#define K_CELL RGB(22, 22, 21)
 #define K_OFF RGB(26, 26, 24)
 #define K_WARN RGB(255, 107, 94)
 #define K_OK RGB(95, 224, 138)
@@ -316,7 +316,7 @@ static void slider(int32_t x, int32_t y, int32_t w, float f, uint16_t c, uint16_
     f = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f;
     live = live < 0.0f ? 0.0f : live > 1.0f ? 1.0f : live;
     if (mc) {
-        uint32_t k = 70u + (uint32_t)((e < 0.0f ? 0.0f : e > 1.0f ? 1.0f : e) * 150.0f);
+        uint32_t k = 100u + (uint32_t)((e < 0.0f ? 0.0f : e > 1.0f ? 1.0f : e) * 150.0f);   /* 100-250: bright on black */
         int32_t a = x + (int32_t)((lo < 0.0f ? 0.0f : lo) * (float)w), b = x + (int32_t)((hi > 1.0f ? 1.0f : hi) * (float)w);
         if (b > a) {
             rrect(a - 5, y - 6, b - a + 10, 16, mix565(mc, bg, k / 4u), 4);
