@@ -136,7 +136,7 @@ back after a reboot. Not yet heard on an FM-1.
 
 ![SEL](screen-sel.png) ![ARP](screen-arp.png) ![Tuning](screen-tuning.png)
 
-Flash: 540,584 of 581,632 bytes (about 40 KB free) with stage 4 and its 5 Nov changes; OSC and LEARN cost 3.9 KB; stage 3 cost 18.3 KB; the two size changes from the report
+Flash: 537,204 of 581,632 bytes (about 40 KB free) with stage 4 and its 5 Nov changes; OSC and LEARN cost 3.9 KB; stage 3 cost 18.3 KB; the two size changes from the report
 (unused tables dropped with `-fdata-sections`, Tides built with only the modes FM1 Rack uses: 67 KB) made the room.
 
 **Stage 4: the frame, sliders and the sequencer** (after the HTML mockup of 4 Nov; `frame.c`, `seq.c`, `seqpages.c`):
@@ -169,6 +169,16 @@ Flash: 540,584 of 581,632 bytes (about 40 KB free) with stage 4 and its 5 Nov ch
 Checked in the simulator (`sim_seq.txt`): step entry with a chord, playback at the tempo with MIDI out (velocity and
 gate as set), MIDI start / stop sent, a modulated slider's halo moving, every sequencer page and the layer drawn; all the other
 simulator scripts pass, also under AddressSanitizer. Not yet heard on an FM-1.
+
+**Factory presets (Nov 2026)**: 57 new presets for playing (keys, bass, leads, pads, textures), written by
+`web/presets_src.py` into `web/presets.json`, so the page and the firmware hold the same set. Their macros start in the
+middle (the designed sound at 12 o'clock), velocity moves level and tone, and some bass presets use OSC as a sub
+(`"osc"` in presets.json: make_presets.py adds it as AMP 24-30; the page ignores it). Their levels were matched by
+`audition` (below) to about -19 dB on the loud part of a phrase. To change them: edit presets_src.py, run it, build
+the page (`web/build.py --standalone`), serve `web/` and run `tests/record_calls.mjs`, then `make_presets.py` here.
+
+`build/host/audition OUTDIR` (built by build_host.sh) plays every preset through the firmware's sound path (rc_load,
+rc_render at 44.1 kHz) with a phrase for its category and writes a WAV each, with its peak and loudness.
 
 ## How it works
 

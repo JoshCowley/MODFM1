@@ -8,7 +8,7 @@ FM1 Rack turns the M-VAVE FM-1 into a small modular synth: you slot Mutable Inst
 
 You can go from switch-on to a saved patch of your own in five steps.
 
-1. **Switch on.** Open the [FM1 Rack browser build](https://claude.ai/artifact/9mWJtyZhwxNKFmqPwhjQ3t) and tap **Switch on** on the screen. The FM1 RACK logo plays, then the HOME page opens on the factory patch GLASS BELLS.
+1. **Switch on.** Open the [FM1 Rack browser build](https://claude.ai/artifact/9mWJtyZhwxNKFmqPwhjQ3t) and tap **Switch on** on the screen. The FM1 RACK logo plays, then the HOME page opens on the factory preset CH ROUND EP.
 2. **Play.** Tap the keys; tapping lower on a key plays louder. On a computer, the bottom letter row (Z to /) plays the lower keys and Q to O plays the top octave.
 3. **Shape the sound.** On HOME, Knobs 1–4 are the four macros. Each macro dial shows where it is routed underneath.
 4. **Look inside.** Press **EDIT** to see the source module moving, **ENV** twice for the shaper, **LFO** for modulation, **FX** for effects. Turn **ALGORITHM** to browse other modules for that slot, then press the same button again to load one.
@@ -682,75 +682,94 @@ The lane being edited is drawn big with the playing step lit; the other three ru
 
 A patch is the whole rack: which module is in each slot, every parameter, the ENV and LFO pages, all 12 matrix rows, the four macro positions and the sequencer pattern with its locks. GLOBAL and CHORD settings stay with the instrument, not the patch.
 
-### Factory patches
+### Factory presets
 
-Twelve patches, each built to show off a pairing. Their levels were balanced by rendering them through the engine, so you can switch between them without reaching for MASTER.
+**The factory presets were replaced in November 2026** with 57 made for playing: keys, bass and leads that respond to velocity, and pads and textures to sit behind them. They use only the modules the FM-1 has (Plaits, Braids, Rings, the filter, Tides, Peaks, delay, reverb and chorus), so the page and the FM-1 firmware hold the same set. The page opens on CH ROUND EP; INIT is the last.
 
-| Patch | Chain | Macros M1 · M2 · M3 · M4 | Play it |
-| --- | --- | --- | --- |
-| GLASS BELLS | Plaits 2-op FM → Rings modal → Clouds. Tides drifts the strike point; Peaks adds a velocity-scaled morph | Timbre · Rings brightness · Clouds blend · Rings structure | Chords |
-| ACID DRIFT | Braids saw → resonant low-pass → Delay → Chorus. Grids accents drive the filter; Tides fires on Grids hits | Cutoff · Resonance · Delay feedback · Timbre | Low notes |
-| BOWED SPACE | Elements bowed → Reverb. Marbles wanders the bow position | Bow · Brightness · Reverb mix · Geometry | Long single notes |
-| STRING MACH | Plaits string machine → Chorus → Reverb. LFO 1 and LFO 2 move timbre and morph | Timbre · Morph · Chorus depth · Reverb mix | Slow chords |
-| SPEECH DUST | Plaits speech → Clouds. Marbles picks the words | Harmonics · Clouds density · Clouds blend · Marbles rate | Hold one note (KBD HOLD helps) |
-| KARPLUS | Braids pluck → Rings string → Delay. Velocity brightens | Damping · Brightness · Delay feedback · Position | Picked notes, soft and hard |
-| FOLDED BASS | Braids wavefolder → low-pass. The mod envelope sweeps the fold | Timbre · Color · Cutoff · Drive | Low notes; set GLO VOICES to 1 for glide |
-| WARPED VOX | Plaits formant → Warps vocoder → Reverb. Tides moves the vowel | Warps algorithm · Warps timbre · Harmonics · Reverb mix | Chords |
-| GRID GATE | Braids wavetable → low-pass → Delay → Reverb. Grids chops the level | Grids X · Grids Y · Grids fill · Timbre | Hold a chord (KBD HOLD helps) |
-| FROZEN CLOUD | Plaits chords → Clouds stretch. LFO 2 drifts the position over two bars | Clouds size · Texture · Blend · Timbre | Chords, then FREEZE on FX 1 page 3 |
-| TIDAL FM | Plaits 6-op FM → low-pass → Chorus → Delay. Tides sweeps the cutoff per note; Peaks pans | Harmonics · Morph · Cutoff · Delay feedback | Chords |
-| INIT | Plaits virtual analog, nothing else | Timbre · Morph | A blank start |
+Every preset has four macros on Knobs 1–4 of HOME, and they start in the middle: the preset sounds as designed with the knobs at 12 o'clock, and each knob moves its parameter either side. M1 is usually tone, M2 character, M3 space (an effect's mix) and M4 motion or shape. Levels were set by playing every preset through the engine and matching their loudness, so you can switch presets without reaching for MASTER (the struck and plucked ones, MARIMBA, MUSIC BOX, CHIMES and GLASS RAIN, peak as loud but fade faster). On the FM-1 some bass presets also use OSC for a sub oscillator; the page has no OSC, so those sound a little thinner there.
 
-ACID DRIFT (a 16th-note acid line with cutoff and resonance locks) and STRING MACH (four slow chords) also come with a sequencer pattern: load one and press **PLAY**.
+**Keys**
 
-### The preset library (1.7)
-
-**1.9.2 adds 25 presets** across the electronic-music instrument types, with no drums, all built from the modules FM1 Rack Lite keeps (Plaits, Braids, Rings, the filter, Peaks, Tides, delay, reverb and chorus), so they play the same on the Lite page:
-
-| Category | Presets |
-| --- | --- |
-| Bass | BS DEEP SUB, BS FM GROWL, BS PLUCKED, BS ROLLER, BS DUB ROUND |
-| Lead | LD SAW SOLO, LD SYNC SWEEP, LD BREATH FLUT, LD SQUARE CHIP, LD RESO STRING |
-| Pads | PD WARM ANALOG, PD CHOIR AAH, PD EVOLVING WT, PD SOFT STRING, PD GLASS AIR |
-| Keys, stabs, plucks, brass | CH E-PIANO, CH DRAWBAR, CH HOUSE STAB, CH STRING PLK, CH MALLETS, CH SYNTH BRASS, CH PHASE KEYS |
-| FX and textures | FX NOISE SWEEP, FX METAL RING, FX TIDAL DRONE |
-
-CH HOUSE STAB plays a whole chord from one key (Plaits' CHORDS model). 1.9.2 also fixes shimmer tails that kept growing after a note ended (PD SHIMMER) and an FX DRONESPACE tail that never died away.
-
-Thirty more presets follow the twelve above, in five categories named by their first two letters. On the TOOLS LIBRARY page, set **FILTER** to BASS, PADS, LEAD, CHORD or FX to step through one category with PRESETS. Every preset has its four macros on Knobs 1–4 of HOME, and the levels are balanced to sit with the factory patches. Bass and Chord presets come with a pattern: press **PLAY** to hear it.
-
-| Preset | Built from | Macros (M1 · M2 · M3 · M4) |
+| Preset | Built from | Macros M1 · M2 · M3 · M4 |
 | --- | --- | --- |
-| BS SUB MONO | Plaits VA, 24 dB filter with its own envelope, legato glide | Cutoff · Resonance · Env amount · Timbre |
-| BS ACID 303 | Braids saw, resonant filter with a short own envelope, asymmetric drive, legato slides and accent locks | Cutoff · Resonance · Filter decay · Drive |
-| BS FM PLUCK | Plaits 2-op FM through its gate, envelope on timbre | Timbre · Ratio · Decay · Morph |
-| BS REESE | Braids triple saw, two detuned voices per note, 24 dB filter, chorus | Cutoff · Timbre · Drift · Drive |
-| BS WOBBLE | Braids saw + sub, 24 dB filter opened by LFO 1 synced to 1/8 (the pattern locks it to other rates) | Cutoff · Resonance · LFO rate · Drive |
-| BS FOLD GRIT | Braids wavefolder with its AD envelope, folding filter drive, Grids accents | Timbre · Cutoff · Drive · Fold envelope |
-| PD GLASSWASH | Plaits additive into Clouds and a hall | Timbre · Clouds blend · Texture · Reverb |
-| PD STRINGS | Plaits string machine, filter, ensemble chorus, hall; vibrato fades in | Cutoff · Morph · Chorus depth · Attack |
-| PD SHIMMER | Plaits wavetable, ping-pong delay, shimmer reverb, slow sweeps | Timbre · Shimmer · Cutoff · Reverb |
-| PD SYMPATH | Braids saw swarm exciting Rings' sympathetic strings, hall | Structure · Rings mix · Brightness · Reverb |
-| PD DARK DRONE | Plaits swarm an octave down, 24 dB filter on a two-bar LFO, tape delay | Cutoff · Morph · Delay feedback · Resonance |
-| PD VOX CHOIR | Plaits formant, chorus, hall, slow vowel movement and late vibrato | Vowel · Timbre · Formant · Reverb |
-| LD SYNC SCRM | Braids sync saw, driven filter, ducking ping-pong delay, vibrato that fades in; the mod wheel adds colour | Timbre · Cutoff · Delay · Sync envelope |
-| LD CHIP SQ | Plaits chiptune, mono glide, ping-pong delay | Timbre · Morph · Delay · Harmonics |
-| LD BREATH | Elements blown tube, plate reverb; aftertouch (PRESS) blows harder | Breath · Flow · Brightness · Geometry |
-| LD PWM SOLO | Plaits classic waves with LFO pulse-width movement, filter with its own envelope, legato glide | Cutoff · Width · Glide · Delay |
-| LD PHASE D | Plaits phase distortion swept by the mod envelope | Timbre · Harmonics · Morph · Reverb |
-| LD UNISON | Braids CSAW, four detuned voices per note with VINTAGE, 24 dB filter | Cutoff · Color · Resonance · Reverb |
-| CH FM EP | Plaits 2-op FM through its gate, chorus, plate; a ii–V–iii–vi pattern | Timbre · Decay · Chorus · Ratio |
-| CH POLY STAB | Braids CSAW, short own filter envelope, dotted delay; offbeat stabs | Cutoff · Filter decay · Delay · Resonance |
-| CH ORGAN | Plaits additive drawbars through a vibrato chorus | Drawbars · Vibrato rate · Harmonics · Vibrato mix |
-| CH PLUCK HARP | Plaits plucked string, delay, hall; four five-note chords | Timbre · Morph · Harmonics · Reverb |
-| CH GLASS PNO | Plaits modal resonator, plate | Timbre · Harmonics · Morph · Reverb |
-| CH DUSTY KEYS | Braids FM at 8 bits and 22 kHz, filter, wobbling tape delay, VINTAGE | Cutoff · Wow · Timbre · Delay |
-| FX RISER | Plaits noise through a band-pass opened by a slow mod envelope that also lifts the pitch | Resonance · Rise time · Delay · Reverb |
-| FX GRAINSTORM | Plaits particles into Clouds with tempo-synced grains, spray and fifth/octave scatter | Spray · Pitch scatter · Grain size · Blend |
-| FX ROBOT TALK | Plaits speech with Marbles choosing the words | Voice · Déjà vu · Timbre · Delay |
-| FX LASER ZAP | Plaits FM with a fast falling pitch envelope into delay | Pitch drop · Drop time · Timbre · Delay |
-| FX DRONESPACE | Plaits wave terrain into Clouds scanning backwards and a shimmer reverb | Scan · Morph · Feedback · Shimmer |
-| FX SAMPLEHOLD | Braids sync square at 6 bits, random pitch and cutoff steps on 1/16s | S&H rate · Resonance · Delay · Timbre |
+| CH ROUND EP | Plaits 2-op FM → Chorus → plate reverb | Timbre · Morph · FX 1 mix · FX 2 mix |
+| CH BRIGHT EP | Plaits 2-op FM → Chorus → Delay | Timbre · Morph · FX 1 mix · FX 2 mix |
+| CH SOFT PIANO | Plaits modal (struck) → hall reverb | Timbre · Harmonics · FX 1 mix · Morph |
+| CH MARIMBA | Plaits modal (struck) → plate reverb | Timbre · Harmonics · FX 1 mix · Morph |
+| CH VIBES | Plaits 2-op FM → Chorus → hall reverb | Timbre · Depth · FX 2 mix · Decay |
+| CH DRAWBAR | Plaits additive → Chorus → plate reverb | Timbre · Morph · Rate · FX 2 mix |
+| CH POLY SYNTH | Braids CSAW → low-pass filter → Chorus → plate reverb | Cutoff · Resonance · FX 1 mix · Filter decay |
+| CH NYLON | Plaits string (plucked) → hall reverb | Timbre · Morph · FX 1 mix · Harmonics |
+| CH HARP | Braids pluck → Delay → hall reverb | Timbre · Colour · FX 1 mix · FX 2 mix |
+| CH CLAV | Plaits waveshaper → low-pass filter → Chorus | Cutoff · Timbre · FX 1 mix · Resonance |
+| CH MUSIC BOX | Plaits modal (struck) → Delay → hall reverb | Timbre · Harmonics · FX 1 mix · FX 2 mix |
+| CH KOTO | Braids pluck → Rings string → plate reverb | Brightness · Position · FX 1 mix · Damping |
+
+**Bass**
+
+| Preset | Built from | Macros M1 · M2 · M3 · M4 |
+| --- | --- | --- |
+| BS ROUND SUB | Plaits virtual analog + OSC sine sub → 24 dB low-pass filter | Cutoff · Resonance · Filter env · Glide |
+| BS ANALOG | Braids CSAW + OSC square sub → 24 dB low-pass filter → Chorus | Cutoff · Resonance · Filter env · Filter decay |
+| BS ACID | Braids saw → low-pass filter → Delay | Cutoff · Resonance · Filter env · Filter decay |
+| BS PICKED | Plaits 2-op FM → low-pass filter | Cutoff · Timbre · Morph · Decay |
+| BS FINGER | Plaits string (plucked) + OSC sine sub → low-pass filter → Chorus | Cutoff · Timbre · Morph · Drive |
+| BS PULSE | Plaits virtual analog + OSC pulse sub → 24 dB low-pass filter | Cutoff · Morph · Filter env · Resonance |
+| BS WARM MOOG | Plaits paired VA → 24 dB low-pass filter | Cutoff · Resonance · Drive · Glide |
+| BS DUB SINE | Plaits additive + OSC sine sub → Delay | Timbre · Harmonics · FX 1 mix · Glide |
+| BS SOFT KEYS | Plaits waveshaper → Chorus | Timbre · Morph · FX 1 mix · Harmonics |
+
+**Leads**
+
+| Preset | Built from | Macros M1 · M2 · M3 · M4 |
+| --- | --- | --- |
+| LD SOFT SAW | Braids CSAW → low-pass filter → Delay → plate reverb | Cutoff · Resonance · FX 1 mix · Glide |
+| LD SQUARE | Plaits virtual analog → low-pass filter → Delay | Cutoff · Morph · FX 1 mix · Glide |
+| LD SYNC | Braids sync saw → low-pass filter → Delay | Timbre · Cutoff · FX 1 mix · Sync sweep |
+| LD FLUTE | Braids flute → hall reverb | Timbre · Colour · FX 1 mix · Attack |
+| LD WHISTLE | Plaits 2-op FM → Delay → hall reverb | Timbre · Glide · FX 2 mix · FX 1 mix |
+| LD BRASS | Braids CSAW → low-pass filter → plate reverb | Cutoff · Filter attack · FX 1 mix · Filter env |
+| LD REED | Plaits formant → low-pass filter → plate reverb | Timbre · Morph · FX 1 mix · Cutoff |
+| LD BOWED | Braids bowed → Rings string → hall reverb | Brightness · Timbre · FX 1 mix · Rings mix |
+| LD UNISON | Braids CSAW → low-pass filter → Delay → plate reverb | Cutoff · Resonance · FX 1 mix · Glide |
+
+**Pads**
+
+| Preset | Built from | Macros M1 · M2 · M3 · M4 |
+| --- | --- | --- |
+| PD WARM STRINGS | Plaits string machine → low-pass filter → Chorus → hall reverb | Cutoff · Morph · FX 2 mix · Attack |
+| PD ANALOG | Plaits paired VA → low-pass filter → Chorus → hall reverb | Cutoff · Morph · Depth · Attack |
+| PD CHOIR | Plaits formant → Chorus → hall reverb | Morph · Timbre · FX 2 mix · Attack |
+| PD GLASS | Plaits wavetable → Chorus → shimmer reverb | Timbre · Morph · FX 2 mix · Shimmer |
+| PD SOFT SINE | Plaits additive → Chorus → hall reverb | Timbre · Harmonics · FX 2 mix · Attack |
+| PD SYMPATHETIC | Plaits virtual analog → Rings sympath → hall reverb | Structure · Brightness · FX 1 mix · Rings mix |
+| PD SHIMMER | Plaits 2-op FM → Chorus → shimmer reverb | Timbre · Shimmer · FX 2 mix · Attack |
+| PD HAZE | Braids CSAW → low-pass filter → Chorus → hall reverb | Cutoff · Resonance · FX 2 mix · Attack |
+| PD STRING ENS | Braids CSAW → low-pass filter → Chorus → hall reverb | Cutoff · Depth · FX 2 mix · Attack |
+| PD EVOLVING | Plaits wave terrain → Tides (modulation) → Chorus → hall reverb | Timbre · Morph · FX 2 mix · Tides rate |
+| PD DARK | Braids CSAW → 24 dB low-pass filter → hall reverb | Cutoff · Resonance · FX 1 mix · Attack |
+| PD ORGAN AIR | Plaits additive + OSC triangle sub → Chorus → hall reverb | Timbre · Morph · FX 2 mix · Attack |
+| PD BELL PAD | Plaits 2-op FM → Chorus → hall reverb | Timbre · Harmonics · FX 2 mix · Attack |
+
+**Textures**
+
+| Preset | Built from | Macros M1 · M2 · M3 · M4 |
+| --- | --- | --- |
+| FX RESONATOR | Plaits 2-op FM → Rings modal → Tides (modulation) → hall reverb | Structure · Brightness · FX 1 mix · Damping |
+| FX DRONE | Plaits chords → Chorus → hall reverb | Timbre · Harmonics · FX 2 mix · Morph |
+| FX WIND | Plaits filtered noise → band-pass filter → hall reverb | Cutoff · Resonance · FX 1 mix · Attack |
+| FX RAIN | Plaits particles → Delay → hall reverb | Timbre · Morph · FX 2 mix · Feedback |
+| FX OCEAN | Braids noise → low-pass filter → Tides (modulation) → hall reverb | Cutoff · Tides rate · FX 1 mix · Resonance |
+| FX STRING BLOOM | Plaits virtual analog → Rings string → shimmer reverb | Brightness · Structure · FX 1 mix · Shimmer |
+| FX CHIMES | Plaits modal (struck) → Delay → hall reverb | Timbre · Harmonics · Feedback · FX 2 mix |
+| FX ECHO KEYS | Plaits 2-op FM → Delay → hall reverb | Timbre · Feedback · FX 1 mix · Wow |
+| FX CHORD DRIFT | Plaits chords → low-pass filter → Chorus → hall reverb | Harmonics · Cutoff · FX 2 mix · Morph |
+| FX TIDAL WASH | Braids CSAW → low-pass filter → Tides (modulation) → Chorus → hall reverb | Cutoff · Resonance · FX 2 mix · Tides rate |
+| FX SINGING BOWL | Plaits modal (struck) → Rings modal → hall reverb | Structure · Brightness · FX 1 mix · Damping |
+| FX DEEP DRONE | Braids square + sub → 24 dB low-pass filter → Chorus → hall reverb | Cutoff · Resonance · FX 2 mix · Timbre |
+| FX GLASS RAIN | Plaits wavetable → Peaks (modulation) → Delay → shimmer reverb | Morph · Timbre · Feedback · FX 2 mix |
+
+| INIT | Plaits virtual analog, nothing else | Timbre · Morph |
 
 ### Saving your own
 
@@ -794,18 +813,16 @@ The budget is **80 CPU units** and a **256K RAM pool**. Every module has an esti
 | AMP | 1 per voice | — |  | Reverb | 6 | 32K |
 |  |  |  |  | Chorus | 2 | 4K |
 
-**Worked example, GLASS BELLS.** Plaits 9 + Rings 14 + AMP 1 = 24 per voice. Tides 1 + Peaks 1 + Clouds 22 = 24 shared. (80 − 24) ÷ 24 = 2.3, so 2 voices, using 72 of 80 units and 168K of RAM.
+**Worked example, a patch with Plaits, Rings, Tides, Peaks and Clouds.** Plaits 9 + Rings 14 + AMP 1 = 24 per voice. Tides 1 + Peaks 1 + Clouds 22 = 24 shared. (80 − 24) ÷ 24 = 2.3, so 2 voices, using 72 of 80 units and 168K of RAM.
 
-### What the factory patches get
+### What the factory presets get
 
-| Voices | Patches |
+In the browser (the page's budget, before the FM-1's own limits):
+
+| Voices | Presets |
 | --- | --- |
-| 6 | ACID DRIFT, STRING MACH, FOLDED BASS, GRID GATE, TIDAL FM, INIT |
-| 5 | SPEECH DUST, FROZEN CLOUD |
-| 4 | KARPLUS |
-| 3 | WARPED VOX |
-| 2 | GLASS BELLS |
-| 1 | BOWED SPACE (Elements is the heaviest module by far) |
+| 6 | CH ROUND EP, CH BRIGHT EP, CH SOFT PIANO, CH MARIMBA, CH VIBES, CH DRAWBAR, CH POLY SYNTH, CH NYLON, CH HARP, CH CLAV, CH MUSIC BOX, CH KOTO, LD BRASS, LD UNISON, PD WARM STRINGS, PD ANALOG, PD CHOIR, PD GLASS, PD SOFT SINE, PD SYMPATHETIC, PD SHIMMER, PD HAZE, PD STRING ENS, PD EVOLVING, PD DARK, PD ORGAN AIR, PD BELL PAD, FX RESONATOR, FX DRONE, FX WIND, FX RAIN, FX OCEAN, FX STRING BLOOM, FX CHIMES, FX ECHO KEYS, FX CHORD DRIFT, FX TIDAL WASH, FX SINGING BOWL, FX DEEP DRONE, FX GLASS RAIN, INIT |
+| 1 | BS ROUND SUB, BS ANALOG, BS ACID, BS PICKED, BS FINGER, BS PULSE, BS WARM MOOG, BS DUB SINE, BS SOFT KEYS, LD SOFT SAW, LD SQUARE, LD SYNC, LD FLUTE, LD WHISTLE, LD REED, LD BOWED |
 
 ### Where you see it
 

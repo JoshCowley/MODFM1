@@ -19,5 +19,7 @@ $CXX -c $ENG/grids_nodes.cc -o $OUT/x_grids_nodes.o
 $CXX -c $ENG/rack.cc -o $OUT/rack.o
 $CXX -c ../common/rk.cc -o $OUT/rk.o
 ${CC:-cc} -O2 -ffp-contract=off -std=gnu99 -Wall -Wno-unused-function -c rack_host.c -o $OUT/rack_host.o
+${CC:-cc} -O2 -ffp-contract=off -std=gnu99 -Wall -Wno-unused-function -c audition.c -o $OUT/audition.oa
 ${CXX%% *} -o $OUT/rack_host $OUT/*.o -lm
-echo "built $OUT/rack_host"
+${CXX%% *} -o $OUT/audition $(ls $OUT/*.o | grep -v rack_host.o) $OUT/audition.oa -lm
+echo "built $OUT/rack_host $OUT/audition"

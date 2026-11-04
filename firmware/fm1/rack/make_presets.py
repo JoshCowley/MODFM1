@@ -109,8 +109,21 @@ def full(keep):
     print(f"presets_full.h: {len(keep)} presets")
 
 
+OSC_KEYS = ["WAVE", "OCTAVE", "SEMI", "FINE", "PW", "OSC LVL", "MAIN LVL"]   # AMP's parameters 24-30 (engine/rack.cc)
+
+
+def add_osc(data):
+    """the firmware's OSC (the page has none): presets.json's "osc" as set_param calls on AMP (slot 6), 24-30"""
+    src = json.loads((HERE.parent.parent.parent / "web" / "presets.json").read_text())
+    osc = {p["name"]: p["osc"] for p in src if p.get("osc")}
+    for p in data:
+        for k, v in osc.get(p["name"], {}).items():
+            p["calls"].append(["set_param", 6, 24 + OSC_KEYS.index(k), float(v)])
+
+
 def main():
     data = json.loads(SRC.read_text())
+    add_osc(data)
     meta = meta_table(data)
     byname = {p["name"]: p for p in data}
     init = final_state(byname["INIT"]["calls"])
