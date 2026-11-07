@@ -35,7 +35,7 @@ Keys: `Z`–`/` and `Q`–`O` play notes, `-` and `=` shift the octave, `Space` 
 | `engine/` | The C++ rack engine (`rack.cc`) (the same source builds the browser engine and, with `-DRACK_FM1`, the firmware-ready one) and `build.sh`, which rebuilds `rack.wasm` from scratch with clang 18 for wasm32-wasi. Set `EURORACK` to a checkout of github.com/pichenettes/eurorack |
 | `sound/` | The first 12 factory patches (1.9; the presets now come from `web/presets_src.py`) and a Node harness that renders each one through `rack.wasm`: `node sound/harness.js` |
 | `firmware/` | The engine made ready for FM-1 firmware (`-DRACK_FM1`, and `-DRACK_LITE` for the Lite module set), a desktop build, tests over the factory presets, the board interface and app glue, and the porting checklist. `fm1/bench/`: the benchmark firmware. `fm1/rack/`: FM1 Rack Lite, first stage. `packages/`: both built and ready to install. `tools/build_packages.sh`: rebuilds them. See `firmware/README.md` |
-| `manual/` | The full user manual in Markdown, with screen images |
+| `manual/` | The user manuals in Markdown: the browser build (`FM1-Rack-Manual.md`) and the FM-1 firmware (`FM1-Rack-FM1-Firmware-Manual.md`). `python3 manual/build_html.py` writes the hosted pages, `web/manual/index.html` and `web/manual/fm1.html` |
 
 ## Credits
 
@@ -53,7 +53,7 @@ GPL-3.0 (see `LICENSE`). The Mutable Instruments STM32 module code and stmlib ar
 
 ## Hosting on Cloudflare Pages
 
-The `web/` folder is the whole site, already built: `index.html` (the synth), `worklet.js`, `rack.wasm`, and `manual/` (the manual as a web page). There is no build step.
+The `web/` folder is the whole site, already built: `index.html` (the synth), `worklet.js`, `rack.wasm`, and `manual/` (the manuals as web pages: `index.html` for the browser build, `fm1.html` for the FM-1 firmware). There is no build step.
 
 **Connect the repo (once):**
 

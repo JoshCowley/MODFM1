@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FM1 Rack on the FM-1: Firmware Manual</title>
+<style>
+:root{--bg:#f4f2ec;--fg:#1d1d1b;--dim:#6b6a65;--line:#d9d6cc;--acc:#b5532a;--code:#e8e4da}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--fg:#ecebe6;--dim:#9b998f;--line:#2e2d2a;--acc:#f0a46e;--code:#24231f}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 80px}
+a{color:var(--acc)}h1{font-size:2rem;line-height:1.2}h2{margin-top:2.6em;padding-top:.6em;border-top:1px solid var(--line)}h3{margin-top:1.8em}
+table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}th{background:var(--code)}
+img{max-width:100%;height:auto;border-radius:6px}code,kbd{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:10px 12px;border-radius:6px;overflow-x:auto}pre code{padding:0}
+blockquote{margin:1em 0;padding:.4em 1em;border-left:3px solid var(--acc);background:var(--code);border-radius:4px}
+figure{margin:1em 0}figcaption{color:var(--dim);font-size:.9rem}
+img[src*="fm1-"]{width:320px;image-rendering:pixelated}
+.top{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px;font-weight:600}
+.top a{margin-right:1.2em}
+</style>
+<div class="top"><a href="../">← Back to FM1 Rack</a><a href="index.html">Browser manual</a><a href="fm1.html">FM-1 firmware manual</a></div>
+<main>
+<h1 id="fm1-rack-on-the-fm-1-firmware-manual">FM1 Rack on the FM-1: Firmware Manual</h1>
+<p>Nov 7, 2026 · Josh Cowley</p>
+<p>This manual covers <strong>FM1 Rack Lite as firmware on the M-VAVE FM-1</strong>: installing it, the buttons, knobs and screen, editing a sound, the matrix and macros, the keyboard helpers (SEL and ARP), the sequencer, and saving. The browser build has its own manual, the <a href="index.html">FM1 Rack Manual</a>; the two share the same sound engine, modules and factory presets, but the controls on the FM-1 are laid out for the FM-1's panel.</p>
+<blockquote>
+<p><strong>Status, 7 November 2026.</strong> The firmware builds and passes every check in the build and in a computer simulator of the FM-1. Menus stages 1–3 (editing, saving, SEL, ARP, GLOBAL) have been played on an FM-1. Stage 4 (the sequencer, the slider screens, LEARN on EDIT) and the new factory presets have only been tested in the simulator so far. Treat this as a test version and keep the recovery steps below to hand.</p>
+</blockquote>
+<h2 id="contents">Contents</h2>
+<ol type="1">
+<li>Before you install</li>
+<li>Installing</li>
+<li>Getting back to the stock firmware</li>
+<li>The panel</li>
+<li>The screen</li>
+<li>HOME</li>
+<li>Editing a sound</li>
+<li>Modulation: the matrix, LFOs, macros and LEARN</li>
+<li>OSC: the second oscillator</li>
+<li>Playing: SEL, ARP, GLOBAL and MIDI</li>
+<li>The sequencer</li>
+<li>Saving and the library</li>
+<li>Voices, the two cores and overload</li>
+<li>Factory presets</li>
+<li>What isn't in yet</li>
+<li>Troubleshooting</li>
+</ol>
+<h2 id="1-before-you-install">1. Before you install</h2>
+<ul>
+<li><strong>Do the recovery round trip once</strong>, so you know you can get back to stock: with the FM-1 plugged <strong>straight into the Mac</strong> (no hub), open Felucca's web installer in Chrome or Edge (hugelton.github.io/Felucca), install Felucca, play it, then choose <strong>Return to official V15</strong>.</li>
+<li><strong>Run the benchmark first</strong> (<code>fm1bench.fwsc</code>) if you haven't: its top line must read <strong>FPU OK: HARDWARE FLOAT, EXACT</strong>. FM1 Rack plays its whole engine in the audio interrupt and relies on that.</li>
+<li>Quit anything else using MIDI (DAWs, browser tabs with Web MIDI) before installing.</li>
+</ul>
+<h2 id="2-installing">2. Installing</h2>
+<p>Everything you need is in the <strong>FM1-Rack</strong> folder (<code>Documents/iClaude/Projects/FM1-Rack</code>).</p>
+<p>The simple way, in Terminal:</p>
+<pre><code>sh /Users/josh/Documents/iClaude/Projects/FM1-Rack/install_rack.sh</code></pre>
+<p>The script checks that <code>test-kit/packages/fm1rack.fwsc</code> is exactly the file that was built (its SHA-256 fingerprint), installs the installer's MIDI library if needed, fetches fm1-base's installer at a fixed version, finds the FM-1 and installs. Don't unplug the FM-1 until it says it's done.</p>
+<p>By hand, from the <code>firmware/packages</code> folder of the repo:</p>
+<pre><code>shasum -a 256 -c SHA256SUMS
+python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
+<p>The firmware identifies itself as <strong>FM-1_7800</strong>.</p>
+<h2 id="3-getting-back-to-the-stock-firmware">3. Getting back to the stock firmware</h2>
+<p>In order of what to try:</p>
+<ol type="1">
+<li>Felucca's web installer again, then <strong>Return to official V15</strong>.</li>
+<li>fm1-base's installer page, "Back to the stock firmware".</li>
+<li>After two failed starts the FM-1 comes up in <strong>safe mode</strong> (no audio, USB on), which accepts an update.</li>
+<li>After four, the chip's own update mode: M-VAVE's <strong>M-UPGRADE</strong> (Downloads › PC Software) restores stock.</li>
+</ol>
+<p>These come from fm1-base and Felucca and haven't been needed with FM1 Rack yet.</p>
+<h2 id="4-the-panel">4. The panel</h2>
+<h3 id="buttons">Buttons</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Button</th>
+<th>Tap</th>
+<th>Tap again</th>
+<th>Other</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>HOME</strong></td>
+<td>HOME page</td>
+<td>the RACK overview; once more, back home with all notes off</td>
+<td>Closes the module picker, the SAVE page and LEARN</td>
+</tr>
+<tr class="even">
+<td><strong>EDIT</strong></td>
+<td>the source (Plaits or Braids)</td>
+<td>OSC, the second oscillator and mixer</td>
+<td><strong>Two quick taps: LEARN on or off</strong> (see 8). A single tap waits 0.3 s before turning the page, so it can tell a double tap</td>
+</tr>
+<tr class="odd">
+<td><strong>ENV</strong></td>
+<td>AMP (envelopes, voice mode)</td>
+<td>the shaper (Rings or the filter)</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>LFO</strong></td>
+<td>MOD A</td>
+<td>MOD B, the three LFOs (with their target pages), MSEQ, the 12-row MATRIX</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>FX</strong></td>
+<td>FX 1</td>
+<td>FX 2</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>ARP</strong></td>
+<td>the arpeggiator</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>SEL</strong></td>
+<td>scale and chord</td>
+<td>(SELECT turns to page 2: the keys)</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>GLO</strong></td>
+<td>GLOBAL settings</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>SAVE</strong></td>
+<td>the SAVE page</td>
+<td>SAVE again stores the preset</td>
+<td>On a sequencer page: stores the sequencer</td>
+</tr>
+<tr class="even">
+<td><strong>SEQ</strong></td>
+<td>the sequencer, at the page you last used</td>
+<td>the next sequencer page</td>
+<td><strong>Hold 0.6 s: the step layer</strong> (see 11)</td>
+</tr>
+<tr class="odd">
+<td><strong>PLAY</strong></td>
+<td>start / stop the sequencer</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>REC</strong></td>
+<td>stopped: REC READY; playing: recording on / off</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>OCT− / OCT+</strong></td>
+<td>octave down / up</td>
+<td></td>
+<td>On SAVE: OCT+ opens the library. In the step layer: the previous / next 16 steps</td>
+</tr>
+</tbody>
+</table>
+<p>Every page button cycles through its pages, and after its last page comes back to the first. A held button only counts as a hold after 0.6 s, so a quick press is never taken for one.</p>
+<p>The lit buttons show where you are: the page's button is lit, the others glow (GLOBAL › LED BRIGHT sets how much). SEL glows half while chords or QNT are on, ARP while the arpeggiator is on, PLAY while the sequencer runs, and REC is lit while recording and blinks while REC READY.</p>
+<h3 id="knobs">Knobs</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Knob</th>
+<th>HOME</th>
+<th>A sound page (module, AMP, LFO, OSC)</th>
+<th>MATRIX</th>
+<th>Sequencer pages</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>PRESET</strong></td>
+<td>presets: factory, then user; the preset loads when you stop turning</td>
+<td>the same</td>
+<td>the same</td>
+<td>the same</td>
+</tr>
+<tr class="even">
+<td><strong>ALGORITHM</strong></td>
+<td>category</td>
+<td>the module picker</td>
+<td>–</td>
+<td>the page's action (see 11)</td>
+</tr>
+<tr class="odd">
+<td><strong>SELECT</strong></td>
+<td>voices, 1–6</td>
+<td>the page within</td>
+<td>the row</td>
+<td>the step, bank or row</td>
+</tr>
+<tr class="even">
+<td><strong>K1–K4</strong></td>
+<td>macros M1–M4</td>
+<td>the page's four parameters</td>
+<td>source, destination, amount, via</td>
+<td>the page's four values</td>
+</tr>
+<tr class="odd">
+<td><strong>MASTER</strong></td>
+<td>volume</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>SELECT always goes round</strong>: past the last page (or matrix row) it comes back to the first, in both directions.</p>
+<h3 id="keys">Keys</h3>
+<p>The 27 keys play notes, with velocity. With the sequencer's step layer open, the 16 white keys are steps instead.</p>
+<h2 id="5-the-screen">5. The screen</h2>
+<p><img src="img/fm1-home.png" alt="HOME on the FM-1" /></p>
+<p>Every page has the same frame:</p>
+<ul>
+<li><strong>The status strip</strong> (the top line):
+<ul>
+<li>a light for each voice, lit by its envelope;</li>
+<li>the cores and voice mode: <strong>2C POLY</strong> (two cores), <strong>1C</strong> (one), <strong>1C*</strong> (the second core gave up at start);</li>
+<li><strong>SHED n</strong> in gold when n voices were dropped for CPU, <strong>HEAVY</strong> in red when a preset is muted (see 13);</li>
+<li><strong>CPU</strong> as a small bar and a number (gold above 70 %, red above 85 %);</li>
+<li><strong>RAM</strong>: how much of the sound memory the preset uses;</li>
+<li>the octave (<strong>O+1</strong> and so on; green while keys are held);</li>
+<li>the output meter (red near clipping).</li>
+</ul></li>
+<li><strong>The header</strong>: the page's tag in its colour, the page name, and dots for the pages within it.</li>
+<li><strong>The well</strong>: a moving picture of what the page does (the module's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats...). GLOBAL › ANIMATION sets it to full, calm or still.</li>
+<li><strong>The cells</strong>: up to four parameters, each with its number (matching K1–K4), its name, its value and a <strong>slider</strong>.</li>
+<li><strong>The help line</strong> at the bottom says what the controls do on that page.</li>
+<li><strong>Messages</strong> appear as a light box near the bottom for a moment ("LOADING", "SAVED TO U01", "PLAITS 6 V").</li>
+</ul>
+<h3 id="sliders-and-modulation-halos">Sliders and modulation halos</h3>
+<p>A parameter that something in the matrix moves <strong>glows in the colour of what moves it</strong>:</p>
+<ul>
+<li>a soft halo round the track shows the range it has swept lately;</li>
+<li>the track fills to where it is now, and the number under it (› 62) is the live value;</li>
+<li>a thin tick stays at the value you set;</li>
+<li>the thumb and the cell's edge glow, brighter the faster the modulation moves.</li>
+</ul>
+<p><img src="img/fm1-module.png" alt="A page with two parameters moved by a macro" /></p>
+<h3 id="colours-of-modulation">Colours of modulation</h3>
+<p>Each kind of modulation source has its own colour everywhere (halos, matrix):</p>
+<table>
+<thead>
+<tr class="header">
+<th>Source</th>
+<th>Colour</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Macros M1–M4</td>
+<td>gold</td>
+</tr>
+<tr class="even">
+<td>Velocity</td>
+<td>green</td>
+</tr>
+<tr class="odd">
+<td>Key tracking</td>
+<td>sky blue</td>
+</tr>
+<tr class="even">
+<td>Random</td>
+<td>white</td>
+</tr>
+<tr class="odd">
+<td>AMP ENV and MOD ENV</td>
+<td>coral</td>
+</tr>
+<tr class="even">
+<td>MOD A and MOD B outputs</td>
+<td>orange</td>
+</tr>
+<tr class="odd">
+<td>LFO 1–3</td>
+<td>violet</td>
+</tr>
+<tr class="even">
+<td>SEQ 1–4 (MSEQ lanes)</td>
+<td>pink</td>
+</tr>
+</tbody>
+</table>
+<h2 id="6-home">6. HOME</h2>
+<p>HOME shows the preset (its category in a coloured tab, its name, and its number, or USER), the output's scope, the chain of six slots as icon tiles, and the four macros.</p>
+<ul>
+<li><strong>Tiles</strong>: orange source, teal shaper, purple modulators, blue effects. A red tile is a module the preset asks for but that didn't fit in memory.</li>
+<li><strong>Tabs over the scope</strong> show what's on besides the preset: the scale and chord (SEL), the arpeggiator mode, a tuning.</li>
+<li><strong>Macros</strong>: each with its value (0–100), a slider and what it moves (the first destination, "+2" if more), or <strong>UNSET</strong>. K1–K4 turn them; MIDI CC 20–23 do too.</li>
+<li><strong>PRESET</strong> steps through the factory presets, then your user presets; the sound changes when you stop turning. <strong>ALGORITHM</strong> jumps by category. <strong>SELECT</strong> sets the voices (1–6).</li>
+<li>Tap HOME again for <strong>RACK</strong>, an overview of every slot, AMP, the outputs and how many matrix routes are set; tap once more to come home with all notes off.</li>
+</ul>
+<p>The sequencer no longer appears on HOME: open it with SEQ.</p>
+<h2 id="7-editing-a-sound">7. Editing a sound</h2>
+<p>FM1 Rack's voice is a fixed chain of slots:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Slot</th>
+<th>Choices</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>SRC</strong> (source)</td>
+<td>Plaits, Braids</td>
+</tr>
+<tr class="even">
+<td><strong>SHP</strong> (shaper)</td>
+<td>Rings, the filter, or empty</td>
+</tr>
+<tr class="odd">
+<td><strong>MOD A</strong>, <strong>MOD B</strong> (modulators)</td>
+<td>Peaks, Tides, Grids, or empty</td>
+</tr>
+<tr class="even">
+<td><strong>FX 1</strong>, <strong>FX 2</strong></td>
+<td>delay, reverb, chorus, or empty (not the same one twice)</td>
+</tr>
+<tr class="odd">
+<td><strong>AMP</strong></td>
+<td>the envelopes and voice mode (always there)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="module-pages">Module pages</h3>
+<p>Press the slot's button (EDIT for SRC, ENV twice for SHP, LFO for MOD A and B, FX for FX 1 and 2). SELECT turns the pages within the module; K1–K4 set the four parameters shown.</p>
+<p><strong>Changing a module</strong>: on its page, turn <strong>ALGORITHM</strong>. The picker opens on the module now loaded; turn to choose, then press the slot's button again to load it, or HOME to close without changing. Loading stops the sound for a moment while memory is laid out again, then says how many voices fit ("BRAIDS 6 V"), or "NO ROOM" if it doesn't fit.</p>
+<p><img src="img/fm1-picker.png" alt="The module picker" /></p>
+<p>Some edits need more memory (a longer delay, Rings' STR+VERB, the shimmer reverb). When you stop turning, FM1 Rack fits the memory again, with a moment's silence, and says <strong>MEMORY FITTED</strong> and the voices.</p>
+<p>Edits aren't kept when you change preset unless you SAVE.</p>
+<h3 id="amp">AMP</h3>
+<p>ENV opens AMP: six pages.</p>
+<ol type="1">
+<li>ATTACK, DECAY, SUSTAIN, RELEASE</li>
+<li>VEL AMT, GLIDE, SPREAD (stereo), LEVEL</li>
+<li>M ATTACK, M DECAY, M LOOP (the mod envelope)</li>
+<li>MODE (POLY, MONO, LEGATO, UNI 2, UNI 4), DETUNE, VINTAGE</li>
+<li>DELAY, HOLD, A CURVE, D CURVE</li>
+<li>VEL&gt;ATK, KEY&gt;TIME, M SUST, PITCH ENV</li>
+</ol>
+<p>The well shows the envelope on every page. UNI 2 and UNI 4 play two or four detuned voices per key.</p>
+<p><img src="img/fm1-amp.png" alt="AMP" /></p>
+<h2 id="8-modulation-the-matrix-lfos-macros-and-learn">8. Modulation: the matrix, LFOs, macros and LEARN</h2>
+<h3 id="the-lfo-button">The LFO button</h3>
+<p>LFO steps through <strong>MOD A</strong>, <strong>MOD B</strong>, <strong>LFO</strong>, <strong>MSEQ</strong> and the <strong>MATRIX</strong>, then back to MOD A.</p>
+<h3 id="lfos">LFOs</h3>
+<p>The LFO page has nine pages (SELECT):</p>
+<ul>
+<li>pages 1–3: SHAPE (SINE, TRI, SAW, SQUARE, S&amp;H, DRIFT), RATE, SYNC (FREE, 1/16 to 2 BARS), RETRIG for LFO 1, 2 and 3;</li>
+<li>pages 4–6: FADE, PHASE, POLAR, 1SHOT for each;</li>
+<li>pages 7–9: <strong>LFO TARGET</strong>, each LFO's two direct destinations. K1 and K3 choose the destination, K2 and K4 the amount.</li>
+</ul>
+<p><img src="img/fm1-lfotgt.png" alt="An LFO&#39;s targets" /></p>
+<h3 id="the-matrix">The matrix</h3>
+<p>The MATRIX (the LFO button's last page) holds 12 routes. <strong>SELECT</strong> chooses the row; <strong>K1</strong> the source, <strong>K2</strong> the destination, <strong>K3</strong> the amount (−100 to +100), <strong>K4</strong> a "via" source that scales the route (for example velocity, so harder notes modulate more). Each source's name is drawn in its colour.</p>
+<p>Sources: M1–M4, VELO, KEY TRK, RANDOM, AMP ENV, A OUT 1, A OUT 2, B OUT 1, B OUT 2 (the modulators' outputs), LFO 1–3, MOD ENV, SEQ 1–4.</p>
+<p>Destinations: any parameter that can be modulated on SRC, SHP, MOD A/B, FX 1/2, AMP and OSC.</p>
+<p><img src="img/fm1-matrix.png" alt="The matrix" /></p>
+<h3 id="macros">Macros</h3>
+<p>M1–M4 are matrix sources you play with K1–K4 on HOME. On the factory presets they start in the middle: the preset sounds as designed with a macro at 50, and turning it moves its parameter either side.</p>
+<h3 id="learn-linking-a-macro-by-turning-a-knob">LEARN: linking a macro by turning a knob</h3>
+<ol type="1">
+<li>On HOME, turn the macro you want (or, once LEARN is on, pick it with SELECT or K1–K4).</li>
+<li><strong>Tap EDIT twice quickly.</strong> LEARN is on: the macro is framed in gold on HOME, HOME blinks, and a gold band replaces the help line on every page.</li>
+<li>Go to a module, AMP, LFO or OSC page and <strong>turn the knob of the parameter</strong> you want the macro to move. The macro is linked to it in the matrix (in the row it already has, or the first free one), and how far you turned sets the amount. A message confirms it, for example <strong>M2&gt;SRC.TIMBRE +24</strong>.</li>
+<li>Turn more parameters to link more, or <strong>tap HOME (or EDIT twice) to finish</strong>.</li>
+</ol>
+<p><img src="img/fm1-learn.png" alt="LEARN on HOME, M2 selected" /></p>
+<h2 id="9-osc-the-second-oscillator">9. OSC: the second oscillator</h2>
+<p>Tap EDIT twice (slowly, more than 0.3 s apart, or it counts as LEARN) to reach OSC: a plain oscillator in every voice, mixed with the source <strong>before</strong> the shaper, so the filter or Rings, AMP and the effects take both.</p>
+<ul>
+<li>Page 1: <strong>WAVE</strong> (SINE, TRI, SAW, SQUARE, PULSE, NOISE), <strong>OCTAVE</strong> (−3 to +2), <strong>SEMI</strong> (±12), <strong>FINE</strong> (±1 semitone).</li>
+<li>Page 2, the mixer: <strong>PW</strong> (pulse width), <strong>OSC LVL</strong> (0 is off, the default), <strong>MAIN LVL</strong> (the source's level, 1 by default).</li>
+</ul>
+<p>FINE, PW and both levels are matrix destinations. With OSC LVL at 0 a preset sounds exactly as it did without OSC. Some factory basses use OSC as a sub-oscillator.</p>
+<p><img src="img/fm1-osc.png" alt="OSC" /></p>
+<h2 id="10-playing-sel-arp-global-and-midi">10. Playing: SEL, ARP, GLOBAL and MIDI</h2>
+<p>SEL, ARP and GLOBAL are <strong>settings of the instrument, not of a preset</strong>: they stay when you change preset and are saved by themselves about 3 seconds after your last change.</p>
+<h3 id="sel-scales-chords-and-the-keys">SEL: scales, chords and the keys</h3>
+<p>Page 1, <strong>SCALE + CHORD</strong>: SCALE (9 scales), ROOT, CHORD (OFF, TRIAD, 7TH, 9TH, 11TH, SUS4, 6TH, POWER), VOICING (CLOSE, LEAD, OPEN, INV1, INV2, +OCT). With a chord on, every key plays the scale's chord on that note; the well shows the chord and its name.</p>
+<p>Page 2, <strong>KEYS + STRUM</strong>: QNT (snap notes to the scale; WHITE puts the scale on the white keys), HARMONY, ZONE (with chords on, the seven lowest keys, F3–B3, colour the chord: add 6, m7, M7, 9, or force DIM, MIN, MAJ; MIN + MAJ gives sus) and STRUM (up to 80 ms between the chord's notes).</p>
+<p>The keys in the scale glow on the keybed.</p>
+<p><img src="img/fm1-sel.png" alt="SEL" /></p>
+<h3 id="arp-the-arpeggiator">ARP: the arpeggiator</h3>
+<p>Page 1: MODE (OFF, UP, DOWN, UPDN, DNUP, RANDOM, ORDER, CHORD, REPEAT, UP+8, CONV, DIVG, PINKY, THUMB, TURING), RATE (1/4 to 1/32 with triplets), OCTAVE (1–4), GATE. Page 2: HOLD (latch), MUTATE and LOOP (for TURING, a looping random register), SWING.</p>
+<p>It follows the tempo (GLOBAL › TEMPO) or MIDI clock. The well shows the pattern and the step playing.</p>
+<p><img src="img/fm1-arp.png" alt="ARP" /></p>
+<h3 id="global">GLOBAL</h3>
+<p>GLO opens six pages:</p>
+<ol type="1">
+<li><strong>SETTINGS</strong>: TEMPO (60–180), MIDI CH (OMNI or 1–16), VOICES (AUTO or 1–6), CLOCK (internal or MIDI)</li>
+<li><strong>PLAYING</strong>: VEL CURVE, ANIMATION (full, calm, still), LED BRIGHT</li>
+<li><strong>TUNING</strong>: TUNING (13: equal, just, Pythagorean, meantone, Werckmeister III, Kirnberger III, rast, bayati, slendro, pelog, 19-, 24- and 31-EDO), T ROOT, A4 HZ, BEND (pitch-bend range)</li>
+<li><strong>MIDI</strong>: PROG CHG, MIDI OUT, OUT CH, LOCAL</li>
+<li><strong>MASTER</strong>: LOW, MID and HIGH EQ and COMP, over every preset</li>
+<li><strong>SYSTEM</strong>: measured, not set: CPU history, memory, voices, cores</li>
+</ol>
+<p><img src="img/fm1-glo.png" alt="GLOBAL" /></p>
+<h3 id="midi">MIDI</h3>
+<p><strong>In</strong> (USB or TRS, on GLOBAL › MIDI CH): notes (through SEL and the arpeggiator, like the keys), pitch bend, sustain (CC 64), program change (factory presets, then user, when PROG CHG is on), CC 120 and 123 (all off), CC 20–23 (macros), and clock with start and stop when CLOCK is MIDI (the arpeggiator, the sequencer and the tempo follow it).</p>
+<p><strong>Out</strong> (USB, GLOBAL › MIDI OUT, off by default): the notes played (chords, arpeggios and the sequencer included; MIDI that came in isn't echoed), clock on the internal tempo, and with +CC the macros as CC 21–24.</p>
+<h2 id="11-the-sequencer">11. The sequencer</h2>
+<p>Tap <strong>SEQ</strong> to open it (it remembers the page you were on); tap SEQ again to step through its six pages: <strong>NOTES, PATTERN, SPICE, GEN, BANKS, SONG</strong>. On every sequencer page the four values sit as sliders along the top and the rest of the screen is the piano roll or the page's picture.</p>
+<ul>
+<li><strong>PLAY</strong> starts and stops it, from any page.</li>
+<li>It plays on the internal tempo (GLOBAL › TEMPO) or MIDI clock, and sends its notes to MIDI out when that's on.</li>
+<li>8 <strong>banks</strong> (A–H) of up to 64 steps; each step holds up to 6 notes, each with its own length and force (GHOST, SOFT, NORM, HARD, ACC), plus a ratchet, nudge, slide, chance and fill condition.</li>
+</ul>
+<h3 id="notes-writing-steps">NOTES: writing steps</h3>
+<p><img src="img/fm1-notes.png" alt="NOTES, playing" /></p>
+<ul>
+<li><strong>Step entry</strong>: with the sequencer stopped, play a note or a chord and let go: it's written into the step under the cursor and the cursor moves on.</li>
+<li><strong>SELECT</strong> moves the cursor one step; <strong>ALGORITHM</strong> four.</li>
+<li><strong>K1</strong> chooses a note in the step (and moves on to the next step that has notes). <strong>K2</strong> its pitch, <strong>K3</strong> its length, <strong>K4</strong> its force; turning K4 below GHOST deletes the note.</li>
+</ul>
+<h3 id="pattern">PATTERN</h3>
+<p><strong>K1</strong> LENGTH (1–64 steps), <strong>K2</strong> DIV (1/4, 1/8, 1/16, 1/32, 8T, 16T, 1/2, 1 BAR, 2 BAR, 4 BAR), <strong>K3</strong> SWING, <strong>K4</strong> GATE. SELECT moves the cursor over the step grid.</p>
+<p><img src="img/fm1-pattern.png" alt="PATTERN" /></p>
+<h3 id="spice">SPICE</h3>
+<p><strong>K1</strong> SPICE (random rests, octave jumps and force changes, more as you turn it up), <strong>K2</strong> DICE (a different roll of the same amount), <strong>K3</strong> CHANCE (the step under the cursor plays this often), <strong>K4</strong> FILL (–, FILL: only in a fill, NO FILL: only outside one).</p>
+<p><img src="img/fm1-spice.png" alt="SPICE" /></p>
+<h3 id="gen-pattern-tools">GEN: pattern tools</h3>
+<p><strong>K1</strong> chooses the tool: EUCLID, RANDOM, ACID, ARP UP, ARP UPDN, BERLIN, OCTAVES, OFFBEAT, ROLLING, STABS, PROGRESS, GATES, SHIFT &gt;, SHIFT &lt;, REVERSE, DOUBLE, HALF, CLEAR. <strong>K2</strong> and <strong>K3</strong> are its two values (for EUCLID: pulses and rotation, with a ring showing the result), <strong>K4</strong> the seed. <strong>Turn ALGORITHM right to apply; left to put the bank back as it was.</strong> New notes follow SEL's scale and key.</p>
+<p><img src="img/fm1-gen.png" alt="GEN" /></p>
+<h3 id="banks">BANKS</h3>
+<p><strong>SELECT</strong> or <strong>K1</strong> picks a bank: while playing, the switch waits for the end of the loop (the queued bank blinks) unless <strong>K4</strong> SWITCH is NOW. <strong>K2</strong> chooses an action (COPY TO, CLEAR, DOUBLE, HALVE), <strong>K3</strong> the target bank for COPY TO; <strong>ALGORITHM right</strong> does it, <strong>left</strong> undoes it.</p>
+<p><img src="img/fm1-banks.png" alt="BANKS" /></p>
+<h3 id="song">SONG</h3>
+<p>16 rows, each a bank, how many times it repeats (1–16) and a transposition (±12). <strong>SELECT</strong> or <strong>K1</strong> the row, <strong>K2</strong> the bank (END stops the song there), <strong>K3</strong> REPEATS, <strong>K4</strong> TRANSP. <strong>ALGORITHM right</strong> turns the song on or off. <strong>ALGORITHM left</strong> turns your jam (the banks you've just played, in order) into the song.</p>
+<p><img src="img/fm1-song.png" alt="SONG" /></p>
+<h3 id="recording">Recording</h3>
+<ul>
+<li><strong>Stopped</strong>: tap REC for <strong>REC READY</strong>; the first note you play, or PLAY, starts the sequencer recording.</li>
+<li><strong>Playing</strong>: REC turns recording on and off. What you play is written into the steps as they pass.</li>
+</ul>
+<h3 id="the-step-layer">The step layer</h3>
+<p><strong>Hold SEQ for 0.6 s</strong> (and keep holding) to turn the 16 white keys into steps:</p>
+<ul>
+<li>tap a key to switch that step on (with the notes you last played) or off;</li>
+<li>hold a step's key and turn <strong>K1</strong> NOTE, <strong>K2</strong> FORCE, <strong>K3</strong> RATCHET, <strong>K4</strong> NUDGE;</li>
+<li><strong>OCT− / OCT+</strong> show the previous or next 16 steps.</li>
+</ul>
+<p>Let go of SEQ to return to playing.</p>
+<p><img src="img/fm1-layer.png" alt="The step layer" /></p>
+<h3 id="mseq-the-modulation-sequencer">MSEQ: the modulation sequencer</h3>
+<p>MSEQ (on the LFO button, after the LFOs) has four lanes of 16 values that step with the tempo. They are the matrix sources <strong>SEQ 1–4</strong>: route one to anything, as you would an LFO.</p>
+<p><strong>SELECT</strong> the step, <strong>ALGORITHM</strong> the lane, <strong>K1</strong> the value (−100 to +100), <strong>K2</strong> a shape to draw across the lane (RAMP+, RAMP−, TRI, SINE, SQR, RND, FLAT, INVERT, SHIFT), <strong>K3</strong> RATE (1/32 to 2 BARS), <strong>K4</strong> SMOOTH.</p>
+<p><img src="img/fm1-mseq.png" alt="MSEQ" /></p>
+<h3 id="keeping-the-sequencer">Keeping the sequencer</h3>
+<p>The banks, song and MSEQ lanes stay in memory while the FM-1 is on. To keep them after switching off, <strong>press SAVE while on a sequencer page</strong>. The sound stops for a moment while the flash is written, which is why FM1 Rack never saves the sequencer by itself while it plays.</p>
+<h2 id="12-saving-and-the-library">12. Saving and the library</h2>
+<p>64 user presets. A user preset keeps the six modules and their parameters, AMP, OSC, the LFOs, all the routes, the macros, the tempo, a 10-character name and a category.</p>
+<h3 id="saving">Saving</h3>
+<p>Press <strong>SAVE</strong>: the NAME + SLOT page.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Control</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>SELECT</td>
+<td>the letter to change (past the last: the library)</td>
+</tr>
+<tr class="even">
+<td>ALGORITHM or K1</td>
+<td>change the letter (A–Z, 0–9, −, #, .)</td>
+</tr>
+<tr class="odd">
+<td>K2 / K3 / K4</td>
+<td>the slot / the category / the page of 16 slots</td>
+</tr>
+<tr class="even">
+<td><strong>SAVE</strong></td>
+<td>store it in that slot</td>
+</tr>
+<tr class="odd">
+<td>OCT+</td>
+<td>the library</td>
+</tr>
+<tr class="even">
+<td>HOME</td>
+<td>close</td>
+</tr>
+</tbody>
+</table>
+<p>The preset comes back at power-on.</p>
+<p><img src="img/fm1-save.png" alt="SAVE" /></p>
+<h3 id="the-library">The library</h3>
+<p>From the SAVE page, <strong>OCT+</strong>. K1 (or PRESET) picks a row, K2 the tab (ALL, USR, BS, PD, LD, CH, FX, OTH), K3 the action (LOAD, COPY, RENAME, DELETE); <strong>OCT+</strong> does it (DELETE asks twice); OCT− or SAVE goes back to NAME; HOME closes.</p>
+<p><img src="img/fm1-library.png" alt="The library" /></p>
+<h2 id="13-voices-the-two-cores-and-overload">13. Voices, the two cores and overload</h2>
+<ul>
+<li>The FM-1 has two processor cores; FM1 Rack's second core renders half the voices. The status strip shows <strong>2C</strong>, or <strong>1C*</strong> if the second core gave up at start.</li>
+<li>Each preset starts with its own number of voices, up to 6 on two cores (4 on one), within what fits in memory. SELECT on HOME (or GLOBAL › VOICES) asks for 1–6; FM1 Rack keeps to what fits.</li>
+<li>If a block of sound takes over 90 % of its time, FM1 Rack drops a voice and the status strip shows <strong>SHED n</strong>.</li>
+<li>A preset too heavy even at one voice is muted with <strong>TOO HEAVY FOR FM-1</strong> on the scope (HEAVY in red on the status strip) so the screen and controls keep working; pick another preset.</li>
+<li>Rings, the reverb and the delay use the most memory; presets with them may get fewer voices.</li>
+</ul>
+<h2 id="14-factory-presets">14. Factory presets</h2>
+<p>57 factory presets, the same as the browser build's: 12 keys (CH), 9 basses (BS), 9 leads (LD), 13 pads (PD), 13 textures (FX) and INIT. PRESET steps through them by category (ALGORITHM jumps between categories). Every preset's four macros start in the middle, velocity changes its level and tone, and their levels are matched so you can switch without touching MASTER. The full list, with what each is built from and what its macros do, is in the <a href="index.html#factory-presets">FM1 Rack Manual</a>.</p>
+<p>Some basses use OSC as a sub-oscillator on the FM-1 (the browser build has no OSC, so they sound a little thinner there).</p>
+<h2 id="15-what-isnt-in-yet">15. What isn't in yet</h2>
+<ul>
+<li>In the sequencer: parameter locks, the free take, capture, note repeat and the FILL trigger (fill conditions on steps are stored, but nothing triggers a fill yet).</li>
+<li>The TOOLS pages (undo, compare, morph, randomize).</li>
+<li>Modules the FM-1 can't hold: Elements, Warps, Clouds and Marbles.</li>
+<li>Bluetooth MIDI, WiFi, screen mirroring, backup and restore, USB MIDI host.</li>
+</ul>
+<h2 id="16-troubleshooting">16. Troubleshooting</h2>
+<table>
+<thead>
+<tr class="header">
+<th>What you see</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>No sound, <strong>TOO HEAVY FOR FM-1</strong></td>
+<td>The preset needs more CPU than one core has for one voice. Pick another preset, or swap its heaviest module (often Rings MODAL)</td>
+</tr>
+<tr class="even">
+<td><strong>SHED n</strong> on the status strip</td>
+<td>Voices were dropped for CPU. Play fewer notes, lower VOICES, or choose lighter modules</td>
+</tr>
+<tr class="odd">
+<td>A moment of silence when loading a module or editing a delay or reverb</td>
+<td>Normal: memory is being laid out again (<strong>MEMORY FITTED</strong>)</td>
+</tr>
+<tr class="even">
+<td>A short gap when pressing SAVE on a sequencer page</td>
+<td>Normal: the flash is being written</td>
+</tr>
+<tr class="odd">
+<td>EDIT feels slow to turn the page</td>
+<td>It waits 0.3 s to see whether a second tap (LEARN) follows</td>
+</tr>
+<tr class="even">
+<td>The installer can't find the FM-1</td>
+<td>Plug it straight into the Mac (no hub), quit DAWs and Web MIDI tabs, and run the script again</td>
+</tr>
+<tr class="odd">
+<td>The FM-1 won't start after an install</td>
+<td>Follow "Getting back to the stock firmware" (section 3)</td>
+</tr>
+<tr class="even">
+<td>A preset sounds wrong</td>
+<td>Note its name and what you hear, and report it: the factory presets haven't all been heard on an FM-1 yet</td>
+</tr>
+</tbody>
+</table>
+<h2 id="credits-and-licences">Credits and licences</h2>
+<p>FM1 Rack's sound comes from Mutable Instruments' open module code (Émilie Gillet, MIT; Grids GPL-3.0), built for the FM-1 with fm1-base (charlesvestal) on the Felucca platform (GPL-3.0). The rack as a whole is distributed under GPL-3.0, with its source in the MODFM1 repository. This project isn't affiliated with or endorsed by Mutable Instruments or M-VAVE; "Mutable Instruments" is a registered trademark. See the <a href="index.html">FM1 Rack Manual</a> for the full credits.</p>
+</main>
+</html>

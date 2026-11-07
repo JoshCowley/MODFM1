@@ -896,7 +896,7 @@ A live readout of the audio engine: **CPU** (the share of real time spent render
 
 **STEP ADV** (ON or OFF): whether the NOTES cursor moves on a step after you enter a note.
 
-**HARDWARE (page 7, new in 1.9): the FM-1 preview.** FM1 Rack is not FM-1 firmware yet. This page makes the browser version behave as closely as currently possible to what would fit on the real FM-1.
+**HARDWARE (page 7, new in 1.9): the FM-1 preview.** This page makes the browser version behave as closely as possible to what fits on the real FM-1. FM1 Rack Lite now also runs as firmware on the FM-1 (a test version, November 2026): see the [FM1 Rack firmware manual](fm1.html).
 
 - **TARGET**: FM-1 (the default) applies the limits below; BROWSER removes them (6 voices of anything, 2 s delay).
 - **FREE RAM** (256K, 384K or 512K): memory left for sound. The FM-1's RAM isn't published; about 578 KB of SRAM is unverified, and the firmware, a 240×240 screen buffer and audio buffers need some of it. 384K is the middle guess.
@@ -940,7 +940,7 @@ In 1.2 the rack speaks MIDI both ways over the same USB connection. Set the chan
 | Clock | 24 per beat while CLOCK = INT, with Start and Stop when the sequencer starts and stops |
 | +CC | Macro moves as CC 21–24, the four knobs on screen as CC 70–73, and a program change when you turn PRESETS |
 
-With **LOCAL** OFF the keys only send MIDI and don't play the rack, for a DAW that sends the track back. Notes that arrive over MIDI are never sent back out. On the FM-1 hardware the same messages would travel over its USB-C port through the Felucca USB-MIDI layer; that part isn't ported yet.
+With **LOCAL** OFF the keys only send MIDI and don't play the rack, for a DAW that sends the track back. Notes that arrive over MIDI are never sent back out. The FM-1 firmware sends and receives the same messages over USB (see the [firmware manual](fm1.html)).
 
 ## Computer keyboard and mouse
 
@@ -1004,7 +1004,7 @@ SELECT, PRESETS, ALGORITHM and Knobs 1–4 are endless encoders, as on the FM-1,
 
 ### Where 1.0 stands
 
-This is the **browser build**. The sound engine is real: the same C++ module code that would run on the FM-1, compiled to WebAssembly and run in an AudioWorklet at 48 kHz in blocks of 24 samples. The screen, keys and knobs are a faithful stand-in for the FM-1's 240×240 display and controls, so the interface you learn here is the one the firmware would have.
+This is the **browser build**. The sound engine is real: the same C++ module code that would run on the FM-1, compiled to WebAssembly and run in an AudioWorklet at 48 kHz in blocks of 24 samples. The screen, keys and knobs are a faithful stand-in for the FM-1's 240×240 display and controls, so most of what you learn here carries over. The FM-1 firmware (a test version since November 2026) lays some controls out differently for the FM-1's panel; its own manual is [here](fm1.html).
 
 It has **not yet been built for or run on the FM-1**. What's still to do:
 

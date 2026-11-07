@@ -1,5 +1,7 @@
 # FM1 Rack (Lite) firmware
 
+The user manual for this firmware: `manual/FM1-Rack-FM1-Firmware-Manual.md` (hosted as `web/manual/fm1.html`).
+
 **Status: builds and passes fm1-base's checks; its sound side passes the computer check; it has not run on an
 FM-1.** Don't install it until `fm1/bench` has run on your FM-1 and its FPU check said OK: this firmware plays the
 engine in the audio interrupt, and the benchmark is what tells us that's affordable.
