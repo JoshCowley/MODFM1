@@ -8,6 +8,7 @@
 
 #define APP_NAME "FM1 RACK"
 #define APP_SPLASH_RGB RGB(90, 200, 255)
+#define APP_BIG_FONT FONT_B                  /* the splash's name and the panel's screens: the bold font (8 Nov: FONT_L and FONT_M left out, about 30 KB) */
 #define APP_BLOCK 256u                   /* frames per audio block: 5.8 ms at 44.1 kHz */
 #define APP_TOUCH                        /* velocity from the keys (lib/touch.h) */
 #define APP_BLE_AT_BOOT 0

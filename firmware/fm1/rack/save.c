@@ -526,7 +526,7 @@ static void draw_save_name(void)
         rrect(x, 0, 19, 30, on ? RGB(42, 41, 36) : RGB(20, 20, 18), 3);
         ch[0] = sv.name[i] == ' ' ? '.' : sv.name[i];
         ch[1] = 0;
-        cv_text(x + 10 - text_w(&FONT_M, ch) / 2, 3, &FONT_M, ch, sv.name[i] == ' ' ? K_FAINT : on ? K_GOLD : K_FG);
+        cv_text(x + 10 - text_w(&FONT_B, ch) / 2, 4, &FONT_B, ch, sv.name[i] == ' ' ? K_FAINT : on ? K_GOLD : K_FG);
         if (on)
             cv_rect(x, 32, 19, 2, blink ? K_GOLD : RGB(122, 106, 58));
     }

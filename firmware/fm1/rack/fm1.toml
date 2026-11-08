@@ -7,6 +7,9 @@ words = "words.tsv"
 ble = false
 # the second core (fm1-base's plat_cpu2_*) renders half the voices (rack.cc render_voices); with the fallback, a unit
 # whose second core misbehaves (fm1-base's notes: some FM-1s misread shared RAM) carries on with one core
+# no USB audio (8 Nov: Josh doesn't use the FM-1 as a sound card with FM1 Rack): frees its buffers and code; USB-MIDI stays
+usb_audio_in = false
+usb_audio_out = false
 cpu2 = true
 cpu2_fallback = true
 # the engine and the Mutable modules as C++ units, at -O2 (for speed: -Os was 36 KB smaller but about 15 % slower, measured 4 Nov 2026; back to -O2 on 8 Nov) with -fdata-sections (unused tables dropped: 46 KB, same code); the rest (unity_opt below) at -Oz, with the FM-1's float flags (build.py adds -mcpu=r3
