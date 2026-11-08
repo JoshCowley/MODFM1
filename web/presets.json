@@ -185,7 +185,7 @@
 "SUSTAIN": 0.0,
 "RELEASE": 0.45,
 "VEL AMT": 0.8,
-"LEVEL": 0.818
+"LEVEL": 0.79
 },
 "matrix": [
 [
@@ -219,7 +219,8 @@
 0.5,
 0.5,
 0.5
-]
+],
+"fm1_voices": 4
 },
 {
 "name": "CH MARIMBA",
@@ -287,7 +288,8 @@
 0.5,
 0.5,
 0.5
-]
+],
+"fm1_voices": 4
 },
 {
 "name": "CH VIBES",
@@ -330,7 +332,7 @@
 "SUSTAIN": 0.0,
 "RELEASE": 0.55,
 "VEL AMT": 0.75,
-"LEVEL": 0.517
+"LEVEL": 0.514
 },
 "matrix": [
 [
@@ -555,7 +557,7 @@
 "SUSTAIN": 0.0,
 "RELEASE": 0.5,
 "VEL AMT": 0.7,
-"LEVEL": 0.95
+"LEVEL": 0.939
 },
 "matrix": [
 [
@@ -631,7 +633,7 @@
 "SUSTAIN": 0.0,
 "RELEASE": 0.6,
 "VEL AMT": 0.75,
-"LEVEL": 0.954
+"LEVEL": 0.949
 },
 "matrix": [
 [
@@ -714,7 +716,7 @@
 "SUSTAIN": 0.2,
 "RELEASE": 0.1,
 "VEL AMT": 0.8,
-"LEVEL": 0.498
+"LEVEL": 0.489
 },
 "matrix": [
 [
@@ -1173,7 +1175,7 @@
 "SUSTAIN": 0.35,
 "RELEASE": 0.15,
 "VEL AMT": 0.7,
-"LEVEL": 0.564,
+"LEVEL": 0.571,
 "MODE": "MONO"
 },
 "matrix": [
@@ -1253,7 +1255,7 @@
 "SUSTAIN": 0.0,
 "RELEASE": 0.2,
 "VEL AMT": 0.75,
-"LEVEL": 0.549,
+"LEVEL": 0.559,
 "MODE": "MONO"
 },
 "matrix": [
@@ -1333,7 +1335,7 @@
 "SUSTAIN": 0.8,
 "RELEASE": 0.12,
 "VEL AMT": 0.55,
-"LEVEL": 0.491,
+"LEVEL": 0.488,
 "MODE": "LEGATO",
 "GLIDE": 0.12
 },
@@ -1547,7 +1549,7 @@
 "SUSTAIN": 0.4,
 "RELEASE": 0.18,
 "VEL AMT": 0.7,
-"LEVEL": 0.705,
+"LEVEL": 0.701,
 "MODE": "MONO"
 },
 "matrix": [
@@ -1722,7 +1724,7 @@
 "SUSTAIN": 0.85,
 "RELEASE": 0.25,
 "VEL AMT": 0.45,
-"LEVEL": 0.485,
+"LEVEL": 0.482,
 "MODE": "LEGATO",
 "GLIDE": 0.0
 },
@@ -2351,7 +2353,7 @@
 "name": "PD WARM STRINGS",
 "slots": {
 "SRC": "PLAITS",
-"SHP": "FILTER",
+"SHP": null,
 "MODA": null,
 "MODB": null,
 "FX1": "CHORUS",
@@ -2361,17 +2363,8 @@
 "SRC": {
 "MODEL": "STR MACH",
 "HARMO": 0.5,
-"TIMBRE": 0.55,
+"TIMBRE": 0.25,
 "MORPH": 0.25
-},
-"SHP": {
-"TYPE": "LP",
-"CUTOFF": 0.35,
-"RESO": 0.1,
-"DRIVE": 0.1,
-"ENV AMT": 0.1,
-"KEY TRK": 0.6,
-"ENV SRC": "AMP"
 },
 "FX1": {
 "MODE": "CHORUS",
@@ -2397,12 +2390,12 @@
 "RELEASE": 0.6,
 "VEL AMT": 0.35,
 "SPREAD": 0.6,
-"LEVEL": 0.608
+"LEVEL": 0.655
 },
 "matrix": [
 [
 "M1",
-"SHP.CUTOFF",
+"SRC.TIMBRE",
 0.4
 ],
 [
@@ -2491,7 +2484,7 @@
 "RELEASE": 0.6,
 "VEL AMT": 0.35,
 "SPREAD": 0.6,
-"LEVEL": 0.416
+"LEVEL": 0.414
 },
 "matrix": [
 [
@@ -2529,7 +2522,8 @@
 "lfo": {
 "SHAPE 1": "TRI",
 "RATE 1": 0.15
-}
+},
+"fm1_voices": 4
 },
 {
 "name": "PD CHOIR",
@@ -2742,7 +2736,7 @@
 "RELEASE": 0.6,
 "VEL AMT": 0.35,
 "SPREAD": 0.6,
-"LEVEL": 0.479
+"LEVEL": 0.482
 },
 "matrix": [
 [
@@ -2771,10 +2765,11 @@
 0.5,
 0.5,
 0.5
-]
+],
+"fm1_voices": 4
 },
 {
-"name": "PD SYMPATHETIC",
+"name": "PD RESONANT",
 "slots": {
 "SRC": "PLAITS",
 "SHP": "RINGS",
@@ -2791,7 +2786,7 @@
 "MORPH": 0.4
 },
 "SHP": {
-"MODEL": "SYMPATH",
+"MODEL": "STRING",
 "STRUCT": 0.1,
 "BRIGHT": 0.3,
 "DAMPING": 0.75,
@@ -2817,7 +2812,7 @@
 "RELEASE": 0.6,
 "VEL AMT": 0.35,
 "SPREAD": 0.6,
-"LEVEL": 0.632
+"LEVEL": 0.539
 },
 "matrix": [
 [
@@ -3171,7 +3166,7 @@
 "RELEASE": 0.7,
 "VEL AMT": 0.35,
 "SPREAD": 0.6,
-"LEVEL": 0.456
+"LEVEL": 0.461
 },
 "matrix": [
 [
@@ -3332,7 +3327,7 @@
 "RELEASE": 0.6,
 "VEL AMT": 0.35,
 "SPREAD": 0.6,
-"LEVEL": 0.369
+"LEVEL": 0.371
 },
 "matrix": [
 [
@@ -3366,7 +3361,8 @@
 "WAVE": 1,
 "OCTAVE": -1,
 "OSC LVL": 0.25
-}
+},
+"fm1_voices": 4
 },
 {
 "name": "PD BELL PAD",
@@ -3470,10 +3466,10 @@
 "DECAY": 0.3
 },
 "SHP": {
-"MODEL": "MODAL",
+"MODEL": "STRING",
 "STRUCT": 0.35,
 "BRIGHT": 0.4,
-"DAMPING": 0.45,
+"DAMPING": 0.55,
 "POSITION": 0.3,
 "EXCITE": 0.7,
 "MIX": 0.8,
@@ -3503,7 +3499,7 @@
 "RELEASE": 0.7,
 "VEL AMT": 0.6,
 "SPREAD": 0.6,
-"LEVEL": 1.0
+"LEVEL": 0.703
 },
 "matrix": [
 [
@@ -3581,7 +3577,7 @@
 "RELEASE": 0.8,
 "VEL AMT": 0.3,
 "SPREAD": 0.8,
-"LEVEL": 0.542
+"LEVEL": 0.567
 },
 "matrix": [
 [
@@ -3671,7 +3667,7 @@
 "RELEASE": 0.75,
 "VEL AMT": 0.3,
 "SPREAD": 0.8,
-"LEVEL": 0.961
+"LEVEL": 0.945
 },
 "matrix": [
 [
@@ -4089,7 +4085,7 @@
 "RELEASE": 0.5,
 "VEL AMT": 0.7,
 "SPREAD": 0.5,
-"LEVEL": 0.697
+"LEVEL": 0.701
 },
 "matrix": [
 [
@@ -4124,7 +4120,7 @@
 "name": "FX CHORD DRIFT",
 "slots": {
 "SRC": "PLAITS",
-"SHP": "FILTER",
+"SHP": null,
 "MODA": null,
 "MODB": null,
 "FX1": "CHORUS",
@@ -4134,17 +4130,8 @@
 "SRC": {
 "MODEL": "CHORDS",
 "HARMO": 0.35,
-"TIMBRE": 0.4,
+"TIMBRE": 0.15,
 "MORPH": 0.2
-},
-"SHP": {
-"TYPE": "LP",
-"CUTOFF": 0.25,
-"RESO": 0.15,
-"DRIVE": 0.05,
-"ENV AMT": 0.0,
-"KEY TRK": 0.5,
-"ENV SRC": "AMP"
 },
 "FX1": {
 "MODE": "CHORUS",
@@ -4170,7 +4157,7 @@
 "RELEASE": 0.75,
 "VEL AMT": 0.3,
 "SPREAD": 0.8,
-"LEVEL": 0.419
+"LEVEL": 0.452
 },
 "matrix": [
 [
@@ -4180,7 +4167,7 @@
 ],
 [
 "M2",
-"SHP.CUTOFF",
+"SRC.TIMBRE",
 0.4
 ],
 [
@@ -4200,8 +4187,8 @@
 ],
 [
 "LFO 2",
-"SHP.CUTOFF",
-0.1
+"SRC.TIMBRE",
+0.08
 ]
 ],
 "macros": [
@@ -4314,30 +4301,27 @@
 "name": "FX SINGING BOWL",
 "slots": {
 "SRC": "PLAITS",
-"SHP": "RINGS",
+"SHP": null,
 "MODA": null,
 "MODB": null,
-"FX1": "REVERB",
-"FX2": null
+"FX1": "CHORUS",
+"FX2": "REVERB"
 },
 "p": {
 "SRC": {
 "MODEL": "MODAL",
-"HARMO": 0.5,
-"TIMBRE": 0.35,
-"MORPH": 0.7
-},
-"SHP": {
-"MODEL": "MODAL",
-"STRUCT": 0.55,
-"BRIGHT": 0.25,
-"DAMPING": 0.75,
-"POSITION": 0.25,
-"EXCITE": 0.5,
-"MIX": 0.75,
-"SPREAD": 0.7
+"HARMO": 0.47,
+"TIMBRE": 0.1,
+"MORPH": 0.78
 },
 "FX1": {
+"MODE": "CHORUS",
+"RATE": 0.12,
+"DEPTH": 0.3,
+"WIDTH": 0.85,
+"MIX": 0.25
+},
+"FX2": {
 "TYPE": "HALL",
 "SIZE": 0.9,
 "DAMP": 0.5,
@@ -4349,38 +4333,38 @@
 },
 "amp": {
 "ATTACK": 0.0,
-"DECAY": 0.85,
+"DECAY": 0.9,
 "SUSTAIN": 0.0,
-"RELEASE": 0.8,
+"RELEASE": 0.85,
 "VEL AMT": 0.6,
 "SPREAD": 0.7,
-"LEVEL": 0.907
+"LEVEL": 0.764
 },
 "matrix": [
 [
 "M1",
-"SHP.STRUCT",
+"SRC.HARMO",
 0.3
 ],
 [
 "M2",
-"SHP.BRIGHT",
+"SRC.TIMBRE",
 0.4
 ],
 [
 "M3",
-"FX 1.MIX",
+"FX 2.MIX",
 0.3
 ],
 [
 "M4",
-"SHP.DAMPING",
+"SRC.MORPH",
 0.2
 ],
 [
 "LFO 1",
-"SHP.POSITION",
-0.1
+"SRC.TIMBRE",
+0.06
 ]
 ],
 "macros": [
@@ -4392,7 +4376,8 @@
 "lfo": {
 "SHAPE 1": "SINE",
 "RATE 1": 0.1
-}
+},
+"fm1_voices": 4
 },
 {
 "name": "FX DEEP DRONE",

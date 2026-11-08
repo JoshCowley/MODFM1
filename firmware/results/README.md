@@ -113,3 +113,36 @@ of flash for the menus. This build also has Rings' 16-bit strings. All 116 cases
 About 15 % more CPU overall (Braids the most). On two cores six voices still fit for most presets; STRING MACH sits on
 the 90 % line and PD STRINGS sheds to five voices, as before. **Decision: FM1 Rack uses -Os** (its image 541.6 KB of
 the 568 KB app area, about 39 KB free for the next stages of the menus).
+
+# Fourth run: 8 November 2026 (the engine at -O2 again, the new factory presets)
+
+Raw data: [`fm1-bench-2026-11-08.csv`](fm1-bench-2026-11-08.csv) (one of each line kept). All cases OK, FPU exact. The
+engine is back at -O2; the module cases are built on the same eight presets as before, then the 26 heaviest of the new
+(Nov 2026) factory presets are played.
+
+| | -Os (third run) | -O2 (this run) |
+|---|---|---|
+| Engine, no source | 10.1 % | 8.0 % |
+| VA VCF, 6 voices, two cores | 59.1 % | **51.9 %** |
+| Plaits, one voice | 18-39 % | 15-32 % (MODAL 32, ADDITIVE 30, PHASE D 28, CHORDS 27; CHIPTUNE 15) |
+| Braids, one voice | 16-21 % | 11-17 % |
+| Rings, its own share | | MODAL 58, SYMPATH 55, SYM QNT 55, STR+VERB 28, STRING 20, FM VOICE 15 % |
+| Filter / Tides / Peaks / Grids | | 10.3 / **15.7** / 7.3 / 1.1 % |
+| Delay / Reverb / Chorus | | 6.7 / 12.6 / 5.2 % |
+
+Per voice (less the engine's 8 %): Plaits 7-24 %, Braids 3-9 %. Rings' resonators and Tides are the outliers.
+
+**New presets over the firmware's 90 % line** (what this run found; the simulator can't): at one voice PD SYMPATHETIC
+115 %, FX RESONATOR 99.6 %, FX SINGING BOWL 90 % (these would be muted as too heavy); with 6 voices on two cores
+FX CHORD DRIFT 124, PD WARM STRINGS 125, PD ANALOG 122, PD ORGAN AIR 103, CH MARIMBA 101, CH SOFT PIANO 101,
+PD SOFT SINE 97 % (these would shed voices).
+
+**Changes after this run (8 Nov, not yet measured):**
+- Presets: PD SYMPATHETIC became PD RESONANT (Rings STRING, not SYMPATH); FX RESONATOR uses Rings STRING (not MODAL);
+  FX SINGING BOWL is Plaits MODAL alone (no Rings); PD WARM STRINGS and FX CHORD DRIFT lose the filter slot (STR MACH
+  and CHORDS have their own tone controls); PD ANALOG, PD ORGAN AIR, PD SOFT SINE, CH MARIMBA, CH SOFT PIANO and
+  FX SINGING BOWL start at 4 voices on the FM-1 (presets.json `fm1_voices`).
+- Engine (-DRACK_FM1 only, so the page is unchanged): Tides runs once a block (only the block's last value was ever
+  used), expected about 1 % instead of 16 %; Plaits renders a block in one call of 24 frames unless a note restarts
+  in it (was two of 12).
+- Not changed yet: fewer modes in Plaits MODAL and Rings MODAL (demos in the FM1-Rack folder for Josh to judge).

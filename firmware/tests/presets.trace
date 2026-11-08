@@ -750,7 +750,7 @@ patch CH SOFT PIANO
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.818
+0 set_param 6 7 0.79
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -1408,7 +1408,7 @@ patch CH VIBES
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.517
+0 set_param 6 7 0.514
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -2436,7 +2436,7 @@ patch CH NYLON
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.95
+0 set_param 6 7 0.939
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -2784,7 +2784,7 @@ patch CH HARP
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.954
+0 set_param 6 7 0.949
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -3130,7 +3130,7 @@ patch CH CLAV
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.498
+0 set_param 6 7 0.489
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -5190,7 +5190,7 @@ patch BS PICKED
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.564
+0 set_param 6 7 0.571
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -5534,7 +5534,7 @@ patch BS FINGER
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.549
+0 set_param 6 7 0.559
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -5864,7 +5864,7 @@ patch BS PULSE
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.491
+0 set_param 6 7 0.488
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -6830,7 +6830,7 @@ patch BS SOFT KEYS
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.705
+0 set_param 6 7 0.701
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -7558,7 +7558,7 @@ patch LD SQUARE
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.485
+0 set_param 6 7 0.482
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -10269,7 +10269,7 @@ patch PD WARM STRINGS
 0 set_meta 0 1 0 1 1
 0 set_param 0 1 0.5
 0 set_meta 0 2 0 1 1
-0 set_param 0 2 0.55
+0 set_param 0 2 0.25
 0 set_meta 0 3 0 1 1
 0 set_param 0 3 0.25
 0 set_meta 0 4 0 1 1
@@ -10292,37 +10292,7 @@ patch PD WARM STRINGS
 0 set_param 0 12 0
 0 set_meta 0 13 0 1 1
 0 set_param 0 13 0
-0 set_module 1 12
-0 set_meta 1 0 0 5 5
-0 set_param 1 0 0
-0 set_meta 1 1 0 1 1
-0 set_param 1 1 0.35
-0 set_meta 1 2 0 1 1
-0 set_param 1 2 0.1
-0 set_meta 1 3 0 1 1
-0 set_param 1 3 0.1
-0 set_meta 1 4 -1 1 2
-0 set_param 1 4 0.1
-0 set_meta 1 5 0 1 1
-0 set_param 1 5 0.6
-0 set_meta 1 6 -1 1 2
-0 set_param 1 6 0
-0 set_meta 1 7 0 2 2
-0 set_param 1 7 0
-0 set_meta 1 8 0 1 1
-0 set_param 1 8 0.01
-0 set_meta 1 9 0 1 1
-0 set_param 1 9 0.4
-0 set_meta 1 10 0 1 1
-0 set_param 1 10 0.3
-0 set_meta 1 11 0 1 1
-0 set_param 1 11 0.35
-0 set_meta 1 12 0 3 3
-0 set_param 1 12 0
-0 set_meta 1 13 0 1 1
-0 set_param 1 13 0
-0 set_meta 1 14 -1 1 2
-0 set_param 1 14 0
+0 set_module 1 0
 0 set_module 2 0
 0 set_module 3 0
 0 set_module 4 33
@@ -10376,7 +10346,7 @@ patch PD WARM STRINGS
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.6
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.608
+0 set_param 6 7 0.655
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -10454,7 +10424,7 @@ patch PD WARM STRINGS
 0 set_param 8 22 0
 0 set_meta 8 23 0 1 1
 0 set_param 8 23 0
-0 set_route 0 1 1 1 0.4 0
+0 set_route 0 1 0 2 0.4 0
 0 set_route 1 2 0 3 0.4 0
 0 set_route 2 3 5 3 0.3 0
 0 set_route 3 4 6 0 0.5 0
@@ -10742,7 +10712,7 @@ patch PD ANALOG
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.6
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.416
+0 set_param 6 7 0.414
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -11750,7 +11720,7 @@ patch PD SOFT SINE
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.6
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.479
+0 set_param 6 7 0.482
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -11995,7 +11965,7 @@ patch PD SOFT SINE
 120000 note_off 60
 120000 note_off 64
 end 216000
-patch PD SYMPATHETIC
+patch PD RESONANT
 0 init
 0 set_module 0 0
 0 set_module 1 0
@@ -12034,7 +12004,7 @@ patch PD SYMPATHETIC
 0 set_param 0 13 0
 0 set_module 1 10
 0 set_meta 1 0 0 5 5
-0 set_param 1 0 1
+0 set_param 1 0 2
 0 set_meta 1 1 0 1 1
 0 set_param 1 1 0.1
 0 set_meta 1 2 0 1 1
@@ -12096,7 +12066,7 @@ patch PD SYMPATHETIC
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.6
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.632
+0 set_param 6 7 0.539
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -13524,7 +13494,7 @@ patch PD EVOLVING
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.6
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.456
+0 set_param 6 7 0.461
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -14216,7 +14186,7 @@ patch PD ORGAN AIR
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.6
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.369
+0 set_param 6 7 0.371
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -14836,13 +14806,13 @@ patch FX RESONATOR
 0 set_param 0 13 0
 0 set_module 1 10
 0 set_meta 1 0 0 5 5
-0 set_param 1 0 0
+0 set_param 1 0 2
 0 set_meta 1 1 0 1 1
 0 set_param 1 1 0.35
 0 set_meta 1 2 0 1 1
 0 set_param 1 2 0.4
 0 set_meta 1 3 0 1 1
-0 set_param 1 3 0.45
+0 set_param 1 3 0.55
 0 set_meta 1 4 0 1 1
 0 set_param 1 4 0.3
 0 set_meta 1 5 0 1 1
@@ -14914,7 +14884,7 @@ patch FX RESONATOR
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.6
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 1
+0 set_param 6 7 0.703
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -15250,7 +15220,7 @@ patch FX DRONE
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.8
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.542
+0 set_param 6 7 0.567
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -15602,7 +15572,7 @@ patch FX WIND
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.8
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.961
+0 set_param 6 7 0.945
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -17352,7 +17322,7 @@ patch FX ECHO KEYS
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.5
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.697
+0 set_param 6 7 0.701
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -17611,7 +17581,7 @@ patch FX CHORD DRIFT
 0 set_meta 0 1 0 1 1
 0 set_param 0 1 0.35
 0 set_meta 0 2 0 1 1
-0 set_param 0 2 0.4
+0 set_param 0 2 0.15
 0 set_meta 0 3 0 1 1
 0 set_param 0 3 0.2
 0 set_meta 0 4 0 1 1
@@ -17634,37 +17604,7 @@ patch FX CHORD DRIFT
 0 set_param 0 12 0
 0 set_meta 0 13 0 1 1
 0 set_param 0 13 0
-0 set_module 1 12
-0 set_meta 1 0 0 5 5
-0 set_param 1 0 0
-0 set_meta 1 1 0 1 1
-0 set_param 1 1 0.25
-0 set_meta 1 2 0 1 1
-0 set_param 1 2 0.15
-0 set_meta 1 3 0 1 1
-0 set_param 1 3 0.05
-0 set_meta 1 4 -1 1 2
-0 set_param 1 4 0
-0 set_meta 1 5 0 1 1
-0 set_param 1 5 0.5
-0 set_meta 1 6 -1 1 2
-0 set_param 1 6 0
-0 set_meta 1 7 0 2 2
-0 set_param 1 7 0
-0 set_meta 1 8 0 1 1
-0 set_param 1 8 0.01
-0 set_meta 1 9 0 1 1
-0 set_param 1 9 0.4
-0 set_meta 1 10 0 1 1
-0 set_param 1 10 0.3
-0 set_meta 1 11 0 1 1
-0 set_param 1 11 0.35
-0 set_meta 1 12 0 3 3
-0 set_param 1 12 0
-0 set_meta 1 13 0 1 1
-0 set_param 1 13 0
-0 set_meta 1 14 -1 1 2
-0 set_param 1 14 0
+0 set_module 1 0
 0 set_module 2 0
 0 set_module 3 0
 0 set_module 4 33
@@ -17718,7 +17658,7 @@ patch FX CHORD DRIFT
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.8
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.419
+0 set_param 6 7 0.452
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -17797,11 +17737,11 @@ patch FX CHORD DRIFT
 0 set_meta 8 23 0 1 1
 0 set_param 8 23 0
 0 set_route 0 1 0 1 0.4 0
-0 set_route 1 2 1 1 0.4 0
+0 set_route 1 2 0 2 0.4 0
 0 set_route 2 3 5 3 0.3 0
 0 set_route 3 4 0 3 0.4 0
 0 set_route 4 13 0 3 0.15 0
-0 set_route 5 14 1 1 0.1 0
+0 set_route 5 14 0 2 0.08 0
 0 set_route 6 0 0 0 0 0
 0 set_route 7 0 0 0 0 0
 0 set_route 8 0 0 0 0 0
@@ -18361,11 +18301,11 @@ patch FX SINGING BOWL
 0 set_meta 0 0 0 23 23
 0 set_param 0 0 20
 0 set_meta 0 1 0 1 1
-0 set_param 0 1 0.5
+0 set_param 0 1 0.47
 0 set_meta 0 2 0 1 1
-0 set_param 0 2 0.35
+0 set_param 0 2 0.1
 0 set_meta 0 3 0 1 1
-0 set_param 0 3 0.7
+0 set_param 0 3 0.78
 0 set_meta 0 4 0 1 1
 0 set_param 0 4 0
 0 set_meta 0 5 0 1 1
@@ -18386,63 +18326,53 @@ patch FX SINGING BOWL
 0 set_param 0 12 0
 0 set_meta 0 13 0 1 1
 0 set_param 0 13 0
-0 set_module 1 10
-0 set_meta 1 0 0 5 5
-0 set_param 1 0 0
-0 set_meta 1 1 0 1 1
-0 set_param 1 1 0.55
-0 set_meta 1 2 0 1 1
-0 set_param 1 2 0.25
-0 set_meta 1 3 0 1 1
-0 set_param 1 3 0.75
-0 set_meta 1 4 0 1 1
-0 set_param 1 4 0.25
-0 set_meta 1 5 0 1 1
-0 set_param 1 5 0.5
-0 set_meta 1 6 0 1 1
-0 set_param 1 6 0.75
-0 set_meta 1 7 0 1 1
-0 set_param 1 7 0.7
-0 set_meta 1 8 -24 24 48
-0 set_param 1 8 0
-0 set_meta 1 9 -1 1 2
-0 set_param 1 9 0
-0 set_meta 1 10 0 1 1
-0 set_param 1 10 0
-0 set_meta 1 11 0 10 10
-0 set_param 1 11 0
+0 set_module 1 0
 0 set_module 2 0
 0 set_module 3 0
-0 set_module 4 32
+0 set_module 4 33
 0 set_meta 4 0 0 1 1
-0 set_param 4 0 0.9
+0 set_param 4 0 0.12
 0 set_meta 4 1 0 1 1
-0 set_param 4 1 0.5
+0 set_param 4 1 0.3
 0 set_meta 4 2 0 1 1
-0 set_param 4 2 0.8
+0 set_param 4 2 0.85
 0 set_meta 4 3 0 1 1
-0 set_param 4 3 0.17
+0 set_param 4 3 0.25
 0 set_meta 4 4 0 2 2
-0 set_param 4 4 1
+0 set_param 4 4 0
 0 set_meta 4 5 0 1 1
-0 set_param 4 5 0.15
-0 set_meta 4 6 0 1 1
-0 set_param 4 6 0.4
-0 set_meta 4 7 0 1 1
-0 set_param 4 7 0.25
-0 set_meta 4 8 -1 1 2
-0 set_param 4 8 0
-0 set_meta 4 9 0 1 1
-0 set_param 4 9 0
-0 set_module 5 0
+0 set_param 4 5 0
+0 set_meta 4 6 -1 1 2
+0 set_param 4 6 0
+0 set_module 5 32
+0 set_meta 5 0 0 1 1
+0 set_param 5 0 0.9
+0 set_meta 5 1 0 1 1
+0 set_param 5 1 0.5
+0 set_meta 5 2 0 1 1
+0 set_param 5 2 0.8
+0 set_meta 5 3 0 1 1
+0 set_param 5 3 0.17
+0 set_meta 5 4 0 2 2
+0 set_param 5 4 1
+0 set_meta 5 5 0 1 1
+0 set_param 5 5 0.15
+0 set_meta 5 6 0 1 1
+0 set_param 5 6 0.4
+0 set_meta 5 7 0 1 1
+0 set_param 5 7 0.25
+0 set_meta 5 8 -1 1 2
+0 set_param 5 8 0
+0 set_meta 5 9 0 1 1
+0 set_param 5 9 0
 0 set_meta 6 0 0 1 1
 0 set_param 6 0 0
 0 set_meta 6 1 0 1 1
-0 set_param 6 1 0.85
+0 set_param 6 1 0.9
 0 set_meta 6 2 0 1 1
 0 set_param 6 2 0
 0 set_meta 6 3 0 1 1
-0 set_param 6 3 0.8
+0 set_param 6 3 0.85
 0 set_meta 6 4 0 1 1
 0 set_param 6 4 0.6
 0 set_meta 6 5 0 1 1
@@ -18450,7 +18380,7 @@ patch FX SINGING BOWL
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.7
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.907
+0 set_param 6 7 0.764
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -18528,11 +18458,11 @@ patch FX SINGING BOWL
 0 set_param 8 22 0
 0 set_meta 8 23 0 1 1
 0 set_param 8 23 0
-0 set_route 0 1 1 1 0.3 0
-0 set_route 1 2 1 2 0.4 0
-0 set_route 2 3 4 3 0.3 0
-0 set_route 3 4 1 3 0.2 0
-0 set_route 4 13 1 4 0.1 0
+0 set_route 0 1 0 1 0.3 0
+0 set_route 1 2 0 2 0.4 0
+0 set_route 2 3 5 3 0.3 0
+0 set_route 3 4 0 3 0.2 0
+0 set_route 4 13 0 2 0.06 0
 0 set_route 5 0 0 0 0 0
 0 set_route 6 0 0 0 0 0
 0 set_route 7 0 0 0 0 0

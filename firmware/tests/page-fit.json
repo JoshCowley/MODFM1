@@ -210,7 +210,7 @@
   "free_ram_kb": 384
  },
  {
-  "name": "PD SYMPATHETIC",
+  "name": "PD RESONANT",
   "dropped": [],
   "fit": 1,
   "free_ram_kb": 384
@@ -320,7 +320,7 @@
  {
   "name": "FX SINGING BOWL",
   "dropped": [],
-  "fit": 1,
+  "fit": 6,
   "free_ram_kb": 384
  },
  {

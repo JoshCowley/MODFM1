@@ -686,7 +686,7 @@ A patch is the whole rack: which module is in each slot, every parameter, the EN
 
 **The factory presets were replaced in November 2026** with 57 made for playing: keys, bass and leads that respond to velocity, and pads and textures to sit behind them. They use only the modules the FM-1 has (Plaits, Braids, Rings, the filter, Tides, Peaks, delay, reverb and chorus), so the page and the FM-1 firmware hold the same set. The page opens on CH ROUND EP; INIT is the last.
 
-Every preset has four macros on Knobs 1–4 of HOME, and they start in the middle: the preset sounds as designed with the knobs at 12 o'clock, and each knob moves its parameter either side. M1 is usually tone, M2 character, M3 space (an effect's mix) and M4 motion or shape. Levels were set by playing every preset through the engine and matching their loudness, so you can switch presets without reaching for MASTER (the struck and plucked ones, MARIMBA, MUSIC BOX, CHIMES and GLASS RAIN, peak as loud but fade faster). On the FM-1 some bass presets also use OSC for a sub oscillator; the page has no OSC, so those sound a little thinner there.
+Every preset has four macros on Knobs 1–4 of HOME, and they start in the middle: the preset sounds as designed with the knobs at 12 o'clock, and each knob moves its parameter either side. M1 is usually tone, M2 character, M3 space (an effect's mix) and M4 motion or shape. Six presets start with 4 voices on the FM-1, where the heavier sounds would otherwise run out of processing time (PD ANALOG, PD ORGAN AIR, PD SOFT SINE, CH MARIMBA, CH SOFT PIANO, FX SINGING BOWL). Levels were set by playing every preset through the engine and matching their loudness, so you can switch presets without reaching for MASTER (the struck and plucked ones, MARIMBA, MUSIC BOX, CHIMES and GLASS RAIN, peak as loud but fade faster). On the FM-1 some bass presets also use OSC for a sub oscillator; the page has no OSC, so those sound a little thinner there.
 
 **Keys**
 
@@ -737,12 +737,12 @@ Every preset has four macros on Knobs 1–4 of HOME, and they start in the middl
 
 | Preset | Built from | Macros M1 · M2 · M3 · M4 |
 | --- | --- | --- |
-| PD WARM STRINGS | Plaits string machine → low-pass filter → Chorus → hall reverb | Cutoff · Morph · FX 2 mix · Attack |
+| PD WARM STRINGS | Plaits string machine → Chorus → hall reverb | Timbre · Morph · FX 2 mix · Attack |
 | PD ANALOG | Plaits paired VA → low-pass filter → Chorus → hall reverb | Cutoff · Morph · Depth · Attack |
 | PD CHOIR | Plaits formant → Chorus → hall reverb | Morph · Timbre · FX 2 mix · Attack |
 | PD GLASS | Plaits wavetable → Chorus → shimmer reverb | Timbre · Morph · FX 2 mix · Shimmer |
 | PD SOFT SINE | Plaits additive → Chorus → hall reverb | Timbre · Harmonics · FX 2 mix · Attack |
-| PD SYMPATHETIC | Plaits virtual analog → Rings sympath → hall reverb | Structure · Brightness · FX 1 mix · Rings mix |
+| PD RESONANT | Plaits virtual analog → Rings string → hall reverb | Structure · Brightness · FX 1 mix · Rings mix |
 | PD SHIMMER | Plaits 2-op FM → Chorus → shimmer reverb | Timbre · Shimmer · FX 2 mix · Attack |
 | PD HAZE | Braids CSAW → low-pass filter → Chorus → hall reverb | Cutoff · Resonance · FX 2 mix · Attack |
 | PD STRING ENS | Braids CSAW → low-pass filter → Chorus → hall reverb | Cutoff · Depth · FX 2 mix · Attack |
@@ -755,7 +755,7 @@ Every preset has four macros on Knobs 1–4 of HOME, and they start in the middl
 
 | Preset | Built from | Macros M1 · M2 · M3 · M4 |
 | --- | --- | --- |
-| FX RESONATOR | Plaits 2-op FM → Rings modal → Tides (modulation) → hall reverb | Structure · Brightness · FX 1 mix · Damping |
+| FX RESONATOR | Plaits 2-op FM → Rings string → Tides (modulation) → hall reverb | Structure · Brightness · FX 1 mix · Damping |
 | FX DRONE | Plaits chords → Chorus → hall reverb | Timbre · Harmonics · FX 2 mix · Morph |
 | FX WIND | Plaits filtered noise → band-pass filter → hall reverb | Cutoff · Resonance · FX 1 mix · Attack |
 | FX RAIN | Plaits particles → Delay → hall reverb | Timbre · Morph · FX 2 mix · Feedback |
@@ -763,9 +763,9 @@ Every preset has four macros on Knobs 1–4 of HOME, and they start in the middl
 | FX STRING BLOOM | Plaits virtual analog → Rings string → shimmer reverb | Brightness · Structure · FX 1 mix · Shimmer |
 | FX CHIMES | Plaits modal (struck) → Delay → hall reverb | Timbre · Harmonics · Feedback · FX 2 mix |
 | FX ECHO KEYS | Plaits 2-op FM → Delay → hall reverb | Timbre · Feedback · FX 1 mix · Wow |
-| FX CHORD DRIFT | Plaits chords → low-pass filter → Chorus → hall reverb | Harmonics · Cutoff · FX 2 mix · Morph |
+| FX CHORD DRIFT | Plaits chords → Chorus → hall reverb | Harmonics · Timbre · FX 2 mix · Morph |
 | FX TIDAL WASH | Braids CSAW → low-pass filter → Tides (modulation) → Chorus → hall reverb | Cutoff · Resonance · FX 2 mix · Tides rate |
-| FX SINGING BOWL | Plaits modal (struck) → Rings modal → hall reverb | Structure · Brightness · FX 1 mix · Damping |
+| FX SINGING BOWL | Plaits modal (struck) → Chorus → hall reverb | Harmonics · Timbre · FX 2 mix · Morph |
 | FX DEEP DRONE | Braids square + sub → 24 dB low-pass filter → Chorus → hall reverb | Cutoff · Resonance · FX 2 mix · Timbre |
 | FX GLASS RAIN | Plaits wavetable → Peaks (modulation) → Delay → shimmer reverb | Morph · Timbre · Feedback · FX 2 mix |
 
@@ -821,7 +821,7 @@ In the browser (the page's budget, before the FM-1's own limits):
 
 | Voices | Presets |
 | --- | --- |
-| 6 | CH ROUND EP, CH BRIGHT EP, CH SOFT PIANO, CH MARIMBA, CH VIBES, CH DRAWBAR, CH POLY SYNTH, CH NYLON, CH HARP, CH CLAV, CH MUSIC BOX, CH KOTO, LD BRASS, LD UNISON, PD WARM STRINGS, PD ANALOG, PD CHOIR, PD GLASS, PD SOFT SINE, PD SYMPATHETIC, PD SHIMMER, PD HAZE, PD STRING ENS, PD EVOLVING, PD DARK, PD ORGAN AIR, PD BELL PAD, FX RESONATOR, FX DRONE, FX WIND, FX RAIN, FX OCEAN, FX STRING BLOOM, FX CHIMES, FX ECHO KEYS, FX CHORD DRIFT, FX TIDAL WASH, FX SINGING BOWL, FX DEEP DRONE, FX GLASS RAIN, INIT |
+| 6 | CH ROUND EP, CH BRIGHT EP, CH SOFT PIANO, CH MARIMBA, CH VIBES, CH DRAWBAR, CH POLY SYNTH, CH NYLON, CH HARP, CH CLAV, CH MUSIC BOX, CH KOTO, LD BRASS, LD UNISON, PD WARM STRINGS, PD ANALOG, PD CHOIR, PD GLASS, PD SOFT SINE, PD RESONANT, PD SHIMMER, PD HAZE, PD STRING ENS, PD EVOLVING, PD DARK, PD ORGAN AIR, PD BELL PAD, FX RESONATOR, FX DRONE, FX WIND, FX RAIN, FX OCEAN, FX STRING BLOOM, FX CHIMES, FX ECHO KEYS, FX CHORD DRIFT, FX TIDAL WASH, FX SINGING BOWL, FX DEEP DRONE, FX GLASS RAIN, INIT |
 | 1 | BS ROUND SUB, BS ANALOG, BS ACID, BS PICKED, BS FINGER, BS PULSE, BS WARM MOOG, BS DUB SINE, BS SOFT KEYS, LD SOFT SAW, LD SQUARE, LD SYNC, LD FLUTE, LD WHISTLE, LD REED, LD BOWED |
 
 ### Where you see it

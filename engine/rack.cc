@@ -741,9 +741,21 @@ static void run_mod(int k) {
     for (int i = 0; i < BLOCK; ++i) { flags[i] = ExtractGateFlags(mod_prev_gate_[k], g); mod_prev_gate_[k] = flags[i]; }
     tides::PolySlopeGenerator::OutputSample out[BLOCK];
     tides::RampMode rm = mode == 0 ? tides::RAMP_MODE_AD : mode == 1 ? tides::RAMP_MODE_LOOPING : tides::RAMP_MODE_AR;
+#ifdef RACK_FM1
+    // the FM-1: only the block's last value is used (a modulator), so Tides runs once a block, at the block rate
+    // (2 kHz), not 24 times: 16 % of a core down to about 1 % (measured 8 Nov 2026). The gate's edge lands on the
+    // block, as the gate itself is read once a block
+    GateFlags f1[1] = { flags[0] };
+    for (int i = 1; i < BLOCK; ++i) f1[0] |= flags[i] & (GATE_FLAG_RISING | GATE_FLAG_FALLING);
+    f1[0] = (GateFlags)((f1[0] & ~GATE_FLAG_HIGH) | (flags[BLOCK - 1] & GATE_FLAG_HIGH));
+    tides_[k].Render(rm, tides::OUTPUT_MODE_GATES, tides::RANGE_CONTROL,
+        hz / SR * BLOCK, clampf(slope * 0.5f + 0.5f, 0.01f, 0.99f), shape, smooth * 0.5f + 0.5f, 1.0f,
+        f1, NULL, out + BLOCK - 1, 1);
+#else
     tides_[k].Render(rm, tides::OUTPUT_MODE_GATES, tides::RANGE_CONTROL,
         hz / SR, clampf(slope * 0.5f + 0.5f, 0.01f, 0.99f), shape, smooth * 0.5f + 0.5f, 1.0f,
         flags, NULL, out, BLOCK);
+#endif
     tides_raw_ = out[BLOCK - 1].channel[0];
     float raw = out[BLOCK - 1].channel[0];
     float u = clampf(mode == 1 ? raw / 4.5f * 0.5f + 0.5f : raw / TIDES_AD_MAX, 0.0f, 1.0f);
@@ -946,6 +958,12 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
     m.trigger_patched = true;
     m.level_patched = !lpg; m.level = 0.4f + 0.6f * v.vel;
     plaits::Voice::Frame fr[BLOCK];
+#ifdef RACK_FM1
+    if (!v.retrig) {   // the FM-1: one call for the whole block (24 frames, Plaits' largest) unless a note restarts
+      m.trigger = v.gate ? 1.0f : 0.0f;
+      plaits_[i].Render(p, m, fr, BLOCK);
+    } else
+#endif
     for (int h = 0; h < 2; ++h) {
       m.trigger = (v.retrig && h == 0) || !v.gate ? 0.0f : 1.0f;   // gate level; a retrigger drops it for half a block
       plaits_[i].Render(p, m, fr + h * 12, 12);

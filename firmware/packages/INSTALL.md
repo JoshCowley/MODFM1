@@ -13,8 +13,8 @@ build check passed, the three JieLi SDK files matched fm1-base's reference hashe
 SHA-256 (also in `packages/SHA256SUMS`):
 
 ```
-8f908266b984f93836686607797776e6a85001d9a1dd22d4e38c8b006d499b55  fm1bench.fwsc
-9fd2017071e4776ac0fc7e257daccd09138fce1f556fc40dfcdf74aeb4a1b9c2  fm1rack.fwsc
+abd70c192f218f41785c62b63fe19ef238e9d52d4f61b59c2e4a98d1bfb2434d  fm1bench.fwsc
+9c9d35e24d11bb4d7c17c4a574731af1f92b505a81226a4a8bd11d07f7f5d629  fm1rack.fwsc
 153a8747d621d29d05262be0cb01b6b16336c67a8dd2af42915e3c8be73e02c1  fm1bench-os.fwsc
 ```
 

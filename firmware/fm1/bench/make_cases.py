@@ -23,7 +23,7 @@ BASE_SRC = HERE.parent.parent / "tests" / "bench-base-calls.json"
 PRESETS = list(BASE)
 # the factory presets played (Nov 2026 set): the 26 heaviest on a computer (rendering time of audition.c's phrase), as
 # all 57 don't fit the app slot
-PLAYED = ['FX RAIN', 'FX SINGING BOWL', 'CH NYLON', 'FX CHIMES', 'FX RESONATOR', 'CH MARIMBA', 'FX CHORD DRIFT', 'CH SOFT PIANO', 'CH MUSIC BOX', 'PD SYMPATHETIC', 'PD BELL PAD', 'PD SHIMMER', 'CH VIBES', 'FX DRONE', 'PD WARM STRINGS', 'CH ROUND EP', 'CH KOTO', 'PD SOFT SINE', 'PD ORGAN AIR', 'FX STRING BLOOM', 'PD GLASS', 'BS FINGER', 'FX GLASS RAIN', 'PD CHOIR', 'FX ECHO KEYS', 'PD ANALOG']
+PLAYED = ['FX RAIN', 'FX SINGING BOWL', 'CH NYLON', 'FX CHIMES', 'FX RESONATOR', 'CH MARIMBA', 'FX CHORD DRIFT', 'CH SOFT PIANO', 'CH MUSIC BOX', 'PD RESONANT', 'PD BELL PAD', 'PD SHIMMER', 'CH VIBES', 'FX DRONE', 'PD WARM STRINGS', 'CH ROUND EP', 'CH KOTO', 'PD SOFT SINE', 'PD ORGAN AIR', 'FX STRING BLOOM', 'PD GLASS', 'BS FINGER', 'FX GLASS RAIN', 'PD CHOIR', 'FX ECHO KEYS', 'PD ANALOG']
 LITE_OUT = {3, 11, 22, 30}   # Elements, Warps, Marbles, Clouds
 
 # op codes (bench.c applies them)
@@ -79,6 +79,8 @@ def main():
     data = {p["name"]: p for p in json.loads(SRC.read_text()) if p["name"] != "INIT"}
     data.update({p["name"]: p for p in json.loads(BASE_SRC.read_text())})
     osc = {p["name"]: p["osc"] for p in json.loads((HERE.parent.parent.parent / "web" / "presets.json").read_text()) if p.get("osc")}
+    cap = {p["name"]: p["fm1_voices"] for p in json.loads((HERE.parent.parent.parent / "web" / "presets.json").read_text())
+           if p.get("fm1_voices")}
     OSC_KEYS = ["WAVE", "OCTAVE", "SEMI", "FINE", "PW", "OSC LVL", "MAIN LVL"]   # the firmware's OSC: AMP 24-30
     for n, o in osc.items():
         if n in data and n not in BASE:
@@ -109,7 +111,8 @@ def main():
             out.append("    {%d, %d, %d, %d, %d, %s, %s, %s, %s}," % (*o[:5], *(fnum(v) for v in o[5:])))
         out.append("};")
         mode = int(p.get("mode", 0))
-        table.append(f'    {{"{name}", {ident}, {len(ops)}, {int(p["voices"])}, {mode}}},')
+        v = min(int(p["voices"]), cap.get(name, 99))   # presets.json "fm1_voices": as the firmware starts it
+        table.append(f'    {{"{name}", {ident}, {len(ops)}, {v}, {mode}}},')
     out += ["", f"static const bpreset_t PRESETS{sfx}[] = {{", *table, "};",
             f"#define NPRESETS{sfx} {len(PRESETS)}", ""]
     name = "cases_full.h" if full else "cases.h"

@@ -1540,7 +1540,7 @@ img[src*="fm1-"]{width:320px;image-rendering:pixelated}
 <p>A patch is the whole rack: which module is in each slot, every parameter, the ENV and LFO pages, all 12 matrix rows, the four macro positions and the sequencer pattern with its locks. GLOBAL and CHORD settings stay with the instrument, not the patch.</p>
 <h3 id="factory-presets">Factory presets</h3>
 <p><strong>The factory presets were replaced in November 2026</strong> with 57 made for playing: keys, bass and leads that respond to velocity, and pads and textures to sit behind them. They use only the modules the FM-1 has (Plaits, Braids, Rings, the filter, Tides, Peaks, delay, reverb and chorus), so the page and the FM-1 firmware hold the same set. The page opens on CH ROUND EP; INIT is the last.</p>
-<p>Every preset has four macros on Knobs 1–4 of HOME, and they start in the middle: the preset sounds as designed with the knobs at 12 o'clock, and each knob moves its parameter either side. M1 is usually tone, M2 character, M3 space (an effect's mix) and M4 motion or shape. Levels were set by playing every preset through the engine and matching their loudness, so you can switch presets without reaching for MASTER (the struck and plucked ones, MARIMBA, MUSIC BOX, CHIMES and GLASS RAIN, peak as loud but fade faster). On the FM-1 some bass presets also use OSC for a sub oscillator; the page has no OSC, so those sound a little thinner there.</p>
+<p>Every preset has four macros on Knobs 1–4 of HOME, and they start in the middle: the preset sounds as designed with the knobs at 12 o'clock, and each knob moves its parameter either side. M1 is usually tone, M2 character, M3 space (an effect's mix) and M4 motion or shape. Six presets start with 4 voices on the FM-1, where the heavier sounds would otherwise run out of processing time (PD ANALOG, PD ORGAN AIR, PD SOFT SINE, CH MARIMBA, CH SOFT PIANO, FX SINGING BOWL). Levels were set by playing every preset through the engine and matching their loudness, so you can switch presets without reaching for MASTER (the struck and plucked ones, MARIMBA, MUSIC BOX, CHIMES and GLASS RAIN, peak as loud but fade faster). On the FM-1 some bass presets also use OSC for a sub oscillator; the page has no OSC, so those sound a little thinner there.</p>
 <p><strong>Keys</strong></p>
 <table>
 <thead>
@@ -1739,8 +1739,8 @@ img[src*="fm1-"]{width:320px;image-rendering:pixelated}
 <tbody>
 <tr class="odd">
 <td>PD WARM STRINGS</td>
-<td>Plaits string machine → low-pass filter → Chorus → hall reverb</td>
-<td>Cutoff · Morph · FX 2 mix · Attack</td>
+<td>Plaits string machine → Chorus → hall reverb</td>
+<td>Timbre · Morph · FX 2 mix · Attack</td>
 </tr>
 <tr class="even">
 <td>PD ANALOG</td>
@@ -1763,8 +1763,8 @@ img[src*="fm1-"]{width:320px;image-rendering:pixelated}
 <td>Timbre · Harmonics · FX 2 mix · Attack</td>
 </tr>
 <tr class="even">
-<td>PD SYMPATHETIC</td>
-<td>Plaits virtual analog → Rings sympath → hall reverb</td>
+<td>PD RESONANT</td>
+<td>Plaits virtual analog → Rings string → hall reverb</td>
 <td>Structure · Brightness · FX 1 mix · Rings mix</td>
 </tr>
 <tr class="odd">
@@ -1816,7 +1816,7 @@ img[src*="fm1-"]{width:320px;image-rendering:pixelated}
 <tbody>
 <tr class="odd">
 <td>FX RESONATOR</td>
-<td>Plaits 2-op FM → Rings modal → Tides (modulation) → hall reverb</td>
+<td>Plaits 2-op FM → Rings string → Tides (modulation) → hall reverb</td>
 <td>Structure · Brightness · FX 1 mix · Damping</td>
 </tr>
 <tr class="even">
@@ -1856,8 +1856,8 @@ img[src*="fm1-"]{width:320px;image-rendering:pixelated}
 </tr>
 <tr class="odd">
 <td>FX CHORD DRIFT</td>
-<td>Plaits chords → low-pass filter → Chorus → hall reverb</td>
-<td>Harmonics · Cutoff · FX 2 mix · Morph</td>
+<td>Plaits chords → Chorus → hall reverb</td>
+<td>Harmonics · Timbre · FX 2 mix · Morph</td>
 </tr>
 <tr class="even">
 <td>FX TIDAL WASH</td>
@@ -1866,8 +1866,8 @@ img[src*="fm1-"]{width:320px;image-rendering:pixelated}
 </tr>
 <tr class="odd">
 <td>FX SINGING BOWL</td>
-<td>Plaits modal (struck) → Rings modal → hall reverb</td>
-<td>Structure · Brightness · FX 1 mix · Damping</td>
+<td>Plaits modal (struck) → Chorus → hall reverb</td>
+<td>Harmonics · Timbre · FX 2 mix · Morph</td>
 </tr>
 <tr class="even">
 <td>FX DEEP DRONE</td>
@@ -2008,7 +2008,7 @@ img[src*="fm1-"]{width:320px;image-rendering:pixelated}
 <tbody>
 <tr class="odd">
 <td>6</td>
-<td>CH ROUND EP, CH BRIGHT EP, CH SOFT PIANO, CH MARIMBA, CH VIBES, CH DRAWBAR, CH POLY SYNTH, CH NYLON, CH HARP, CH CLAV, CH MUSIC BOX, CH KOTO, LD BRASS, LD UNISON, PD WARM STRINGS, PD ANALOG, PD CHOIR, PD GLASS, PD SOFT SINE, PD SYMPATHETIC, PD SHIMMER, PD HAZE, PD STRING ENS, PD EVOLVING, PD DARK, PD ORGAN AIR, PD BELL PAD, FX RESONATOR, FX DRONE, FX WIND, FX RAIN, FX OCEAN, FX STRING BLOOM, FX CHIMES, FX ECHO KEYS, FX CHORD DRIFT, FX TIDAL WASH, FX SINGING BOWL, FX DEEP DRONE, FX GLASS RAIN, INIT</td>
+<td>CH ROUND EP, CH BRIGHT EP, CH SOFT PIANO, CH MARIMBA, CH VIBES, CH DRAWBAR, CH POLY SYNTH, CH NYLON, CH HARP, CH CLAV, CH MUSIC BOX, CH KOTO, LD BRASS, LD UNISON, PD WARM STRINGS, PD ANALOG, PD CHOIR, PD GLASS, PD SOFT SINE, PD RESONANT, PD SHIMMER, PD HAZE, PD STRING ENS, PD EVOLVING, PD DARK, PD ORGAN AIR, PD BELL PAD, FX RESONATOR, FX DRONE, FX WIND, FX RAIN, FX OCEAN, FX STRING BLOOM, FX CHIMES, FX ECHO KEYS, FX CHORD DRIFT, FX TIDAL WASH, FX SINGING BOWL, FX DEEP DRONE, FX GLASS RAIN, INIT</td>
 </tr>
 <tr class="even">
 <td>1</td>

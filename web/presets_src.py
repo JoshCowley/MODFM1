@@ -21,7 +21,7 @@ SLOTKEY = {"SRC": "SRC", "SHP": "SHP", "MOD A": "MODA", "MOD B": "MODB", "FX 1":
 LEVELS = HERE / "presets_levels.json"   # LEVEL per preset after measuring (written by the firmware's audition tool)
 
 
-def P(name, slots, p, amp, macros=(), mods=(), lfo=None, osc=None):
+def P(name, slots, p, amp, macros=(), mods=(), lfo=None, osc=None, fm1_voices=None):
     """macros: up to four (dest, amount); mods: other matrix rows [src, dest, amount(, via)]"""
     slots = {k: slots.get(k) for k in ["SRC", "SHP", "MODA", "MODB", "FX1", "FX2"]}
     p = {k: dict(v) for k, v in p.items()}
@@ -44,6 +44,8 @@ def P(name, slots, p, amp, macros=(), mods=(), lfo=None, osc=None):
         out["lfo"] = lfo
     if osc:
         out["osc"] = osc
+    if fm1_voices:
+        out["fm1_voices"] = fm1_voices   # the most voices the FM-1 starts it with (measured CPU, make_presets.py)
     return out
 
 
@@ -83,13 +85,13 @@ def presets():
          "FX1": HALL(0.18, 0.6)},
         {"ATTACK": 0.0, "DECAY": 0.7, "SUSTAIN": 0.0, "RELEASE": 0.45, "VEL AMT": 0.8, "LEVEL": 0.7},
         [("SRC.TIMBRE", 0.35), ("SRC.HARMO", 0.3), ("FX 1.MIX", 0.3), ("SRC.MORPH", 0.3)],
-        [["VELO", "SRC.TIMBRE", 0.3]]))
+        [["VELO", "SRC.TIMBRE", 0.3]], fm1_voices=4))
     a(P("CH MARIMBA", {"SRC": "PLAITS", "FX1": "REVERB"},
         {"SRC": {"MODEL": "MODAL", "HARMO": 0.3, "TIMBRE": 0.55, "MORPH": 0.3},
          "FX1": PLATE(0.18, 0.5)},
         {"ATTACK": 0.0, "DECAY": 0.5, "SUSTAIN": 0.0, "RELEASE": 0.35, "VEL AMT": 0.8, "LEVEL": 0.7},
         [("SRC.TIMBRE", 0.35), ("SRC.HARMO", 0.4), ("FX 1.MIX", 0.3), ("SRC.MORPH", 0.4)],
-        [["VELO", "SRC.TIMBRE", 0.25]]))
+        [["VELO", "SRC.TIMBRE", 0.25]], fm1_voices=4))
     a(P("CH VIBES", {"SRC": "PLAITS", "FX1": "CHORUS", "FX2": "REVERB"},
         {"SRC": {"MODEL": "2OP FM", "HARMO": 0.75, "TIMBRE": 0.18, "MORPH": 0.1, "ENV>TIMB": 0.2},
          "FX1": {"MODE": "VIBRATO", "RATE": 0.45, "DEPTH": 0.18, "WIDTH": 0.6, "MIX": 0.5}, "FX2": HALL(0.2, 0.6)},
@@ -279,12 +281,11 @@ def presets():
 
     # ------------------------------------------------------------------ PADS
     slow = {"ATTACK": 0.5, "DECAY": 0.6, "SUSTAIN": 0.9, "RELEASE": 0.6, "VEL AMT": 0.35, "SPREAD": 0.6}
-    a(P("PD WARM STRINGS", {"SRC": "PLAITS", "SHP": "FILTER", "FX1": "CHORUS", "FX2": "REVERB"},
-        {"SRC": {"MODEL": "STR MACH", "HARMO": 0.5, "TIMBRE": 0.55, "MORPH": 0.45},
-         "SHP": {"TYPE": "LP", "CUTOFF": 0.55, "RESO": 0.1, "DRIVE": 0.1, "ENV AMT": 0.1, "KEY TRK": 0.6, "ENV SRC": "AMP"},
+    a(P("PD WARM STRINGS", {"SRC": "PLAITS", "FX1": "CHORUS", "FX2": "REVERB"},
+        {"SRC": {"MODEL": "STR MACH", "HARMO": 0.5, "TIMBRE": 0.45, "MORPH": 0.45},
          "FX1": CHOR(0.4, 0.5, 0.25), "FX2": HALL(0.28)},
         {**slow, "ATTACK": 0.42, "LEVEL": 0.5},
-        [("SHP.CUTOFF", 0.4), ("SRC.MORPH", 0.4), ("FX 2.MIX", 0.3), ("AMP.ATTACK", 0.5)],
+        [("SRC.TIMBRE", 0.4), ("SRC.MORPH", 0.4), ("FX 2.MIX", 0.3), ("AMP.ATTACK", 0.5)],
         [["LFO 1", "SRC.TIMBRE", 0.08]], lfo={"SHAPE 1": "TRI", "RATE 1": 0.2}))
     a(P("PD ANALOG", {"SRC": "PLAITS", "SHP": "FILTER", "FX1": "CHORUS", "FX2": "REVERB"},
         {"SRC": {"MODEL": "PAIR VA", "HARMO": 0.45, "TIMBRE": 0.45, "MORPH": 0.4},
@@ -293,7 +294,7 @@ def presets():
          "FX1": CHOR(0.4, 0.5), "FX2": HALL(0.3)},
         {**slow, "LEVEL": 0.5},
         [("SHP.CUTOFF", 0.4), ("SRC.MORPH", 0.4), ("FX 1.DEPTH", 0.4), ("AMP.ATTACK", 0.5)],
-        [["LFO 1", "SRC.TIMBRE", 0.1]], lfo={"SHAPE 1": "TRI", "RATE 1": 0.15}))
+        [["LFO 1", "SRC.TIMBRE", 0.1]], lfo={"SHAPE 1": "TRI", "RATE 1": 0.15}, fm1_voices=4))
     a(P("PD CHOIR", {"SRC": "PLAITS", "FX1": "CHORUS", "FX2": "REVERB"},
         {"SRC": {"MODEL": "FORMANT", "HARMO": 0.4, "TIMBRE": 0.4, "MORPH": 0.55},
          "FX1": CHOR(0.4, 0.45), "FX2": HALL(0.32, 0.85)},
@@ -311,10 +312,10 @@ def presets():
         {"SRC": {"MODEL": "ADDITIVE", "HARMO": 0.15, "TIMBRE": 0.2, "MORPH": 0.35},
          "FX1": CHOR(0.35, 0.4, 0.2), "FX2": HALL(0.3)},
         {**slow, "ATTACK": 0.55, "LEVEL": 0.6},
-        [("SRC.TIMBRE", 0.3), ("SRC.HARMO", 0.3), ("FX 2.MIX", 0.3), ("AMP.ATTACK", 0.5)]))
-    a(P("PD SYMPATHETIC", {"SRC": "PLAITS", "SHP": "RINGS", "FX1": "REVERB"},
+        [("SRC.TIMBRE", 0.3), ("SRC.HARMO", 0.3), ("FX 2.MIX", 0.3), ("AMP.ATTACK", 0.5)], fm1_voices=4))
+    a(P("PD RESONANT", {"SRC": "PLAITS", "SHP": "RINGS", "FX1": "REVERB"},
         {"SRC": {"MODEL": "VA VCF", "HARMO": 0.3, "TIMBRE": 0.35, "MORPH": 0.4},
-         "SHP": {"MODEL": "SYMPATH", "STRUCT": 0.3, "BRIGHT": 0.5, "DAMPING": 0.75, "POSITION": 0.4, "EXCITE": 0.4,
+         "SHP": {"MODEL": "STRING", "STRUCT": 0.3, "BRIGHT": 0.5, "DAMPING": 0.75, "POSITION": 0.4, "EXCITE": 0.4,
                  "MIX": 0.55, "SPREAD": 0.6},
          "FX1": HALL(0.3)},
         {**slow, "ATTACK": 0.4, "LEVEL": 0.5},
@@ -360,7 +361,7 @@ def presets():
          "FX1": CHOR(0.4, 0.4), "FX2": HALL(0.3)},
         {**slow, "ATTACK": 0.35, "LEVEL": 0.5},
         [("SRC.TIMBRE", 0.4), ("SRC.MORPH", 0.4), ("FX 2.MIX", 0.3), ("AMP.ATTACK", 0.5)],
-        osc={"WAVE": 1, "OCTAVE": -1, "OSC LVL": 0.25}))
+        osc={"WAVE": 1, "OCTAVE": -1, "OSC LVL": 0.25}, fm1_voices=4))
     a(P("PD BELL PAD", {"SRC": "PLAITS", "FX1": "CHORUS", "FX2": "REVERB"},
         {"SRC": {"MODEL": "2OP FM", "HARMO": 0.65, "TIMBRE": 0.3, "MORPH": 0.25, "ENV>TIMB": 0.2},
          "FX1": CHOR(0.35, 0.4), "FX2": HALL(0.32, 0.85)},
@@ -372,7 +373,7 @@ def presets():
     tex = {"ATTACK": 0.55, "DECAY": 0.6, "SUSTAIN": 0.9, "RELEASE": 0.75, "VEL AMT": 0.3, "SPREAD": 0.8}
     a(P("FX RESONATOR", {"SRC": "PLAITS", "SHP": "RINGS", "MODA": "TIDES", "FX1": "REVERB"},
         {"SRC": {"MODEL": "2OP FM", "HARMO": 0.3, "TIMBRE": 0.4, "MORPH": 0.2, "LPG": "ON", "DECAY": 0.3},
-         "SHP": {"MODEL": "MODAL", "STRUCT": 0.55, "BRIGHT": 0.6, "DAMPING": 0.6, "POSITION": 0.3, "EXCITE": 0.7,
+         "SHP": {"MODEL": "STRING", "STRUCT": 0.55, "BRIGHT": 0.6, "DAMPING": 0.7, "POSITION": 0.3, "EXCITE": 0.7,
                  "MIX": 0.8, "SPREAD": 0.6},
          "MODA": {"MODE": "LOOP", "FREQ": 0.15, "SHAPE": 0.5, "SLOPE": 0.0, "RANGE": "LO"},
          "FX1": HALL(0.3, 0.85)},
@@ -427,13 +428,12 @@ def presets():
          "FX1": {**ECHO("1/4D", 0.5, 0.3), "WOW": 0.25, "MODE": "TAPE"}, "FX2": HALL(0.3, 0.85)},
         {"ATTACK": 0.0, "DECAY": 0.6, "SUSTAIN": 0.2, "RELEASE": 0.5, "VEL AMT": 0.7, "SPREAD": 0.5, "LEVEL": 0.55},
         [("SRC.TIMBRE", 0.3), ("FX 1.FEEDBACK", 0.4), ("FX 1.MIX", 0.3), ("FX 1.WOW", 0.4)]))
-    a(P("FX CHORD DRIFT", {"SRC": "PLAITS", "SHP": "FILTER", "FX1": "CHORUS", "FX2": "REVERB"},
-        {"SRC": {"MODEL": "CHORDS", "HARMO": 0.55, "TIMBRE": 0.4, "MORPH": 0.4},
-         "SHP": {"TYPE": "LP", "CUTOFF": 0.45, "RESO": 0.15, "DRIVE": 0.05, "ENV AMT": 0.0, "KEY TRK": 0.5, "ENV SRC": "AMP"},
+    a(P("FX CHORD DRIFT", {"SRC": "PLAITS", "FX1": "CHORUS", "FX2": "REVERB"},
+        {"SRC": {"MODEL": "CHORDS", "HARMO": 0.55, "TIMBRE": 0.35, "MORPH": 0.4},
          "FX1": CHOR(0.4, 0.5), "FX2": HALL(0.32)},
         {**tex, "ATTACK": 0.4, "LEVEL": 0.5},
-        [("SRC.HARMO", 0.4), ("SHP.CUTOFF", 0.4), ("FX 2.MIX", 0.3), ("SRC.MORPH", 0.4)],
-        [["LFO 1", "SRC.MORPH", 0.15], ["LFO 2", "SHP.CUTOFF", 0.1]],
+        [("SRC.HARMO", 0.4), ("SRC.TIMBRE", 0.4), ("FX 2.MIX", 0.3), ("SRC.MORPH", 0.4)],
+        [["LFO 1", "SRC.MORPH", 0.15], ["LFO 2", "SRC.TIMBRE", 0.08]],
         lfo={"SHAPE 1": "TRI", "SYNC 1": "2 BARS", "SHAPE 2": "DRIFT", "RATE 2": 0.15}))
     a(P("FX TIDAL WASH", {"SRC": "BRAIDS", "SHP": "FILTER", "MODA": "TIDES", "FX1": "CHORUS", "FX2": "REVERB"},
         {"SRC": {"MODEL": "CSAW", "TIMBRE": 0.4, "COLOR": 0.5, "DRIFT": 0.3},
@@ -443,14 +443,12 @@ def presets():
         {**tex, "LEVEL": 0.45},
         [("SHP.CUTOFF", 0.3), ("SHP.RESO", 0.4), ("FX 2.MIX", 0.3), ("MOD A.FREQ", 0.2)],
         [["A TIDES", "SHP.CUTOFF", 0.25]]))
-    a(P("FX SINGING BOWL", {"SRC": "PLAITS", "SHP": "RINGS", "FX1": "REVERB"},
-        {"SRC": {"MODEL": "MODAL", "HARMO": 0.5, "TIMBRE": 0.35, "MORPH": 0.7},
-         "SHP": {"MODEL": "MODAL", "STRUCT": 0.7, "BRIGHT": 0.45, "DAMPING": 0.85, "POSITION": 0.25, "EXCITE": 0.5,
-                 "MIX": 0.75, "SPREAD": 0.7},
-         "FX1": HALL(0.32, 0.9)},
-        {"ATTACK": 0.0, "DECAY": 0.85, "SUSTAIN": 0.0, "RELEASE": 0.8, "VEL AMT": 0.6, "SPREAD": 0.7, "LEVEL": 0.6},
-        [("SHP.STRUCT", 0.3), ("SHP.BRIGHT", 0.4), ("FX 1.MIX", 0.3), ("SHP.DAMPING", 0.2)],
-        [["LFO 1", "SHP.POSITION", 0.1]], lfo={"SHAPE 1": "SINE", "RATE 1": 0.1}))
+    a(P("FX SINGING BOWL", {"SRC": "PLAITS", "FX1": "CHORUS", "FX2": "REVERB"},
+        {"SRC": {"MODEL": "MODAL", "HARMO": 0.62, "TIMBRE": 0.3, "MORPH": 0.88},
+         "FX1": CHOR(0.25, 0.3, 0.12), "FX2": HALL(0.32, 0.9)},
+        {"ATTACK": 0.0, "DECAY": 0.9, "SUSTAIN": 0.0, "RELEASE": 0.85, "VEL AMT": 0.6, "SPREAD": 0.7, "LEVEL": 0.6},
+        [("SRC.HARMO", 0.3), ("SRC.TIMBRE", 0.4), ("FX 2.MIX", 0.3), ("SRC.MORPH", 0.2)],
+        [["LFO 1", "SRC.TIMBRE", 0.06]], lfo={"SHAPE 1": "SINE", "RATE 1": 0.1}, fm1_voices=4))
     a(P("FX DEEP DRONE", {"SRC": "BRAIDS", "SHP": "FILTER", "FX1": "CHORUS", "FX2": "REVERB"},
         {"SRC": {"MODEL": "SUB-", "TIMBRE": 0.4, "COLOR": 0.4, "DRIFT": 0.3, "OCTAVE": -1},
          "SHP": {"TYPE": "LP24", "CUTOFF": 0.3, "RESO": 0.3, "DRIVE": 0.3, "ENV AMT": 0.0, "KEY TRK": 0.3, "ENV SRC": "AMP"},
