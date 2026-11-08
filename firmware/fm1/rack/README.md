@@ -138,8 +138,11 @@ back after a reboot. Not yet heard on an FM-1.
 
 ![SEL](screen-sel.png) ![ARP](screen-arp.png) ![Tuning](screen-tuning.png)
 
-Flash: 537,204 of 581,632 bytes (about 40 KB free) with stage 4 and its 5 Nov changes; OSC and LEARN cost 3.9 KB; stage 3 cost 18.3 KB; the two size changes from the report
-(unused tables dropped with `-fdata-sections`, Tides built with only the modes FM1 Rack uses: 67 KB) made the room.
+Flash: 574,636 of 581,632 bytes (about 7 KB free) since 8 Nov: the engine and the Mutable modules are back at -O2
+for speed (they were -Os, 36 KB smaller but about 15 % slower on the FM-1, measured 4 Nov); the menus and the platform
+stay at -Oz. RAM (.data + .bss): 88,204 of 98,304 bytes: Rings' chord table is const (in flash, 1.4 KB) and the user
+presets' read buffer shares its RAM with the sequencer's undo copy (1.5 KB; reading presets drops the undo). More
+flash, if needed: smaller fonts (about 31 KB), or the units nobody plays at -Oz.
 
 **Stage 4: the frame, sliders and the sequencer** (after the HTML mockup of 4 Nov; `frame.c`, `seq.c`, `seqpages.c`):
 

@@ -45,7 +45,11 @@ static struct {
     uint8_t used[NUSER], cat[NUSER];
     int loaded;                               /* the names read from the store once */
 } us;
-static upatch_t ugroup[UP_PER_OBJ];           /* one store object's presets, read and written whole */
+/* one store object's presets, read and written whole. It shares its RAM with the sequencer's undo copy (seqpages.c
+ * sp_undo), as the two are never needed at once: reading a group drops the undo (share_undo 0) */
+static union { upatch_t g[UP_PER_OBJ]; sq_bank_t undo; } share;
+#define ugroup share.g
+static int share_undo;                        /* 1: share holds the sequencer's undo */
 
 
 static int factory_cat(int k)                 /* the factory categories, as the library's tabs */
@@ -91,7 +95,9 @@ static void entry_name(int e, char *t)        /* "PD SHIMMER" or "U03 MY PAD" */
 /* ---------------------------------------------------------- the store */
 static int group_read(int g)                  /* -> ugroup; an object never saved reads as empty */
 {
-    int n = plat_store_load(OBJ_USER0 + (uint32_t)g, ugroup, sizeof ugroup), i;
+    int n, i;
+    share_undo = 0;
+    n = plat_store_load(OBJ_USER0 + (uint32_t)g, ugroup, sizeof ugroup);
     if (n == UPATCH_V1 * UP_PER_OBJ) {        /* stage 2's: spread out to the new size, OSC at its defaults */
         uint8_t *b = (uint8_t *)ugroup;
         for (i = UP_PER_OBJ - 1; i >= 0; i--) {

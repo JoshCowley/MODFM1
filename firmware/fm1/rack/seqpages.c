@@ -29,7 +29,7 @@ static struct {
     uint32_t seq_at;                          /* SEQ went down */
     int undo_ok, seq_sub;
 } sp = {0, 0, 50, 30, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0};
-static sq_bank_t sp_undo;                     /* GEN and BANKS: the bank before, ALGO left puts it back */
+#define sp_undo share.undo                    /* GEN and BANKS: the bank before, ALGO left puts it back (shares save.c's RAM) */
 
 static int is_seq_page(int pg) { return pg == PG_SEQ || pg == PG_MSEQ; }
 static sq_bank_t *cur_bank(void) { return &sqb[sq.bank]; }
@@ -534,7 +534,7 @@ static void gen_apply(void)
     float A = (float)sp.gen_a * 0.01f, B = (float)sp.gen_b * 0.01f;
     sdeg(&N);
     sp_undo = *b;
-    sp.undo_ok = 1;
+    sp.undo_ok = share_undo = 1;
     gen_rng = (uint32_t)(sp.gen_seed * 7919 + sp.gen_tool * 101) | 1u;
     if (sp.gen_tool != 0 && sp.gen_tool < 12)
         for (i = 0; i < SQ_STEPS; i++) sq_blank_step(&b->s[i]);
@@ -576,7 +576,7 @@ static void bank_action(void)
     sq_bank_t *b = cur_bank();
     int i;
     sp_undo = *b;
-    sp.undo_ok = 1;
+    sp.undo_ok = share_undo = 1;
     switch (sp.bank_act) {
     case 0:
         if (sp.bank_tgt == sq.bank) { app_say("PICK ANOTHER", "BANK"); return; }
@@ -708,7 +708,7 @@ static void seq_encoders(void)
         break;
     case SQP_GEN:
         if (e[1] > 0) gen_apply();
-        if (e[1] < 0 && sp.undo_ok) { *b = sp_undo; sp.undo_ok = 0; sq_touch(); app_say("PUT", "BACK"); }
+        if (e[1] < 0 && sp.undo_ok && share_undo) { *b = sp_undo; sp.undo_ok = 0; sq_touch(); app_say("PUT", "BACK"); }
         if (e[2]) { sp.gen_tool += e[2] > 0 ? 1 : -1; sp.gen_tool = sp.gen_tool < 0 ? 0 : sp.gen_tool >= NGEN ? NGEN - 1 : sp.gen_tool; }
         if (e[3]) { sp.gen_a += (int)e[3]; sp.gen_a = sp.gen_a < 0 ? 0 : sp.gen_a > 100 ? 100 : sp.gen_a; }
         if (e[4]) { sp.gen_b += (int)e[4]; sp.gen_b = sp.gen_b < 0 ? 0 : sp.gen_b > 100 ? 100 : sp.gen_b; }
@@ -717,7 +717,7 @@ static void seq_encoders(void)
     case SQP_BANKS:
         if (e[0] || e[2]) { int c = sq.queue >= 0 ? sq.queue : sq.bank, dd = e[0] ? e[0] : e[2]; c += dd > 0 ? 1 : -1; select_bank(c < 0 ? 0 : c > 7 ? 7 : c); }
         if (e[1] > 0) bank_action();
-        if (e[1] < 0 && sp.undo_ok) { *b = sp_undo; sp.undo_ok = 0; sq_touch(); app_say("PUT", "BACK"); }
+        if (e[1] < 0 && sp.undo_ok && share_undo) { *b = sp_undo; sp.undo_ok = 0; sq_touch(); app_say("PUT", "BACK"); }
         if (e[3]) { sp.bank_act += e[3] > 0 ? 1 : -1; sp.bank_act = sp.bank_act < 0 ? 0 : sp.bank_act > 3 ? 3 : sp.bank_act; }
         if (e[4]) { sp.bank_tgt += e[4] > 0 ? 1 : -1; sp.bank_tgt = sp.bank_tgt < 0 ? 0 : sp.bank_tgt > 7 ? 7 : sp.bank_tgt; }
         if (e[5]) sp.now = e[5] > 0;

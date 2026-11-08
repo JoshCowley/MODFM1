@@ -82,7 +82,7 @@ static const char *const RINGS_MODEL[6] = {"MODAL", "SYMPATH", "STRING", "FM VOI
  * compared with (the module's own cost is the difference; -1 none) */
 typedef struct { uint8_t group, preset, notes; int8_t minus; uint8_t ch[4][3]; float chv[4]; const char *name; } bcase_t;
 
-#define NCASE_MAX 120
+#define NCASE_MAX 200
 static bcase_t bcases[NCASE_MAX];
 static int bncases;
 

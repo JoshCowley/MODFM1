@@ -9,12 +9,12 @@ ble = false
 # whose second core misbehaves (fm1-base's notes: some FM-1s misread shared RAM) carries on with one core
 cpu2 = true
 cpu2_fallback = true
-# the engine and the Mutable modules as C++ units, at -Os with -fdata-sections (unused tables dropped: 46 KB, same code), (after -O2: 36 KB smaller, about 15 % more CPU, measured 4 Nov 2026) with the FM-1's float flags (build.py adds -mcpu=r3
+# the engine and the Mutable modules as C++ units, at -O2 (for speed: -Os was 36 KB smaller but about 15 % slower, measured 4 Nov 2026; back to -O2 on 8 Nov) with -fdata-sections (unused tables dropped: 46 KB, same code); the rest (unity_opt below) at -Oz, with the FM-1's float flags (build.py adds -mcpu=r3
 # -mfprev1 -ffp-contract=off): units/ is written by make_units.py before each build (gen below)
 gen = ["make_units.py"]
 o2 = ["units/*.cc"]
 o2_cflags = ["-std=gnu++11", "-w", "-fbuiltin", "-fno-exceptions", "-fno-rtti", "-DTEST", "-DRACK_FM1", "-DRACK_LITE",
-             "-DRACK_ARENA_KB=308", "-DRACK_ARENA_POOL", "-DRACK_RINGS16", "-Os", "-fdata-sections"]
+             "-DRACK_ARENA_KB=308", "-DRACK_ARENA_POOL", "-DRACK_RINGS16", "-O2", "-fdata-sections"]
 # FM1 Rack's Plaits shim (first: it stands in for one of Plaits' headers), the Mutable code (a checkout of
 # pichenettes/eurorack beside MODFM1)
 include = ["../../../engine/shim", "../../../../eurorack"]
