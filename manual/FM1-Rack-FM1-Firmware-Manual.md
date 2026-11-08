@@ -168,7 +168,7 @@ FM1 Rack's voice is a fixed chain of slots:
 | Slot | Choices |
 | --- | --- |
 | **SRC** (source) | Plaits, Braids |
-| **SHP** (shaper) | Rings, the filter, or empty |
+| **SHP** (shaper) | Rings (STRING, FM VOICE or STR+VERB on the FM-1), the filter, or empty |
 | **MOD A**, **MOD B** (modulators) | Peaks, Tides, Grids, or empty |
 | **FX 1**, **FX 2** | delay, reverb, chorus, or empty (not the same one twice) |
 | **AMP** | the envelopes and voice mode (always there) |
@@ -184,6 +184,10 @@ Press the slot's button (EDIT for SRC, ENV twice for SHP, LFO for MOD A and B, F
 Some edits need more memory (a longer delay, Rings' STR+VERB, the shimmer reverb). When you stop turning, FM1 Rack fits the memory again, with a moment's silence, and says **MEMORY FITTED** and the voices.
 
 Edits aren't kept when you change preset unless you SAVE.
+
+### Rings on the FM-1
+
+On the FM-1 there is **one Rings shared by all the voices**, as on the hardware module: every voice's sound (after AMP's envelope) excites it, and it rings up to **two notes** at once, each new note taking the next resonator, so a third note cuts off the oldest ring. The dry part of each voice (Rings' MIX) plays as before. Rings' parameters follow the last note played. Only the lighter models are offered: **STRING, FM VOICE and STR+VERB**. MODAL, SYMPATH and SYM QNT took more than half of a core for one voice, so a preset asking for them plays STRING. For struck and bell sounds, Plaits' own MODAL and STRING models are the light alternatives.
 
 ### AMP
 
@@ -400,7 +404,7 @@ From the SAVE page, **OCT+**. K1 (or PRESET) picks a row, K2 the tab (ALL, USR, 
 - Each preset starts with its own number of voices, up to 6 on two cores (4 on one), within what fits in memory. SELECT on HOME (or GLOBAL › VOICES) asks for 1–6; FM1 Rack keeps to what fits.
 - If a block of sound takes over 90 % of its time, FM1 Rack drops a voice and the status strip shows **SHED n**.
 - A preset too heavy even at one voice is muted with **TOO HEAVY FOR FM-1** on the scope (HEAVY in red on the status strip) so the screen and controls keep working; pick another preset.
-- Rings, the reverb and the delay use the most memory; presets with them may get fewer voices.
+- The reverb and the delay use the most memory; presets with them may get fewer voices. Rings is shared by all the voices, so it takes its memory once.
 
 ## 14. Factory presets
 
@@ -419,7 +423,7 @@ Some basses use OSC as a sub-oscillator on the FM-1 (the browser build has no OS
 
 | What you see | What to do |
 | --- | --- |
-| No sound, **TOO HEAVY FOR FM-1** | The preset needs more CPU than one core has for one voice. Pick another preset, or swap its heaviest module (often Rings MODAL) |
+| No sound, **TOO HEAVY FOR FM-1** | The preset needs more CPU than one core has for one voice. Pick another preset, or swap its heaviest module (often Plaits MODAL with a reverb) |
 | **SHED n** on the status strip | Voices were dropped for CPU. Play fewer notes, lower VOICES, or choose lighter modules |
 | A moment of silence when loading a module or editing a delay or reverb | Normal: memory is being laid out again (**MEMORY FITTED**) |
 | A short gap when pressing SAVE on a sequencer page | Normal: the flash is being written |

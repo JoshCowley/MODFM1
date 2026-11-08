@@ -315,7 +315,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </tr>
 <tr class="even">
 <td><strong>SHP</strong> (shaper)</td>
-<td>Rings, the filter, or empty</td>
+<td>Rings (STRING, FM VOICE or STR+VERB on the FM-1), the filter, or empty</td>
 </tr>
 <tr class="odd">
 <td><strong>MOD A</strong>, <strong>MOD B</strong> (modulators)</td>
@@ -337,6 +337,8 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p><img src="img/fm1-picker.png" alt="The module picker" /></p>
 <p>Some edits need more memory (a longer delay, Rings' STR+VERB, the shimmer reverb). When you stop turning, FM1 Rack fits the memory again, with a moment's silence, and says <strong>MEMORY FITTED</strong> and the voices.</p>
 <p>Edits aren't kept when you change preset unless you SAVE.</p>
+<h3 id="rings-on-the-fm-1">Rings on the FM-1</h3>
+<p>On the FM-1 there is <strong>one Rings shared by all the voices</strong>, as on the hardware module: every voice's sound (after AMP's envelope) excites it, and it rings up to <strong>two notes</strong> at once, each new note taking the next resonator, so a third note cuts off the oldest ring. The dry part of each voice (Rings' MIX) plays as before. Rings' parameters follow the last note played. Only the lighter models are offered: <strong>STRING, FM VOICE and STR+VERB</strong>. MODAL, SYMPATH and SYM QNT took more than half of a core for one voice, so a preset asking for them plays STRING. For struck and bell sounds, Plaits' own MODAL and STRING models are the light alternatives.</p>
 <h3 id="amp">AMP</h3>
 <p>ENV opens AMP: six pages.</p>
 <ol type="1">
@@ -506,7 +508,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li>Each preset starts with its own number of voices, up to 6 on two cores (4 on one), within what fits in memory. SELECT on HOME (or GLOBAL › VOICES) asks for 1–6; FM1 Rack keeps to what fits.</li>
 <li>If a block of sound takes over 90 % of its time, FM1 Rack drops a voice and the status strip shows <strong>SHED n</strong>.</li>
 <li>A preset too heavy even at one voice is muted with <strong>TOO HEAVY FOR FM-1</strong> on the scope (HEAVY in red on the status strip) so the screen and controls keep working; pick another preset.</li>
-<li>Rings, the reverb and the delay use the most memory; presets with them may get fewer voices.</li>
+<li>The reverb and the delay use the most memory; presets with them may get fewer voices. Rings is shared by all the voices, so it takes its memory once.</li>
 </ul>
 <h2 id="14-factory-presets">14. Factory presets</h2>
 <p>57 factory presets, the same as the browser build's: 12 keys (CH), 9 basses (BS), 9 leads (LD), 13 pads (PD), 13 textures (FX) and INIT. PRESET steps through them by category (ALGORITHM jumps between categories). Every preset's four macros start in the middle, velocity changes its level and tone, and their levels are matched so you can switch without touching MASTER. The full list, with what each is built from and what its macros do, is in the <a href="index.html#factory-presets">FM1 Rack Manual</a>.</p>
@@ -529,7 +531,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <tbody>
 <tr class="odd">
 <td>No sound, <strong>TOO HEAVY FOR FM-1</strong></td>
-<td>The preset needs more CPU than one core has for one voice. Pick another preset, or swap its heaviest module (often Rings MODAL)</td>
+<td>The preset needs more CPU than one core has for one voice. Pick another preset, or swap its heaviest module (often Plaits MODAL with a reverb)</td>
 </tr>
 <tr class="even">
 <td><strong>SHED n</strong> on the status strip</td>

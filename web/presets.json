@@ -861,7 +861,7 @@
 "SUSTAIN": 0.0,
 "RELEASE": 0.5,
 "VEL AMT": 0.75,
-"LEVEL": 1.0
+"LEVEL": 0.896
 },
 "matrix": [
 [
@@ -2218,7 +2218,7 @@
 "SUSTAIN": 0.9,
 "RELEASE": 0.35,
 "VEL AMT": 0.5,
-"LEVEL": 0.864,
+"LEVEL": 0.825,
 "MODE": "LEGATO",
 "GLIDE": 0.08
 },
@@ -2812,7 +2812,7 @@
 "RELEASE": 0.6,
 "VEL AMT": 0.35,
 "SPREAD": 0.6,
-"LEVEL": 0.539
+"LEVEL": 0.587
 },
 "matrix": [
 [
@@ -2850,7 +2850,8 @@
 "lfo": {
 "SHAPE 1": "DRIFT",
 "RATE 1": 0.2
-}
+},
+"fm1_voices": 4
 },
 {
 "name": "PD SHIMMER",
@@ -3166,7 +3167,7 @@
 "RELEASE": 0.7,
 "VEL AMT": 0.35,
 "SPREAD": 0.6,
-"LEVEL": 0.461
+"LEVEL": 0.464
 },
 "matrix": [
 [
@@ -3499,7 +3500,7 @@
 "RELEASE": 0.7,
 "VEL AMT": 0.6,
 "SPREAD": 0.6,
-"LEVEL": 0.703
+"LEVEL": 0.711
 },
 "matrix": [
 [
@@ -3533,7 +3534,8 @@
 0.5,
 0.5,
 0.5
-]
+],
+"fm1_voices": 4
 },
 {
 "name": "FX DRONE",
@@ -3922,7 +3924,7 @@
 "RELEASE": 0.75,
 "VEL AMT": 0.3,
 "SPREAD": 0.8,
-"LEVEL": 0.629
+"LEVEL": 0.633
 },
 "matrix": [
 [
@@ -3960,7 +3962,8 @@
 "lfo": {
 "SHAPE 1": "DRIFT",
 "RATE 1": 0.15
-}
+},
+"fm1_voices": 4
 },
 {
 "name": "FX CHIMES",
@@ -4157,7 +4160,7 @@
 "RELEASE": 0.75,
 "VEL AMT": 0.3,
 "SPREAD": 0.8,
-"LEVEL": 0.452
+"LEVEL": 0.455
 },
 "matrix": [
 [

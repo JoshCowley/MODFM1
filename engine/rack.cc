@@ -55,6 +55,8 @@ extern const uint8_t node_0[], node_1[], node_2[], node_3[], node_4[], node_5[],
 #endif
 #ifdef RACK_FM1
 #include <new>
+#define RINGS_SHARED 1   // one Rings for all the voices (render_voice, run_rings_shared)
+#define RINGS_POLY 2     // the notes it rings at once
 #ifndef RACK_ARENA_KB
 #define RACK_ARENA_KB 340   // the 384K FREE RAM setting less the engine's 44 KB of fixed memory
 #endif
@@ -356,6 +358,9 @@ static int nalloc_ = 0;   // voices the arena holds module state for
 #else
 #define NALLOC MAXV
 #endif
+#ifdef RACK_FM1
+static uint8_t rings_q_[8]; static int rings_qn_ = 0;   // shared Rings: notes waiting to strum (one per Rings call)
+#endif
 static void reset_voice_modules(int slot) {
   for (int i = 0; i < NALLOC; ++i) {
     if (slot == S_SRC) {
@@ -369,7 +374,7 @@ static void reset_voice_modules(int slot) {
 #ifdef RACK_FM1
       // no reverb buffer when the patch can't reach STR+VERB (fm1_fit): Rings' reverb is then never run (the shim's
       // fx_engine.h leaves a null buffer alone), and render_voice keeps the model off STR+VERB
-      if (mod_id_[S_SHP] == M_RINGS) { rings_[i].Init(rings_rev_ ? rings_rev_[i] : nullptr); rings_[i].set_polyphony(1); }
+      if (mod_id_[S_SHP] == M_RINGS && i == 0) { rings_[0].Init(rings_rev_ ? rings_rev_[0] : nullptr); rings_[0].set_polyphony(RINGS_POLY); rings_qn_ = 0; }
 #else
       if (mod_id_[S_SHP] == M_RINGS) { rings_[i].Init(rings_rev_[i]); rings_[i].set_polyphony(1); }
 #endif
@@ -434,7 +439,8 @@ static size_t carve(const int* eff, int nv, bool commit) {
 #ifndef RACK_LITE
     if (eff[S_SRC] == M_ELEMENTS) { uint8_t* a = take(nv * sizeof(elements::Part)); uint8_t* b = take(nv * 65536); if (commit) { elements_ = (elements::Part*)a; elements_rev_ = (uint16_t (*)[32768])b; } }
 #endif
-    if (eff[S_SHP] == M_RINGS) { uint8_t* a = take(nv * sizeof(rings::Part)); uint8_t* b = fit_rings_rev_ ? take(nv * 65536) : nullptr; if (commit) { rings_ = (rings::Part*)a; rings_rev_ = (uint16_t (*)[32768])b; } }
+    if (eff[S_SHP] == M_RINGS) { int nr = RINGS_SHARED ? 1 : nv;   // shared: one Rings for all the voices
+                                 uint8_t* a = take(nr * sizeof(rings::Part)); uint8_t* b = fit_rings_rev_ ? take(nr * 65536) : nullptr; if (commit) { rings_ = (rings::Part*)a; rings_rev_ = (uint16_t (*)[32768])b; } }
 #ifndef RACK_LITE
     if (eff[S_SHP] == M_WARPS) { uint8_t* a = take(nv * sizeof(warps::Modulator)); if (commit) warps_ = (warps::Modulator*)a; }
 #endif
@@ -460,7 +466,7 @@ static void fm1_layout() {
 #ifndef RACK_LITE
     if (eff[S_SRC] == M_ELEMENTS) new (&elements_[i]) elements::Part();
 #endif
-    if (eff[S_SHP] == M_RINGS) new (&rings_[i]) rings::Part();
+    if (eff[S_SHP] == M_RINGS && (!RINGS_SHARED || i == 0)) new (&rings_[i]) rings::Part();
 #ifndef RACK_LITE
     if (eff[S_SHP] == M_WARPS) new (&warps_[i]) warps::Modulator();
 #endif
@@ -921,6 +927,19 @@ static void osc_mix(int i, const VoiceState& v, float note, float* buf, float* a
 // each core's own scratch (RACK_FM1's second core renders some voices: render_voice(.., core 1))
 static float vbuf_c_[2][BLOCK], vaux_c_[2][BLOCK];
 
+#ifdef RACK_FM1
+// One shared Rings (the FM-1, 8 Nov 2026), as on the hardware module: every voice feeds its source, enveloped by AMP,
+// into one Rings, which plays RINGS_POLY notes itself (each note strums its next resonator). Rings costs about one
+// voice's worth whatever the number of voices, and its memory is taken once. The heavy models (MODAL, SYMPATH,
+// SYM QNT: 55-58 % of a core for one voice, measured) play as STRING here; the menus only offer STRING, FM VOICE and
+// STR+VERB. Rings' parameters follow the last note struck (their per-voice modulation becomes that voice's).
+static float rings_in_[2][BLOCK];          // each core's voices' excitation
+static float rings_dry_g_ = 1.0f;          // what the voices keep of their dry signal (1 - MIX)
+static int rings_last_ = 0;                // the voice struck last: Rings' parameters are read with it
+static float rings_note_ = 60.0f;
+static int rings_fm1_model(int m) { return m == 0 || m == 1 || m == 4 ? 2 : m; }   // MODAL SYMPATH SYM QNT: STRING
+#endif
+
 static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
   float* const vbuf_ = vbuf_c_[core];
   float* const vaux_ = vaux_c_[core];
@@ -1035,6 +1054,13 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
 
   // ---- SHP
   int shp = mod_id_[S_SHP];
+#ifdef RACK_FM1
+  if (shp == M_RINGS) {   // shared Rings: this voice's excitation goes to it (after AMP's envelope), its dry part on
+    float vel_amt = P(S_AMP, 4, &v), g = v.env * (1.0f - vel_amt + vel_amt * v.vel) * P(S_SHP, 5, &v) * 2.0f;
+    if (v.retrig) { if (rings_qn_ < 8) rings_q_[rings_qn_++] = (uint8_t)clampf(note + 0.5f, 0.0f, 127.0f); rings_last_ = i; }
+    for (int n = 0; n < BLOCK; ++n) { rings_in_[core][n] += vbuf_[n] * g; vbuf_[n] *= rings_dry_g_; vaux_[n] *= rings_dry_g_; }
+  } else
+#endif
   if (shp == M_RINGS) {
     rings::Part& r = rings_[i];
     int rmodel = PI(S_SHP, 0, &v);
@@ -1402,6 +1428,7 @@ static void render_voices() {
   int split = nvoices_;
   if (par_run_ && nvoices_ >= 2) {
     par_from_ = nvoices_ / 2;
+    if (mod_id_[S_SHP] == M_RINGS) par_from_ = nvoices_ / 3;   // the first core also runs the shared Rings: the second takes more voices
     if (par_run_(par_job, 0)) split = par_from_;
   }
   for (int i = 0; i < split; ++i) render_voice(i, blk_l_, blk_r_);
@@ -1415,6 +1442,35 @@ static void render_voices() {
   }
 }
 #endif
+#ifdef RACK_FM1
+static void run_rings_shared() {
+  rings::Part& r = rings_[0];
+  const VoiceState* v = &vs_[rings_last_];
+  int rmodel = rings_fm1_model(PI(S_SHP, 0, v));
+  if (rmodel == 5 && !rings_rev_) rmodel = 2;
+  r.set_model((rings::ResonatorModel)rmodel);
+  rings::Patch rp; rp.structure = P(S_SHP, 1, v); rp.brightness = P(S_SHP, 2, v);
+  rp.damping = P(S_SHP, 3, v); rp.position = P(S_SHP, 4, v);
+  float rt = P(S_SHP, 8, v), rf = P(S_SHP, 9, v), mix = P(S_SHP, 6, v), spread = P(S_SHP, 7, v);
+  float level = P(S_AMP, 7, v), wet = 4.0f * level * level * mix;   // as a voice's AMP gain, without its envelope
+  float in[BLOCK], o1[BLOCK], o2[BLOCK];
+  for (int n = 0; n < BLOCK; ++n) in[n] = rings_in_[0][n] + rings_in_[1][n];
+  for (int h = 0; h < 2; ++h) {   // two calls of 12, so two notes of a chord can strum in one block
+    rings::PerformanceState ps;
+    ps.strum = rings_qn_ > 0;
+    if (ps.strum) { rings_note_ = rings_q_[0]; for (int k = 1; k < rings_qn_; ++k) rings_q_[k - 1] = rings_q_[k]; --rings_qn_; }
+    ps.internal_exciter = PI(S_SHP, 10, v) == 1; ps.internal_strum = false; ps.internal_note = false;
+    ps.tonic = 0.0f; ps.note = rt != 0.0f || rf != 0.0f ? rings_note_ + floorf(rt + 0.5f) + rf : rings_note_;
+    ps.fm = 0.0f; ps.chord = PI(S_SHP, 11, v);
+    r.Process(ps, rp, in + h * 12, o1 + h * 12, o2 + h * 12, 12);
+  }
+  for (int n = 0; n < BLOCK; ++n) {
+    float c = (o1[n] + o2[n]) * 0.5f;
+    blk_l_[n] += (c + (o1[n] - c) * spread) * wet;
+    blk_r_[n] += (c + (o2[n] - c) * spread) * wet;
+  }
+}
+#endif
 static void process_block() {
   float bpm = base_[S_GLO][0] > 1.0f ? base_[S_GLO][0] : 112.0f;
   clk_advance(BLOCK / SR * bpm / 60.0f * 4.0f);
@@ -1423,7 +1479,9 @@ static void process_block() {
   run_mod(0); run_mod(1);
   memset(blk_l_, 0, sizeof(blk_l_)); memset(blk_r_, 0, sizeof(blk_r_));
 #ifdef RACK_FM1
+  if (mod_id_[S_SHP] == M_RINGS) { memset(rings_in_, 0, sizeof(rings_in_)); rings_dry_g_ = 1.0f - P(S_SHP, 6, 0); }
   render_voices();
+  if (mod_id_[S_SHP] == M_RINGS) run_rings_shared();
 #else
   for (int i = 0; i < nvoices_; ++i) render_voice(i, blk_l_, blk_r_);
 #endif

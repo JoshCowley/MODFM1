@@ -105,6 +105,17 @@ static void rc_meta(int slot, int key)
             }
 }
 
+/* Rings on the FM-1 offers only its light models (8 Nov 2026: MODAL, SYMPATH and SYM QNT took 55-58 % of a core for
+ * one voice): a patch asking for one of those gets STRING, so the screen shows what plays (the engine maps them too) */
+static void rc_rings_fix(void)
+{
+    if (rc_patch.mod[RS_SHP] == 10) {
+        int m = (int)(rk_get_param(RS_SHP, 0) + 0.5f);
+        if (m == 0 || m == 1 || m == 4)
+            rk_set_param(RS_SHP, 0, 2.0f);
+    }
+}
+
 /* the engine only: call with the audio interrupt standing aside (rc_pause), or before the audio starts */
 static void rc_load(int k)
 {
@@ -117,6 +128,7 @@ static void rc_load(int k)
         rc_run(PRESET_OPS + p->at, p->len);
     for (s = 0; s < RS_N; s++)               /* each module's ranges (slots 6-8: the slot's own) */
         rc_meta(s, s >= RS_AMP ? 100 + s : rc_patch.mod[s]);
+    rc_rings_fix();
     rk_fm1_fit();                            /* the big buffers sized to this preset: the room left goes to voices */
     rc_patch.mode = p->mode;
     rc_patch.voices = p->mode == RVM_MONO || p->mode == RVM_LEGATO ? 1 : p->voices < 1 ? 1 : p->voices > RC_MAXV ? RC_MAXV : p->voices;
@@ -143,6 +155,7 @@ static void rc_swap(int slot, int id, const float *vals, int n)
     rc_patch.mod[slot] = (int8_t)id;
     for (i = 0; i < n; i++)
         rk_set_param(slot, i, vals[i]);
+    rc_rings_fix();
     rc_meta(slot, id);
     rk_fm1_fit();
     rc_patch.voices_now = rk_fm1_status(3);

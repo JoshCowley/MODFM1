@@ -207,6 +207,7 @@ static void apply(const upatch_t *u)
         rc_set(RS_AMP, i, dq_param(&UI_AMP.p[i], u->amp[i]));
     for (i = 0; i < UI_LFO.nparams && i < 24; i++)
         rk_set_param(RS_LFO, i, dq_param(&UI_LFO.p[i], u->lfo[i]));
+    rc_rings_fix();
     for (i = 0; i < 18; i++)
         rk_set_route(i, u->rsrc[i], u->rslot[i], u->rpar[i], dq_param(0, u->ramt[i]), u->rvia[i]);
     for (i = 0; i < 4; i++) {

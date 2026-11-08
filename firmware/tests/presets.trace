@@ -3824,7 +3824,7 @@ patch CH KOTO
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 1
+0 set_param 6 7 0.896
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -9634,7 +9634,7 @@ patch LD BOWED
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.3
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.864
+0 set_param 6 7 0.825
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -12066,7 +12066,7 @@ patch PD RESONANT
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.6
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.539
+0 set_param 6 7 0.587
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -13494,7 +13494,7 @@ patch PD EVOLVING
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.6
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.461
+0 set_param 6 7 0.464
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -14884,7 +14884,7 @@ patch FX RESONATOR
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.6
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.703
+0 set_param 6 7 0.711
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -16634,7 +16634,7 @@ patch FX STRING BLOOM
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.8
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.629
+0 set_param 6 7 0.633
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1
@@ -17658,7 +17658,7 @@ patch FX CHORD DRIFT
 0 set_meta 6 6 0 1 1
 0 set_param 6 6 0.8
 0 set_meta 6 7 0 1 1
-0 set_param 6 7 0.452
+0 set_param 6 7 0.455
 0 set_meta 6 8 0 1 1
 0 set_param 6 8 0.05
 0 set_meta 6 9 0 1 1

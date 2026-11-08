@@ -874,6 +874,12 @@ static void knob(int k, int32_t e)
             return;
         p = &m->p[pi];
         v = step(p, rk_get_param(slot, pofs(mn.page) + pi), e);
+        if (slot == RS_SHP && rc_patch.mod[RS_SHP] == 10 && pi == 0) {   /* Rings: only STRING, FM VOICE, STR+VERB */
+            static const uint8_t RM[3] = {2, 3, 5};
+            int cur = (int)(rk_get_param(slot, 0) + 0.5f), j = cur == 5 ? 2 : cur == 3 ? 1 : 0;
+            j += e > 0 ? 1 : -1;
+            v = (float)RM[j < 0 ? 0 : j > 2 ? 2 : j];
+        }
         rc_set(slot, pofs(mn.page) + pi, v);
         if (mn.page == PG_AMP && pi == 11) {  /* MODE: the voices follow */
             int md = (int)(v + 0.5f);

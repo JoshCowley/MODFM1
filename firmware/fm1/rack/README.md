@@ -178,6 +178,14 @@ Checked in the simulator (`sim_seq.txt`): step entry with a chord, playback at t
 gate as set), MIDI start / stop sent, a modulated slider's halo moving, every sequencer page and the layer drawn; all the other
 simulator scripts pass, also under AddressSanitizer. Not yet heard on an FM-1.
 
+**Rings, shared (8 Nov 2026)**: on the FM-1 (engine/rack.cc, RACK_FM1: RINGS_SHARED) one Rings serves every voice,
+as on the hardware: each voice adds its source, after AMP's envelope and Rings' EXCITE, to one input, keeps its dry part
+(1 - MIX), and each new note strums the next of Rings' RINGS_POLY (2) resonators; Rings' output (times MIX and AMP's
+LEVEL) joins the voices before the effects. Its parameters are read with the voice struck last. Memory: one Rings
+instead of one per voice, so Rings presets fit 6 voices (they were 1-2). With Rings, the second core takes two thirds
+of the voices, as the first also runs Rings. The models MODAL, SYMPATH and SYM QNT (55-58 % of a core for one voice,
+bench 4) play as STRING; the menus offer STRING, FM VOICE and STR+VERB (rc_rings_fix maps presets and user presets).
+
 **Factory presets (Nov 2026)**: 57 new presets for playing (keys, bass, leads, pads, textures), written by
 `web/presets_src.py` into `web/presets.json`, so the page and the firmware hold the same set. Their macros start in the
 middle (the designed sound at 12 o'clock), velocity moves level and tone, and some bass presets use OSC as a sub

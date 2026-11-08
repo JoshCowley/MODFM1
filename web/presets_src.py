@@ -320,7 +320,7 @@ def presets():
          "FX1": HALL(0.3)},
         {**slow, "ATTACK": 0.4, "LEVEL": 0.5},
         [("SHP.STRUCT", 0.4), ("SHP.BRIGHT", 0.4), ("FX 1.MIX", 0.3), ("SHP.MIX", 0.4)],
-        [["LFO 1", "SHP.POSITION", 0.15]], lfo={"SHAPE 1": "DRIFT", "RATE 1": 0.2}))
+        [["LFO 1", "SHP.POSITION", 0.15]], lfo={"SHAPE 1": "DRIFT", "RATE 1": 0.2}, fm1_voices=4))
     a(P("PD SHIMMER", {"SRC": "PLAITS", "FX1": "CHORUS", "FX2": "REVERB"},
         {"SRC": {"MODEL": "2OP FM", "HARMO": 0.5, "TIMBRE": 0.15, "MORPH": 0.15},
          "FX1": CHOR(0.3, 0.35), "FX2": SHIM(0.35, 0.4)},
@@ -379,7 +379,7 @@ def presets():
          "FX1": HALL(0.3, 0.85)},
         {"ATTACK": 0.0, "DECAY": 0.7, "SUSTAIN": 0.0, "RELEASE": 0.7, "VEL AMT": 0.6, "SPREAD": 0.6, "LEVEL": 0.6},
         [("SHP.STRUCT", 0.4), ("SHP.BRIGHT", 0.4), ("FX 1.MIX", 0.3), ("SHP.DAMPING", 0.3)],
-        [["A TIDES", "SHP.POSITION", 0.2]]))
+        [["A TIDES", "SHP.POSITION", 0.2]], fm1_voices=4))
     a(P("FX DRONE", {"SRC": "PLAITS", "FX1": "CHORUS", "FX2": "REVERB"},
         {"SRC": {"MODEL": "CHORDS", "HARMO": 0.35, "TIMBRE": 0.3, "MORPH": 0.3, "OCTAVE": -1},
          "FX1": CHOR(0.4, 0.5, 0.15), "FX2": HALL(0.35, 0.9)},
@@ -416,7 +416,7 @@ def presets():
          "FX1": SHIM(0.32, 0.25)},
         {**tex, "ATTACK": 0.45, "LEVEL": 0.5},
         [("SHP.BRIGHT", 0.4), ("SHP.STRUCT", 0.4), ("FX 1.MIX", 0.3), ("FX 1.SHIMMER", 0.4)],
-        [["LFO 1", "SHP.POSITION", 0.15]], lfo={"SHAPE 1": "DRIFT", "RATE 1": 0.15}))
+        [["LFO 1", "SHP.POSITION", 0.15]], lfo={"SHAPE 1": "DRIFT", "RATE 1": 0.15}, fm1_voices=4))
     a(P("FX CHIMES", {"SRC": "PLAITS", "FX1": "DELAY", "FX2": "REVERB"},
         {"SRC": {"MODEL": "MODAL", "HARMO": 0.7, "TIMBRE": 0.65, "MORPH": 0.2, "OCTAVE": 1},
          "FX1": ECHO("1/4D", 0.4, 0.22), "FX2": HALL(0.35, 0.9)},
