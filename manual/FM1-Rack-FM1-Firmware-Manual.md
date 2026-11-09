@@ -187,7 +187,7 @@ Edits aren't kept when you change preset unless you SAVE.
 
 ### Rings on the FM-1
 
-On the FM-1 there is **one Rings shared by all the voices**, as on the hardware module: every voice's sound (after AMP's envelope) excites it, and it rings up to **two notes** at once, each new note taking the next resonator, so a third note cuts off the oldest ring. The dry part of each voice (Rings' MIX) plays as before. Rings' parameters follow the last note played. Only the lighter models are offered: **STRING, FM VOICE and STR+VERB**. MODAL, SYMPATH and SYM QNT took more than half of a core for one voice, so a preset asking for them plays STRING. For struck and bell sounds, Plaits' own MODAL and STRING models are the light alternatives.
+On the FM-1 there is **one Rings shared by all the voices**, as on the hardware module: every voice's sound (after AMP's envelope) excites it, and it rings up to **two notes** at once, each new note taking the next resonator, so a third note cuts off the oldest ring. The dry part of each voice (Rings' MIX) plays as before. Rings' parameters follow the last note played. Only the lighter models are offered: **STRING, FM VOICE and STR+VERB**. MODAL, SYMPATH and SYM QNT took more than half of a core for one voice, so a preset asking for them plays STRING. For struck and bell sounds, Plaits' own MODAL and STRING models are the light alternatives. To fit the FM-1's processor, Rings runs at half the sample rate (24 kHz): its tuning, decays and tone are kept, but it has nothing above 12 kHz, and STR+VERB's reverb sounds a little larger and darker than on the page.
 
 ### AMP
 

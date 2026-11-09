@@ -155,3 +155,20 @@ PD SOFT SINE 97 % (these would shed voices).
   tape wow and shimmer use a polynomial sine; the glue compressor works out its gain once a block, ramped; a parameter
   nothing modulates skips the matrix (most calls); Plaits' MODAL runs 16 of its 24 resonator modes (make_units.py).
   On the computer (instruction counts) this is 5-12 % less per preset; the FM-1's slower libm should gain more.
+
+# Fifth run: 10 November 2026 (shared Rings, update 19 fixes)
+
+Raw data: [`fm1-bench-2026-11-10.csv`](fm1-bench-2026-11-10.csv). All cases OK, FPU exact.
+
+- Rings (one shared, two notes, models mapped to STRING): 34-35 % of a core of its own (STR+VERB 45 %), against
+  20 % for STRING at one note per voice before: two strings ring at once. Still too heavy: Rings presets at 4 voices
+  on one core 148-170 % (PD RESONANT, FX STRING BLOOM, FX RESONATOR).
+- Tides 15.7 -> 5.9 %, filter 10.3 -> 6.2 %, Peaks 7.3 -> 4.6 %: as expected.
+- But Plaits (one voice) is 1-10 points slower across its models, Braids 1-6, reverb 12.6 -> 22 % and chorus
+  5.2 -> 11.3 % of their own, though the reverb's code is unchanged: most likely where the code now falls in the
+  FM-1's flash cache (layout), not the code itself. Not explained yet.
+
+**Changes after this run:** Rings runs at 24 kHz in blocks of 12 (engine/shim/rings/dsp/dsp.h, RACK_FM1 only; its
+time constants all follow kSampleRate): half its time on the computer (390 -> 190 M instructions for PD RESONANT),
+levels within 1 dB, no audible top lost below 12 kHz. Plaits back to two calls of 12 a block: its envelopes, LPG and
+trigger delay are timed per call of 12, so one call of 24 (update 18) halved them, and wasn't faster here.

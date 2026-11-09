@@ -1029,12 +1029,8 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
     m.trigger_patched = true;
     m.level_patched = !lpg; m.level = 0.4f + 0.6f * v.vel;
     plaits::Voice::Frame fr[BLOCK];
-#ifdef RACK_FM1
-    if (!v.retrig) {   // the FM-1: one call for the whole block (24 frames, Plaits' largest) unless a note restarts
-      m.trigger = v.gate ? 1.0f : 0.0f;
-      plaits_[i].Render(p, m, fr, BLOCK);
-    } else
-#endif
+    // two calls of 12 (Plaits' kBlockSize): its envelopes, LPG and trigger delay step once a call and are timed for
+    // 12 frames (one call of 24, tried on the FM-1 in update 18, halved them and wasn't faster: benchmark 5)
     for (int h = 0; h < 2; ++h) {
       m.trigger = (v.retrig && h == 0) || !v.gate ? 0.0f : 1.0f;   // gate level; a retrigger drops it for half a block
       plaits_[i].Render(p, m, fr + h * 12, 12);
@@ -1527,21 +1523,28 @@ static void run_rings_shared() {
   rp.damping = P(S_SHP, 3, v); rp.position = P(S_SHP, 4, v);
   float rt = P(S_SHP, 8, v), rf = P(S_SHP, 9, v), mix = P(S_SHP, 6, v), spread = P(S_SHP, 7, v);
   float level = P(S_AMP, 7, v), wet = 4.0f * level * level * mix;   // as a voice's AMP gain, without its envelope
-  float in[BLOCK], o1[BLOCK], o2[BLOCK];
-  for (int n = 0; n < BLOCK; ++n) in[n] = rings_in_[0][n] + rings_in_[1][n];
-  for (int h = 0; h < 2; ++h) {   // two calls of 12, so two notes of a chord can strum in one block
-    rings::PerformanceState ps;
-    ps.strum = rings_qn_ > 0;
-    if (ps.strum) { rings_note_ = rings_q_[0]; for (int k = 1; k < rings_qn_; ++k) rings_q_[k - 1] = rings_q_[k]; --rings_qn_; }
-    ps.internal_exciter = PI(S_SHP, 10, v) == 1; ps.internal_strum = false; ps.internal_note = false;
-    ps.tonic = 0.0f; ps.note = rt != 0.0f || rf != 0.0f ? rings_note_ + floorf(rt + 0.5f) + rf : rings_note_;
-    ps.fm = 0.0f; ps.chord = PI(S_SHP, 11, v);
-    r.Process(ps, rp, in + h * 12, o1 + h * 12, o2 + h * 12, 12);
-  }
-  for (int n = 0; n < BLOCK; ++n) {
-    float c = (o1[n] + o2[n]) * 0.5f;
-    blk_l_[n] += (c + (o1[n] - c) * spread) * wet;
-    blk_r_[n] += (c + (o2[n] - c) * spread) * wet;
+  // Rings runs at 24 kHz on the FM-1 (engine/shim/rings/dsp/dsp.h): the block's excitation, a sample from each pair
+  // (their mean), in one call of 12; its output back at 48 kHz, each new sample with one halfway to it before it
+  float in[BLOCK / 2], o1[BLOCK / 2], o2[BLOCK / 2];
+  for (int n = 0; n < BLOCK / 2; ++n)
+    in[n] = 0.5f * (rings_in_[0][2 * n] + rings_in_[1][2 * n] + rings_in_[0][2 * n + 1] + rings_in_[1][2 * n + 1]);
+  rings::PerformanceState ps;
+  ps.strum = rings_qn_ > 0;   // one strum a block (0.5 ms): a chord's notes follow each other that far apart
+  if (ps.strum) { rings_note_ = rings_q_[0]; for (int k = 1; k < rings_qn_; ++k) rings_q_[k - 1] = rings_q_[k]; --rings_qn_; }
+  ps.internal_exciter = PI(S_SHP, 10, v) == 1; ps.internal_strum = false; ps.internal_note = false;
+  ps.tonic = 0.0f; ps.note = rt != 0.0f || rf != 0.0f ? rings_note_ + floorf(rt + 0.5f) + rf : rings_note_;
+  ps.fm = 0.0f; ps.chord = PI(S_SHP, 11, v);
+  r.Process(ps, rp, in, o1, o2, BLOCK / 2);
+  static float last1 = 0.0f, last2 = 0.0f;
+  for (int n = 0; n < BLOCK / 2; ++n) {
+    float a1 = 0.5f * (last1 + o1[n]), a2 = 0.5f * (last2 + o2[n]);
+    last1 = o1[n]; last2 = o2[n];
+    float c = (a1 + a2) * 0.5f;
+    blk_l_[2 * n] += (c + (a1 - c) * spread) * wet;
+    blk_r_[2 * n] += (c + (a2 - c) * spread) * wet;
+    c = (o1[n] + o2[n]) * 0.5f;
+    blk_l_[2 * n + 1] += (c + (o1[n] - c) * spread) * wet;
+    blk_r_[2 * n + 1] += (c + (o2[n] - c) * spread) * wet;
   }
 }
 #endif
