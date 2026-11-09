@@ -104,7 +104,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <td><strong>LFO</strong></td>
 <td>MOD A</td>
 <td>MOD B, the three LFOs (with their target pages), MSEQ, the 12-row MATRIX</td>
-<td></td>
+<td><strong>Two quick taps: the MATRIX.</strong> A single tap waits 0.3 s, as EDIT does</td>
 </tr>
 <tr class="odd">
 <td><strong>FX</strong></td>
@@ -353,7 +353,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p><img src="img/fm1-amp.png" alt="AMP" /></p>
 <h2 id="8-modulation-the-matrix-lfos-macros-and-learn">8. Modulation: the matrix, LFOs, macros and LEARN</h2>
 <h3 id="the-lfo-button">The LFO button</h3>
-<p>LFO steps through <strong>MOD A</strong>, <strong>MOD B</strong>, <strong>LFO</strong>, <strong>MSEQ</strong> and the <strong>MATRIX</strong>, then back to MOD A.</p>
+<p>LFO steps through <strong>MOD A</strong>, <strong>MOD B</strong>, <strong>LFO</strong>, <strong>MSEQ</strong> and the <strong>MATRIX</strong>, then back to MOD A. <strong>Tap LFO twice quickly</strong> to jump straight to the MATRIX.</p>
 <h3 id="lfos">LFOs</h3>
 <p>The LFO page has nine pages (SELECT):</p>
 <ul>
@@ -367,6 +367,8 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p>Sources: M1–M4, VELO, KEY TRK, RANDOM, AMP ENV, A OUT 1, A OUT 2, B OUT 1, B OUT 2 (the modulators' outputs), LFO 1–3, MOD ENV, SEQ 1–4.</p>
 <p>Destinations: any parameter that can be modulated on SRC, SHP, MOD A/B, FX 1/2, AMP and OSC.</p>
 <p><img src="img/fm1-matrix.png" alt="The matrix" /></p>
+<p><strong>The matrix hub.</strong> On the MATRIX, <strong>turn ALGORITHM</strong> to switch between four tables: <strong>ROUTES</strong> (the 12 rows above), <strong>ENV</strong> (every AMP parameter), <strong>EDIT</strong> (every parameter of the source module) and <strong>OSC</strong> (the second oscillator and mixer). In ENV, EDIT and OSC, <strong>SELECT</strong> picks a parameter and <strong>K1</strong> sets it; a coloured dot in the MOD column shows that a route moves it (in its source's colour), and a dash that it can't be modulated. So you can set up a route and adjust what it moves without leaving the page.</p>
+<p><img src="img/fm1-hub.png" alt="The matrix hub, ENV table" /></p>
 <h3 id="macros">Macros</h3>
 <p>M1–M4 are matrix sources you play with K1–K4 on HOME. On the factory presets they start in the middle: the preset sounds as designed with a macro at 50, and turning it moves its parameter either side.</p>
 <h3 id="learn-linking-a-macro-by-turning-a-knob">LEARN: linking a macro by turning a knob</h3>
@@ -381,7 +383,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p>Tap EDIT twice (slowly, more than 0.3 s apart, or it counts as LEARN) to reach OSC: a plain oscillator in every voice, mixed with the source <strong>before</strong> the shaper, so the filter or Rings, AMP and the effects take both.</p>
 <ul>
 <li>Page 1: <strong>WAVE</strong> (SINE, TRI, SAW, SQUARE, PULSE, NOISE), <strong>OCTAVE</strong> (−3 to +2), <strong>SEMI</strong> (±12), <strong>FINE</strong> (±1 semitone).</li>
-<li>Page 2, the mixer: <strong>PW</strong> (pulse width), <strong>OSC LVL</strong> (0 is off, the default), <strong>MAIN LVL</strong> (the source's level, 1 by default).</li>
+<li>Page 2, the mixer: <strong>PW</strong> (pulse width), <strong>OSC LVL</strong> (0 is off, the default), <strong>MAIN LVL</strong> (the source's level, 1 by default), <strong>AUX LVL</strong> (Plaits' AUX output, mixed in on its own level; 0 by default, Plaits only).</li>
 </ul>
 <p>FINE, PW and both levels are matrix destinations. With OSC LVL at 0 a preset sounds exactly as it did without OSC. Some factory basses use OSC as a sub-oscillator.</p>
 <p><img src="img/fm1-osc.png" alt="OSC" /></p>
@@ -394,6 +396,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p><img src="img/fm1-sel.png" alt="SEL" /></p>
 <h3 id="arp-the-arpeggiator">ARP: the arpeggiator</h3>
 <p>Page 1: MODE (OFF, UP, DOWN, UPDN, DNUP, RANDOM, ORDER, CHORD, REPEAT, UP+8, CONV, DIVG, PINKY, THUMB, TURING), RATE (1/4 to 1/32 with triplets), OCTAVE (1–4), GATE. Page 2: HOLD (latch), MUTATE and LOOP (for TURING, a looping random register), SWING.</p>
+<p><strong>HOLD as a chord latch.</strong> With HOLD on and the arpeggiator's MODE OFF, notes and chords keep sounding after you let go. Playing again once every key is up replaces them with the new chord; keys added while others are held add to it. Turning HOLD off, changing MODE, or stopping the sequencer with PLAY ends the latched notes.</p>
 <p>It follows the tempo (GLOBAL › TEMPO) or MIDI clock. The well shows the pattern and the step playing.</p>
 <p><img src="img/fm1-arp.png" alt="ARP" /></p>
 <h3 id="global">GLOBAL</h3>
@@ -413,7 +416,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <h2 id="11-the-sequencer">11. The sequencer</h2>
 <p>Tap <strong>SEQ</strong> to open it (it remembers the page you were on); tap SEQ again to step through its six pages: <strong>NOTES, PATTERN, SPICE, GEN, BANKS, SONG</strong>. On every sequencer page the four values sit as sliders along the top and the rest of the screen is the piano roll or the page's picture.</p>
 <ul>
-<li><strong>PLAY</strong> starts and stops it, from any page.</li>
+<li><strong>PLAY</strong> starts and stops it, from any page. <strong>Stopping also ends held notes</strong>: latched chords and the arpeggiator's HOLD.</li>
 <li>It plays on the internal tempo (GLOBAL › TEMPO) or MIDI clock, and sends its notes to MIDI out when that's on.</li>
 <li>8 <strong>banks</strong> (A–H) of up to 64 steps; each step holds up to 6 notes, each with its own length and force (GHOST, SOFT, NORM, HARD, ACC), plus a ratchet, nudge, slide, chance and fill condition.</li>
 </ul>

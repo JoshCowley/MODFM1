@@ -883,12 +883,12 @@ static void run_lfos() {
 //   24 WAVE (SINE TRI SAW SQUARE PULSE NOISE)  25 OCTAVE (-3..2)  26 SEMI (-12..12)  27 FINE (-1..1 semitone)
 //   28 PW (0.05-0.95)  29 OSC LVL (0: off, the default)  30 MAIN LVL (the source's level, 1 the default)
 // With OSC LVL at 0 and MAIN LVL at 1 a preset sounds exactly as before.
-enum { OSC_WAVE = 24, OSC_OCT, OSC_SEMI, OSC_FINE, OSC_PW, OSC_LVL, OSC_MAIN };
+enum { OSC_WAVE = 24, OSC_OCT, OSC_SEMI, OSC_FINE, OSC_PW, OSC_LVL, OSC_MAIN, OSC_AUX };   // OSC_AUX: Plaits' AUX into the mix (0 off)
 static float osc_ph_[MAXV];
 static uint32_t osc_rng_[MAXV];
 static void osc_defaults() {
-  static const float LO[7] = {0, -3, -12, -1, 0.05f, 0, 0}, HI[7] = {5, 2, 12, 1, 0.95f, 1, 1};
-  for (int k = 0; k < 7; ++k) { lo_[S_AMP][OSC_WAVE + k] = LO[k]; hi_[S_AMP][OSC_WAVE + k] = HI[k]; span_[S_AMP][OSC_WAVE + k] = 1.0f; }
+  static const float LO[8] = {0, -3, -12, -1, 0.05f, 0, 0, 0}, HI[8] = {5, 2, 12, 1, 0.95f, 1, 1, 1};
+  for (int k = 0; k < 8; ++k) { lo_[S_AMP][OSC_WAVE + k] = LO[k]; hi_[S_AMP][OSC_WAVE + k] = HI[k]; span_[S_AMP][OSC_WAVE + k] = 1.0f; }
   base_[S_AMP][OSC_PW] = 0.5f; base_[S_AMP][OSC_MAIN] = 1.0f;
 }
 static inline float osc_blep(float t, float dt) {   // PolyBLEP: the step's corner rounded off over one sample
@@ -896,9 +896,11 @@ static inline float osc_blep(float t, float dt) {   // PolyBLEP: the step's corn
   if (t > 1.0f - dt) { t = (t - 1.0f) / dt; return t * t + t + t + 1.0f; }
   return 0.0f;
 }
-static void osc_mix(int i, const VoiceState& v, float note, float* buf, float* aux, bool stereo) {
+static void osc_mix(int i, const VoiceState& v, float note, float* buf, float* aux, bool stereo, const float* paux = nullptr) {
   float lvl = P(S_AMP, OSC_LVL, &v), main = P(S_AMP, OSC_MAIN, &v);
   if (main < 0.9999f) for (int n = 0; n < BLOCK; ++n) { buf[n] *= main; if (stereo) aux[n] *= main; }
+  float al = paux ? P(S_AMP, OSC_AUX, &v) : 0.0f;   // Plaits' AUX output, mixed in on its own level
+  if (al > 0.0001f) for (int n = 0; n < BLOCK; ++n) { buf[n] += paux[n] * al; if (stereo) aux[n] += paux[n] * al; }
   if (lvl <= 0.0001f) return;
   int wave = PI(S_AMP, OSC_WAVE, &v);
   float on = note + floorf(P(S_AMP, OSC_OCT, &v) + 0.5f) * 12.0f + floorf(P(S_AMP, OSC_SEMI, &v) + 0.5f) + P(S_AMP, OSC_FINE, &v);
@@ -926,6 +928,7 @@ static void osc_mix(int i, const VoiceState& v, float note, float* buf, float* a
 // ------------------------------------------------------------------ voice render
 // each core's own scratch (RACK_FM1's second core renders some voices: render_voice(.., core 1))
 static float vbuf_c_[2][BLOCK], vaux_c_[2][BLOCK];
+static float paux_c_[2][BLOCK];   // Plaits' AUX output, for OSC's mixer (AUX LVL)
 
 #ifdef RACK_FM1
 // One shared Rings (the FM-1, 8 Nov 2026), as on the hardware module: every voice feeds its source, enveloped by AMP,
@@ -962,6 +965,7 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
 
   // ---- SRC
   int src = mod_id_[S_SRC];
+  const float* paux = nullptr;
   if (src == M_PLAITS) {
     plaits::Patch p; plaits::Modulations m;
     memset(&p, 0, sizeof(p)); memset(&m, 0, sizeof(m));
@@ -990,6 +994,7 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
     float lvl = P(S_SRC, 7, &v);
     if (aux > 0.0f) for (int n = 0; n < BLOCK; ++n) vbuf_[n] = (fr[n].out * (1.0f - aux) + fr[n].aux * aux) / 32768.0f * lvl;
     else for (int n = 0; n < BLOCK; ++n) vbuf_[n] = fr[n].out / 32768.0f * lvl;
+    if (P(S_AMP, OSC_AUX, &v) > 0.0001f) { for (int n = 0; n < BLOCK; ++n) paux_c_[core][n] = fr[n].aux / 32768.0f * lvl; paux = paux_c_[core]; }
   } else if (src == M_BRAIDS) {
     braids::MacroOscillator& b = braids_[i];
     b.set_shape((braids::MacroOscillatorShape)PI(S_SRC, 0, &v));
@@ -1049,7 +1054,7 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
     memset(vbuf_, 0, BLOCK * sizeof(float));
   }
   bool stereo = src == M_ELEMENTS;
-  osc_mix(i, v, note, vbuf_, vaux_, stereo);   // OSC, and the source's MAIN LVL
+  osc_mix(i, v, note, vbuf_, vaux_, stereo, paux);   // OSC, the source's MAIN LVL and Plaits' AUX LVL
   if (!stereo) memcpy(vaux_, vbuf_, BLOCK * sizeof(float));
 
   // ---- SHP

@@ -44,11 +44,20 @@ shot home_macros.png
 tap LFO
 wait 50
 tap LFO
-wait 50
-tap LFO
-wait 50
-tap LFO
-wait 50
-tap LFO
 wait 200
 shot matrix_osc.png
+turn ALGO 1
+wait 100
+shot hub_env.png
+turn SELECT 3
+turn K1 5
+wait 100
+shot hub_env2.png
+turn ALGO 1
+wait 100
+shot hub_edit.png
+turn ALGO 1
+wait 100
+shot hub_osc.png
+turn ALGO 1
+wait 100

@@ -775,6 +775,8 @@ static void seq_buttons(uint32_t press, uint32_t btn)
         ui.redraw = 1;
     }
     if (press >> B_PLAY & 1u) {
+        if (sq.run)                           /* STOP also ends what HOLD keeps: the arp's notes and latched chords */
+            rc_push(PLE_ARP_CLEAR, 0, 0.0f, 0.0f);
         sq.req = sq.run ? 2 : 1;
         ui.redraw = 1;
     }

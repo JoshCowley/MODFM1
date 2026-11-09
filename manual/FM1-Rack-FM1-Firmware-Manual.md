@@ -72,7 +72,7 @@ These come from fm1-base and Felucca and haven't been needed with FM1 Rack yet.
 | **HOME** | HOME page | the RACK overview; once more, back home with all notes off | Closes the module picker, the SAVE page and LEARN |
 | **EDIT** | the source (Plaits or Braids) | OSC, the second oscillator and mixer | **Two quick taps: LEARN on or off** (see 8). A single tap waits 0.3 s before turning the page, so it can tell a double tap |
 | **ENV** | AMP (envelopes, voice mode) | the shaper (Rings or the filter) | |
-| **LFO** | MOD A | MOD B, the three LFOs (with their target pages), MSEQ, the 12-row MATRIX | |
+| **LFO** | MOD A | MOD B, the three LFOs (with their target pages), MSEQ, the 12-row MATRIX | **Two quick taps: the MATRIX.** A single tap waits 0.3 s, as EDIT does |
 | **FX** | FX 1 | FX 2 | |
 | **ARP** | the arpeggiator | | |
 | **SEL** | scale and chord | (SELECT turns to page 2: the keys) | |
@@ -208,7 +208,7 @@ The well shows the envelope on every page. UNI 2 and UNI 4 play two or four detu
 
 ### The LFO button
 
-LFO steps through **MOD A**, **MOD B**, **LFO**, **MSEQ** and the **MATRIX**, then back to MOD A.
+LFO steps through **MOD A**, **MOD B**, **LFO**, **MSEQ** and the **MATRIX**, then back to MOD A. **Tap LFO twice quickly** to jump straight to the MATRIX.
 
 ### LFOs
 
@@ -230,6 +230,10 @@ Destinations: any parameter that can be modulated on SRC, SHP, MOD A/B, FX 1/2, 
 
 ![The matrix](../web/manual/img/fm1-matrix.png)
 
+**The matrix hub.** On the MATRIX, **turn ALGORITHM** to switch between four tables: **ROUTES** (the 12 rows above), **ENV** (every AMP parameter), **EDIT** (every parameter of the source module) and **OSC** (the second oscillator and mixer). In ENV, EDIT and OSC, **SELECT** picks a parameter and **K1** sets it; a coloured dot in the MOD column shows that a route moves it (in its source's colour), and a dash that it can't be modulated. So you can set up a route and adjust what it moves without leaving the page.
+
+![The matrix hub, ENV table](../web/manual/img/fm1-hub.png)
+
 ### Macros
 
 M1–M4 are matrix sources you play with K1–K4 on HOME. On the factory presets they start in the middle: the preset sounds as designed with a macro at 50, and turning it moves its parameter either side.
@@ -248,7 +252,7 @@ M1–M4 are matrix sources you play with K1–K4 on HOME. On the factory presets
 Tap EDIT twice (slowly, more than 0.3 s apart, or it counts as LEARN) to reach OSC: a plain oscillator in every voice, mixed with the source **before** the shaper, so the filter or Rings, AMP and the effects take both.
 
 - Page 1: **WAVE** (SINE, TRI, SAW, SQUARE, PULSE, NOISE), **OCTAVE** (−3 to +2), **SEMI** (±12), **FINE** (±1 semitone).
-- Page 2, the mixer: **PW** (pulse width), **OSC LVL** (0 is off, the default), **MAIN LVL** (the source's level, 1 by default).
+- Page 2, the mixer: **PW** (pulse width), **OSC LVL** (0 is off, the default), **MAIN LVL** (the source's level, 1 by default), **AUX LVL** (Plaits' AUX output, mixed in on its own level; 0 by default, Plaits only).
 
 FINE, PW and both levels are matrix destinations. With OSC LVL at 0 a preset sounds exactly as it did without OSC. Some factory basses use OSC as a sub-oscillator.
 
@@ -272,6 +276,8 @@ The keys in the scale glow on the keybed.
 
 Page 1: MODE (OFF, UP, DOWN, UPDN, DNUP, RANDOM, ORDER, CHORD, REPEAT, UP+8, CONV, DIVG, PINKY, THUMB, TURING), RATE (1/4 to 1/32 with triplets), OCTAVE (1–4), GATE.
 Page 2: HOLD (latch), MUTATE and LOOP (for TURING, a looping random register), SWING.
+
+**HOLD as a chord latch.** With HOLD on and the arpeggiator's MODE OFF, notes and chords keep sounding after you let go. Playing again once every key is up replaces them with the new chord; keys added while others are held add to it. Turning HOLD off, changing MODE, or stopping the sequencer with PLAY ends the latched notes.
 
 It follows the tempo (GLOBAL › TEMPO) or MIDI clock. The well shows the pattern and the step playing.
 
@@ -300,7 +306,7 @@ GLO opens six pages:
 
 Tap **SEQ** to open it (it remembers the page you were on); tap SEQ again to step through its six pages: **NOTES, PATTERN, SPICE, GEN, BANKS, SONG**. On every sequencer page the four values sit as sliders along the top and the rest of the screen is the piano roll or the page's picture.
 
-- **PLAY** starts and stops it, from any page.
+- **PLAY** starts and stops it, from any page. **Stopping also ends held notes**: latched chords and the arpeggiator's HOLD.
 - It plays on the internal tempo (GLOBAL › TEMPO) or MIDI clock, and sends its notes to MIDI out when that's on.
 - 8 **banks** (A–H) of up to 64 steps; each step holds up to 6 notes, each with its own length and force (GHOST, SOFT, NORM, HARD, ACC), plus a ratchet, nudge, slide, chance and fill condition.
 

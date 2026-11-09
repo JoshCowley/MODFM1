@@ -237,8 +237,9 @@ static const ui_param_t UP_OSC[] = {
     {"PW", 0, 1, 0, 1, 0, 0.5f},
     {"OSC LVL", 0, 1, 0, 1, 0, 0.0f},
     {"MAIN LVL", 0, 1, 0, 1, 0, 1.0f},
+    {"AUX LVL", 0, 1, 0, 1, 0, 0.0f},
 };
-static const uint8_t UG_OSC[] = {4, 3};
+static const uint8_t UG_OSC[] = {4, 4};
 static const ui_param_t UP_GLO[] = {
     {"TEMPO", 3, 0, 60, 180, 0, 112.0f},
     {"MIDI CH", 2, 0, 0, 16, 170, 0.0f},
@@ -305,7 +306,7 @@ static const ui_mod_t UI_MODS[UI_NMODS] = {
 };
 static const ui_mod_t UI_AMP = {"AMP", "ENVELOPES", 0, 4, 6, 22, UG_AMP, UP_AMP, 0, {0}};
 static const ui_mod_t UI_LFO = {"LFO", "THREE LFOS", 0, 5, 6, 24, UG_LFO, UP_LFO, 0, {0}};
-static const ui_mod_t UI_OSC = {"OSC", "OSC + MIXER", 0, 0, 2, 7, UG_OSC, UP_OSC, 0, {0}};
+static const ui_mod_t UI_OSC = {"OSC", "OSC + MIXER", 0, 0, 2, 8, UG_OSC, UP_OSC, 0, {0}};
 static const ui_mod_t UI_GLO = {"GLOBAL", "SETTINGS", 0, 6, 6, 19, UG_GLO, UP_GLO, 0, {0}};
 static const ui_mod_t UI_SEL = {"SCALE + CHORD", "KEYS TO SCALE", 0, 7, 2, 8, UG_SEL, UP_SEL, 0, {0}};
 static const ui_mod_t UI_ARP = {"ARP", "ARPEGGIATOR", 0, 8, 2, 8, UG_ARP, UP_ARP, 0, {0}};

@@ -97,13 +97,13 @@ def main():
     a_pg, a_n = params("AMP", d["AMP"]["pages"])
     l_pg, l_n = params("LFO", d["LFOS"]["pages"])
     # OSC: the firmware's own page (not on the browser page): a plain oscillator per voice mixed with the source,
-    # on AMP's spare parameters 24-30 (engine/rack.cc osc_mix)
+    # on AMP's spare parameters 24-31 (engine/rack.cc osc_mix); AUX LVL (31): Plaits' AUX output into the mix
     num = lambda l, d, mod=True: {"l": l, "t": "num", "def": d, **({} if mod else {"mod": False})}
     osc = [[{"l": "WAVE", "t": "list", "opts": ["SINE", "TRI", "SAW", "SQUARE", "PULSE", "NOISE"], "def": 0, "mod": False},
             {"l": "OCTAVE", "t": "int", "min": -3, "max": 2, "def": 0, "mod": False},
             {"l": "SEMI", "t": "int", "min": -12, "max": 12, "def": 0, "mod": False},
             {"l": "FINE", "t": "bip", "def": 0}],
-           [num("PW", 0.5), num("OSC LVL", 0.0), num("MAIN LVL", 1.0)]]
+           [num("PW", 0.5), num("OSC LVL", 0.0), num("MAIN LVL", 1.0), num("AUX LVL", 0.0)]]
     o_pg, o_n = params("OSC", osc)
     g_pg, g_n = params("GLO", d["GLOBAL"]["pages"][:GLO_PAGES] + [[]])
     s_pg, s_n = params("SEL", d["CHORD"]["pages"])

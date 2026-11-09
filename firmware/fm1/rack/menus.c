@@ -46,7 +46,9 @@ static struct {
     uint32_t edited_at;                       /* the last edit: the buffers are checked when the knobs rest */
     int edited;
     int learn, learn_m;
-    uint32_t edit_at;                         /* EDIT tapped, waiting for a second tap */                       /* LEARN on; the macro it links (0-3: M1-M4) */
+    uint32_t edit_at;                         /* EDIT tapped, waiting for a second tap */
+    uint32_t lfo_at;                          /* LFO tapped, waiting for a second tap (two taps: the MATRIX) */
+    int mtab, hrow[4];                        /* the matrix hub's table (ALGORITHM): ROUTES ENV EDIT OSC; each one's row */                       /* LEARN on; the macro it links (0-3: M1-M4) */
     uint32_t home_at;                         /* HOME went down (a hold starts LEARN), 0 up */
     int home_long;
 } mn;
@@ -570,9 +572,88 @@ static void draw_picker(void)
     cv_blit(0, 162);
 }
 
+/* the matrix hub (Nov 2026): ALGORITHM turns its tables: ROUTES (the 12 rows), then ENV (AMP), EDIT (the source)
+ * and OSC as lists of every parameter: SELECT the row, K1 its value; a parameter the matrix moves shows a dot in its
+ * source's colour, so the routes and what they move are edited in one place */
+static void edited(void);
+static const char *const HUB_NAME[4] = {"ROUTES", "ENV", "EDIT", "OSC"};
+static const ui_mod_t *hub_mod(int t, int *slot, int *ofs)
+{
+    *ofs = 0;
+    if (t == 1) { *slot = RS_AMP; return &UI_AMP; }
+    if (t == 3) { *slot = RS_AMP; *ofs = OSC_P0; return &UI_OSC; }
+    *slot = RS_SRC;
+    return ui_mod(rc_patch.mod[RS_SRC]);
+}
+static void draw_hub(void)
+{
+    int slot, ofs, k, n, top, row = mn.hrow[mn.mtab];
+    const ui_mod_t *m = hub_mod(mn.mtab, &slot, &ofs);
+    char t[32];
+    n = m ? m->nparams : 0;
+    if (n > 24) n = 24;
+    if (row >= n) row = mn.hrow[mn.mtab] = n ? n - 1 : 0;
+    t[0] = 0;
+    cat(t, HUB_NAME[mn.mtab]);
+    if (mn.mtab == 2 && m) { cat(t, " "); cat(t, m->name); }
+    header("MATRIX", K_MX, t, IC_MATRIX, 4, mn.mtab);
+    cv_begin(240, 16, K_BG);
+    cv_text(8, 2, &FONT_T, "PARAMETER", K_DIM);
+    cv_text(110, 2, &FONT_T, "VALUE", K_DIM);
+    cv_text(200, 2, &FONT_T, "MOD", K_DIM);
+    cv_blit(0, 34);
+    top = row - 3;
+    if (top > n - 7) top = n - 7;
+    if (top < 0) top = 0;
+    for (k = 0; k < 7; k++) {
+        int i = top + k, sel = i == row;
+        cv_begin(232, 22, K_BG);
+        if (i < n) {
+            const ui_param_t *p = &m->p[i];
+            float v = rk_get_param(slot, ofs + i);
+            uint16_t mc = p->mod ? mod_colour(slot, ofs + i) : 0;
+            uint16_t pc = mn.mtab == 1 ? K_AMP : mn.mtab == 3 ? K_OSC : slot_colour(RS_SRC);
+            if (sel) {
+                rrect(0, 0, 232, 22, K_SEL, 4);
+                cv_rect(0, 0, 2, 22, K_MX);
+            }
+            cv_text(8, 4, &FONT_T, p->l, sel ? K_FG : K_DIM);
+            fmt(p, v, t);
+            cv_text(110, 4, &FONT_T, t, K_FG);
+            rrect(160, 10, 32, 3, K_FAINT, 1);
+            rrect(160, 10, 1 + (int32_t)(31.0f * frac(p, v)), 3, pc, 1);
+            if (mc) rrect(204, 7, 9, 9, mc, 4);
+            else if (!p->mod) cv_text(204, 4, &FONT_T, "-", K_FAINT);
+        }
+        cv_blit(4, 50 + (uint32_t)k * 23);
+    }
+    help(mn.mtab == 2 && !m ? "NO SOURCE LOADED   ALGO: TABLE" : "ALGO: TABLE   SELECT: ROW   K1: VALUE");
+}
+static void hub_knob(int32_t e)
+{
+    int slot, ofs, pi = mn.hrow[mn.mtab];
+    const ui_mod_t *m = hub_mod(mn.mtab, &slot, &ofs);
+    float v;
+    if (!m || pi >= m->nparams)
+        return;
+    v = step(&m->p[pi], rk_get_param(slot, ofs + pi), e);
+    rc_set(slot, ofs + pi, v);
+    if (mn.mtab == 1 && pi == 11) {           /* AMP MODE: the voices follow (as on AMP's page) */
+        int md = (int)(v + 0.5f);
+        rc_patch.mode = md;
+        rk_set_legato(md == RVM_MONO ? 0 : 1);
+        rc_voices(md == RVM_MONO || md == RVM_LEGATO ? 1 : START_VOICES);
+    }
+    edited();
+}
+
 static void draw_matrix(void)
 {
     int k, top = mn.row - 2;
+    if (mn.mtab) {
+        draw_hub();
+        return;
+    }
     char t[32];
     if (top < 0) top = 0;
     if (top > 6) top = 6;
@@ -580,7 +661,7 @@ static void draw_matrix(void)
     cat(t, "ROW ");
     int_text(mn.row + 1, t + 4);
     cat(t, "/12");
-    header("MATRIX", K_MX, t, IC_MATRIX, 1, 0);
+    header("MATRIX", K_MX, t, IC_MATRIX, 4, 0);
     cv_begin(240, 16, K_BG);
     cv_text(8, 2, &FONT_T, "SOURCE", K_DIM);
     cv_text(72, 2, &FONT_T, "DESTINATION", K_DIM);
@@ -611,7 +692,7 @@ static void draw_matrix(void)
         cv_text(192, 4, &FONT_T, via ? src_name(via) : "-", K_DIM);
         cv_blit(4, 50 + (uint32_t)k * 24);
     }
-    help("SELECT: ROW  K1 SRC  K2 DEST  K3 AMT  K4 VIA");
+    help("ALGO: TABLE  K1 SRC K2 DEST K3 AMT K4 VIA");
 }
 
 static void rack_tile(int32_t x, const char *tag, int slot, uint16_t c, const char *fixed, int ic)
@@ -828,6 +909,11 @@ static void knob(int k, int32_t e)
 {
     const ui_mod_t *m = page_mod(mn.page);
     int slot = page_slot(mn.page);
+    if (mn.page == PG_MATRIX && mn.mtab) {    /* the hub's lists: K1 the value */
+        if (k == 0)
+            hub_knob(e);
+        return;
+    }
     if (mn.page == PG_MATRIX) {
         int src, via;
         float amt;
@@ -911,7 +997,18 @@ static int menu_input(uint32_t press, uint32_t btn)
         page_button(SRC_CYC, 2);
     }
     if (press >> B_ENV & 1u) page_button(ENV_CYC, 2);
-    if (press >> B_LFO & 1u) page_button(LFO_CYC, 5);
+    if (press >> B_LFO & 1u) {                /* LFO: as EDIT, a tap turns the page once a second tap can't come; */
+        if (mn.lfo_at && plat_ms() - mn.lfo_at < EDIT_DOUBLE_MS) {   /* two taps: the MATRIX */
+            mn.lfo_at = 0;
+            go(PG_MATRIX);
+        } else {
+            mn.lfo_at = plat_ms() | 1u;
+        }
+    }
+    if (mn.lfo_at && plat_ms() - mn.lfo_at >= EDIT_DOUBLE_MS) {
+        mn.lfo_at = 0;
+        page_button(LFO_CYC, 5);
+    }
     if (press >> B_FX & 1u) page_button(FX_CYC, 2);
     if (press >> B_ARP & 1u) page_button(ARP_CYC, 1);
     if (press >> B_SEL & 1u) page_button(SEL_CYC, 1);
@@ -938,12 +1035,21 @@ static int menu_input(uint32_t press, uint32_t btn)
         return 1;
     }
     if ((e = plat_enc(EN_SELECT)) != 0) {
-        if (mn.page == PG_MATRIX) {
+        if (mn.page == PG_MATRIX && mn.mtab) {
+            int slot, ofs;
+            const ui_mod_t *m = hub_mod(mn.mtab, &slot, &ofs);
+            int n = m ? (m->nparams > 24 ? 24 : m->nparams) : 1;
+            mn.hrow[mn.mtab] = (mn.hrow[mn.mtab] + (e > 0 ? 1 : -1) + n) % n;
+        } else if (mn.page == PG_MATRIX) {
             mn.row = (mn.row + (e > 0 ? 1 : -1) + 12) % 12;   /* round (all pages loop) */
         } else if (!mn.pick) {
             int np = npages(mn.page);
             mn.sub = (mn.sub + (e > 0 ? 1 : -1) + np) % np;
         }
+        ui.redraw = 1;
+    }
+    if (mn.page == PG_MATRIX && (e = plat_enc(EN_ALGO)) != 0) {   /* the hub's tables, round */
+        mn.mtab = (mn.mtab + (e > 0 ? 1 : 3)) % 4;
         ui.redraw = 1;
     }
     if ((e = plat_enc(EN_ALGO)) != 0 && is_slot_page(mn.page)) {

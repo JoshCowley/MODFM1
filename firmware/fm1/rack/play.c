@@ -393,6 +393,21 @@ static void raw_release(int raw)
     r->n = 0;
 }
 
+/* ARP > HOLD with the arpeggiator off: a latch. Keys let go keep sounding; the next key pressed when none is held
+ * starts a new chord (the latched one ends); PLAY / STOP and turning HOLD off end it too (PLE_ARP_CLEAR) */
+static uint8_t pl_latched[PL_NRAW];
+static int pl_latch_on(void) { return AI(A_HOLD) && AI(A_MODE) == AM_OFF; }
+static void latch_release_all(void)
+{
+    int i;
+    for (i = 0; i < PL_NRAW; i++)
+        if (pl_latched[i]) {
+            pl_latched[i] = 0;
+            if (!pl_raw[i].active)
+                raw_release(i);
+        }
+}
+
 static void pl_key_on(int raw, int note, float vel)
 {
     pl_raw_t *r;
@@ -402,6 +417,15 @@ static void pl_key_on(int raw, int note, float vel)
     if (raw < 0 || raw >= PL_NRAW)
         return;
     r = &pl_raw[raw];
+    if (pl_latch_on()) {                      /* the latch: no key held, so this starts a new chord */
+        int any = 0;
+        for (i = 0; i < PL_NRAW; i++)
+            if (pl_raw[i].active)
+                any = 1;
+        if (!any)
+            latch_release_all();
+    }
+    pl_latched[raw] = 0;
     if (r->active || r->n)                    /* the same key again: the last one ends first */
         raw_release(raw);
     vel = fm_powf(vel < 0.0f ? 0.0f : vel > 1.0f ? 1.0f : vel, fm_exp2f((0.5f - set.glo[G_VEL]) * 3.0f));
@@ -458,6 +482,10 @@ static void pl_key_off(int raw)
     }
     pl_raw[raw].active = 0;
     sq_note_out(raw);
+    if (pl_latch_on()) {                      /* the latch: it keeps sounding */
+        pl_latched[raw] = 1;
+        return;
+    }
     if (AI(A_MODE) != AM_OFF)
         arp_remove(raw);
     raw_release(raw);
@@ -498,6 +526,7 @@ static void pl_reset(int all)                 /* the engine was reset (a preset 
         if (pl_snd[i])
             midi_out_note(i, 0);
     memset(pl_snd, 0, sizeof pl_snd);
+    memset(pl_latched, 0, sizeof pl_latched);
     sq_reset_counts();
     pl_npend = 0;
     for (i = 0; i < PL_NRAW; i++) {
@@ -719,7 +748,7 @@ static void pl_event(int type, int a, float x, float y)
     case PLE_KEY_OFF: pl_key_off(a); break;
     case PLE_ZONE: pl_zone_key(a, x > 0.5f); break;
     case PLE_RESET: pl_reset(a); break;
-    case PLE_ARP_CLEAR: pa.count = 0; pa.latch_free = 0; pa.idx = 0; break;
+    case PLE_ARP_CLEAR: pa.count = 0; pa.latch_free = 0; pa.idx = 0; latch_release_all(); break;   /* and the latch */
     case RCE_ALL_OFF: pl_reset(1); break;
     }
 }
