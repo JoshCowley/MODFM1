@@ -120,6 +120,8 @@ struct VoiceState {
   float tm;                      // seconds spent in the AMP delay or hold stage
   float fenv; int fstage;        // the filter's own ADSR
   float benv; int bstage;        // Braids' internal AD
+  float pend_vel;                // stage 7: a stolen voice fades for a block or two, then plays the new note at this velocity
+  float gl0, gr0;                // the last block's gains: each block ramps from them, so the envelope has no steps
 };
 
 static VoiceState vs_[MAXV];
@@ -146,6 +148,7 @@ static warps::Modulator warps_[MAXV];
 #endif
 static Svf svf_[MAXV], svf2_[MAXV];
 static int nvoices_ = 2;
+static int shrink_to_ = 0;   // fewer voices asked for while some still fade out (set_voices): the count they go to
 static int last_voice_ = 0;
 static uint32_t age_counter_ = 0;
 
@@ -279,6 +282,28 @@ static float blk_l_[BLOCK], blk_r_[BLOCK];
 static int blk_pos_ = BLOCK;
 
 static inline float clampf(float x, float a, float b) { return x < a ? a : x > b ? b : x; }
+#ifdef RACK_FM1
+// the FM-1 has no fast libm: these stand in for tanhf and sinf in per-sample loops (10 Nov 2026)
+// tanh: a [7/6] Pade fit, within 1e-6 of tanhf up to |x| 4.97, where tanh is 0.9999 and it is held at 1
+static inline float fast_tanh(float x) {
+  if (x > 4.97f) return 1.0f;
+  if (x < -4.97f) return -1.0f;
+  float x2 = x * x;
+  return x * (135135.0f + x2 * (17325.0f + x2 * (378.0f + x2))) / (135135.0f + x2 * (62370.0f + x2 * (3150.0f + x2 * 28.0f)));
+}
+// sin(2 pi p) for any p: a parabola, corrected (within 0.001 of sinf), for LFO-like uses (chorus, wow, windows)
+static inline float fast_sin01(float p) {
+  p -= floorf(p);
+  float x = (p < 0.5f ? p : p - 1.0f) * 6.2831853f;            // -pi..pi
+  float y = 1.2732395f * x - 0.4052847f * x * fabsf(x);         // a parabola through the sine's zeros and peaks
+  return 0.225f * (y * fabsf(y) - y) + y;
+}
+#define TANHF fast_tanh
+#define SIN01(p) fast_sin01(p)
+#else
+#define TANHF tanhf
+#define SIN01(p) sinf((p) * 6.2831853f)
+#endif
 static inline float randf() { return Random::GetFloat(); }
 
 // ------------------------------------------------------------------ params
@@ -313,8 +338,10 @@ static float mod_sum(int slot, int param, const VoiceState* v) {
   return m;
 }
 
-static float P(int slot, int param, const VoiceState* v) {
-  float x = base_[slot][param] + mod_sum(slot, param, v) * span_[slot][param];
+static inline float P(int slot, int param, const VoiceState* v) {
+  float x = base_[slot][param];
+  // a parameter nothing routes to (most of them) skips the call: P runs hundreds of times a block (10 Nov 2026)
+  if (param >= 32 || (routed_[slot + 1] >> param & 1u)) x += mod_sum(slot, param, v) * span_[slot][param];
   return clampf(x, lo_[slot][param], hi_[slot][param]);
 }
 static int PI(int slot, int param, const VoiceState* v) {
@@ -476,7 +503,7 @@ static void fm1_layout() {
   init_fx(eff[S_FX1]); init_fx(eff[S_FX2]);
   int n = want_voices_ < nalloc_ ? want_voices_ : nalloc_; if (n < 1) n = 1;
   for (int i = n; i < MAXV; ++i) { vs_[i].gate = false; vs_[i].active = false; vs_[i].stage = 0; vs_[i].env = 0; }
-  nvoices_ = n;
+  nvoices_ = n; shrink_to_ = 0;
 }
 // After a patch has loaded (its modules, parameters and routes): size the big buffers to what it can use and lay the
 // arena out again, so the room left goes to voices. The sound is the same, sample for sample, as with the full sizes.
@@ -565,35 +592,49 @@ EXPORT void set_voices(int n) {
 #ifdef RACK_FM1
   want_voices_ = n; if (n > nalloc_) n = nalloc_ < 1 ? 1 : nalloc_;
 #endif
-  if (n < nvoices_) for (int i = n; i < MAXV; ++i) { vs_[i].gate = false; vs_[i].active = false; vs_[i].stage = 0; vs_[i].env = 0; }
+  if (n < nvoices_) {   // a voice still sounding fades out first (cutting it clicked: the FM-1 sheds voices on overload)
+    bool fading = false;
+    for (int i = n; i < MAXV; ++i) {
+      if (i < nvoices_ && vs_[i].active && vs_[i].env > 0.01f) { vs_[i].gate = false; vs_[i].stage = 7; fading = true; }
+      else { vs_[i].gate = false; vs_[i].active = false; vs_[i].stage = 0; vs_[i].env = 0; }
+    }
+    if (fading) { shrink_to_ = n; return; }
+  }
+  shrink_to_ = 0;
   nvoices_ = n;
 }
 
 EXPORT void note_on(float note, float vel) {
   any_gate_ = true;
-  if (nvoices_ == 1) {
+  int nv = shrink_to_ ? shrink_to_ : nvoices_;
+  if (nv == 1) {
     VoiceState& v = vs_[0];
     bool legato = v.gate && legato_;
-    v.note = note; v.vel = vel; v.gate = true; v.active = true;
+    v.note = note; v.vel = vel; v.gate = true; v.active = true;   // one voice: the attack goes on from where it is
     if (!legato) { v.retrig = true; v.stage = 1; v.rnd = randf() * 2.0f - 1.0f; }
     v.age = ++age_counter_; last_voice_ = 0;
     return;
   }
   // free voice, else oldest
   int pick = -1; uint32_t oldest = 0xffffffff;
-  for (int i = 0; i < nvoices_; ++i) if (!vs_[i].active) { pick = i; break; }
-  if (pick < 0) for (int i = 0; i < nvoices_; ++i) if (!vs_[i].gate && vs_[i].age < oldest) { oldest = vs_[i].age; pick = i; }
-  if (pick < 0) { oldest = 0xffffffff; for (int i = 0; i < nvoices_; ++i) if (vs_[i].age < oldest) { oldest = vs_[i].age; pick = i; } }
+  for (int i = 0; i < nv; ++i) if (!vs_[i].active) { pick = i; break; }
+  if (pick < 0) for (int i = 0; i < nv; ++i) if (!vs_[i].gate && vs_[i].age < oldest) { oldest = vs_[i].age; pick = i; }
+  if (pick < 0) { oldest = 0xffffffff; for (int i = 0; i < nv; ++i) if (vs_[i].age < oldest) { oldest = vs_[i].age; pick = i; } }
   VoiceState& v = vs_[pick];
-  v.note = note; v.cur_note = note; v.vel = vel; v.gate = true; v.active = true; v.retrig = true;
-  v.stage = 1; v.rnd = randf() * 2.0f - 1.0f; v.age = ++age_counter_;
+  v.age = ++age_counter_;
+  if (v.active && v.env > 0.01f) {   // a stolen voice still sounding: fade it out first (a restart at full level clicked)
+    v.note = note; v.gate = true; v.stage = 7; v.pend_vel = vel;
+  } else {
+    v.note = note; v.cur_note = note; v.vel = vel; v.gate = true; v.active = true; v.retrig = true;
+    v.stage = 1; v.rnd = randf() * 2.0f - 1.0f;
+  }
   v.pan = (pick % 2 ? 1.0f : -1.0f) * (0.3f + 0.7f * (pick / 2) / 2.0f);
   last_voice_ = pick;
 }
 EXPORT void reset_clock() { clk_reset(); }
 
 EXPORT void note_off(float note) {
-  for (int i = 0; i < MAXV; ++i) if (vs_[i].gate && fabsf(vs_[i].note - note) < 0.01f) { vs_[i].gate = false; vs_[i].stage = 4; }
+  for (int i = 0; i < MAXV; ++i) if (vs_[i].gate && fabsf(vs_[i].note - note) < 0.01f) { vs_[i].gate = false; if (vs_[i].stage != 7) vs_[i].stage = 4; }
   any_gate_ = false;
   for (int i = 0; i < nvoices_; ++i) if (vs_[i].gate) any_gate_ = true;
 }
@@ -656,6 +697,13 @@ static void run_env(VoiceState& v) {
   if (va != 0.0f || kt != 0.0f) {
     float k = -kt * clampf((v.note - 60.0f) / 48.0f, -1.0f, 1.0f) * 0.4f;   // higher notes shorter when KEY>TIME is up
     a = clampf(a - va * v.vel * 0.5f + k, 0.0f, 1.0f); d = clampf(d + k, 0.0f, 1.0f); r = clampf(r + k, 0.0f, 1.0f);
+  }
+  if (v.stage == 7) {   // a stolen voice fading out (about 1.5 ms), then its new note starts from silence
+    v.env *= 0.3f;
+    if (v.env > 0.003f) return;
+    v.env = 0.0f;
+    if (!v.gate) { v.stage = 0; v.active = false; return; }   // the new note was already let go: drop it
+    v.stage = 1; v.retrig = true; v.vel = v.pend_vel; if (nvoices_ > 1) v.cur_note = v.note; v.rnd = randf() * 2.0f - 1.0f;
   }
   float dly = P(S_AMP, 14, &v), hold = P(S_AMP, 15, &v), ac = P(S_AMP, 16, &v), dc = P(S_AMP, 17, &v);
   if (v.retrig && v.stage == 1 && dly > 0.0005f) { v.stage = 5; v.tm = 0.0f; }
@@ -947,13 +995,13 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
   float* const vbuf_ = vbuf_c_[core];
   float* const vaux_ = vaux_c_[core];
   VoiceState& v = vs_[i];
-  if (!v.active && v.stage == 0) return;
+  if (!v.active && v.stage == 0) { v.gl0 = v.gr0 = 0.0f; return; }
   run_env(v);
 
   // glide (mono only)
   float glide = P(S_AMP, 5, &v);
   if (nvoices_ == 1 && glide > 0.001f) v.cur_note += (v.note - v.cur_note) * (1.0f - powf(glide, 0.08f) * 0.995f);
-  else v.cur_note = v.note;
+  else if (v.stage != 7) v.cur_note = v.note;   // a fading stolen voice keeps its old pitch
   int ti = (int)(v.cur_note + 0.5f); ti = ti < 0 ? 0 : ti > 127 ? 127 : ti;
   float vint = 0.0f;
   if (vintage_ > 0.0f) {   // each voice its own small tuning error, a slow drift, and each note a little of its own
@@ -1141,8 +1189,8 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
       switch (sat) {
         case 1: x = clampf(xg, -1.0f, 1.0f) / norm; break;                        // HARD
         case 2: x = sinf(clampf(xg, -4.0f, 4.0f) * 1.5707963f) / norm; break;      // FOLD
-        case 3: x = (xg >= 0.0f ? tanhf(xg) : tanhf(xg * 0.6f) / 0.6f) / norm; break;   // ASYM
-        default: x = tanhf(xg) / norm;                                             // SOFT (as before)
+        case 3: x = (xg >= 0.0f ? TANHF(xg) : TANHF(xg * 0.6f) / 0.6f) / norm; break;   // ASYM
+        default: x = TANHF(xg) / norm;                                             // SOFT (as before)
       }
       if (fm > 0.0f) {      // AUDIO FM: the source moves the cutoff at audio rate
         float ff = clampf(f * SemitonesToRatio(in * fm * 48.0f), 0.0001f, 0.45f);
@@ -1167,7 +1215,11 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
   float spread = P(S_AMP, 6, &v);
   float pan = clampf(v.pan * spread + mod_sum(-1, 1, &v), -1.0f, 1.0f);
   float gl = gain * sqrtf(0.5f * (1.0f - pan)), gr = gain * sqrtf(0.5f * (1.0f + pan));
-  for (int n = 0; n < BLOCK; ++n) { mix_l[n] += vbuf_[n] * gl * 1.41f; mix_r[n] += vaux_[n] * gr * 1.41f; }
+  // the gain ramps across the block from the last block's: a step every 24 samples clicked on fast attacks,
+  // releases and plucks (10 Nov 2026)
+  float l0 = v.gl0 * 1.41f, r0 = v.gr0 * 1.41f, dl = (gl - v.gl0) * (1.41f / BLOCK), dr = (gr - v.gr0) * (1.41f / BLOCK);
+  for (int n = 0; n < BLOCK; ++n) { l0 += dl; r0 += dr; mix_l[n] += vbuf_[n] * l0; mix_r[n] += vaux_[n] * r0; }
+  v.gl0 = gl; v.gr0 = gr;
 }
 
 // ------------------------------------------------------------------ master: 3-band EQ, glue compressor, look-ahead limiter
@@ -1188,6 +1240,7 @@ struct Biquad {
 };
 static Biquad eq_[2][3];
 static float eq_db_[3] = { 0, 0, 0 }, eq_cur_[3] = { 0, 0, 0 }, comp_amt_ = 0.0f;
+static float comp_g_ = 0.0f;   // the FM-1's compressor gain at the end of the last block (0: none yet)
 static float comp_env_ = 0.0f, comp_gr_db_ = 0.0f, lim_gain_ = 1.0f, lim_gr_db_ = 0.0f;
 static float lim_buf_l_[64], lim_buf_r_[64]; static int lim_w_ = 0;
 // the limiter's look-ahead peak: the largest |sample| of the last 48, kept as a falling queue (each sample goes in
@@ -1208,6 +1261,21 @@ static void run_master(float* l, float* r) {
   // glue compressor: one knob lowers the threshold from -6 to -30 dB and raises the ratio from 2:1 to 4:1, with make-up
   if (comp_amt_ > 0.001f) {
     float thr = -6.0f - 24.0f * comp_amt_, ratio = 2.0f + 2.0f * comp_amt_, makeup = -thr * (1.0f - 1.0f / ratio) * 0.5f;
+#ifdef RACK_FM1
+    // the FM-1: the gain worked out once a block (log10f and powf per sample were most of the compressor's time) and
+    // ramped across it; the envelope still follows every sample, and the limiter after catches what the ramp lags
+    for (int n = 0; n < BLOCK; ++n) {
+      float x = fmaxf(fabsf(l[n]), fabsf(r[n]));
+      comp_env_ += (x - comp_env_) * (x > comp_env_ ? 0.02f : 0.0004f);
+    }
+    float lvl = 20.0f * log10f(comp_env_ + 1e-6f), over = lvl - thr;
+    float gr = over > 0 ? over * (1.0f - 1.0f / ratio) : 0.0f;
+    comp_gr_db_ = gr;
+    float g1 = powf(10.0f, (makeup - gr) / 20.0f), g = comp_g_, dg = (g1 - comp_g_) / BLOCK;
+    if (g <= 0.0f) { g = g1; dg = 0.0f; }
+    for (int n = 0; n < BLOCK; ++n) { g += dg; l[n] *= g; r[n] *= g; }
+    comp_g_ = g1;
+#else
     for (int n = 0; n < BLOCK; ++n) {
       float x = fmaxf(fabsf(l[n]), fabsf(r[n]));
       comp_env_ += (x - comp_env_) * (x > comp_env_ ? 0.02f : 0.0004f);
@@ -1217,6 +1285,7 @@ static void run_master(float* l, float* r) {
       float g = powf(10.0f, (makeup - gr) / 20.0f);
       l[n] *= g; r[n] *= g;
     }
+#endif
   } else comp_gr_db_ = 0.0f;
   // limiter: looks 48 samples (1 ms) ahead, so a loud attack is already turned down when it arrives
   for (int n = 0; n < BLOCK; ++n) {
@@ -1323,7 +1392,7 @@ static void run_fx(int slot, float* l, float* r) {
         shim_ph_ += 1.0f / 2048.0f; if (shim_ph_ >= 1.0f) shim_ph_ -= 1.0f;
         float d1 = (1.0f - shim_ph_) * 2048.0f, d2 = (1.0f - fmodf(shim_ph_ + 0.5f, 1.0f)) * 2048.0f;
         auto rdbuf = [](float d) { float pos = shim_w_ - d; while (pos < 0) pos += 4096.0f; int i0 = (int)pos; float f = pos - i0; return (shim_buf_[i0 & 4095] * (1 - f) + shim_buf_[(i0 + 1) & 4095] * f) / 32768.0f; };
-        float w1 = sinf(3.14159265f * shim_ph_), w2 = sinf(3.14159265f * fmodf(shim_ph_ + 0.5f, 1.0f));
+        float w1 = SIN01(shim_ph_ * 0.5f), w2 = SIN01(fmodf(shim_ph_ + 0.5f, 1.0f) * 0.5f);
         float up = rdbuf(d1) * w1 + rdbuf(d2) * w2;
         shim_w_ = (shim_w_ + 1) & 4095;
         in_l += up * shim * 0.35f; in_r += up * shim * 0.35f;   // 1.9.2: 0.7 let long shimmer tails grow after release
@@ -1356,7 +1425,7 @@ static void run_fx(int slot, float* l, float* r) {
       if (mode == 2) {           // wow and flutter swing the read point; the repeats saturate as they pile up
         tape_ph1_ += 0.45f / SR; if (tape_ph1_ >= 1.0f) tape_ph1_ -= 1.0f;
         tape_ph2_ += 6.3f / SR; if (tape_ph2_ >= 1.0f) tape_ph2_ -= 1.0f;
-        dsamp += wow * (sinf(tape_ph1_ * 6.2831853f) * 90.0f + sinf(tape_ph2_ * 6.2831853f) * 6.0f);
+        dsamp += wow * (SIN01(tape_ph1_) * 90.0f + SIN01(tape_ph2_) * 6.0f);
       }
       float pos = delay_w_ - dsamp; while (pos < 0) pos += (float)dlen_;
       int i0 = (int)pos; float fr2 = pos - i0; int i1 = (i0 + 1) % dlen_; i0 %= dlen_;
@@ -1388,7 +1457,7 @@ static void run_fx(int slot, float* l, float* r) {
     if (cmode == 2) mix = 1.0f;
     for (int n = 0; n < BLOCK; ++n) {
       chorus_phase_ += rate / SR; if (chorus_phase_ >= 1.0f) chorus_phase_ -= 1.0f;
-      float s = sinf(chorus_phase_ * 6.2831853f);
+      float s = SIN01(chorus_phase_);
       chorus_l_[chorus_w_] = DS(cfb > 0.0f ? l[n] + ch_fb_l_ * cfb : l[n]); chorus_r_[chorus_w_] = DS(cfb > 0.0f ? r[n] + ch_fb_r_ * cfb : r[n]);
 #ifndef RACK_FM1
       if (delay_q16_) { chorus_l_[chorus_w_] = q16(chorus_l_[chorus_w_]); chorus_r_[chorus_w_] = q16(chorus_r_[chorus_w_]); }   // the FM-1 preview: 16-bit
@@ -1482,6 +1551,11 @@ static void process_block() {
   for (int i = 0; i < 6; ++i) ext_cur_[i] += (ext_tgt_[i] - ext_cur_[i]) * ext_slew_[i];
   run_lfos();
   run_mod(0); run_mod(1);
+  if (shrink_to_) {   // fewer voices: once the ones going have faded out
+    bool done = true;
+    for (int i = shrink_to_; i < nvoices_; ++i) if (vs_[i].active) done = false;
+    if (done) { nvoices_ = shrink_to_; shrink_to_ = 0; }
+  }
   memset(blk_l_, 0, sizeof(blk_l_)); memset(blk_r_, 0, sizeof(blk_r_));
 #ifdef RACK_FM1
   if (mod_id_[S_SHP] == M_RINGS) { memset(rings_in_, 0, sizeof(rings_in_)); rings_dry_g_ = 1.0f - P(S_SHP, 6, 0); }

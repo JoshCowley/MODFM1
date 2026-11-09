@@ -146,3 +146,12 @@ PD SOFT SINE 97 % (these would shed voices).
   used), expected about 1 % instead of 16 %; Plaits renders a block in one call of 24 frames unless a note restarts
   in it (was two of 12).
 - Not changed yet: fewer modes in Plaits MODAL and Rings MODAL (demos in the FM1-Rack folder for Josh to judge).
+
+**Changes on 10 November (not yet measured; benchmark package `fm1bench.fwsc` 619570af measures them):**
+- Clicks: each voice's gain now ramps across its 24-sample block (it stepped once a block, which clicked on fast
+  attacks, releases and plucks); a stolen voice that is still sounding fades out for about 1.5 ms before its new note
+  starts; voices shed on overload fade out instead of being cut.
+- CPU (-DRACK_FM1 only, the page unchanged): the filter's saturation uses a Pade tanh (within 1e-4 of tanhf); chorus,
+  tape wow and shimmer use a polynomial sine; the glue compressor works out its gain once a block, ramped; a parameter
+  nothing modulates skips the matrix (most calls); Plaits' MODAL runs 16 of its 24 resonator modes (make_units.py).
+  On the computer (instruction counts) this is 5-12 % less per preset; the FM-1's slower libm should gain more.
