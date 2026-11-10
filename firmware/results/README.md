@@ -172,3 +172,9 @@ Raw data: [`fm1-bench-2026-11-10.csv`](fm1-bench-2026-11-10.csv). All cases OK, 
 time constants all follow kSampleRate): half its time on the computer (390 -> 190 M instructions for PD RESONANT),
 levels within 1 dB, no audible top lost below 12 kHz. Plaits back to two calls of 12 a block: its envelopes, LPG and
 trigger delay are timed per call of 12, so one call of 24 (update 18) halved them, and wasn't faster here.
+
+**11 November, after Josh compared A (48 kHz) and B (24 kHz) demos ("A better for most, B passable"):** B's
+resampling was a mean of each pair down and a straight line up, which let the source's top fold into the strings;
+now a 39-tap halfband both ways. And Rings' string damping filter is a 3-tap filter whose slope is per sample, so at
+24 kHz it darkened the strings: its brightness is remapped to keep the 48 kHz response (shim string.h). Demos "C".
+PD RESONANT (STRUCT 0.1: Rings' curved-bridge buzz) still has more 2-8 kHz than at 48 kHz.

@@ -1,5 +1,5 @@
 // FM1 Rack's copy of rings/dsp/string.h (pichenettes/eurorack, MIT), found before the original by the include path
-// (engine/shim first). One change: with RACK_RINGS16 (the FM-1 build), the strings' delay lines hold 16-bit samples
+// (engine/shim first). Two changes: with RACK_FM1, the damping filter's brightness follows Rings' 24 kHz rate (DampingFilter::Configure); with RACK_RINGS16 (the FM-1 build), the strings' delay lines hold 16-bit samples
 // (DelayLine16 below); without it, this is the original.
 //
 // Copyright 2015 Emilie Gillet.
@@ -61,6 +61,11 @@ class DampingFilter {
   }
    
   inline void Configure(float damping, float brightness, size_t size) {
+#ifdef RACK_FM1
+    // Rings at 24 kHz on the FM-1 (dsp.h): this 3-tap filter's slope is per sample, so at half the rate it would
+    // darken the strings by about two octaves; a quarter of the loss keeps its low and middle response as at 48 kHz
+    brightness = 1.0f - (1.0f - brightness) * 0.25f;
+#endif
     if (!size) {
       damping_ = damping;
       brightness_ = brightness;

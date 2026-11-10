@@ -1523,11 +1523,21 @@ static void run_rings_shared() {
   rp.damping = P(S_SHP, 3, v); rp.position = P(S_SHP, 4, v);
   float rt = P(S_SHP, 8, v), rf = P(S_SHP, 9, v), mix = P(S_SHP, 6, v), spread = P(S_SHP, 7, v);
   float level = P(S_AMP, 7, v), wet = 4.0f * level * level * mix;   // as a voice's AMP gain, without its envelope
-  // Rings runs at 24 kHz on the FM-1 (engine/shim/rings/dsp/dsp.h): the block's excitation, a sample from each pair
-  // (their mean), in one call of 12; its output back at 48 kHz, each new sample with one halfway to it before it
+  // Rings runs at 24 kHz on the FM-1 (engine/shim/rings/dsp/dsp.h). Its excitation goes down and its output comes
+  // back up through a 39-tap halfband filter (flat to 10 kHz, -75 dB from 16 kHz): the first try (a mean of each pair,
+  // a straight line between samples) let the source's top fold into the strings' middle (11 Nov 2026)
+  static const float HB[10] = {0.315457678f, -0.097823539f, 0.050681315f, -0.028869892f, 0.016396910f,
+                               -0.008843422f, 0.004345613f, -0.001840541f, 0.000600712f, -0.000099368f};
+  static float dh[38 + BLOCK], uh1[20 + BLOCK / 2], uh2[20 + BLOCK / 2];
+  for (int n = 0; n < BLOCK; ++n) dh[38 + n] = rings_in_[0][n] + rings_in_[1][n];
   float in[BLOCK / 2], o1[BLOCK / 2], o2[BLOCK / 2];
-  for (int n = 0; n < BLOCK / 2; ++n)
-    in[n] = 0.5f * (rings_in_[0][2 * n] + rings_in_[1][2 * n] + rings_in_[0][2 * n + 1] + rings_in_[1][2 * n + 1]);
+  for (int m = 0; m < BLOCK / 2; ++m) {
+    const float* x = dh + 19 + 2 * m;
+    float y = 0.5f * x[0];
+    for (int j = 0; j < 10; ++j) y += HB[j] * (x[-(2 * j + 1)] + x[2 * j + 1]);
+    in[m] = y;
+  }
+  for (int n = 0; n < 38; ++n) dh[n] = dh[n + BLOCK];   // (the FM-1 has no memmove)
   rings::PerformanceState ps;
   ps.strum = rings_qn_ > 0;   // one strum a block (0.5 ms): a chord's notes follow each other that far apart
   if (ps.strum) { rings_note_ = rings_q_[0]; for (int k = 1; k < rings_qn_; ++k) rings_q_[k - 1] = rings_q_[k]; --rings_qn_; }
@@ -1535,17 +1545,20 @@ static void run_rings_shared() {
   ps.tonic = 0.0f; ps.note = rt != 0.0f || rf != 0.0f ? rings_note_ + floorf(rt + 0.5f) + rf : rings_note_;
   ps.fm = 0.0f; ps.chord = PI(S_SHP, 11, v);
   r.Process(ps, rp, in, o1, o2, BLOCK / 2);
-  static float last1 = 0.0f, last2 = 0.0f;
-  for (int n = 0; n < BLOCK / 2; ++n) {
-    float a1 = 0.5f * (last1 + o1[n]), a2 = 0.5f * (last2 + o2[n]);
-    last1 = o1[n]; last2 = o2[n];
+  for (int m = 0; m < BLOCK / 2; ++m) { uh1[20 + m] = o1[m]; uh2[20 + m] = o2[m]; }
+  for (int k = 0; k < BLOCK / 2; ++k) {
+    const float *u1 = uh1 + 9 + k, *u2 = uh2 + 9 + k;   // each sample, then the one halfway to the next
+    float h1 = 0.0f, h2 = 0.0f;
+    for (int j = 0; j < 10; ++j) { h1 += HB[j] * (u1[-j] + u1[1 + j]); h2 += HB[j] * (u2[-j] + u2[1 + j]); }
+    float a1 = u1[0], a2 = u2[0], b1 = 2.0f * h1, b2 = 2.0f * h2;
     float c = (a1 + a2) * 0.5f;
-    blk_l_[2 * n] += (c + (a1 - c) * spread) * wet;
-    blk_r_[2 * n] += (c + (a2 - c) * spread) * wet;
-    c = (o1[n] + o2[n]) * 0.5f;
-    blk_l_[2 * n + 1] += (c + (o1[n] - c) * spread) * wet;
-    blk_r_[2 * n + 1] += (c + (o2[n] - c) * spread) * wet;
+    blk_l_[2 * k] += (c + (a1 - c) * spread) * wet;
+    blk_r_[2 * k] += (c + (a2 - c) * spread) * wet;
+    c = (b1 + b2) * 0.5f;
+    blk_l_[2 * k + 1] += (c + (b1 - c) * spread) * wet;
+    blk_r_[2 * k + 1] += (c + (b2 - c) * spread) * wet;
   }
+  for (int n = 0; n < 20; ++n) { uh1[n] = uh1[n + BLOCK / 2]; uh2[n] = uh2[n + BLOCK / 2]; }
 }
 #endif
 static void process_block() {
