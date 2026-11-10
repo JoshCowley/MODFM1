@@ -1,0 +1,144 @@
+wait 400
+turn PRESET 31
+wait 1500
+key w1 down 100
+key w5 down 100
+key w8 down 100
+wait 1500
+shot m_home.png
+tap HOME
+wait 600
+shot m_rack.png
+tap EDIT
+wait 1500
+shot m_module.png
+turn SELECT -1
+wait 800
+shot m_modpage.png
+turn SELECT 1
+wait 300
+turn ALGO 1
+wait 600
+shot m_picker.png
+tap HOME
+wait 400
+tap ENV
+wait 900
+shot m_amp.png
+tap EDIT
+wait 400
+tap EDIT
+wait 900
+shot m_osc.png
+turn SELECT 1
+wait 600
+shot m_oscmix.png
+tap LFO
+wait 1200
+shot m_func.png
+tap LFO
+wait 500
+tap LFO
+wait 900
+shot m_lfo.png
+turn SELECT 6
+wait 600
+shot m_lfotgt.png
+tap LFO
+wait 900
+shot m_mseq.png
+tap LFO
+wait 900
+shot m_matrix.png
+turn ALGO 1
+wait 600
+shot m_hub.png
+key w1 up
+key w5 up
+key w8 up
+tap HOME
+wait 600
+press SEL
+wait 800
+release SEL
+wait 600
+shot m_learn.png
+tap EDIT
+wait 600
+turn ALGO 13
+wait 600
+shot m_learnsrc.png
+press SEL
+wait 800
+release SEL
+wait 400
+tap SEL
+wait 900
+shot m_sel.png
+tap ARP
+wait 900
+shot m_arp.png
+tap GLO
+wait 600
+shot m_glo.png
+tap SEQ
+wait 400
+tap SEQ
+wait 300
+tap SEQ
+wait 300
+tap SEQ
+wait 600
+turn ALGO 1
+wait 600
+shot m_gen.png
+tap SEQ
+wait 600
+shot m_banks.png
+tap SEQ
+wait 600
+shot m_song.png
+tap SEQ
+wait 400
+tap PLAY
+wait 1200
+shot m_notes.png
+tap SEQ
+wait 600
+shot m_pattern.png
+tap SEQ
+wait 600
+shot m_spice.png
+press SEQ
+wait 900
+shot m_layer.png
+release SEQ
+wait 300
+tap PLAY
+wait 400
+tap HOME
+wait 500
+tap SAVE
+wait 600
+shot m_save.png
+tap OCT+
+wait 600
+shot m_library.png
+tap HOME
+wait 400
+turn PRESET 7
+wait 1500
+press FX
+wait 800
+release FX
+wait 200
+tap FX
+wait 120
+tap FX
+wait 300
+key w1 down 100
+key w5 down 100
+wait 900
+shot m_fxoff.png
+key w1 up
+key w5 up
