@@ -117,8 +117,10 @@ static void rc_rings_fix(void)
 }
 
 /* the engine only: call with the audio interrupt standing aside (rc_pause), or before the audio starts */
+static uint32_t rc_gen;                       /* +1 at each preset load and module swap: older UNDO entries lapse */
 static void rc_load(int k)
 {
+    rc_gen++;
     const rk_preset_t *p = &PRESETS[k];
     int s;
     memset(rc_patch.mod, 0, sizeof rc_patch.mod);
@@ -150,6 +152,7 @@ static void rc_set(int slot, int param, float v)
  * parameters at their defaults (vals: one per parameter, n of them), then the buffers fitted again */
 static void rc_swap(int slot, int id, const float *vals, int n)
 {
+    rc_gen++;
     int i;
     rk_set_module(slot, id);
     rc_patch.mod[slot] = (int8_t)id;

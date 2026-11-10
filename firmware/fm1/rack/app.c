@@ -250,7 +250,7 @@ static void octave_step(int d)
 #define CELL_Y(i) ((i) < 2 ? 80 : 150)
 #define HELP_Y 224
 #define HOLD_MS 600u                          /* a button held this long is a hold: its second function (never a tap) */
-#define EDIT_DOUBLE_MS 300u                   /* two EDIT taps this close: LEARN */
+#define EDIT_DOUBLE_MS 300u                   /* two LFO taps this close: the MATRIX */
 #define K_BG RGB(0, 0, 0)
 #define K_FG RGB(242, 239, 230)
 #define K_DIM RGB(172, 168, 158)
@@ -519,21 +519,41 @@ static void mod_feed(int32_t x, int32_t y, int slot, float out)
     }
     cv_blit((uint32_t)x, (uint32_t)y);
 }
+static void home_blank(int32_t x, int32_t y, int32_t w, int32_t h)   /* a place nothing uses now: black */
+{
+    cv_begin((uint32_t)w, (uint32_t)h, K_BG);
+    cv_blit((uint32_t)x, (uint32_t)y);
+}
+/* only the slots in use are drawn (12 Nov 2026): the path's modules (SRC, SHP, FX 1, FX 2, as loaded) fill the
+ * places along it in order, top row then down the right; the modulators loaded fill the bottom row's left */
 static void home_tiles(void)
 {
+    static const int16_t PX[4] = {6, 88, 170, 170}, PY[4] = {34, 34, 34, 80}, MX[2] = {6, 88};
+    static const uint8_t PATH[4] = {RS_SRC, RS_SHP, RS_FX1, RS_FX2}, MODS[2] = {RS_MODA, RS_MODB};
+    static const uint16_t PC[4] = {K_SRC, K_SHP, K_FX, K_FX};
     const float *mon = rk_monitor(RS_AMP);
     float lev = home_level(), t = vis_t();
-    home_tile(6, 34, RS_SRC, K_SRC);
-    home_tile(88, 34, RS_SHP, K_SHP);
-    home_tile(170, 34, RS_FX1, K_FX);
-    home_tile(6, 80, RS_MODA, K_MOD);
-    home_tile(88, 80, RS_MODB, K_MOD);
-    home_tile(170, 80, RS_FX2, K_FX);
-    path_arrow(70, 34, 18, HT_H, 0, lev, t, K_SRC);
-    path_arrow(152, 34, 18, HT_H, 0, lev, t + 0.3f, K_SHP);
-    path_arrow(170, 72, HT_W, 8, 1, lev, t + 0.6f, K_FX);
-    mod_feed(6, 72, RS_MODA, mon[40]);
-    mod_feed(88, 72, RS_MODB, mon[42]);
+    int np = 0, nm = 0, i;
+    for (i = 0; i < 4; i++)
+        if (rc_patch.mod[PATH[i]]) {
+            home_tile(PX[np], PY[np], PATH[i], PC[i]);
+            np++;
+        }
+    for (i = np; i < 4; i++)
+        home_blank(PX[i], PY[i], HT_W, HT_H);
+    if (np > 1) path_arrow(70, 34, 18, HT_H, 0, lev, t, K_SRC); else home_blank(70, 34, 18, HT_H);
+    if (np > 2) path_arrow(152, 34, 18, HT_H, 0, lev, t + 0.3f, K_SHP); else home_blank(152, 34, 18, HT_H);
+    if (np > 3) path_arrow(170, 72, HT_W, 8, 1, lev, t + 0.6f, K_FX); else home_blank(170, 72, HT_W, 8);
+    for (i = 0; i < 2; i++)
+        if (rc_patch.mod[MODS[i]]) {
+            home_tile(MX[nm], 80, MODS[i], K_MOD);
+            mod_feed(MX[nm], 72, MODS[i], mon[i ? 42 : 40]);
+            nm++;
+        }
+    for (i = nm; i < 2; i++) {
+        home_blank(MX[i], 80, HT_W, HT_H);
+        home_blank(MX[i], 72, HT_W, 8);
+    }
 }
 
 static void draw_footer(void)                 /* (the status strip on top; the modulation strip is gone) */

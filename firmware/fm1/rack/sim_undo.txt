@@ -1,0 +1,33 @@
+wait 400
+turn PRESET 43
+wait 1500
+key w5 down 100
+wait 300
+shot u_home.png
+key w5 up
+press EDIT
+wait 100
+release EDIT
+wait 400
+turn K3 20
+wait 300
+shot u_changed.png
+press EDIT
+wait 800
+shot u_undone.png
+release EDIT
+wait 300
+press SEL
+wait 800
+release SEL
+wait 200
+turn ALGO 12
+wait 100
+turn K2 10
+wait 300
+shot u_learn.png
+press SEL
+wait 800
+release SEL
+wait 300
+shot u_learnoff.png

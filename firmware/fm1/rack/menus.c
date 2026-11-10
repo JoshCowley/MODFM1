@@ -47,7 +47,10 @@ static struct {
     int edited;
     int learn, learn_m, learn_src;            /* learn_src: the source LEARN links (0: the macro learn_m) */
     int lfo_hold;                             /* LFO held: K1 picks LEARN's source, K2-K4 link it */
-    uint32_t edit_at;                         /* EDIT tapped, waiting for a second tap */
+    uint32_t edit_at;                         /* EDIT went down (a hold is UNDO), 0 up */
+    int edit_long;
+    uint32_t sel_at;                          /* SEL went down (a hold turns LEARN on or off), 0 up */
+    int sel_long;
     uint32_t lfo_at;                          /* LFO tapped, waiting for a second tap (two taps: the MATRIX) */
     int mtab, hrow[4];                        /* the matrix hub's table (ALGORITHM): ROUTES ENV EDIT OSC; each one's row */                       /* LEARN on; the macro it links (0-3: M1-M4) */
     uint32_t home_at;                         /* HOME went down (a hold starts LEARN), 0 up */
@@ -215,6 +218,37 @@ static void dst_name(uint16_t d, char *t)
     cat(t, ".");
     cat(t, m && i < m->nparams ? m->p[i].l : "?");
 }
+
+/* ---------------------------------------------------------- UNDO (12 Nov 2026): hold EDIT to undo the last change.
+ * A journal of the values edits replaced: a parameter, a matrix row, a GLOBAL/SEL/ARP setting. Turning one knob
+ * keeps adding to one entry until another is touched or a second passes; a preset load or a module swap lapses
+ * everything before it */
+#define UNDO_N 16
+enum { UN_PARAM = 1, UN_ROUTE, UN_FIXED };
+typedef struct { uint8_t kind; int8_t a; uint8_t b; uint8_t src, via; uint16_t dst; float v; uint32_t gen, at; } undo_t;
+static undo_t undo_j[UNDO_N];
+static int undo_n;
+static int undo_replay;                       /* 1 while undoing: the journal isn't written */
+static void undo_note(int kind, int a, int b, float v, int src, uint16_t dst, int via)
+{
+    undo_t *u = undo_n ? &undo_j[undo_n - 1] : 0;
+    uint32_t now = plat_ms();
+    if (undo_replay)
+        return;
+    if (u && u->kind == kind && u->a == a && u->b == b && u->gen == rc_gen && now - u->at < 1000u) {
+        u->at = now;                          /* the same gesture: keep the first value */
+        return;
+    }
+    if (undo_n == UNDO_N) {
+        int k;
+        for (k = 0; k < UNDO_N - 1; k++)      /* (the FM-1 has no memmove) */
+            undo_j[k] = undo_j[k + 1];
+        undo_n--;
+    }
+    u = &undo_j[undo_n++];
+    u->kind = (uint8_t)kind; u->a = (int8_t)a; u->b = (uint8_t)b; u->v = v;
+    u->src = (uint8_t)src; u->dst = dst; u->via = (uint8_t)via; u->gen = rc_gen; u->at = now;
+}
 static uint16_t route_dst(int i, int *src, int *via, float *amt)
 {
     int r[4];
@@ -227,6 +261,12 @@ static uint16_t route_dst(int i, int *src, int *via, float *amt)
 }
 static void route_set(int i, int src, uint16_t dst, float amt, int via)
 {
+    {
+        int os, ov;
+        float oa;
+        uint16_t od = route_dst(i, &os, &ov, &oa);
+        undo_note(UN_ROUTE, i, 0, oa, os, od, ov);
+    }
     int slot = dst ? (int)((dst >> 8) & 0x7F) - 1 : 0, param = dst & 0xFF;
     rk_set_route(i, dst ? src : 0, slot, param, amt, via);
 }
@@ -572,7 +612,7 @@ static void help(const char *s)
     if (mn.learn) {                           /* LEARN: a gold band in its place */
         char t[48] = "LEARN ";
         cat(t, src_name(learn_source()));
-        cat(t, mn.lfo_hold ? ": K1 SOURCE  K2-K4 LINK" : ": TURN A KNOB   EDIT x2: DONE");
+        cat(t, ": ALGO SRC  HOLD SEL: DONE");
         rrect(2, 0, 236, 15, K_GOLD, 4);
         icon(IC_KNOB, 6, 2, K_BG);
         cv_text(22, 1, &FONT_T, t, K_BG);
@@ -1256,6 +1296,7 @@ static void knob(int k, int32_t e)
         if (k >= m->pages[mn.sub])
             return;
         old = fv[pi];
+        undo_note(UN_FIXED, mn.page, pi, old, 0, 0, 0);
         fv[pi] = step(&m->p[pi], old, e);
         if (fv[pi] != old)
             fixed_changed(mn.page, pi, old, fv[pi]);
@@ -1290,6 +1331,7 @@ static void knob(int k, int32_t e)
             j += e > 0 ? 1 : -1;
             v = (float)RM[j < 0 ? 0 : j > 2 ? 2 : j];
         }
+        undo_note(UN_PARAM, slot, pofs(mn.page) + pi, rk_get_param(slot, pofs(mn.page) + pi), 0, 0, 0);
         rc_set(slot, pofs(mn.page) + pi, v);
         if (mn.page == PG_AMP && pi == 11) {  /* MODE: the voices follow */
             int md = (int)(v + 0.5f);
@@ -1301,6 +1343,47 @@ static void knob(int k, int32_t e)
     }
 }
 
+/* EDIT held: the last change put back */
+static void undo_last(void)
+{
+    undo_t *u;
+    char t[32];
+    while (undo_n && undo_j[undo_n - 1].gen != rc_gen)
+        undo_n--;
+    if (!undo_n) {
+        app_say("UNDO", "NOTHING TO UNDO");
+        return;
+    }
+    u = &undo_j[--undo_n];
+    undo_replay = 1;
+    if (u->kind == UN_PARAM) {
+        uint16_t d = (uint16_t)((u->a + 1) << 8 | u->b);
+        rc_set(u->a, u->b, u->v);
+        if (u->a == RS_AMP && u->b == 11) {   /* AMP MODE: the voices follow */
+            int md = (int)(u->v + 0.5f);
+            rc_patch.mode = md;
+            rk_set_legato(md == RVM_MONO ? 0 : 1);
+            rc_voices(md == RVM_MONO || md == RVM_LEGATO ? 1 : START_VOICES);
+        }
+        dst_name(d, t);
+    } else if (u->kind == UN_ROUTE) {
+        route_set(u->a, u->src, u->dst, u->v, u->via);
+        t[0] = 0;
+        cat(t, "MATRIX ROW ");
+        int_text(u->a + 1, t + 11);
+    } else {
+        float *fv = page_vals(u->a), old = fv[u->b];
+        fv[u->b] = u->v;
+        fixed_changed(u->a, u->b, old, u->v);
+        t[0] = 0;
+        cat(t, page_mod(u->a)->p[u->b].l);
+    }
+    undo_replay = 0;
+    app_say("UNDO", t);
+    edited();
+    ui.redraw = 1;
+}
+
 /* the buttons and encoders of the menus; 1 when they were the menus' (input() does the rest) */
 static int menu_input(uint32_t press, uint32_t btn)
 {
@@ -1308,17 +1391,18 @@ static int menu_input(uint32_t press, uint32_t btn)
     static const uint8_t SRC_CYC[] = {PG_SRC, PG_OSC}, ARP_CYC[] = {PG_ARP}, SEL_CYC[] = {PG_SEL}, GLO_CYC[] = {PG_GLO};
     int32_t e;
     int k;
-    if (press >> B_EDIT & 1u) {               /* EDIT: a tap turns the page once the double tap's time has passed; */
-        if (mn.edit_at && plat_ms() - mn.edit_at < EDIT_DOUBLE_MS) {   /* two taps: LEARN on or off */
-            mn.edit_at = 0;
-            learn_set(!mn.learn);
-        } else {
-            mn.edit_at = plat_ms() | 1u;
-        }
+    if (press >> B_EDIT & 1u) {               /* EDIT (12 Nov 2026): a tap turns the page when let go; held, UNDO */
+        mn.edit_at = plat_ms() | 1u;
+        mn.edit_long = 0;
     }
-    if (mn.edit_at && plat_ms() - mn.edit_at >= EDIT_DOUBLE_MS) {
+    if (mn.edit_at && (btn >> B_EDIT & 1u) && !mn.edit_long && plat_ms() - mn.edit_at >= HOLD_MS) {
+        mn.edit_long = 1;
+        undo_last();
+    }
+    if (mn.edit_at && !(btn >> B_EDIT & 1u)) {
+        if (!mn.edit_long)
+            page_button(SRC_CYC, 2);
         mn.edit_at = 0;
-        page_button(SRC_CYC, 2);
     }
     if (press >> B_ENV & 1u) page_button(ENV_CYC, 2);
     if (press >> B_LFO & 1u) {                /* LFO: as EDIT, a tap turns the page once a second tap can't come; */
@@ -1329,32 +1413,25 @@ static int menu_input(uint32_t press, uint32_t btn)
             mn.lfo_at = plat_ms() | 1u;
         }
     }
-    if (mn.lfo_at && (btn >> B_LFO & 1u) && plat_ms() - mn.lfo_at >= HOLD_MS) {
-        mn.lfo_at = 0;                        /* LFO held (12 Nov 2026): LEARN with any source. K1 picks it while */
-        mn.lfo_hold = 1;                      /* held, K2-K4 link it; let go and LEARN stays (EDIT x2 or HOME ends it) */
-        if (!mn.learn) learn_set(1);
-        app_say("LEARN: K1 SOURCE", src_name(learn_source()));
-        ui.redraw = 1;
-    }
-    if (mn.lfo_hold && !(btn >> B_LFO & 1u)) {
-        mn.lfo_hold = 0;
-        ui.redraw = 1;
-    }
-    if (mn.lfo_hold && (e = plat_enc(EN_K1)) != 0) {
-        int s2 = src_step(learn_source(), (int)e);
-        if (!s2) s2 = src_step(s2, (int)e);   /* never "-" */
-        if (s2 >= 1 && s2 <= 4) { mn.learn_m = s2 - 1; mn.learn_src = 0; }
-        else mn.learn_src = s2;
-        app_say("LEARN", src_name(s2));
-        ui.redraw = 1;
-    }
     if (mn.lfo_at && !(btn >> B_LFO & 1u) && plat_ms() - mn.lfo_at >= EDIT_DOUBLE_MS) {
         mn.lfo_at = 0;                        /* (a tap acts once let go: a hold is never a tap) */
         page_button(LFO_CYC, 5);
     }
     if (press >> B_FX & 1u) page_button(FX_CYC, 2);
     if (press >> B_ARP & 1u) page_button(ARP_CYC, 1);
-    if (press >> B_SEL & 1u) page_button(SEL_CYC, 1);
+    if (press >> B_SEL & 1u) {                /* SEL (12 Nov 2026): a tap opens SEL when let go; held, LEARN on or off */
+        mn.sel_at = plat_ms() | 1u;
+        mn.sel_long = 0;
+    }
+    if (mn.sel_at && (btn >> B_SEL & 1u) && !mn.sel_long && plat_ms() - mn.sel_at >= HOLD_MS) {
+        mn.sel_long = 1;
+        learn_set(!mn.learn);
+    }
+    if (mn.sel_at && !(btn >> B_SEL & 1u)) {
+        if (!mn.sel_long)
+            page_button(SEL_CYC, 1);
+        mn.sel_at = 0;
+    }
     if (press >> B_GLO & 1u) page_button(GLO_CYC, 1);
     if (press >> B_HOME & 1u) {               /* HOME: a tap on letting go (LEARN is EDIT's double tap now) */
         mn.home_at = plat_ms() | 1u;
@@ -1371,8 +1448,16 @@ static int menu_input(uint32_t press, uint32_t btn)
         }
         mn.home_at = 0;
     }
+    if (mn.learn && (e = plat_enc(EN_ALGO)) != 0) {   /* LEARN on: ALGORITHM picks its source, on any page */
+        int s2 = src_step(learn_source(), (int)e);
+        if (!s2) s2 = src_step(s2, (int)e);   /* never "-" */
+        if (s2 >= 1 && s2 <= 4) { mn.learn_m = s2 - 1; mn.learn_src = 0; }
+        else mn.learn_src = s2;
+        app_say("LEARN", src_name(s2));
+        ui.redraw = 1;
+    }
     if (mn.page == PG_HOME)
-        return mn.lfo_hold;                   /* holding LFO on home: the knobs are LEARN's, not the macros' */
+        return 0;                   /* holding LFO on home: the knobs are LEARN's, not the macros' */
     if (is_seq_page(mn.page)) {               /* the sequencer's pages: their own encoders */
         seq_encoders();
         return 1;

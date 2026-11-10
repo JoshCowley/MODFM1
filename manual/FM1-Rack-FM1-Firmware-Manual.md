@@ -70,12 +70,12 @@ These come from fm1-base and Felucca and haven't been needed with FM1 Rack yet.
 | Button | Tap | Tap again | Other |
 | --- | --- | --- | --- |
 | **HOME** | HOME page | the RACK overview; once more, back home with all notes off | Closes the module picker, the SAVE page and LEARN |
-| **EDIT** | the source (Plaits or Braids) | OSC, the second oscillator and mixer | **Two quick taps: LEARN on or off** (see 8). A single tap waits 0.3 s before turning the page, so it can tell a double tap |
+| **EDIT** | the source (Plaits or Braids) | OSC, the second oscillator and mixer | **Hold: UNDO** the last change (hold again to go further back, up to 16). A tap turns the page when you let go |
 | **ENV** | AMP (envelopes, voice mode) | the shaper (Rings or the filter) | |
 | **LFO** | MOD A | MOD B, the three LFOs (with their target pages), MSEQ, the 12-row MATRIX | **Two quick taps: the MATRIX.** A single tap waits 0.3 s, as EDIT does |
 | **FX** | FX 1 | FX 2 | |
 | **ARP** | the arpeggiator | | |
-| **SEL** | scale and chord | (SELECT turns to page 2: the keys) | |
+| **SEL** | scale and chord | (SELECT turns to page 2: the keys) | **Hold: LEARN on or off** (see 8). A tap opens SEL when you let go |
 | **GLO** | GLOBAL settings | | |
 | **SAVE** | the SAVE page | SAVE again stores the preset | On a sequencer page: stores the sequencer |
 | **SEQ** | the sequencer, at the page you last used | the next sequencer page | **Hold 0.6 s: the step layer** (see 11) |
@@ -166,7 +166,7 @@ Each kind of modulation source has its own colour everywhere (halos, matrix):
 
 HOME shows the preset (its category in a coloured tab, its name, and its number, or USER), then the chain of six slots as **live tiles** on the sound's path, the four macros under them, and the output's scope along the bottom.
 
-- **The path**: the top row is the sound's path, SRC › SHP › FX 1, then down to FX 2 (AMP sits between SHP and FX 1). Arrows join the tiles, with dots running along them as bright as the output. Over MOD A and MOD B, small arrows pulse upward with each modulator's output: they feed the path.
+- **The path**: the top row is the sound's path, SRC › SHP › FX 1, then down to FX 2 (AMP sits between SHP and FX 1). Only the slots in use are drawn: an empty slot is left out and the path closes up. Arrows join the tiles, with dots running along them as bright as the output. Under them, any modulators loaded; over each, small arrows pulse upward with each modulator's output: they feed the path.
 
 ![HOME](../web/manual/img/fm1-home.png)
 
@@ -204,6 +204,8 @@ Press the slot's button (EDIT for SRC, ENV twice for SHP, LFO for MOD A and B, F
 
 Some edits need more memory (a longer delay, Rings' STR+VERB, the shimmer reverb). When you stop turning, FM1 Rack fits the memory again, with a moment's silence, and says **MEMORY FITTED** and the voices.
 
+**UNDO**: hold EDIT to put the last change back: a parameter, a matrix route or a SEL, ARP or GLOBAL setting ("UNDO SRC.COLOR"). Hold it again to go further back, up to 16 changes. A knob turned in one go counts as one change. Changing preset or loading a module starts afresh.
+
 Edits aren't kept when you change preset unless you SAVE.
 
 ### Rings on the FM-1
@@ -229,7 +231,7 @@ The well shows the envelope on every page. UNI 2 and UNI 4 play two or four detu
 
 ### The LFO button
 
-LFO steps through **MOD A**, **MOD B**, **LFO**, **MSEQ** and the **MATRIX**, then back to MOD A. **Tap LFO twice quickly** to jump straight to the MATRIX. **Hold LFO** for LEARN with any source (see LEARN below). A tap turns the page when you let go.
+LFO steps through **MOD A**, **MOD B**, **LFO**, **MSEQ** and the **MATRIX**, then back to MOD A. **Tap LFO twice quickly** to jump straight to the MATRIX. A tap turns the page when you let go.
 
 ### LFOs
 
@@ -262,11 +264,11 @@ M1–M4 are matrix sources you play with K1–K4 on HOME. On the factory presets
 ### LEARN: linking a macro by turning a knob
 
 1. On HOME, turn the macro you want (or, once LEARN is on, pick it with SELECT or K1–K4).
-2. **Tap EDIT twice quickly.** LEARN is on: the macro is framed in gold on HOME, HOME blinks, and a gold band replaces the help line on every page.
+2. **Hold SEL** (about half a second). LEARN is on: the macro is framed in gold on HOME, HOME blinks, and a gold band replaces the help line on every page.
 3. Go to a module, AMP, LFO or OSC page and **turn the knob of the parameter** you want the macro to move. The macro is linked to it in the matrix (in the row it already has, or the first free one), and how far you turned sets the amount. A message confirms it, for example **M2>SRC.TIMBRE +24**.
-4. Turn more parameters to link more, or **tap HOME (or EDIT twice) to finish**.
+4. Turn more parameters to link more, then **hold SEL again to finish** (tapping HOME also ends it).
 
-**LEARN with any source: hold LFO.** On any page, hold LFO for about half a second. LEARN turns on and, while you hold LFO, **K1 picks the source**: M1–M4, velocity, key tracking, random, the envelopes, the modulators' outputs, LFO 1–3 or SEQ 1–4 (the gold band shows it). Still holding, turn **K2–K4** to link it to those parameters; or let go and LEARN stays on with that source, so any of K1–K4 links it. Tap HOME (or EDIT twice) to finish. For example: on the filter's page hold LFO, turn K1 to LFO 1, turn K2 (CUTOFF): **LFO 1>SHP.CUTOFF +20**.
+**LEARN with any source.** While LEARN is on, **turn ALGORITHM** to pick its source on any page: M1–M4, velocity, key tracking, random, the envelopes, the modulators' outputs, LFO 1–3 or SEQ 1–4 (the gold band shows it). Then turn any parameter's knob to link it. For example: hold SEL, turn ALGORITHM to LFO 1, go to the filter and turn K2 (CUTOFF): **LFO 1>SHP.CUTOFF +20**. Hold SEL to finish.
 
 ![Holding LFO: LEARN with SEQ 1](../web/manual/img/fm1-learnhold.png)
 
@@ -274,7 +276,7 @@ M1–M4 are matrix sources you play with K1–K4 on HOME. On the factory presets
 
 ## 9. OSC: the second oscillator
 
-Tap EDIT twice (slowly, more than 0.3 s apart, or it counts as LEARN) to reach OSC: a plain oscillator in every voice, mixed with the source **before** the shaper, so the filter or Rings, AMP and the effects take both.
+Tap EDIT twice to reach OSC: a plain oscillator in every voice, mixed with the source **before** the shaper, so the filter or Rings, AMP and the effects take both.
 
 - Page 1: **WAVE** (SINE, TRI, SAW, SQUARE, PULSE, NOISE), **OCTAVE** (−3 to +2), **SEMI** (±12), **FINE** (±1 semitone).
 - Page 2, the mixer: **PW** (pulse width), **OSC LVL** (0 is off, the default), **MAIN LVL** (the source's level, 1 by default), **AUX LVL** (Plaits' AUX output, mixed in on its own level; 0 by default, Plaits only).
@@ -458,7 +460,7 @@ Some basses use OSC as a sub-oscillator on the FM-1 (the browser build has no OS
 | **SHED n** on the status strip | Voices were dropped for CPU. Play fewer notes, lower VOICES, or choose lighter modules |
 | A moment of silence when loading a module or editing a delay or reverb | Normal: memory is being laid out again (**MEMORY FITTED**) |
 | A short gap when pressing SAVE on a sequencer page | Normal: the flash is being written |
-| EDIT feels slow to turn the page | It waits 0.3 s to see whether a second tap (LEARN) follows |
+| EDIT or SEL turns the page only when let go | A hold does something else (EDIT: UNDO, SEL: LEARN), so the tap acts on release |
 | The installer can't find the FM-1 | Plug it straight into the Mac (no hub), quit DAWs and Web MIDI tabs, and run the script again |
 | The FM-1 won't start after an install | Follow "Getting back to the stock firmware" (section 3) |
 | A preset sounds wrong | Note its name and what you hear, and report it: the factory presets haven't all been heard on an FM-1 yet |
