@@ -417,6 +417,7 @@ static int nalloc_ = 0;   // voices the arena holds module state for
 #endif
 #ifdef RACK_FM1
 static uint8_t rings_q_[8]; static int rings_qn_ = 0;   // shared Rings: notes waiting to strum (one per Rings call)
+static uint8_t rings_nq_[2][8]; static int rings_nqn_[2], rings_nl_[2] = {-1, -1};   // the notes this block's voices struck, per core (merged after)
 #endif
 static void reset_voice_modules(int slot) {
   for (int i = 0; i < NALLOC; ++i) {
@@ -431,7 +432,7 @@ static void reset_voice_modules(int slot) {
 #ifdef RACK_FM1
       // no reverb buffer when the patch can't reach STR+VERB (fm1_fit): Rings' reverb is then never run (the shim's
       // fx_engine.h leaves a null buffer alone), and render_voice keeps the model off STR+VERB
-      if (mod_id_[S_SHP] == M_RINGS && i == 0) { rings_[0].Init(rings_rev_ ? rings_rev_[0] : nullptr); rings_[0].set_polyphony(RINGS_POLY); rings_qn_ = 0; }
+      if (mod_id_[S_SHP] == M_RINGS && i == 0) { rings_[0].Init(rings_rev_ ? rings_rev_[0] : nullptr); rings_[0].set_polyphony(RINGS_POLY); rings_qn_ = 0; rings_nqn_[0] = rings_nqn_[1] = 0; }
 #else
       if (mod_id_[S_SHP] == M_RINGS) { rings_[i].Init(rings_rev_[i]); rings_[i].set_polyphony(1); }
 #endif
@@ -1015,6 +1016,12 @@ static float paux_c_[2][BLOCK];   // Plaits' AUX output, for OSC's mixer (AUX LV
 // SYM QNT: 55-58 % of a core for one voice, measured) play as STRING here; the menus only offer STRING, FM VOICE and
 // STR+VERB. Rings' parameters follow the last note struck (their per-voice modulation becomes that voice's).
 static float rings_in_[2][BLOCK];          // each core's voices' excitation
+// Rings and the reverb run a block (0.5 ms) behind on the FM-1, on the first core while the second renders the voices
+// (12 Nov 2026: with them after the voices, the second core saved Rings presets almost nothing, bench 6): Rings rings
+// last block's excitation, the reverb last block's input
+static float rings_ex_[BLOCK];             // last block's excitation (both cores)
+static float rv_in_l_[BLOCK], rv_in_r_[BLOCK], rv_wet_l_[BLOCK], rv_wet_r_[BLOCK];
+static int rv_early_ = -1;                 // the slot whose reverb runs a block behind (-1: none)
 static float rings_dry_g_ = 1.0f;          // what the voices keep of their dry signal (1 - MIX)
 static int rings_last_ = 0;                // the voice struck last: Rings' parameters are read with it
 static float rings_note_ = 60.0f;
@@ -1136,7 +1143,7 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
 #ifdef RACK_FM1
   if (shp == M_RINGS) {   // shared Rings: this voice's excitation goes to it (after AMP's envelope), its dry part on
     float vel_amt = P(S_AMP, 4, &v), g = v.env * (1.0f - vel_amt + vel_amt * v.vel) * P(S_SHP, 5, &v) * 2.0f;
-    if (v.retrig) { if (rings_qn_ < 8) rings_q_[rings_qn_++] = (uint8_t)clampf(note + 0.5f, 0.0f, 127.0f); rings_last_ = i; }
+    if (v.retrig) { if (rings_nqn_[core] < 8) rings_nq_[core][rings_nqn_[core]++] = (uint8_t)clampf(note + 0.5f, 0.0f, 127.0f); rings_nl_[core] = i; }
     for (int n = 0; n < BLOCK; ++n) { rings_in_[core][n] += vbuf_[n] * g; vbuf_[n] *= rings_dry_g_; vaux_[n] *= rings_dry_g_; }
   } else
 #endif
@@ -1331,6 +1338,62 @@ static void run_master(float* l, float* r) {
 }
 
 // ------------------------------------------------------------------ FX
+// the reverb's wet signal from in_l/in_r (its pre-delay, LO CUT, shimmer and tank), into wl/wr
+static void reverb_wet(int slot, const float* l, const float* r, float* wl_out, float* wr_out) {
+    int type = PI(slot, 4, 0);                     // 0 PLATE, 1 HALL, 2 SHIMMER
+    float size = P(slot, 0, 0), mix = P(slot, 3, 0);
+    float time = type == 0 ? 0.35f + size * 0.63f : 0.6f + size * 0.39f;
+    float rlp = (type == 1 ? 0.8f : 0.95f) - P(slot, 1, 0) * 0.6f;
+#ifdef RACK_FM1
+    // the FM-1 runs the reverb at 24 kHz (12 Nov 2026: 21 % of a core at 48): its loops take twice as long, so each
+    // pass loses what two did (time squared), and its damping is per sample, so twice as much a sample
+    time *= time; rlp = 1.0f - (1.0f - rlp) * (1.0f - rlp);
+#endif
+    reverb_.set_amount(1.0f);
+    reverb_.set_time(time);
+    reverb_.set_diffusion(0.3f + 0.6f * P(slot, 2, 0));
+    reverb_.set_lp(rlp);
+    reverb_.set_input_gain(type == 0 ? 0.25f : 0.2f);
+    int pre = (int)(P(slot, 5, 0) * 0.15f * SR); if (pre > 7999) pre = 7999;
+    float lc = P(slot, 7, 0), width = P(slot, 8, 0), duck = P(slot, 9, 0);
+    float lcc = lc > 0.0f ? 1.0f - expf(-6.2831853f * (20.0f + lc * lc * 980.0f) / SR) : 0.0f;
+    float shim = type == 2 && shim_buf_ ? P(slot, 6, 0) : 0.0f;
+    clouds::FloatFrame fr[BLOCK];
+    for (int n = 0; n < BLOCK; ++n) {
+      pre_buf_l_[pre_w_] = (int16_t)(clampf(l[n], -1.0f, 1.0f) * 32767.0f); pre_buf_r_[pre_w_] = (int16_t)(clampf(r[n], -1.0f, 1.0f) * 32767.0f);
+      int rd = (pre_w_ - pre) & pre_mask_; pre_w_ = (pre_w_ + 1) & pre_mask_;
+      float in_l = pre_buf_l_[rd] / 32768.0f, in_r = pre_buf_r_[rd] / 32768.0f;
+      if (lc > 0.0f) { rv_lc_l_ += (in_l - rv_lc_l_) * lcc; rv_lc_r_ += (in_r - rv_lc_r_) * lcc; in_l -= rv_lc_l_; in_r -= rv_lc_r_; }   // LO CUT: thin the tail
+      if (shim > 0.0f) {         // the tail, an octave up, back into the tank
+        shim_buf_[shim_w_] = (int16_t)(clampf(shim_fb_, -1.0f, 1.0f) * 32767.0f);
+        shim_ph_ += 1.0f / 2048.0f; if (shim_ph_ >= 1.0f) shim_ph_ -= 1.0f;
+        float d1 = (1.0f - shim_ph_) * 2048.0f, d2 = (1.0f - fmodf(shim_ph_ + 0.5f, 1.0f)) * 2048.0f;
+        auto rdbuf = [](float d) { float pos = shim_w_ - d; while (pos < 0) pos += 4096.0f; int i0 = (int)pos; float f = pos - i0; return (shim_buf_[i0 & 4095] * (1 - f) + shim_buf_[(i0 + 1) & 4095] * f) / 32768.0f; };
+        float w1 = SIN01(shim_ph_ * 0.5f), w2 = SIN01(fmodf(shim_ph_ + 0.5f, 1.0f) * 0.5f);
+        float up = rdbuf(d1) * w1 + rdbuf(d2) * w2;
+        shim_w_ = (shim_w_ + 1) & 4095;
+        in_l += up * shim * 0.35f; in_r += up * shim * 0.35f;   // 1.9.2: 0.7 let long shimmer tails grow after release
+      }
+      fr[n].l = in_l; fr[n].r = in_r;
+    }
+#ifdef RACK_FM1
+    {
+      static Half24Down dl, dr; static Half24Up ul, ur;
+      float xl[BLOCK], xr[BLOCK], yl[BLOCK / 2], yr[BLOCK / 2];
+      clouds::FloatFrame h[BLOCK / 2];
+      for (int n = 0; n < BLOCK; ++n) { xl[n] = fr[n].l; xr[n] = fr[n].r; }
+      dl.run(xl, yl); dr.run(xr, yr);
+      for (int m = 0; m < BLOCK / 2; ++m) { h[m].l = yl[m]; h[m].r = yr[m]; }
+      reverb_.Process(h, BLOCK / 2);
+      for (int m = 0; m < BLOCK / 2; ++m) { yl[m] = h[m].l; yr[m] = h[m].r; }
+      ul.run(yl, xl); ur.run(yr, xr);
+      for (int n = 0; n < BLOCK; ++n) { fr[n].l = xl[n]; fr[n].r = xr[n]; }
+    }
+#else
+    reverb_.Process(fr, BLOCK);
+#endif
+    for (int n = 0; n < BLOCK; ++n) { shim_fb_ = (fr[n].l + fr[n].r) * 0.5f; wl_out[n] = fr[n].l; wr_out[n] = fr[n].r; }
+}
 static void run_fx(int slot, float* l, float* r) {
   int id = mod_id_[slot];
 #ifndef RACK_LITE
@@ -1394,63 +1457,18 @@ static void run_fx(int slot, float* l, float* r) {
 #endif
   if (id == M_REVERB) {
     int type = PI(slot, 4, 0);                     // 0 PLATE, 1 HALL, 2 SHIMMER
-    float size = P(slot, 0, 0), mix = P(slot, 3, 0);
-    float time = type == 0 ? 0.35f + size * 0.63f : 0.6f + size * 0.39f;
-    float rlp = (type == 1 ? 0.8f : 0.95f) - P(slot, 1, 0) * 0.6f;
+    float mix = P(slot, 3, 0), width = P(slot, 8, 0), duck = P(slot, 9, 0);
+    float dry_l[BLOCK], dry_r[BLOCK], wet_l[BLOCK], wet_r[BLOCK];
+    for (int n = 0; n < BLOCK; ++n) { dry_l[n] = l[n]; dry_r[n] = r[n]; }
 #ifdef RACK_FM1
-    // the FM-1 runs the reverb at 24 kHz (12 Nov 2026: 21 % of a core at 48): its loops take twice as long, so each
-    // pass loses what two did (time squared), and its damping is per sample, so twice as much a sample
-    time *= time; rlp = 1.0f - (1.0f - rlp) * (1.0f - rlp);
+    if (slot == rv_early_) {   // its wet signal was made a block behind (early_work): keep this input for the next
+      for (int n = 0; n < BLOCK; ++n) { rv_in_l_[n] = l[n]; rv_in_r_[n] = r[n]; wet_l[n] = rv_wet_l_[n]; wet_r[n] = rv_wet_r_[n]; }
+    } else
 #endif
-    reverb_.set_amount(1.0f);
-    reverb_.set_time(time);
-    reverb_.set_diffusion(0.3f + 0.6f * P(slot, 2, 0));
-    reverb_.set_lp(rlp);
-    reverb_.set_input_gain(type == 0 ? 0.25f : 0.2f);
-    int pre = (int)(P(slot, 5, 0) * 0.15f * SR); if (pre > 7999) pre = 7999;
-    float lc = P(slot, 7, 0), width = P(slot, 8, 0), duck = P(slot, 9, 0);
-    float lcc = lc > 0.0f ? 1.0f - expf(-6.2831853f * (20.0f + lc * lc * 980.0f) / SR) : 0.0f;
-    float shim = type == 2 && shim_buf_ ? P(slot, 6, 0) : 0.0f;
-    clouds::FloatFrame fr[BLOCK];
-    float dry_l[BLOCK], dry_r[BLOCK];
+    reverb_wet(slot, l, r, wet_l, wet_r);
     for (int n = 0; n < BLOCK; ++n) {
-      dry_l[n] = l[n]; dry_r[n] = r[n];
-      pre_buf_l_[pre_w_] = (int16_t)(clampf(l[n], -1.0f, 1.0f) * 32767.0f); pre_buf_r_[pre_w_] = (int16_t)(clampf(r[n], -1.0f, 1.0f) * 32767.0f);
-      int rd = (pre_w_ - pre) & pre_mask_; pre_w_ = (pre_w_ + 1) & pre_mask_;
-      float in_l = pre_buf_l_[rd] / 32768.0f, in_r = pre_buf_r_[rd] / 32768.0f;
-      if (lc > 0.0f) { rv_lc_l_ += (in_l - rv_lc_l_) * lcc; rv_lc_r_ += (in_r - rv_lc_r_) * lcc; in_l -= rv_lc_l_; in_r -= rv_lc_r_; }   // LO CUT: thin the tail
-      if (shim > 0.0f) {         // the tail, an octave up, back into the tank
-        shim_buf_[shim_w_] = (int16_t)(clampf(shim_fb_, -1.0f, 1.0f) * 32767.0f);
-        shim_ph_ += 1.0f / 2048.0f; if (shim_ph_ >= 1.0f) shim_ph_ -= 1.0f;
-        float d1 = (1.0f - shim_ph_) * 2048.0f, d2 = (1.0f - fmodf(shim_ph_ + 0.5f, 1.0f)) * 2048.0f;
-        auto rdbuf = [](float d) { float pos = shim_w_ - d; while (pos < 0) pos += 4096.0f; int i0 = (int)pos; float f = pos - i0; return (shim_buf_[i0 & 4095] * (1 - f) + shim_buf_[(i0 + 1) & 4095] * f) / 32768.0f; };
-        float w1 = SIN01(shim_ph_ * 0.5f), w2 = SIN01(fmodf(shim_ph_ + 0.5f, 1.0f) * 0.5f);
-        float up = rdbuf(d1) * w1 + rdbuf(d2) * w2;
-        shim_w_ = (shim_w_ + 1) & 4095;
-        in_l += up * shim * 0.35f; in_r += up * shim * 0.35f;   // 1.9.2: 0.7 let long shimmer tails grow after release
-      }
-      fr[n].l = in_l; fr[n].r = in_r;
-    }
-#ifdef RACK_FM1
-    {
-      static Half24Down dl, dr; static Half24Up ul, ur;
-      float xl[BLOCK], xr[BLOCK], yl[BLOCK / 2], yr[BLOCK / 2];
-      clouds::FloatFrame h[BLOCK / 2];
-      for (int n = 0; n < BLOCK; ++n) { xl[n] = fr[n].l; xr[n] = fr[n].r; }
-      dl.run(xl, yl); dr.run(xr, yr);
-      for (int m = 0; m < BLOCK / 2; ++m) { h[m].l = yl[m]; h[m].r = yr[m]; }
-      reverb_.Process(h, BLOCK / 2);
-      for (int m = 0; m < BLOCK / 2; ++m) { yl[m] = h[m].l; yr[m] = h[m].r; }
-      ul.run(yl, xl); ur.run(yr, xr);
-      for (int n = 0; n < BLOCK; ++n) { fr[n].l = xl[n]; fr[n].r = xr[n]; }
-    }
-#else
-    reverb_.Process(fr, BLOCK);
-#endif
-    for (int n = 0; n < BLOCK; ++n) {
-      shim_fb_ = (fr[n].l + fr[n].r) * 0.5f;
       float wet = mix * (type == 1 ? 0.75f : 0.6f);
-      float wl = fr[n].l, wr = fr[n].r;
+      float wl = wet_l[n], wr = wet_r[n];
       if (width != 0.0f) { float m = (wl + wr) * 0.5f, sd = (wl - wr) * 0.5f * (1.0f + width); wl = m + sd; wr = m - sd; }
       if (duck > 0.0f) { float x = fmaxf(fabsf(dry_l[n]), fabsf(dry_r[n])); rv_duck_ += (x - rv_duck_) * (x > rv_duck_ ? 0.01f : 0.0002f); wet *= 1.0f - duck * clampf(rv_duck_ * 3.0f, 0.0f, 1.0f); }
       l[n] = dry_l[n] * (1.0f - mix * 0.4f) + wl * wet; r[n] = dry_r[n] * (1.0f - mix * 0.4f) + wr * wet;
@@ -1545,25 +1563,19 @@ static void par_job(uint32_t) {
   memset(par_l_, 0, sizeof(par_l_)); memset(par_r_, 0, sizeof(par_r_));
   for (int i = par_from_; i < nvoices_; ++i) render_voice(i, par_l_, par_r_, 1);
 }
+static void early_work();
 static void render_voices() {
-  int split = nvoices_;
+  // the second core takes voices par_from_ up; the first runs Rings and the reverb a block behind (early_work), then
+  // its own voices. With one core the same work runs in the same order (the modules share one random number
+  // generator, so one order keeps one sound)
   bool rings = mod_id_[S_SHP] == M_RINGS;
-  if (par_run_ && nvoices_ >= (rings ? 1 : 2)) {
-    par_from_ = nvoices_ / 2;
-    // the first core also runs the shared Rings: the second takes more voices, and with one or two all of them (shed
-    // to one voice, the first core had them all with Rings and the effects: what overloaded, 12 Nov 2026)
-    if (rings) par_from_ = nvoices_ / 3;
-    if (par_run_(par_job, 0)) split = par_from_;
-  }
-  for (int i = 0; i < split; ++i) render_voice(i, blk_l_, blk_r_);
-  if (split < nvoices_) {
-    if (par_wait_() == 0) {
-      for (int n = 0; n < BLOCK; ++n) { blk_l_[n] += par_l_[n]; blk_r_[n] += par_r_[n]; }
-      ++par_blocks_;
-    } else {
-      for (int i = split; i < nvoices_; ++i) render_voice(i, blk_l_, blk_r_);   // dropped: the first core does it
-    }
-  }
+  par_from_ = rings ? nvoices_ / 3 : nvoices_ / 2;   // with Rings the second core takes more: the first also runs it
+  bool shared = par_run_ && par_from_ < nvoices_ && par_run_(par_job, 0);
+  early_work();
+  for (int i = 0; i < par_from_; ++i) render_voice(i, blk_l_, blk_r_);
+  if (shared && par_wait_() == 0) ++par_blocks_;
+  else par_job(0);   // one core, or the second dropped it: the first does the second's share last
+  for (int n = 0; n < BLOCK; ++n) { blk_l_[n] += par_l_[n]; blk_r_[n] += par_r_[n]; }
 }
 #endif
 #ifdef RACK_FM1
@@ -1582,7 +1594,7 @@ static void run_rings_shared() {
   // fold into the strings' middle, 11 Nov 2026)
   static Half24Down rdown; static Half24Up rup1, rup2;
   float x48[BLOCK], in[BLOCK / 2], o1[BLOCK / 2], o2[BLOCK / 2], w1[BLOCK], w2[BLOCK];
-  for (int n = 0; n < BLOCK; ++n) x48[n] = rings_in_[0][n] + rings_in_[1][n];
+  for (int n = 0; n < BLOCK; ++n) x48[n] = rings_ex_[n];
   rdown.run(x48, in);
   rings::PerformanceState ps;
   ps.strum = rings_qn_ > 0;   // one strum a block (0.5 ms): a chord's notes follow each other that far apart
@@ -1599,6 +1611,12 @@ static void run_rings_shared() {
   }
 }
 #endif
+#ifdef RACK_FM1
+static void early_work() {
+  if (mod_id_[S_SHP] == M_RINGS) run_rings_shared();
+  if (rv_early_ >= 0) reverb_wet(rv_early_, rv_in_l_, rv_in_r_, rv_wet_l_, rv_wet_r_);
+}
+#endif
 static void process_block() {
   float bpm = base_[S_GLO][0] > 1.0f ? base_[S_GLO][0] : 112.0f;
   clk_advance(BLOCK / SR * bpm / 60.0f * 4.0f);
@@ -1613,8 +1631,14 @@ static void process_block() {
   memset(blk_l_, 0, sizeof(blk_l_)); memset(blk_r_, 0, sizeof(blk_r_));
 #ifdef RACK_FM1
   if (mod_id_[S_SHP] == M_RINGS) { memset(rings_in_, 0, sizeof(rings_in_)); rings_dry_g_ = 1.0f - P(S_SHP, 6, 0); }
+  rv_early_ = (mod_id_[S_FX1] == M_REVERB) != (mod_id_[S_FX2] == M_REVERB) ? (mod_id_[S_FX1] == M_REVERB ? S_FX1 : S_FX2) : -1;
   render_voices();
-  if (mod_id_[S_SHP] == M_RINGS) run_rings_shared();
+  if (mod_id_[S_SHP] == M_RINGS) {   // this block's excitation and strums, for Rings next block
+    for (int n = 0; n < BLOCK; ++n) rings_ex_[n] = rings_in_[0][n] + rings_in_[1][n];
+    for (int c = 0; c < 2; ++c) { for (int k = 0; k < rings_nqn_[c] && rings_qn_ < 8; ++k) rings_q_[rings_qn_++] = rings_nq_[c][k]; rings_nqn_[c] = 0; }
+    if (rings_nl_[1] >= 0) rings_last_ = rings_nl_[1]; else if (rings_nl_[0] >= 0) rings_last_ = rings_nl_[0];   // the highest voice struck
+    rings_nl_[0] = rings_nl_[1] = -1;
+  }
 #else
   for (int i = 0; i < nvoices_; ++i) render_voice(i, blk_l_, blk_r_);
 #endif

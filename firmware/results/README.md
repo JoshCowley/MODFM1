@@ -191,3 +191,16 @@ Raw data: [`fm1-bench-2026-11-12.csv`](fm1-bench-2026-11-12.csv) (the reader wro
 squared and damping doubled per sample to keep its decay and tone): 152 -> 76 M instructions on the computer;
 levels within 2 dB, tails' decay within a few dB/s. With Rings loaded the second core now takes the voices from one
 voice up (all of them at one or two). The 2 CORES group covers every played preset with two or more voices.
+
+# Seventh run: 12 November 2026 (reverb at 24 kHz, 2-core cases for every preset)
+
+Raw data: [`fm1-bench-2026-11-12-b.csv`](fm1-bench-2026-11-12-b.csv). All OK.
+- The reverb's own share stayed at 21 %, though it does half the work: on the FM-1 its cost doesn't follow the
+  samples (memory or code fetches, not yet known). The same runs vary 3-6 points from one to the next.
+- The Rings presets gained almost nothing from the second core: FX RESONATOR 138 -> 136 %, FX STRING BLOOM
+  133 -> 119, PD RESONANT 143 -> 127, against 111 -> 73 for CH MARIMBA. Rings and the reverb ran on the first
+  core only after the second had finished the voices.
+
+**Changes after this run:** Rings and the reverb (when one FX slot has it) run a block (0.5 ms) behind, on the first
+core while the second renders the voices (rack.cc early_work). The voices' Rings notes are queued per core and merged
+after. With one core the same work runs in the same order, so one and two cores sound the same (bench_host: 0).
