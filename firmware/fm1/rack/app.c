@@ -395,17 +395,6 @@ static void scope(int32_t w, int32_t h, uint16_t c)
         }
 }
 
-static void tile(int32_t x, int slot, uint16_t kind)
-{
-    int id = rc_patch.mod[slot];
-    const char *n = module_name(id);
-    int lost = rk_fm1_status(4) >> slot & 1;   /* asked for but unloaded: no room in the arena */
-    uint16_t c = lost ? K_WARN : n ? kind : K_FAINT;
-    rrect(x, 0, 36, 28, n ? K_CELL : K_BG, 4);
-    icon(lost ? module_icon(id) : n ? module_icon(id) : IC_EMPTY, x + 12, 3, c);
-    if (n)
-        cv_text(x + 18 - text_w(&FONT_T, n) / 2, 14, &FONT_T, n, lost ? K_WARN : K_DIM);
-}
 
 #include "menus.c"
 #include "save.c"
@@ -413,18 +402,19 @@ static void tile(int32_t x, int slot, uint16_t kind)
 #include "frame.c"
 #include "seqpages.c"
 
-/* home's well (after stage 4: taller, 84 rows, drawn in three bands of 28 as the canvas holds 9600 pixels): the
+/* home's well (12 Nov 2026: at the bottom, 64 rows, drawn in two bands of 32 as the canvas holds 9600 pixels): the
  * output's scope over the dot grid, and tabs for SEL, ARP and a tuning when they are on */
-#define HOME_WH 84
+#define HOME_WH 64
+#define HOME_WY 172u
 static void home_well(void)
 {
     int32_t x, i;
     int bnd;
-    for (bnd = 0; bnd < 3; bnd++) {
-        cv_begin(228, 28, K_BG);
-        cv_band(-28 * bnd, 28);
+    for (bnd = 0; bnd < 2; bnd++) {
+        cv_begin(228, 32, K_BG);
+        cv_band(-32 * bnd, 32);
         cv_y0 = 0;
-        cv_y1 = 28;
+        cv_y1 = 32;
         rrect(0, 0, 228, HOME_WH, K_WELL, 4);
         for (x = 12; x < 228; x += 12)
             for (i = 6; i < HOME_WH; i += 6)
@@ -438,8 +428,47 @@ static void home_well(void)
             scope_keep = 0;
         }
         home_chips();
-        cv_blit(6, 34u + 28u * (uint32_t)bnd);
+        cv_blit(6, HOME_WY + 32u * (uint32_t)bnd);
     }
+}
+
+/* home's chain (12 Nov 2026): six tiles, each its module's page picture moving small, so what each module is doing
+ * to the sound shows at a glance (a filter's curve opening, Rings ringing, the LFOs swinging, echoes falling); its
+ * icon and name under it. Red: asked for but unloaded (no room) */
+#define HT_W 74
+#define HT_H 40
+static void home_tile(int32_t x, int32_t y, int slot, uint16_t kind)
+{
+    int id = rc_patch.mod[slot];
+    const char *n = module_name(id);
+    int lost = rk_fm1_status(4) >> slot & 1;
+    uint16_t c = lost ? K_WARN : n ? kind : K_FAINT;
+    int32_t w;
+    cv_begin(HT_W, HT_H, K_BG);
+    rrect(0, 0, HT_W, HT_H, n ? K_WELL : K_BG, 4);
+    if (!n) {
+        rrect(0, 0, HT_W, HT_H, K_CELL, 4);
+        rrect(1, 1, HT_W - 2, HT_H - 2, K_BG, 3);
+    }
+    if (n && !lost)
+        vis_mini(slot, id, 2, 2, HT_W - 4, 25, kind);
+    if (n) {
+        w = 14 + text_w(&FONT_T, n);
+        icon(module_icon(id), HT_W / 2 - w / 2, 27, c);
+        cv_text(HT_W / 2 - w / 2 + 14, 27, &FONT_T, n, lost ? K_WARN : K_DIM);
+    } else {
+        icon(IC_EMPTY, HT_W / 2 - 6, 14, c);
+    }
+    cv_blit((uint32_t)x, (uint32_t)y);
+}
+static void home_tiles(void)
+{
+    home_tile(6, 34, RS_SRC, K_SRC);
+    home_tile(83, 34, RS_SHP, K_SHP);
+    home_tile(160, 34, RS_MODA, K_MOD);
+    home_tile(6, 76, RS_MODB, K_MOD);
+    home_tile(83, 76, RS_FX1, K_FX);
+    home_tile(160, 76, RS_FX2, K_FX);
 }
 
 static void draw_footer(void)                 /* (the status strip on top; the modulation strip is gone) */
@@ -447,7 +476,9 @@ static void draw_footer(void)                 /* (the status strip on top; the m
     status_strip();
 }
 
-/* home's macros as sliders: each with what it moves underneath; LEARN: the macro being linked framed gold */
+/* home's macros as sliders (12 Nov 2026: 48 rows, under the tiles): each with what it moves underneath; LEARN: the
+ * macro being linked framed gold */
+#define HM_H 48
 static void home_macros(void)
 {
     char t[24], n[8];
@@ -455,7 +486,7 @@ static void home_macros(void)
     uint32_t now = plat_ms();
     for (i = 0; i < 4; i++) {                 /* (one canvas each: the canvas holds 9600 pixels) */
         float v = rc_patch.macro[i], amt;
-        int r, nt = 0, src, via, sel = mn.learn && mn.learn_m == i;
+        int r, nt = 0, src, via, sel = mn.learn && !mn.learn_src && mn.learn_m == i;
         uint16_t first = 0;
         for (r = 0; r < 18; r++) {
             uint16_t d = route_dst(r, &src, &via, &amt);
@@ -464,21 +495,21 @@ static void home_macros(void)
                 nt++;
             }
         }
-        cv_begin(57, 68, K_BG);
-        rrect(0, 0, 57, 68, sel ? RGB(40, 34, 18) : K_CELL, 4);
+        cv_begin(57, HM_H, K_BG);
+        rrect(0, 0, 57, HM_H, sel ? RGB(40, 34, 18) : K_CELL, 4);
         if (sel && (now / 250u) & 1u) {
             cv_rect(0, 0, 57, 1, K_GOLD);
-            cv_rect(0, 67, 57, 1, K_GOLD);
-            cv_rect(0, 0, 1, 68, K_GOLD);
-            cv_rect(56, 0, 1, 68, K_GOLD);
+            cv_rect(0, HM_H - 1, 57, 1, K_GOLD);
+            cv_rect(0, 0, 1, HM_H, K_GOLD);
+            cv_rect(56, 0, 1, HM_H, K_GOLD);
         }
         t[0] = 'M';
         t[1] = (char)('1' + i);
         t[2] = 0;
-        cv_text(4, 1, &FONT_T, t, sel ? K_GOLD : K_DIM);
+        cv_text(4, 2, &FONT_T, t, sel ? K_GOLD : K_DIM);
         int_text((int32_t)(v * 100.0f + 0.5f), n);
-        cv_text(28 - text_w(&FONT_B, n) / 2, 14, &FONT_B, n, K_FG);
-        slider(7, 40, 43, v, nt ? K_GOLD : K_DIM, 0, 0.0f, 0.0f, v, 0.0f, K_CELL);
+        cv_text(53 - text_w(&FONT_B, n), 0, &FONT_B, n, K_FG);
+        slider(7, 22, 43, v, nt ? K_GOLD : K_DIM, 0, 0.0f, 0.0f, v, 0.0f, K_CELL);
         if (nt) {
             dst_name(first, t);
             if (nt > 1) {
@@ -495,8 +526,8 @@ static void home_macros(void)
             while (t[k]) k++;
             t[k - 1] = 0;
         }
-        cv_text(28 - text_w(&FONT_T, t) / 2, 52, &FONT_T, t, nt ? K_FG : K_DIM);
-        cv_blit(2u + (uint32_t)i * 59u, 154);
+        cv_text(28 - text_w(&FONT_T, t) / 2, 33, &FONT_T, t, nt ? K_FG : K_DIM);
+        cv_blit(2u + (uint32_t)i * 59u, 120);
     }
 }
 
@@ -528,17 +559,9 @@ static void draw_home(void)
         cv_text(234 - text_w(&FONT_T, "USER"), 5, &FONT_T, "USER", K_GOLD);
     }
     cv_blit(0, 10);
-    home_well();
-    /* the chain as tiles: source, shaper, modulators, effects (red: unloaded, no room) */
-    cv_begin(240, 28, K_BG);
-    tile(6, RS_SRC, K_SRC);
-    tile(44, RS_SHP, K_SHP);
-    tile(82, RS_MODA, K_MOD);
-    tile(120, RS_MODB, K_MOD);
-    tile(158, RS_FX1, K_FX);
-    tile(196, RS_FX2, K_FX);
-    cv_blit(0, 122);
+    home_tiles();                             /* the chain, moving; the macros under it; the scope at the bottom */
     home_macros();
+    home_well();
 }
 
 /* the lit buttons: the page's button (as the page's syncLeds) */
@@ -587,13 +610,14 @@ static void draw_well_only(void)
     if (sv.open || mn.pick || sp.layer || mn.page == PG_RACK || mn.page == PG_MATRIX)
         return;
     if (mn.page == PG_HOME) {
-        home_well();
+        home_tiles();
         home_macros();
+        home_well();
     } else if (is_seq_page(mn.page)) {
         seq_area();
     } else {
         well(mn.page, page_mod(mn.page), page_colour(mn.page));
-        if (!is_fixed(mn.page) && !(mn.page == PG_LFO && mn.sub >= UI_LFO.npages))
+        if (!is_fixed(mn.page) && !(mn.page == PG_LFO && mn.sub >= UI_LFO.npages) && !is_mod_sub(mn.page))
             param_cells(mn.page);             /* the modulated sliders' halos move with the well */
     }
 }
@@ -733,6 +757,7 @@ static void input(void)
     }
     if (mn.learn && (e = plat_enc(EN_SELECT)) != 0) {   /* LEARN on home: SELECT picks the macro */
         mn.learn_m = (mn.learn_m + (e > 0 ? 1 : 3)) & 3;
+        mn.learn_src = 0;
         ui.redraw = 1;
     }
     if ((e = plat_enc(EN_SELECT)) != 0 && rc_patch.mode == RVM_POLY) {
@@ -750,6 +775,7 @@ static void input(void)
         if ((e = plat_enc(EN_K1 + (int)k)) != 0) {
             float m = rc_patch.macro[k] + (float)e * 0.02f;
             mn.learn_m = (int)k;              /* the macro LEARN links: the last one turned */
+            mn.learn_src = 0;
             if (mn.learn) {                   /* LEARN: the knob picks its macro, its value stays */
                 ui.redraw = 1;
                 continue;

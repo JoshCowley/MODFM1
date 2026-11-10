@@ -290,10 +290,11 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </tbody>
 </table>
 <h2 id="6-home">6. HOME</h2>
-<p>HOME shows the preset (its category in a coloured tab, its name, and its number, or USER), the output's scope, the chain of six slots as icon tiles, and the four macros.</p>
+<p>HOME shows the preset (its category in a coloured tab, its name, and its number, or USER), then the chain of six slots as <strong>live tiles</strong>, the four macros under them, and the output's scope along the bottom.</p>
+<p><img src="img/fm1-home.png" alt="HOME" /></p>
 <ul>
-<li><strong>Tiles</strong>: orange source, teal shaper, purple modulators, blue effects. A red tile is a module the preset asks for but that didn't fit in memory.</li>
-<li><strong>Tabs over the scope</strong> show what's on besides the preset: the scale and chord (SEL), the arpeggiator mode, a tuning.</li>
+<li><strong>Tiles</strong>: each slot's module, moving to show what it is doing to the sound right now: the source's wave changing shape with TIMBRE and MORPH, the filter's curve opening and closing, Rings ringing as you play, the modulators' and LFOs' outputs swinging, the delay's echoes falling away, the reverb's cloud and the chorus wobbling. They are small versions of each module page's picture. The icon and name sit under each; orange source, teal shaper, purple modulators, blue effects. A red tile is a module the preset asks for but that didn't fit in memory; an empty slot is a dark box.</li>
+<li><strong>The scope</strong> at the bottom shows the output; <strong>tabs over it</strong> show what's on besides the preset: the scale and chord (SEL), the arpeggiator mode, a tuning.</li>
 <li><strong>Macros</strong>: each with its value (0–100), a slider and what it moves (the first destination, "+2" if more), or <strong>UNSET</strong>. K1–K4 turn them; MIDI CC 20–23 do too.</li>
 <li><strong>PRESET</strong> steps through the factory presets, then your user presets; the sound changes when you stop turning. <strong>ALGORITHM</strong> jumps by category. <strong>SELECT</strong> sets the voices (1–6).</li>
 <li>Tap HOME again for <strong>RACK</strong>, an overview of every slot, AMP, the outputs and how many matrix routes are set; tap once more to come home with all notes off.</li>
@@ -333,6 +334,8 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </table>
 <h3 id="module-pages">Module pages</h3>
 <p>Press the slot's button (EDIT for SRC, ENV twice for SHP, LFO for MOD A and B, FX for FX 1 and 2). SELECT turns the pages within the module; K1–K4 set the four parameters shown.</p>
+<p><strong>The MOD page.</strong> After a module's last page (and AMP's and OSC's) comes its <strong>MOD</strong> page: the matrix routes into that module, four rows at a time. SELECT steps down the rows (and on round to the first page). On the row SELECT is on, <strong>K1</strong> sets the source, <strong>K2</strong> the target (only this module's parameters, so it's a short list), <strong>K3</strong> the amount and <strong>K4</strong> the via. On a free row, turning a knob adds a route (in the matrix's first free row). The page's picture stays above, so you see the module react as you set it. Each route is one of the matrix's 12 rows: the MATRIX still shows them all.</p>
+<p><img src="img/fm1-modpage.png" alt="A module&#39;s MOD page" /></p>
 <p><strong>Changing a module</strong>: on its page, turn <strong>ALGORITHM</strong>. The picker opens on the module now loaded; turn to choose, then press the slot's button again to load it, or HOME to close without changing. Loading stops the sound for a moment while memory is laid out again, then says how many voices fit ("BRAIDS 6 V"), or "NO ROOM" if it doesn't fit.</p>
 <p><img src="img/fm1-picker.png" alt="The module picker" /></p>
 <p>Some edits need more memory (a longer delay, Rings' STR+VERB, the shimmer reverb). When you stop turning, FM1 Rack fits the memory again, with a moment's silence, and says <strong>MEMORY FITTED</strong> and the voices.</p>
@@ -353,7 +356,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p><img src="img/fm1-amp.png" alt="AMP" /></p>
 <h2 id="8-modulation-the-matrix-lfos-macros-and-learn">8. Modulation: the matrix, LFOs, macros and LEARN</h2>
 <h3 id="the-lfo-button">The LFO button</h3>
-<p>LFO steps through <strong>MOD A</strong>, <strong>MOD B</strong>, <strong>LFO</strong>, <strong>MSEQ</strong> and the <strong>MATRIX</strong>, then back to MOD A. <strong>Tap LFO twice quickly</strong> to jump straight to the MATRIX.</p>
+<p>LFO steps through <strong>MOD A</strong>, <strong>MOD B</strong>, <strong>LFO</strong>, <strong>MSEQ</strong> and the <strong>MATRIX</strong>, then back to MOD A. <strong>Tap LFO twice quickly</strong> to jump straight to the MATRIX. <strong>Hold LFO</strong> for LEARN with any source (see LEARN below). A tap turns the page when you let go.</p>
 <h3 id="lfos">LFOs</h3>
 <p>The LFO page has nine pages (SELECT):</p>
 <ul>
@@ -367,8 +370,8 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p>Sources: M1–M4, VELO, KEY TRK, RANDOM, AMP ENV, A OUT 1, A OUT 2, B OUT 1, B OUT 2 (the modulators' outputs), LFO 1–3, MOD ENV, SEQ 1–4.</p>
 <p>Destinations: any parameter that can be modulated on SRC, SHP, MOD A/B, FX 1/2, AMP and OSC.</p>
 <p><img src="img/fm1-matrix.png" alt="The matrix" /></p>
-<p><strong>The matrix hub.</strong> On the MATRIX, <strong>turn ALGORITHM</strong> to switch between four tables: <strong>ROUTES</strong> (the 12 rows above), <strong>ENV</strong> (every AMP parameter), <strong>EDIT</strong> (every parameter of the source module) and <strong>OSC</strong> (the second oscillator and mixer). In ENV, EDIT and OSC, <strong>SELECT</strong> picks a parameter and <strong>K1</strong> sets it; a coloured dot in the MOD column shows that a route moves it (in its source's colour), and a dash that it can't be modulated. So you can set up a route and adjust what it moves without leaving the page.</p>
-<p><img src="img/fm1-hub.png" alt="The matrix hub, ENV table" /></p>
+<p><strong>By target.</strong> On the MATRIX, <strong>turn ALGORITHM</strong> to switch between <strong>ROUTES</strong> (the 12 rows above) and <strong>TARGETS</strong>: the same routes sorted by what they move, grouped by slot, so "what moves the cutoff?" reads off one place and two routes into one parameter sit together. SELECT moves along the list; K1–K4 edit the route as on ROUTES. (The ENV, EDIT and OSC tables that were here are now each module's MOD page.)</p>
+<p><img src="img/fm1-hub.png" alt="The matrix by target" /></p>
 <h3 id="macros">Macros</h3>
 <p>M1–M4 are matrix sources you play with K1–K4 on HOME. On the factory presets they start in the middle: the preset sounds as designed with a macro at 50, and turning it moves its parameter either side.</p>
 <h3 id="learn-linking-a-macro-by-turning-a-knob">LEARN: linking a macro by turning a knob</h3>
@@ -378,6 +381,8 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li>Go to a module, AMP, LFO or OSC page and <strong>turn the knob of the parameter</strong> you want the macro to move. The macro is linked to it in the matrix (in the row it already has, or the first free one), and how far you turned sets the amount. A message confirms it, for example <strong>M2&gt;SRC.TIMBRE +24</strong>.</li>
 <li>Turn more parameters to link more, or <strong>tap HOME (or EDIT twice) to finish</strong>.</li>
 </ol>
+<p><strong>LEARN with any source: hold LFO.</strong> On any page, hold LFO for about half a second. LEARN turns on and, while you hold LFO, <strong>K1 picks the source</strong>: M1–M4, velocity, key tracking, random, the envelopes, the modulators' outputs, LFO 1–3 or SEQ 1–4 (the gold band shows it). Still holding, turn <strong>K2–K4</strong> to link it to those parameters; or let go and LEARN stays on with that source, so any of K1–K4 links it. Tap HOME (or EDIT twice) to finish. For example: on the filter's page hold LFO, turn K1 to LFO 1, turn K2 (CUTOFF): <strong>LFO 1&gt;SHP.CUTOFF +20</strong>.</p>
+<p><img src="img/fm1-learnhold.png" alt="Holding LFO: LEARN with SEQ 1" /></p>
 <p><img src="img/fm1-learn.png" alt="LEARN on HOME, M2 selected" /></p>
 <h2 id="9-osc-the-second-oscillator">9. OSC: the second oscillator</h2>
 <p>Tap EDIT twice (slowly, more than 0.3 s apart, or it counts as LEARN) to reach OSC: a plain oscillator in every voice, mixed with the source <strong>before</strong> the shaper, so the filter or Rings, AMP and the effects take both.</p>

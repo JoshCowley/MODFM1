@@ -45,7 +45,8 @@ static struct {
     int pick, pick_ix;                        /* the picker: open (1), the choice shown */
     uint32_t edited_at;                       /* the last edit: the buffers are checked when the knobs rest */
     int edited;
-    int learn, learn_m;
+    int learn, learn_m, learn_src;            /* learn_src: the source LEARN links (0: the macro learn_m) */
+    int lfo_hold;                             /* LFO held: K1 picks LEARN's source, K2-K4 link it */
     uint32_t edit_at;                         /* EDIT tapped, waiting for a second tap */
     uint32_t lfo_at;                          /* LFO tapped, waiting for a second tap (two taps: the MATRIX) */
     int mtab, hrow[4];                        /* the matrix hub's table (ALGORITHM): ROUTES ENV EDIT OSC; each one's row */                       /* LEARN on; the macro it links (0-3: M1-M4) */
@@ -113,11 +114,16 @@ static int page_first(const ui_mod_t *m, int sub)
         o += m->pages[i];
     return o;
 }
+/* a module, AMP or OSC page ends in its MOD page (12 Nov 2026, after the Dirtywave M8's mod slots): the matrix rows
+ * into that module, four at a time. SELECT steps through its four rows as it steps through pages (MOD_ROWS subs) */
+#define MOD_ROWS 4
+static int has_mod_page(int pg) { return pg == PG_AMP || pg == PG_OSC || (pg >= PG_SRC && pg <= PG_FX2 && page_mod(pg)); }
 static int npages(int pg)
 {
     const ui_mod_t *m = page_mod(pg);
-    return m ? m->npages + (pg == PG_LFO ? 3 : 0) : 1;
+    return m ? m->npages + (pg == PG_LFO ? 3 : 0) + (has_mod_page(pg) ? MOD_ROWS : 0) : 1;
 }
+static int is_mod_sub(int pg) { const ui_mod_t *m = page_mod(pg); return m && has_mod_page(pg) && mn.sub >= m->npages; }
 
 /* ---------------------------------------------------------- values as the page shows them */
 static void fmt(const ui_param_t *p, float v, char *t)
@@ -270,6 +276,7 @@ static int src_step(int s, int k)
     }
     return s;
 }
+static int learn_source(void) { return mn.learn_src ? mn.learn_src : 1 + mn.learn_m; }
 static uint16_t dst_step(uint16_t d, int k)
 {
     static uint16_t list[160];
@@ -402,10 +409,9 @@ static void help(const char *s)
 {
     cv_begin(240, 16, K_BG);
     if (mn.learn) {                           /* LEARN: a gold band in its place */
-        char t[40] = "LEARN M";
-        t[7] = (char)('1' + mn.learn_m);
-        t[8] = 0;
-        cat(t, ": TURN A KNOB   EDIT x2: DONE");
+        char t[48] = "LEARN ";
+        cat(t, src_name(learn_source()));
+        cat(t, mn.lfo_hold ? ": K1 SOURCE  K2-K4 LINK" : ": TURN A KNOB   EDIT x2: DONE");
         rrect(2, 0, 236, 15, K_GOLD, 4);
         icon(IC_KNOB, 6, 2, K_BG);
         cv_text(22, 1, &FONT_T, t, K_BG);
@@ -476,6 +482,132 @@ static void param_cells(int pg)
     }
 }
 
+
+static void edited(void);
+/* ---------------------------------------------------------- a module's MOD page (12 Nov 2026) */
+/* the matrix rows (of the 12) that move this page's module, in row order: AMP's page takes AMP's own parameters,
+ * OSC's the oscillator's (both live on AMP's slot) */
+static int mod_rows(int pg, int *rows)
+{
+    int r, n = 0, src, via, slot = page_slot(pg);
+    float amt;
+    for (r = 0; r < 12; r++) {
+        uint16_t d = route_dst(r, &src, &via, &amt);
+        int ds = d ? (int)((d >> 8) & 0x7F) - 1 : -2, pi = d & 0xFF;
+        if (!d || (d & 0x8000u) || ds != slot)
+            continue;
+        if (pg == PG_OSC ? pi < OSC_P0 : pg == PG_AMP ? pi >= OSC_P0 : 0)
+            continue;
+        rows[n++] = r;
+    }
+    return n;
+}
+/* the next of this page's parameters the matrix can move (K2 on the MOD page: only its own module's) */
+static uint16_t mod_dst_step(int pg, uint16_t d, int k)
+{
+    const ui_mod_t *m = page_mod(pg);
+    int slot = page_slot(pg), i, n = 0, at = -1;
+    uint16_t list[32];
+    for (i = 0; m && i < m->nparams && n < 32; i++)
+        if (m->p[i].mod) {
+            list[n] = (uint16_t)((slot + 1) << 8 | (pofs(pg) + i));
+            if (list[n] == d) at = n;
+            n++;
+        }
+    if (!n)
+        return d;
+    if (at < 0)
+        return list[k > 0 ? 0 : n - 1];
+    return list[(at + (k > 0 ? 1 : -1) + n) % n];
+}
+/* K1 source, K2 target, K3 amount, K4 via, on the row SELECT is on; a free row takes the matrix's first free one */
+static void mod_knob(int pg, int k, int32_t e)
+{
+    const ui_mod_t *m = page_mod(pg);
+    int rows[12], n = mod_rows(pg, rows), sel = mn.sub - m->npages, r, src, via, i;
+    float amt;
+    uint16_t d;
+    if (sel < n) {
+        r = rows[sel];
+        d = route_dst(r, &src, &via, &amt);
+    } else {
+        for (r = 0; r < 12; r++)
+            if (!route_dst(r, &src, &via, &amt))
+                break;
+        if (r == 12) {
+            app_say("MATRIX FULL", "FREE A ROW");
+            return;
+        }
+        src = learn_source();
+        via = 0;
+        amt = 0.0f;
+        d = mod_dst_step(pg, 0, 1);
+        if (!d) {
+            app_say(m->name, "NOTHING TO MODULATE");
+            return;
+        }
+    }
+    if (k == 0) { src = src_step(src, (int)e); if (!src) src = src_step(src, (int)e); }
+    if (k == 1) d = mod_dst_step(pg, d, (int)e);
+    if (k == 2) amt = fm_clampf(amt + (float)e * 0.01f, -1.0f, 1.0f);
+    if (k == 3) via = src_step(via, (int)e);
+    route_set(r, src, d, amt, via);
+    n = mod_rows(pg, rows);                   /* a new row may sort above the others: SELECT follows it */
+    for (i = 0; i < n; i++)
+        if (rows[i] == r && i < MOD_ROWS)
+            mn.sub = m->npages + i;
+    edited();
+}
+static void draw_mod_page(int pg)
+{
+    const ui_mod_t *m = page_mod(pg);
+    int rows[12], n = mod_rows(pg, rows), sel = mn.sub - m->npages, k;
+    uint16_t c = page_colour(pg);
+    char t[32];
+    cv_begin(240, 16, K_BG);
+    cv_text(8, 2, &FONT_T, "SOURCE", K_DIM);
+    cv_text(76, 2, &FONT_T, "TARGET", K_DIM);
+    cv_text(150, 2, &FONT_T, "AMOUNT", K_DIM);
+    cv_text(204, 2, &FONT_T, "VIA", K_DIM);
+    cv_blit(0, 80);
+    for (k = 0; k < MOD_ROWS; k++) {
+        int on = k < n, src = 0, via = 0, isel = k == sel;
+        float amt = 0.0f;
+        uint16_t d = on ? route_dst(rows[k], &src, &via, &amt) : 0;
+        cv_begin(232, 28, K_BG);
+        rrect(0, 0, 232, 28, isel ? K_SEL : K_CELL, 4);
+        if (isel)
+            cv_rect(0, 0, 2, 28, c);
+        if (on) {
+            int32_t a = (int32_t)(amt * 100.0f + (amt < 0 ? -0.5f : 0.5f)), z = 172, ex = z + (int32_t)(amt * 24.0f);
+            rrect(5, 11, 6, 6, src_colour(src), 3);
+            cv_text(14, 7, &FONT_T, src_name(src), src_colour(src));
+            dst_name(d, t);
+            {                                 /* the parameter alone: the slot is this page's */
+                const char *p = t;
+                while (*p && *p != '.') p++;
+                cv_text(72, 7, &FONT_T, *p ? p + 1 : t, K_FG);
+            }
+            rrect(148, 13, 48, 3, K_FAINT, 1);
+            if (ex != z) cv_rect(ex < z ? ex : z, 13, ex < z ? z - ex : ex - z, 3, src_colour(src));
+            t[0] = 0;
+            if (a >= 0) cat(t, "+");
+            int_text(a, t + (a >= 0));
+            cv_text(172 - text_w(&FONT_T, t) / 2, 0, &FONT_T, t, K_FG);
+            cv_text(204, 7, &FONT_T, via ? src_name(via) : "-", K_DIM);
+        } else {
+            cv_text(14, 7, &FONT_T, isel ? "FREE: TURN K1-K4 TO ADD" : "-", isel ? K_DIM : K_FAINT);
+        }
+        cv_blit(4, 98 + (uint32_t)k * 30);
+    }
+    if (n > MOD_ROWS) {
+        int_text(n - MOD_ROWS, t);
+        cat(t, " MORE IN THE MATRIX");
+        help(t);
+    } else
+        help("SELECT: ROW  K1 SRC K2 TARGET K3 AMT K4 VIA");
+}
+
 static void draw_param_page(int pg)
 {
     const ui_mod_t *m = page_mod(pg);
@@ -521,12 +653,25 @@ static void draw_param_page(int pg)
     } else {
         cat(title, m->name);
     }
-    header(pg == PG_OSC ? "OSC" : SLOT_TAG[slot], c, pg == PG_OSC ? (mn.sub ? "MIXER" : "OSCILLATOR") : title,
-           pg == PG_AMP ? IC_AMP : pg == PG_LFO ? IC_LFO : pg == PG_OSC ? IC_KNOB : module_icon(m->id), npages(pg), mn.sub);
+    if (is_mod_sub(pg)) {
+        title[0] = 0;
+        cat(title, pg == PG_OSC ? "OSC" : m->name);
+        cat(title, " MOD");
+    }
+    {
+        int np = npages(pg), sb = mn.sub;
+        if (has_mod_page(pg)) { np -= MOD_ROWS - 1; if (sb > m->npages) sb = m->npages; }   /* the MOD page: one dot */
+        header(pg == PG_OSC ? "OSC" : SLOT_TAG[slot], c, is_mod_sub(pg) ? title : pg == PG_OSC ? (mn.sub ? "MIXER" : "OSCILLATOR") : title,
+               pg == PG_AMP ? IC_AMP : pg == PG_LFO ? IC_LFO : pg == PG_OSC ? IC_KNOB : module_icon(m->id), np, sb);
+    }
     well(pg, pg == PG_AMP || pg == PG_LFO || pg == PG_OSC ? 0 : m, c);
     if (pg == PG_LFO && mn.sub >= m->npages) {
         draw_lfo_targets(mn.sub - m->npages);
         help("K1 K3: DESTINATION   K2 K4: AMOUNT");
+        return;
+    }
+    if (is_mod_sub(pg)) {
+        draw_mod_page(pg);
         return;
     }
     param_cells(pg);
@@ -572,79 +717,92 @@ static void draw_picker(void)
     cv_blit(0, 162);
 }
 
-/* the matrix hub (Nov 2026): ALGORITHM turns its tables: ROUTES (the 12 rows), then ENV (AMP), EDIT (the source)
- * and OSC as lists of every parameter: SELECT the row, K1 its value; a parameter the matrix moves shows a dot in its
- * source's colour, so the routes and what they move are edited in one place */
+/* the matrix hub: ALGORITHM turns between ROUTES (the 12 rows) and TARGETS (12 Nov 2026: the same rows sorted by
+ * what they move, so "what moves the cutoff?" reads off one place; two routes into one parameter sit together).
+ * The parameters' own tables (ENV, EDIT, OSC) gave way to each module's MOD page */
 static void edited(void);
-static const char *const HUB_NAME[4] = {"ROUTES", "ENV", "EDIT", "OSC"};
-static const ui_mod_t *hub_mod(int t, int *slot, int *ofs)
+#define NHUB 2
+static const char *const HUB_NAME[NHUB] = {"ROUTES", "TARGETS"};
+static int hub_sorted(int *rows)              /* the rows in use, by destination then row */
 {
-    *ofs = 0;
-    if (t == 1) { *slot = RS_AMP; return &UI_AMP; }
-    if (t == 3) { *slot = RS_AMP; *ofs = OSC_P0; return &UI_OSC; }
-    *slot = RS_SRC;
-    return ui_mod(rc_patch.mod[RS_SRC]);
+    int r, n = 0, i, j, src, via;
+    float amt;
+    uint16_t key[12];
+    for (r = 0; r < 12; r++) {
+        uint16_t d = route_dst(r, &src, &via, &amt);
+        if (!d || !src)
+            continue;
+        key[n] = (uint16_t)(d & 0x7FFFu);
+        rows[n++] = r;
+    }
+    for (i = 1; i < n; i++)                   /* insertion sort: stable, so rows into one target keep their order */
+        for (j = i; j > 0 && key[j - 1] > key[j]; j--) {
+            uint16_t tk = key[j]; int tr = rows[j];
+            key[j] = key[j - 1]; rows[j] = rows[j - 1];
+            key[j - 1] = tk; rows[j - 1] = tr;
+        }
+    return n;
 }
 static void draw_hub(void)
 {
-    int slot, ofs, k, n, top, row = mn.hrow[mn.mtab];
-    const ui_mod_t *m = hub_mod(mn.mtab, &slot, &ofs);
+    int rows[12], n = hub_sorted(rows), k, top, sel = mn.hrow[1], lastslot = -99;
     char t[32];
-    n = m ? m->nparams : 0;
-    if (n > 24) n = 24;
-    if (row >= n) row = mn.hrow[mn.mtab] = n ? n - 1 : 0;
-    t[0] = 0;
-    cat(t, HUB_NAME[mn.mtab]);
-    if (mn.mtab == 2 && m) { cat(t, " "); cat(t, m->name); }
-    header("MATRIX", K_MX, t, IC_MATRIX, 4, mn.mtab);
+    if (sel >= n) sel = mn.hrow[1] = n ? n - 1 : 0;
+    header("MATRIX", K_MX, "BY TARGET", IC_MATRIX, NHUB, 1);
     cv_begin(240, 16, K_BG);
-    cv_text(8, 2, &FONT_T, "PARAMETER", K_DIM);
-    cv_text(110, 2, &FONT_T, "VALUE", K_DIM);
-    cv_text(200, 2, &FONT_T, "MOD", K_DIM);
+    cv_text(8, 2, &FONT_T, "TARGET", K_DIM);
+    cv_text(120, 2, &FONT_T, "FROM", K_DIM);
+    cv_text(196, 2, &FONT_T, "AMT", K_DIM);
     cv_blit(0, 34);
-    top = row - 3;
+    top = sel - 3;
     if (top > n - 7) top = n - 7;
     if (top < 0) top = 0;
+    if (top > 0) {                            /* the slot heading of the first row shown */
+        int src, via; float amt;
+        uint16_t d = route_dst(rows[top - 1], &src, &via, &amt);
+        lastslot = (int)((d >> 8) & 0x7F) - 1;
+    }
     for (k = 0; k < 7; k++) {
-        int i = top + k, sel = i == row;
+        int i = top + k, src, via;
+        float amt;
         cv_begin(232, 22, K_BG);
         if (i < n) {
-            const ui_param_t *p = &m->p[i];
-            float v = rk_get_param(slot, ofs + i);
-            uint16_t mc = p->mod ? mod_colour(slot, ofs + i) : 0;
-            uint16_t pc = mn.mtab == 1 ? K_AMP : mn.mtab == 3 ? K_OSC : slot_colour(RS_SRC);
-            if (sel) {
+            uint16_t d = route_dst(rows[i], &src, &via, &amt);
+            int slot = (int)((d >> 8) & 0x7F) - 1, isel = i == sel, same = slot == lastslot && !(d & 0x8000u);
+            int32_t a = (int32_t)(amt * 100.0f + (amt < 0 ? -0.5f : 0.5f));
+            if (isel) {
                 rrect(0, 0, 232, 22, K_SEL, 4);
                 cv_rect(0, 0, 2, 22, K_MX);
             }
-            cv_text(8, 4, &FONT_T, p->l, sel ? K_FG : K_DIM);
-            fmt(p, v, t);
-            cv_text(110, 4, &FONT_T, t, K_FG);
-            rrect(160, 10, 32, 3, K_FAINT, 1);
-            rrect(160, 10, 1 + (int32_t)(31.0f * frac(p, v)), 3, pc, 1);
-            if (mc) rrect(204, 7, 9, 9, mc, 4);
-            else if (!p->mod) cv_text(204, 4, &FONT_T, "-", K_FAINT);
+            dst_name(d, t);
+            if (same) {                       /* under its slot's first row: the parameter alone, indented */
+                const char *p = t;
+                while (*p && *p != '.') p++;
+                cv_text(20, 4, &FONT_T, *p ? p + 1 : t, K_FG);
+            } else
+                cv_text(8, 4, &FONT_T, t, K_FG);
+            rrect(110, 9, 5, 5, src_colour(src), 2);
+            cv_text(118, 4, &FONT_T, src_name(src), src_colour(src));
+            t[0] = 0;
+            if (a >= 0) cat(t, "+");
+            int_text(a, t + (a >= 0));
+            cv_text(222 - text_w(&FONT_T, t), 4, &FONT_T, t, K_FG);
+            lastslot = (d & 0x8000u) ? -99 : slot;
+        } else if (i == 0) {
+            cv_text(8, 4, &FONT_T, "NO ROUTES YET", K_DIM);
         }
         cv_blit(4, 50 + (uint32_t)k * 23);
     }
-    help(mn.mtab == 2 && !m ? "NO SOURCE LOADED   ALGO: TABLE" : "ALGO: TABLE   SELECT: ROW   K1: VALUE");
+    help("ALGO: TABLE  SELECT: ROW  K1 SRC K2 DEST K3 AMT");
 }
-static void hub_knob(int32_t e)
+/* the row SELECT is on in the matrix: ROUTES' row, or TARGETS' sorted row (-1 none) */
+static int hub_row(void)
 {
-    int slot, ofs, pi = mn.hrow[mn.mtab];
-    const ui_mod_t *m = hub_mod(mn.mtab, &slot, &ofs);
-    float v;
-    if (!m || pi >= m->nparams)
-        return;
-    v = step(&m->p[pi], rk_get_param(slot, ofs + pi), e);
-    rc_set(slot, ofs + pi, v);
-    if (mn.mtab == 1 && pi == 11) {           /* AMP MODE: the voices follow (as on AMP's page) */
-        int md = (int)(v + 0.5f);
-        rc_patch.mode = md;
-        rk_set_legato(md == RVM_MONO ? 0 : 1);
-        rc_voices(md == RVM_MONO || md == RVM_LEGATO ? 1 : START_VOICES);
-    }
-    edited();
+    int rows[12], n;
+    if (!mn.mtab)
+        return mn.row;
+    n = hub_sorted(rows);
+    return mn.hrow[1] < n ? rows[mn.hrow[1]] : -1;
 }
 
 static void draw_matrix(void)
@@ -661,7 +819,7 @@ static void draw_matrix(void)
     cat(t, "ROW ");
     int_text(mn.row + 1, t + 4);
     cat(t, "/12");
-    header("MATRIX", K_MX, t, IC_MATRIX, 4, 0);
+    header("MATRIX", K_MX, t, IC_MATRIX, NHUB, 0);
     cv_begin(240, 16, K_BG);
     cv_text(8, 2, &FONT_T, "SOURCE", K_DIM);
     cv_text(72, 2, &FONT_T, "DESTINATION", K_DIM);
@@ -842,27 +1000,25 @@ static void fixed_changed(int pg, int pi, float old, float v)
 /* ---------------------------------------------------------- LEARN */
 static void learn_set(int on)
 {
-    char t[4] = "M1";
     mn.learn = on;
-    t[1] = (char)('1' + mn.learn_m);
-    app_say(on ? "LEARN" : "LEARN DONE", on ? t : "");
+    app_say(on ? "LEARN" : "LEARN DONE", on ? src_name(learn_source()) : "");
     ui.redraw = 1;
 }
 static int learnable(int pg)
 {
     if (pg == PG_LFO)
         return mn.sub < UI_LFO.npages;        /* not the LFO target pages */
-    return pg == PG_AMP || pg == PG_OSC || (is_slot_page(pg) && page_mod(pg));
+    return (pg == PG_AMP || pg == PG_OSC || (is_slot_page(pg) && page_mod(pg))) && !is_mod_sub(pg);
 }
 /* a knob turned while learning: the macro linked to its parameter, the turn its amount */
 static void learn_turn(int k, int32_t e)
 {
     const ui_mod_t *m = page_mod(mn.page);
-    int slot = page_slot(mn.page), pi, r, row = -1, free_row = -1, src, via, msrc = 1 + mn.learn_m;
+    int slot = page_slot(mn.page), pi, r, row = -1, free_row = -1, src, via, msrc = learn_source();
     float amt;
     uint16_t d;
     char t[40], u[24];
-    if (!m || k >= m->pages[mn.sub])
+    if (!m || mn.sub >= m->npages || k >= m->pages[mn.sub])
         return;
     pi = page_first(m, mn.sub) + k;
     if (!m->p[pi].mod) {
@@ -888,10 +1044,9 @@ static void learn_turn(int k, int32_t e)
     route_dst(row, &src, &via, &amt);
     amt = fm_clampf(amt + (float)e * 0.02f, -1.0f, 1.0f);
     route_set(row, msrc, d, amt, via);
-    t[0] = 'M';
-    t[1] = (char)('1' + mn.learn_m);
-    t[2] = '>';
-    t[3] = 0;
+    t[0] = 0;
+    cat(t, src_name(msrc));
+    cat(t, ">");
     dst_name(d, u);
     cat(t, u);
     u[0] = 0;
@@ -909,22 +1064,20 @@ static void knob(int k, int32_t e)
 {
     const ui_mod_t *m = page_mod(mn.page);
     int slot = page_slot(mn.page);
-    if (mn.page == PG_MATRIX && mn.mtab) {    /* the hub's lists: K1 the value */
-        if (k == 0)
-            hub_knob(e);
-        return;
-    }
-    if (mn.page == PG_MATRIX) {
-        int src, via;
+    if (mn.page == PG_MATRIX) {               /* ROUTES or TARGETS: the row SELECT is on */
+        int src, via, row = hub_row();
         float amt;
-        uint16_t d = route_dst(mn.row, &src, &via, &amt);
+        uint16_t d;
+        if (row < 0)
+            return;
+        d = route_dst(row, &src, &via, &amt);
         if (k == 0) src = src_step(src, (int)e);
         if (k == 1) d = dst_step(d, (int)e);
         if (k == 2) { amt += (float)e * 0.01f; amt = amt < -1.0f ? -1.0f : amt > 1.0f ? 1.0f : amt; }
         if (k == 3) via = src_step(via, (int)e);
         if (!src && k != 0 && d)
             src = 1;
-        route_set(mn.row, src, d, amt, via);
+        route_set(row, src, d, amt, via);
         edited();
         return;
     }
@@ -940,6 +1093,10 @@ static void knob(int k, int32_t e)
         if (fv[pi] != old)
             fixed_changed(mn.page, pi, old, fv[pi]);
         ui.redraw = 1;
+        return;
+    }
+    if (is_mod_sub(mn.page)) {
+        mod_knob(mn.page, k, e);
         return;
     }
     if (mn.page == PG_LFO && mn.sub >= m->npages) {
@@ -1005,8 +1162,27 @@ static int menu_input(uint32_t press, uint32_t btn)
             mn.lfo_at = plat_ms() | 1u;
         }
     }
-    if (mn.lfo_at && plat_ms() - mn.lfo_at >= EDIT_DOUBLE_MS) {
-        mn.lfo_at = 0;
+    if (mn.lfo_at && (btn >> B_LFO & 1u) && plat_ms() - mn.lfo_at >= HOLD_MS) {
+        mn.lfo_at = 0;                        /* LFO held (12 Nov 2026): LEARN with any source. K1 picks it while */
+        mn.lfo_hold = 1;                      /* held, K2-K4 link it; let go and LEARN stays (EDIT x2 or HOME ends it) */
+        if (!mn.learn) learn_set(1);
+        app_say("LEARN: K1 SOURCE", src_name(learn_source()));
+        ui.redraw = 1;
+    }
+    if (mn.lfo_hold && !(btn >> B_LFO & 1u)) {
+        mn.lfo_hold = 0;
+        ui.redraw = 1;
+    }
+    if (mn.lfo_hold && (e = plat_enc(EN_K1)) != 0) {
+        int s2 = src_step(learn_source(), (int)e);
+        if (!s2) s2 = src_step(s2, (int)e);   /* never "-" */
+        if (s2 >= 1 && s2 <= 4) { mn.learn_m = s2 - 1; mn.learn_src = 0; }
+        else mn.learn_src = s2;
+        app_say("LEARN", src_name(s2));
+        ui.redraw = 1;
+    }
+    if (mn.lfo_at && !(btn >> B_LFO & 1u) && plat_ms() - mn.lfo_at >= EDIT_DOUBLE_MS) {
+        mn.lfo_at = 0;                        /* (a tap acts once let go: a hold is never a tap) */
         page_button(LFO_CYC, 5);
     }
     if (press >> B_FX & 1u) page_button(FX_CYC, 2);
@@ -1029,17 +1205,16 @@ static int menu_input(uint32_t press, uint32_t btn)
         mn.home_at = 0;
     }
     if (mn.page == PG_HOME)
-        return 0;
+        return mn.lfo_hold;                   /* holding LFO on home: the knobs are LEARN's, not the macros' */
     if (is_seq_page(mn.page)) {               /* the sequencer's pages: their own encoders */
         seq_encoders();
         return 1;
     }
     if ((e = plat_enc(EN_SELECT)) != 0) {
         if (mn.page == PG_MATRIX && mn.mtab) {
-            int slot, ofs;
-            const ui_mod_t *m = hub_mod(mn.mtab, &slot, &ofs);
-            int n = m ? (m->nparams > 24 ? 24 : m->nparams) : 1;
-            mn.hrow[mn.mtab] = (mn.hrow[mn.mtab] + (e > 0 ? 1 : -1) + n) % n;
+            int rows[12], n = hub_sorted(rows);
+            if (n < 1) n = 1;
+            mn.hrow[1] = (mn.hrow[1] + (e > 0 ? 1 : -1) + n) % n;
         } else if (mn.page == PG_MATRIX) {
             mn.row = (mn.row + (e > 0 ? 1 : -1) + 12) % 12;   /* round (all pages loop) */
         } else if (!mn.pick) {
@@ -1049,7 +1224,7 @@ static int menu_input(uint32_t press, uint32_t btn)
         ui.redraw = 1;
     }
     if (mn.page == PG_MATRIX && (e = plat_enc(EN_ALGO)) != 0) {   /* the hub's tables, round */
-        mn.mtab = (mn.mtab + (e > 0 ? 1 : 3)) % 4;
+        mn.mtab = (mn.mtab + 1) % NHUB;
         ui.redraw = 1;
     }
     if ((e = plat_enc(EN_ALGO)) != 0 && is_slot_page(mn.page)) {
@@ -1066,7 +1241,7 @@ static int menu_input(uint32_t press, uint32_t btn)
         mn.pick_ix = (mn.pick_ix + (e > 0 ? 1 : -1) + n) % n;   /* round: from EMPTY, one more is the first */
         ui.redraw = 1;
     }
-    for (k = 0; k < 4; k++)
+    for (k = mn.lfo_hold ? 1 : 0; k < 4; k++)
         if ((e = plat_enc(EN_K1 + k)) != 0 && mn.page != PG_RACK && !mn.pick) {
             if (mn.learn && learnable(mn.page))
                 learn_turn(k, e);

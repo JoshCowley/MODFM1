@@ -36,6 +36,33 @@ static float vis_t(void)
     vz.at_ms = now;
     return vz.at;
 }
+/* the home page's tiles draw these same pictures small (vm_on): every point of the 228 x 42 well is scaled into the
+ * tile's picture (vm_sx, vm_sy, from vm_ox, vm_oy) and the labels are left out (12 Nov 2026: animated tiles) */
+static int vm_on;
+static float vm_sx = 1.0f, vm_sy = 1.0f;
+static int32_t vm_ox, vm_oy;
+static int32_t vmx(int32_t x) { return vm_on ? vm_ox + (int32_t)((float)x * vm_sx + 0.5f) : x; }
+static int32_t vmy(int32_t y) { return vm_on ? vm_oy + (int32_t)((float)y * vm_sy + 0.5f) : y; }
+static void vm_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c) { cv_line(vmx(x0), vmy(y0), vmx(x1), vmy(y1), c); }
+static void vm_pset(int32_t x, int32_t y, uint16_t c) { cv_pset(vmx(x), vmy(y), c); }
+static void vm_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
+{
+    int32_t x0 = vmx(x), y0 = vmy(y), x1 = vmx(x + w), y1 = vmy(y + h);
+    cv_rect(x0, y0, x1 > x0 ? x1 - x0 : 1, y1 > y0 ? y1 - y0 : 1, c);
+}
+static void vm_rrect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c, int32_t r)
+{
+    int32_t x0 = vmx(x), y0 = vmy(y), x1 = vmx(x + w), y1 = vmy(y + h);
+    int32_t ww = x1 > x0 ? x1 - x0 : 1, hh = y1 > y0 ? y1 - y0 : 1;
+    if (vm_on) r = r * ww / (w > 0 ? w : 1);
+    if (r * 2 > ww) r = ww / 2;
+    if (r * 2 > hh) r = hh / 2;
+    rrect(x0, y0, ww, hh, c, r);
+}
+#define cv_line vm_line
+#define cv_pset vm_pset
+#define cv_rect vm_rect
+#define rrect vm_rrect
 static float rnd(void) { vz.rng = vz.rng * 1664525u + 1013904223u; return (float)(vz.rng >> 8) * (1.0f / 16777216.0f); }
 static float env_max(const float *mon)
 {
@@ -76,7 +103,7 @@ static void ellipse(float cx, float cy, float rx, float ry, uint16_t c)
         py = y;
     }
 }
-static void vlabel(const char *s) { cv_text(6, 2, &FONT_T, s, K_DIM); }
+static void vlabel(const char *s) { if (!vm_on) cv_text(6, 2, &FONT_T, s, K_DIM); }
 static float P(const float *mon, int i) { return i < 16 ? mon[i] : mon[168 + i - 16]; }
 
 static void vis_plaits(const float *mon, uint16_t c)
@@ -365,3 +392,22 @@ static void vis_draw(int slot, int id, int sub, uint16_t c)
         scope(VW, VH, mix565(c, K_WELL, 150));
     }
 }
+
+#undef cv_line
+#undef cv_pset
+#undef cv_rect
+#undef rrect
+
+/* a module's picture in a home tile: its page's well, small, in w x h from (x, y) of the tile's canvas */
+static void vis_mini(int slot, int id, int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
+{
+    vm_on = 1;
+    vm_ox = x;
+    vm_oy = y;
+    vm_sx = (float)w / (float)VW;
+    vm_sy = (float)h / (float)VH;
+    if (id == 1 || id == 2 || id == 10 || id == 12 || id == 20 || id == 21 || id == 23 || id >= 31)
+        vis_draw(slot, id, 0, c);
+    vm_on = 0;
+}
+

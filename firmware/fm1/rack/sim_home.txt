@@ -1,0 +1,14 @@
+wait 400
+turn PRESET 52
+wait 1500
+key w5 down 100
+key w9 down 100
+wait 400
+shot tidal.png
+turn PRESET -9
+wait 1500
+key w12 down 110
+wait 200
+shot resonator.png
+wait 600
+shot resonator2.png

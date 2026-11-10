@@ -151,10 +151,12 @@ Each kind of modulation source has its own colour everywhere (halos, matrix):
 
 ## 6. HOME
 
-HOME shows the preset (its category in a coloured tab, its name, and its number, or USER), the output's scope, the chain of six slots as icon tiles, and the four macros.
+HOME shows the preset (its category in a coloured tab, its name, and its number, or USER), then the chain of six slots as **live tiles**, the four macros under them, and the output's scope along the bottom.
 
-- **Tiles**: orange source, teal shaper, purple modulators, blue effects. A red tile is a module the preset asks for but that didn't fit in memory.
-- **Tabs over the scope** show what's on besides the preset: the scale and chord (SEL), the arpeggiator mode, a tuning.
+![HOME](../web/manual/img/fm1-home.png)
+
+- **Tiles**: each slot's module, moving to show what it is doing to the sound right now: the source's wave changing shape with TIMBRE and MORPH, the filter's curve opening and closing, Rings ringing as you play, the modulators' and LFOs' outputs swinging, the delay's echoes falling away, the reverb's cloud and the chorus wobbling. They are small versions of each module page's picture. The icon and name sit under each; orange source, teal shaper, purple modulators, blue effects. A red tile is a module the preset asks for but that didn't fit in memory; an empty slot is a dark box.
+- **The scope** at the bottom shows the output; **tabs over it** show what's on besides the preset: the scale and chord (SEL), the arpeggiator mode, a tuning.
 - **Macros**: each with its value (0–100), a slider and what it moves (the first destination, "+2" if more), or **UNSET**. K1–K4 turn them; MIDI CC 20–23 do too.
 - **PRESET** steps through the factory presets, then your user presets; the sound changes when you stop turning. **ALGORITHM** jumps by category. **SELECT** sets the voices (1–6).
 - Tap HOME again for **RACK**, an overview of every slot, AMP, the outputs and how many matrix routes are set; tap once more to come home with all notes off.
@@ -176,6 +178,10 @@ FM1 Rack's voice is a fixed chain of slots:
 ### Module pages
 
 Press the slot's button (EDIT for SRC, ENV twice for SHP, LFO for MOD A and B, FX for FX 1 and 2). SELECT turns the pages within the module; K1–K4 set the four parameters shown.
+
+**The MOD page.** After a module's last page (and AMP's and OSC's) comes its **MOD** page: the matrix routes into that module, four rows at a time. SELECT steps down the rows (and on round to the first page). On the row SELECT is on, **K1** sets the source, **K2** the target (only this module's parameters, so it's a short list), **K3** the amount and **K4** the via. On a free row, turning a knob adds a route (in the matrix's first free row). The page's picture stays above, so you see the module react as you set it. Each route is one of the matrix's 12 rows: the MATRIX still shows them all.
+
+![A module's MOD page](../web/manual/img/fm1-modpage.png)
 
 **Changing a module**: on its page, turn **ALGORITHM**. The picker opens on the module now loaded; turn to choose, then press the slot's button again to load it, or HOME to close without changing. Loading stops the sound for a moment while memory is laid out again, then says how many voices fit ("BRAIDS 6 V"), or "NO ROOM" if it doesn't fit.
 
@@ -208,7 +214,7 @@ The well shows the envelope on every page. UNI 2 and UNI 4 play two or four detu
 
 ### The LFO button
 
-LFO steps through **MOD A**, **MOD B**, **LFO**, **MSEQ** and the **MATRIX**, then back to MOD A. **Tap LFO twice quickly** to jump straight to the MATRIX.
+LFO steps through **MOD A**, **MOD B**, **LFO**, **MSEQ** and the **MATRIX**, then back to MOD A. **Tap LFO twice quickly** to jump straight to the MATRIX. **Hold LFO** for LEARN with any source (see LEARN below). A tap turns the page when you let go.
 
 ### LFOs
 
@@ -230,9 +236,9 @@ Destinations: any parameter that can be modulated on SRC, SHP, MOD A/B, FX 1/2, 
 
 ![The matrix](../web/manual/img/fm1-matrix.png)
 
-**The matrix hub.** On the MATRIX, **turn ALGORITHM** to switch between four tables: **ROUTES** (the 12 rows above), **ENV** (every AMP parameter), **EDIT** (every parameter of the source module) and **OSC** (the second oscillator and mixer). In ENV, EDIT and OSC, **SELECT** picks a parameter and **K1** sets it; a coloured dot in the MOD column shows that a route moves it (in its source's colour), and a dash that it can't be modulated. So you can set up a route and adjust what it moves without leaving the page.
+**By target.** On the MATRIX, **turn ALGORITHM** to switch between **ROUTES** (the 12 rows above) and **TARGETS**: the same routes sorted by what they move, grouped by slot, so "what moves the cutoff?" reads off one place and two routes into one parameter sit together. SELECT moves along the list; K1–K4 edit the route as on ROUTES. (The ENV, EDIT and OSC tables that were here are now each module's MOD page.)
 
-![The matrix hub, ENV table](../web/manual/img/fm1-hub.png)
+![The matrix by target](../web/manual/img/fm1-hub.png)
 
 ### Macros
 
@@ -244,6 +250,10 @@ M1–M4 are matrix sources you play with K1–K4 on HOME. On the factory presets
 2. **Tap EDIT twice quickly.** LEARN is on: the macro is framed in gold on HOME, HOME blinks, and a gold band replaces the help line on every page.
 3. Go to a module, AMP, LFO or OSC page and **turn the knob of the parameter** you want the macro to move. The macro is linked to it in the matrix (in the row it already has, or the first free one), and how far you turned sets the amount. A message confirms it, for example **M2>SRC.TIMBRE +24**.
 4. Turn more parameters to link more, or **tap HOME (or EDIT twice) to finish**.
+
+**LEARN with any source: hold LFO.** On any page, hold LFO for about half a second. LEARN turns on and, while you hold LFO, **K1 picks the source**: M1–M4, velocity, key tracking, random, the envelopes, the modulators' outputs, LFO 1–3 or SEQ 1–4 (the gold band shows it). Still holding, turn **K2–K4** to link it to those parameters; or let go and LEARN stays on with that source, so any of K1–K4 links it. Tap HOME (or EDIT twice) to finish. For example: on the filter's page hold LFO, turn K1 to LFO 1, turn K2 (CUTOFF): **LFO 1>SHP.CUTOFF +20**.
+
+![Holding LFO: LEARN with SEQ 1](../web/manual/img/fm1-learnhold.png)
 
 ![LEARN on HOME, M2 selected](../web/manual/img/fm1-learn.png)
 
