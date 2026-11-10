@@ -32,6 +32,8 @@ void set_master_fx(float low_db, float mid_db, float high_db, float comp);
 void set_voices(int n);          // 1-6; the FM-1 build caps this at what fits
 void set_legato(int on);
 void set_vintage(float amount);
+void set_fx_bypass(int slot, int off);   /* FM-1: an effect slot (4, 5) skipped; on again: its buffers cleared */
+int fx_bypass(int slot);
 void set_tune(int note, float semitones);
 void set_bend(float semitones);
 void set_ext(int i, float v);    // modulation lanes

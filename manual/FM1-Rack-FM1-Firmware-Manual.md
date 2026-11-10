@@ -73,9 +73,9 @@ These come from fm1-base and Felucca and haven't been needed with FM1 Rack yet.
 | **EDIT** | the source (Plaits or Braids) | OSC, the second oscillator and mixer | **Hold: UNDO** the last change (hold again to go further back, up to 16). A tap turns the page when you let go |
 | **ENV** | AMP (envelopes, voice mode) | the shaper (Rings or the filter) | |
 | **LFO** | MOD A | MOD B, the three LFOs (with their target pages), MSEQ, the 12-row MATRIX | **Two quick taps: the MATRIX.** A single tap waits 0.3 s, as EDIT does |
-| **FX** | FX 1 | FX 2 | |
-| **ARP** | the arpeggiator | | |
-| **SEL** | scale and chord | (SELECT turns to page 2: the keys) | **Hold: LEARN on or off** (see 8). A tap opens SEL when you let go |
+| **FX** | FX 1 | FX 2 | **Hold, let go, then within 2 s: one tap turns FX 1 off or on, two quick taps FX 2.** A switched-off effect shows OFF on HOME and uses no CPU; its settings stay. Loading a preset turns both on, and it isn't saved. A tap turns the page when you let go |
+| **ARP** | the arpeggiator | | **Two quick taps: the arpeggiator off**, and two again back to the mode it had. A single tap waits 0.3 s |
+| **SEL** | scale and chord | (SELECT turns to page 2: the keys) | **Two quick taps: chords off**, and two again back to the chord you had (TRIAD if none). **Hold: LEARN on or off** (see 8). A single tap opens SEL 0.3 s after you let go |
 | **GLO** | GLOBAL settings | | |
 | **SAVE** | the SAVE page | SAVE again stores the preset | On a sequencer page: stores the sequencer |
 | **SEQ** | the sequencer, at the page you last used | the next sequencer page | **Hold 0.6 s: the step layer** (see 11) |

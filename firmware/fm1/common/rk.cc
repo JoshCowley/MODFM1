@@ -17,6 +17,8 @@ void rk_set_master(float v) { set_master(v); }
 void rk_set_master_fx(float lo, float mid, float hi, float comp) { set_master_fx(lo, mid, hi, comp); }
 void rk_set_legato(int on) { set_legato(on); }
 void rk_set_vintage(float v) { set_vintage(v); }
+void rk_set_fx_bypass(int slot, int off) { set_fx_bypass(slot, off); }
+int rk_fx_bypass(int slot) { return fx_bypass(slot); }
 void rk_set_ext_slew(int i, float s) { set_ext_slew(i, s); }
 void rk_set_ext(int i, float v) { set_ext(i, v); }
 void rk_set_tune(int note, float semis) { set_tune(note, semis); }

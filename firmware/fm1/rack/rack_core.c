@@ -24,6 +24,8 @@ void rk_set_master(float v);
 void rk_set_master_fx(float lo, float mid, float hi, float comp);
 void rk_set_legato(int on);
 void rk_set_vintage(float v);
+void rk_set_fx_bypass(int slot, int off);
+int rk_fx_bypass(int slot);
 void rk_set_ext_slew(int i, float s);
 void rk_set_ext(int i, float v);
 void rk_set_tune(int note, float semis);

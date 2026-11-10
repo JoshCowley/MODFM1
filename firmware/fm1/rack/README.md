@@ -19,12 +19,12 @@ the sequencer and the new frame) are in: the page's own pages, buttons and knobs
 | Button (printed) | Page |
 |---|---|
 | HOME | home: the preset, scope, chain, macros. Press again: the RACK overview; again: home (and all notes off) |
-| EDIT | the source (Plaits or Braids), then OSC (a second oscillator and the mixer). Two quick taps: LEARN on / off |
+| EDIT | the source (Plaits or Braids), then OSC (a second oscillator and the mixer). Hold: UNDO |
 | ENV | AMP (envelopes, voice mode; its well shows the envelope on every page), then the shaper (Rings or filter) |
 | LFO | MOD A, MOD B, then the three LFOs (and each LFO's two direct targets), then MSEQ, then the 12-row matrix |
-| FX | FX 1, then FX 2 |
-| ARP | the arpeggiator |
-| SEL | scale + chord, then the keys (QNT, harmony, zone, strum) |
+| FX | FX 1, then FX 2. Hold, let go, then one tap: FX 1 off / on, two taps: FX 2 (engine set_fx_bypass: skipped, buffers cleared when back on; a preset load turns both on) |
+| ARP | the arpeggiator. Two quick taps: arp MODE off, and back to the mode it had |
+| SEL | scale + chord, then the keys (QNT, harmony, zone, strum). Two quick taps: CHORD off, and back. Hold: LEARN on / off |
 | GLO | GLOBAL: settings, playing, tuning, MIDI, master, system |
 | SAVE | the SAVE page: name, slot and category; SAVE again stores it (and it comes back at power-on). OCT+ the library |
 | SEQ | the sequencer: NOTES, PATTERN, SPICE, GEN, BANKS, SONG in turn. Hold (0.6 s): the step layer (the 16 white keys are steps) |

@@ -52,6 +52,11 @@ static struct {
     uint32_t sel_at;                          /* SEL went down (a hold turns LEARN on or off), 0 up */
     int sel_long;
     uint32_t lfo_at;                          /* LFO tapped, waiting for a second tap (two taps: the MATRIX) */
+    uint32_t sel_tap, arp_at;                 /* SEL let go / ARP tapped, waiting for a second tap (two: chords / arp
+                                               * off or back on) */
+    uint32_t fx_at, fx_arm, fx_tap;           /* FX down (held: FX on/off armed), armed since, first tap of two */
+    int fx_long;
+    float chord_mem, arp_mem;                 /* the chord and arp mode two taps turned off (what they turn back on) */
     int mtab, hrow[4];                        /* the matrix hub's table (ALGORITHM): ROUTES ENV EDIT OSC; each one's row */                       /* LEARN on; the macro it links (0-3: M1-M4) */
     uint32_t home_at;                         /* HOME went down (a hold starts LEARN), 0 up */
     int home_long;
@@ -1407,6 +1412,48 @@ static void undo_last(void)
     ui.redraw = 1;
 }
 
+/* Two taps on SEL / ARP (14 Nov 2026): chords / the arpeggiator off, and two taps again back to what they were; as
+ * turning the knob on their page does (UNDO, saved with the settings) */
+static void fixed_toggle(int pg, int pi, float *mem, const char *what)
+{
+    const ui_mod_t *m = page_mod(pg);
+    float *fv = page_vals(pg), old = fv[pi];
+    char t[32];
+    undo_note(UN_FIXED, pg, pi, old, 0, 0, 0);
+    if (old > 0.5f) {
+        *mem = old;
+        fv[pi] = 0.0f;
+    } else {
+        fv[pi] = *mem > 0.5f ? *mem : 1.0f;   /* never turned off here: the first choice after OFF */
+    }
+    fixed_changed(pg, pi, old, fv[pi]);
+    t[0] = 0;
+    cat(t, fv[pi] > 0.5f ? "ON: " : "OFF");
+    if (fv[pi] > 0.5f)
+        cat(t, UI_OPT[m->p[pi].opt + (int)(fv[pi] + 0.5f)]);
+    app_say(what, t);
+    ui.redraw = 1;
+}
+/* Hold FX, then one tap: FX 1 off or on, two taps: FX 2 (14 Nov 2026). The engine skips it (no CPU) and keeps its
+ * settings; a preset load turns both on again. Not saved with a preset. */
+#define FX_ARM_MS 2000u                       /* armed this long after FX is let go, waiting for the taps */
+static void fx_toggle(int slot)
+{
+    char t[32];
+    int off = !rk_fx_bypass(slot);
+    t[0] = 0;
+    cat(t, slot == RS_FX1 ? "FX 1 " : "FX 2 ");
+    if (!rc_patch.mod[slot]) {
+        cat(t, "IS EMPTY");
+        app_say("FX ON/OFF", t);
+        return;
+    }
+    rk_set_fx_bypass(slot, off);
+    cat(t, module_name(rc_patch.mod[slot]));
+    app_say(t, off ? "OFF" : "ON");
+    ui.redraw = 1;
+}
+
 /* the buttons and encoders of the menus; 1 when they were the menus' (input() does the rest) */
 static int menu_input(uint32_t press, uint32_t btn)
 {
@@ -1440,11 +1487,63 @@ static int menu_input(uint32_t press, uint32_t btn)
         mn.lfo_at = 0;                        /* (a tap acts once let go: a hold is never a tap) */
         page_button(LFO_CYC, 5);
     }
-    if (press >> B_FX & 1u) page_button(FX_CYC, 2);
-    if (press >> B_ARP & 1u) page_button(ARP_CYC, 1);
-    if (press >> B_SEL & 1u) {                /* SEL (12 Nov 2026): a tap opens SEL when let go; held, LEARN on or off */
-        mn.sel_at = plat_ms() | 1u;
-        mn.sel_long = 0;
+    /* FX (14 Nov 2026): a tap turns the page when let go; held, FX on/off is armed: then one tap FX 1, two taps FX 2 */
+    if (press >> B_FX & 1u) {
+        if (mn.fx_arm) {
+            if (mn.fx_tap && plat_ms() - mn.fx_tap < EDIT_DOUBLE_MS) {
+                mn.fx_tap = mn.fx_arm = 0;
+                fx_toggle(RS_FX2);
+            } else {
+                mn.fx_tap = plat_ms() | 1u;
+            }
+        } else {
+            mn.fx_at = plat_ms() | 1u;
+            mn.fx_long = 0;
+        }
+    }
+    if (mn.fx_at && (btn >> B_FX & 1u) && !mn.fx_long && plat_ms() - mn.fx_at >= HOLD_MS) {
+        mn.fx_long = 1;
+        mn.fx_arm = plat_ms() | 1u;
+        app_say("FX ON/OFF", "TAP FX 1, TWO TAPS FX 2");
+    }
+    if (mn.fx_at && !(btn >> B_FX & 1u)) {
+        if (!mn.fx_long)
+            page_button(FX_CYC, 2);
+        else
+            mn.fx_arm = plat_ms() | 1u;       /* the wait for the taps starts when it's let go */
+        mn.fx_at = 0;
+    }
+    if (mn.fx_tap && !(btn >> B_FX & 1u) && plat_ms() - mn.fx_tap >= EDIT_DOUBLE_MS) {
+        mn.fx_tap = mn.fx_arm = 0;            /* one tap and no second: FX 1 */
+        fx_toggle(RS_FX1);
+    }
+    if (mn.fx_arm && !mn.fx_at && !mn.fx_tap && plat_ms() - mn.fx_arm >= FX_ARM_MS) {
+        mn.fx_arm = 0;
+        app_say("FX ON/OFF", "NOTHING CHANGED");
+    }
+    /* ARP (14 Nov 2026): as LFO, a tap opens ARP once a second tap can't come; two taps: the arpeggiator off / on */
+    if (press >> B_ARP & 1u) {
+        if (mn.arp_at && plat_ms() - mn.arp_at < EDIT_DOUBLE_MS) {
+            mn.arp_at = 0;
+            fixed_toggle(PG_ARP, 0, &mn.arp_mem, "ARP");
+        } else {
+            mn.arp_at = plat_ms() | 1u;
+        }
+    }
+    if (mn.arp_at && !(btn >> B_ARP & 1u) && plat_ms() - mn.arp_at >= EDIT_DOUBLE_MS) {
+        mn.arp_at = 0;
+        page_button(ARP_CYC, 1);
+    }
+    /* SEL (12 Nov 2026): held, LEARN on or off; a tap opens SEL once a second tap can't come (14 Nov); two taps:
+     * chords off / back on */
+    if (press >> B_SEL & 1u) {
+        if (mn.sel_tap && plat_ms() - mn.sel_tap < EDIT_DOUBLE_MS) {
+            mn.sel_tap = 0;
+            fixed_toggle(PG_SEL, 2, &mn.chord_mem, "CHORDS");
+        } else {
+            mn.sel_at = plat_ms() | 1u;
+            mn.sel_long = 0;
+        }
     }
     if (mn.sel_at && (btn >> B_SEL & 1u) && !mn.sel_long && plat_ms() - mn.sel_at >= HOLD_MS) {
         mn.sel_long = 1;
@@ -1452,8 +1551,12 @@ static int menu_input(uint32_t press, uint32_t btn)
     }
     if (mn.sel_at && !(btn >> B_SEL & 1u)) {
         if (!mn.sel_long)
-            page_button(SEL_CYC, 1);
+            mn.sel_tap = plat_ms() | 1u;      /* let go: a second tap may still come */
         mn.sel_at = 0;
+    }
+    if (mn.sel_tap && !(btn >> B_SEL & 1u) && plat_ms() - mn.sel_tap >= EDIT_DOUBLE_MS) {
+        mn.sel_tap = 0;
+        page_button(SEL_CYC, 1);
     }
     if (press >> B_GLO & 1u) page_button(GLO_CYC, 1);
     if (press >> B_HOME & 1u) {               /* HOME: a tap on letting go (LEARN is EDIT's double tap now) */

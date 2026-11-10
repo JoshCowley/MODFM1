@@ -179,6 +179,8 @@ static void int_text(int32_t v, char *b)
 void app_say(const char *a, const char *b)
 {
     uint32_t i;
+    if (plat_ms() < ui.msg_until)
+        ui.clear = 1;                         /* a toast replacing one still up: a narrower one would leave its edges */
     for (i = 0; i < 23u && a && a[i]; i++)
         ui.msg[0][i] = a[i];
     ui.msg[0][i] = 0;
@@ -507,8 +509,8 @@ static void home_tile(int32_t x, int32_t y, int slot, uint16_t kind)
 {
     int id = rc_patch.mod[slot];
     const char *n = module_name(id);
-    int lost = rk_fm1_status(4) >> slot & 1;
-    uint16_t c = lost ? K_WARN : n ? kind : K_FAINT;
+    int lost = rk_fm1_status(4) >> slot & 1, off = (slot == RS_FX1 || slot == RS_FX2) && rk_fx_bypass(slot);
+    uint16_t c = lost ? K_WARN : off ? K_FAINT : n ? kind : K_FAINT;
     int32_t w;
     cv_begin(HT_W, HT_H, K_BG);
     if (n)
@@ -517,12 +519,14 @@ static void home_tile(int32_t x, int32_t y, int slot, uint16_t kind)
         rrect(0, 0, HT_W, HT_H, K_CELL, 4);
         rrect(1, 1, HT_W - 2, HT_H - 2, K_BG, 3);
     }
-    if (n && !lost)
+    if (n && !lost && !off)
         vis_mini(slot, id, 2, 2, HT_W - 4, HT_H - 15, kind);
+    else if (n && off)                        /* switched off (hold FX, then tap): no picture, OFF */
+        cv_text(HT_W / 2 - text_w(&FONT_T, "OFF") / 2, (HT_H - 15) / 2 - 3, &FONT_T, "OFF", K_DIM);
     if (n) {
         w = 14 + text_w(&FONT_T, n);
         icon(module_icon(id), HT_W / 2 - w / 2, HT_H - 13, c);
-        cv_text(HT_W / 2 - w / 2 + 14, HT_H - 13, &FONT_T, n, lost ? K_WARN : K_DIM);
+        cv_text(HT_W / 2 - w / 2 + 14, HT_H - 13, &FONT_T, n, lost ? K_WARN : off ? K_FAINT : K_DIM);
     } else {
         icon(IC_EMPTY, HT_W / 2 - 6, HT_H / 2 - 6, c);
     }

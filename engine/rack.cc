@@ -411,6 +411,17 @@ EXPORT void set_ext_slew(int i, float s) { if (i >= 0 && i < 6) ext_slew_[i] = c
 EXPORT void set_tune(int note, float semis) { if (note >= 0 && note < 128) tune_[note] = semis; }
 EXPORT void set_bend(float semis) { bend_ = semis; }
 EXPORT void set_vintage(float a) { vintage_ = a; }
+// An effect slot switched off from the panel (FM-1, 14 Nov 2026: hold FX, then one tap FX 1, two taps FX 2): skipped,
+// so it costs nothing; its settings stay. Switched on again, its buffers are cleared first (at the next block), so no
+// old echo comes back. A preset load (init) switches both on.
+static volatile int fx_off_[2] = {0, 0}, fx_clear_[2] = {0, 0};
+EXPORT void set_fx_bypass(int slot, int off) {
+  if (slot < S_FX1 || slot > S_FX2) return;
+  int k = slot - S_FX1;
+  if (!off && fx_off_[k]) fx_clear_[k] = 1;
+  fx_off_[k] = off ? 1 : 0;
+}
+EXPORT int fx_bypass(int slot) { return slot >= S_FX1 && slot <= S_FX2 ? fx_off_[slot - S_FX1] : 0; }
 EXPORT void set_legato(int on) { legato_ = on != 0; }
 EXPORT void set_route(int i, int src, int slot, int param, float amt, int via) {
   if (i < 0 || i >= NROUTE) return;
@@ -686,6 +697,7 @@ EXPORT void init() {
 #ifdef RACK_FM1
   fit_reset();
 #endif
+  fx_off_[0] = fx_off_[1] = 0; fx_clear_[0] = fx_clear_[1] = 0;
   memset(base_, 0, sizeof(base_));
   for (int s = 0; s < NSLOT; ++s) for (int p = 0; p < NP; ++p) { lo_[s][p] = -1e9f; hi_[s][p] = 1e9f; span_[s][p] = 1.0f; }
   osc_defaults();
@@ -1478,6 +1490,7 @@ static void reverb_wet(int slot, const float* l, const float* r, float* wl_out, 
 }
 static void run_fx(int slot, float* l, float* r) {
   int id = mod_id_[slot];
+  if (fx_off_[slot - S_FX1]) return;   // switched off from the panel (set_fx_bypass)
 #ifndef RACK_LITE
   if (id == M_CLOUDS) {
     clouds::Parameters* p = clouds_.mutable_parameters();
@@ -1720,7 +1733,13 @@ static void process_block() {
   memset(blk_l_, 0, sizeof(blk_l_)); memset(blk_r_, 0, sizeof(blk_r_));
 #ifdef RACK_FM1
   if (mod_id_[S_SHP] == M_RINGS) { memset(rings_in_, 0, sizeof(rings_in_)); rings_dry_g_ = 1.0f - P(S_SHP, 6, 0); }
+  for (int k = 0; k < 2; ++k)   // an effect switched on again: its buffers cleared (set_fx_bypass)
+    if (fx_clear_[k]) {
+      fx_clear_[k] = 0; init_fx(mod_id_[S_FX1 + k]);
+      if (mod_id_[S_FX1 + k] == M_REVERB) { memset(rv_wet_l_, 0, sizeof(rv_wet_l_)); memset(rv_wet_r_, 0, sizeof(rv_wet_r_)); }
+    }
   rv_early_ = (mod_id_[S_FX1] == M_REVERB) != (mod_id_[S_FX2] == M_REVERB) ? (mod_id_[S_FX1] == M_REVERB ? S_FX1 : S_FX2) : -1;
+  if (rv_early_ >= 0 && fx_off_[rv_early_ - S_FX1]) rv_early_ = -1;   // switched off: not run a block behind either
   render_voices();
   if (mod_id_[S_SHP] == M_RINGS) {   // this block's excitation and strums, for Rings next block
     for (int n = 0; n < BLOCK; ++n) rings_ex_[n] = rings_in_[0][n] + rings_in_[1][n];
