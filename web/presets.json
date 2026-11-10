@@ -3535,7 +3535,7 @@
 0.5,
 0.5
 ],
-"fm1_voices": 4
+"fm1_voices": 2
 },
 {
 "name": "FX DRONE",
@@ -3963,7 +3963,7 @@
 "SHAPE 1": "DRIFT",
 "RATE 1": 0.15
 },
-"fm1_voices": 4
+"fm1_voices": 3
 },
 {
 "name": "FX CHIMES",
