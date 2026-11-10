@@ -31,6 +31,7 @@ void rk_render(int n);
 float *rk_out_l(void);
 float *rk_out_r(void);
 int rk_fm1_status(int what);
+void rk_fm1_fit(void);
 void rk_set_worker(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void));
 uint32_t rk_worker_blocks(void);
 /* the second core, when the platform has it (app.c: plat_cpu2_*; bench_host.c: a worker that runs the job at once):
@@ -239,6 +240,9 @@ static void bench_setup(int k)
         else if (c->ch[i][0] == 2)
             rk_set_param(c->ch[i][1], c->ch[i][2], c->chv[i]);
     }
+    if (c->group == G_PRESET || c->group == G_CORES2)
+        rk_fm1_fit();          /* as the firmware loads a preset (rc_load): buffers sized to it, the room to voices
+                                * (until 14 Nov 2026 not here, so the delay + reverb presets fit one voice) */
     rk_set_voices(c->notes);
     for (i = 0; i < c->notes; i++)
         rk_note_on(CHORD[i], 0.8f);

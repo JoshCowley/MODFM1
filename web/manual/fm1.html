@@ -603,7 +603,77 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li>The reverb and the delay use the most memory; presets with them may get fewer voices. Rings is shared by all the voices, so it takes its memory once.</li>
 </ul>
 <h2 id="14-factory-presets">14. Factory presets</h2>
-<p>57 factory presets, the same as the browser build's: 12 keys (CH), 9 basses (BS), 9 leads (LD), 13 pads (PD), 13 textures (FX) and INIT. PRESET steps through them by category (ALGORITHM jumps between categories). Every preset's four macros start in the middle, velocity changes its level and tone, and their levels are matched so you can switch without touching MASTER. The full list, with what each is built from and what its macros do, is in the <a href="index.html#factory-presets">FM1 Rack Manual</a>.</p>
+<p>67 factory presets: 14 keys (CH), 11 basses (BS), 10 leads (LD), 16 pads (PD), 15 textures (FX) and INIT. PRESET steps through them by category (ALGORITHM jumps between categories). Every preset's four macros start in the middle, velocity changes its level and tone, and their levels are matched so you can switch without touching MASTER (the struck ones, CH MARIMBA, CH MUSIC BOX, FX CHIMES and FX GLASS RAIN, play a little quieter: their peaks reach the limiter first). The browser build's 57 are described, with their macros, in the <a href="index.html#factory-presets">FM1 Rack Manual</a>.</p>
+<p>The FM-1 plays those 57 a little differently, so that every one plays a full chord without overloading:</p>
+<ul>
+<li><strong>Fewer voices where the sound is heavy</strong>: most pads and electric pianos play 4 or 5 voices, the chord presets (FX DRONE, FX CHORD DRIFT) and FX RAIN 3, as each of their voices is already a chord or a cloud.</li>
+<li><strong>Rings presets</strong> (PD RESONANT, FX RESONATOR, FX STRING BLOOM) use Rings' own reverb (STR+VERB) instead of the REVERB module: SHP DAMPING sets the strings' decay and the reverb's size together, and their M3 is now DAMPING.</li>
+<li><strong>Lighter sources that sound the same</strong>: PD SOFT SINE plays Plaits 2OP FM (was ADDITIVE), PD ANALOG Plaits VA VCF with its own filter (was PAIR VA through FILTER), its slow filter swell now from FUNC. Some pads lost a chorus they barely needed (PD WARM STRINGS, PD GLASS, PD SHIMMER, FX SINGING BOWL); CH DRAWBAR keeps its rotary chorus and drops its reverb; PD ORGAN AIR has a soft delay for its reverb.</li>
+<li><strong>New movement</strong>: CH VIBES has the vibraphone motor's tremolo (an LFO target on level), CH BRIGHT EP an auto-pan in quarter notes, FX SINGING BOWL a slow beating, PD EVOLVING two FUNC loops moving TIMBRE and MORPH against each other (M4: how much of the faster one). The leads' vibrato is 4.5-5.5 Hz (it was about 1 Hz).</li>
+</ul>
+<p>Ten presets only the FM-1 has:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Preset</th>
+<th>Built from</th>
+<th>Macros</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CH SYNTH PLUCK</td>
+<td>Braids saw-square, filter pluck, delay, plate</td>
+<td>cutoff, filter decay, echo, resonance</td>
+</tr>
+<tr class="even">
+<td>CH REED KEYS</td>
+<td>Plaits WAVESHP, amp tremolo (LFO target), chorus, plate</td>
+<td>tone, tremolo speed, space, bark</td>
+</tr>
+<tr class="odd">
+<td>BS SUB BOOM</td>
+<td>Plaits BASS DR as a tuned 808-style bass</td>
+<td>tone, punch, decay, release</td>
+</tr>
+<tr class="even">
+<td>BS WOBBLE</td>
+<td>Braids saw-square, 24 dB filter; FUNC: a pluck on each note plus a wobble on the eighths, mixed onto the cutoff</td>
+<td>cutoff, wobble amount, resonance, wobble shape</td>
+</tr>
+<tr class="odd">
+<td>LD PHASE SWEEP</td>
+<td>Plaits PHASE D; FUNC sweeps it down on each note and fades the vibrato in</td>
+<td>tone, sweep length, echo, glide</td>
+</tr>
+<tr class="even">
+<td>PD SAW SWARM</td>
+<td>Plaits SWARM, slow detune movement (LFO target), hall</td>
+<td>tone, detune, space, attack</td>
+</tr>
+<tr class="odd">
+<td>PD TEMPO GATE</td>
+<td>Braids CSAW pad; FUNC opens the filter on every eighth and swells the resonance over each bar</td>
+<td>cutoff, gate length, space, resonance</td>
+</tr>
+<tr class="even">
+<td>PD SLOW BLOOM</td>
+<td>Braids triple saw; FUNC opens the filter over 3.5 s while a chord is held, a slow loop breathes the chorus</td>
+<td>cutoff, bloom time, space, resonance</td>
+</tr>
+<tr class="odd">
+<td>FX BOUNCE</td>
+<td>Plaits WAVESHP; FUNC's two slopes in turn swing it left, then right and brighter</td>
+<td>tone, left time, space, right time</td>
+</tr>
+<tr class="even">
+<td>FX SPEAK</td>
+<td>Plaits SPEECH; FUNC loops slowly through its words</td>
+<td>tone, voice type, echo, word speed</td>
+</tr>
+</tbody>
+</table>
+<p>BS WOBBLE and PD TEMPO GATE pulse in eighth notes at the tempo (GLOBAL TEMPO).</p>
 <p>Some basses use OSC as a sub-oscillator on the FM-1 (the browser build has no OSC, so they sound a little thinner there).</p>
 <h2 id="15-what-isnt-in-yet">15. What isn't in yet</h2>
 <ul>

@@ -1650,8 +1650,15 @@ static void render_voices() {
   // the second core takes voices par_from_ up; the first runs Rings and the reverb a block behind (early_work), then
   // its own voices. With one core the same work runs in the same order (the modules share one random number
   // generator, so one order keeps one sound)
-  bool rings = mod_id_[S_SHP] == M_RINGS;
-  par_from_ = rings ? nvoices_ / 3 : nvoices_ / 2;   // with Rings the second core takes more: the first also runs it
+  // The first core's share evens the two out: its early work counts as so many voices (Rings about 1.85, with
+  // STR+VERB 2.2, the reverb 1.4; from the 13 Nov 2026 run, against a Plaits voice), and each core takes half of
+  // what is left (14 Nov: was a third with Rings, half without, which left the reverb's 28 % on top of the first
+  // core's half: six 2OP FM voices with a reverb were 3 + reverb against 3; now 2 + reverb against 4)
+  float early = 0.0f;
+  if (mod_id_[S_SHP] == M_RINGS) early += PI(S_SHP, 0, 0) == 5 ? 2.2f : 1.85f;
+  if (rv_early_ >= 0) early += 1.4f;
+  int first = (int)floorf((nvoices_ - early) * 0.5f + 0.5f);
+  par_from_ = first < 0 ? 0 : first > nvoices_ ? nvoices_ : first;
   bool shared = par_run_ && par_from_ < nvoices_ && par_run_(par_job, 0);
   early_work();
   for (int i = 0; i < par_from_; ++i) render_voice(i, blk_l_, blk_r_);

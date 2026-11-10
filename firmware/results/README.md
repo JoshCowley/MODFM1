@@ -218,3 +218,15 @@ Raw data: [`fm1-bench-2026-11-13.csv`](fm1-bench-2026-11-13.csv). All OK.
 still runs in calls of 12 (its envelopes' timing), Braids in calls of 24 (its largest), Rings at 24 kHz in calls of
 24 (its own kMaxBlockSize again). Second core's stack: about +130 B (x86-64 measure: 1119 -> 1247 B; its stack is
 2816 B on the FM-1). If this halves the per-block costs, Rings and the reverb should show it most.
+
+**Changes after this run, 14 Nov (update 31, the FM-1's own preset set):**
+- The two cores share the voices by the first core's early work: Rings counts as 1.85 voices (STR+VERB 2.2), the
+  reverb 1.4, and each core takes half of what is left (rack.cc render_voices; was a third to the first with Rings,
+  half without, so a reverb sat on top of the first core's half). Six 2OP FM voices with a reverb: 2 + reverb
+  against 4, was 3 + reverb against 3. From this run's figures: about 10 points off the six-voice reverb presets.
+- The benchmark now sizes the buffers to each preset (rk_fm1_fit, as rc_load does) for the PRESETS and 2 CORES
+  cases: until now the delay + reverb presets (FX RAIN, FX CHIMES, CH MUSIC BOX, ...) fitted one voice there, so their
+  figures were for one voice, where the firmware plays 4-6.
+- The presets are the FM-1's own (rack/presets_fm1.py): voices, Rings' own reverb and lighter sources chosen so every
+  one comes out at 80 % or less on two cores by this run's figures (most 70-80). The bench plays the 20 heaviest of
+  the 67 and the three Rings ones (27 didn't fit the app slot).

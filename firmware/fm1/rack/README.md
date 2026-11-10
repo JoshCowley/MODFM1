@@ -8,8 +8,9 @@ engine in the audio interrupt, and the benchmark is what tells us that's afforda
 
 ## What it does
 
-The 57 factory presets that use only Lite modules (Plaits, Braids, Rings, filter, Tides, Peaks, Grids, delay,
-reverb, chorus), played from the keys (with velocity) and from USB or TRS MIDI.
+The FM-1's 67 factory presets (the page's 57, fitted to the FM-1's CPU, and ten of its own), from the Lite modules
+(Plaits, Braids, Rings, filter, Tides, Peaks, Grids, FUNC, delay, reverb, chorus), played from the keys (with velocity)
+and from USB or TRS MIDI.
 
 Stages 1 to 4 of the menus (sound editing; save and the library; scales, chords, the arpeggiator, tunings and GLOBAL;
 the sequencer and the new frame) are in: the page's own pages, buttons and knobs (`menus.c`; the parameters come from the page's definitions through
@@ -182,16 +183,28 @@ simulator scripts pass, also under AddressSanitizer. Not yet heard on an FM-1.
 as on the hardware: each voice adds its source, after AMP's envelope and Rings' EXCITE, to one input, keeps its dry part
 (1 - MIX), and each new note strums the next of Rings' RINGS_POLY (2) resonators; Rings' output (times MIX and AMP's
 LEVEL) joins the voices before the effects. Its parameters are read with the voice struck last. Memory: one Rings
-instead of one per voice, so Rings presets fit 6 voices (they were 1-2). With Rings, the second core takes two thirds
-of the voices, as the first also runs Rings. The models MODAL, SYMPATH and SYM QNT (55-58 % of a core for one voice,
+instead of one per voice, so Rings presets fit 6 voices (they were 1-2). The first core runs Rings and the reverb a
+block behind while the second renders voices, so the second takes more of them: the first's work counts as 1.85 voices
+for Rings (2.2 with STR+VERB) and 1.4 for the reverb, and each core takes half of what is left (14 Nov 2026). The models MODAL, SYMPATH and SYM QNT (55-58 % of a core for one voice,
 bench 4) play as STRING; the menus offer STRING, FM VOICE and STR+VERB (rc_rings_fix maps presets and user presets).
 
-**Factory presets (Nov 2026)**: 57 new presets for playing (keys, bass, leads, pads, textures), written by
-`web/presets_src.py` into `web/presets.json`, so the page and the firmware hold the same set. Their macros start in the
-middle (the designed sound at 12 o'clock), velocity moves level and tone, and some bass presets use OSC as a sub
-(`"osc"` in presets.json: make_presets.py adds it as AMP 24-30; the page ignores it). Their levels were matched by
-`audition` (below) to about -19 dB on the loud part of a phrase. To change them: edit presets_src.py, run it, build
-the page (`web/build.py --standalone`), serve `web/` and run `tests/record_calls.mjs`, then `make_presets.py` here.
+**Factory presets (Nov 2026)**: the page's 57 (`web/presets_src.py`) and, since 14 Nov, the FM-1's own set of 67 built
+from them by `presets_fm1.py`: the same names, fitted to the FM-1's CPU (fewer voices where the source is heavy, Rings'
+own reverb for the REVERB module, cheaper Plaits models where one sounds the same: see its docstring), FUNC in eight
+(PD ANALOG, PD EVOLVING and six of the ten new ones), LFO targets, lead vibratos at 4.5-5.5 Hz (the page's were 1 Hz),
+and ten new presets. Their macros start in the middle (the designed sound at 12 o'clock), velocity moves level and
+tone, and some basses use OSC as a sub (`"osc"`: make_presets.py adds it as AMP 24-30). The chain, all here:
+
+- `fm1_presets.py` turns them into engine calls (`firmware/tests/presets-fm1-calls.json`) the way the page's preset
+  loader does, from the same module definitions (make_ui.load()); `fm1_presets.py --check` shows it gives every page
+  preset the calls the page recorded (`tests/presets-calls.json`, record_calls.mjs), so the page isn't needed.
+- `level_fm1.py` (needs EURORACK) plays them all through `audition` and sets each LEVEL toward -19 dB on the loud part
+  of its phrase (`presets_fm1_levels.json`). MODAL percussion (CH MARIMBA, CH MUSIC BOX, FX CHIMES, FX GLASS RAIN)
+  stays 5-8 dB under at full LEVEL: its peaks reach the limiter first.
+- `make_presets.py` (and `--full`) writes presets.h; the bench's `make_cases.py` its cases from the same file.
+
+To change a preset: edit presets_fm1.py (or presets_src.py for both), then `python3 fm1_presets.py && python3
+level_fm1.py && python3 make_presets.py && python3 make_presets.py --full`, and the bench's make_cases.py (and --full).
 
 `build/host/audition OUTDIR` (built by build_host.sh) plays every preset through the firmware's sound path (rc_load,
 rc_render at 44.1 kHz) with a phrase for its category and writes a WAV each, with its peak and loudness.

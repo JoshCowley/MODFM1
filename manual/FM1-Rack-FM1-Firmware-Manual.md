@@ -466,7 +466,31 @@ From the SAVE page, **OCT+**. K1 (or PRESET) picks a row, K2 the tab (ALL, USR, 
 
 ## 14. Factory presets
 
-57 factory presets, the same as the browser build's: 12 keys (CH), 9 basses (BS), 9 leads (LD), 13 pads (PD), 13 textures (FX) and INIT. PRESET steps through them by category (ALGORITHM jumps between categories). Every preset's four macros start in the middle, velocity changes its level and tone, and their levels are matched so you can switch without touching MASTER. The full list, with what each is built from and what its macros do, is in the [FM1 Rack Manual](index.html#factory-presets).
+67 factory presets: 14 keys (CH), 11 basses (BS), 10 leads (LD), 16 pads (PD), 15 textures (FX) and INIT. PRESET steps through them by category (ALGORITHM jumps between categories). Every preset's four macros start in the middle, velocity changes its level and tone, and their levels are matched so you can switch without touching MASTER (the struck ones, CH MARIMBA, CH MUSIC BOX, FX CHIMES and FX GLASS RAIN, play a little quieter: their peaks reach the limiter first). The browser build's 57 are described, with their macros, in the [FM1 Rack Manual](index.html#factory-presets).
+
+The FM-1 plays those 57 a little differently, so that every one plays a full chord without overloading:
+
+- **Fewer voices where the sound is heavy**: most pads and electric pianos play 4 or 5 voices, the chord presets (FX DRONE, FX CHORD DRIFT) and FX RAIN 3, as each of their voices is already a chord or a cloud.
+- **Rings presets** (PD RESONANT, FX RESONATOR, FX STRING BLOOM) use Rings' own reverb (STR+VERB) instead of the REVERB module: SHP DAMPING sets the strings' decay and the reverb's size together, and their M3 is now DAMPING.
+- **Lighter sources that sound the same**: PD SOFT SINE plays Plaits 2OP FM (was ADDITIVE), PD ANALOG Plaits VA VCF with its own filter (was PAIR VA through FILTER), its slow filter swell now from FUNC. Some pads lost a chorus they barely needed (PD WARM STRINGS, PD GLASS, PD SHIMMER, FX SINGING BOWL); CH DRAWBAR keeps its rotary chorus and drops its reverb; PD ORGAN AIR has a soft delay for its reverb.
+- **New movement**: CH VIBES has the vibraphone motor's tremolo (an LFO target on level), CH BRIGHT EP an auto-pan in quarter notes, FX SINGING BOWL a slow beating, PD EVOLVING two FUNC loops moving TIMBRE and MORPH against each other (M4: how much of the faster one). The leads' vibrato is 4.5-5.5 Hz (it was about 1 Hz).
+
+Ten presets only the FM-1 has:
+
+| Preset | Built from | Macros |
+|---|---|---|
+| CH SYNTH PLUCK | Braids saw-square, filter pluck, delay, plate | cutoff, filter decay, echo, resonance |
+| CH REED KEYS | Plaits WAVESHP, amp tremolo (LFO target), chorus, plate | tone, tremolo speed, space, bark |
+| BS SUB BOOM | Plaits BASS DR as a tuned 808-style bass | tone, punch, decay, release |
+| BS WOBBLE | Braids saw-square, 24 dB filter; FUNC: a pluck on each note plus a wobble on the eighths, mixed onto the cutoff | cutoff, wobble amount, resonance, wobble shape |
+| LD PHASE SWEEP | Plaits PHASE D; FUNC sweeps it down on each note and fades the vibrato in | tone, sweep length, echo, glide |
+| PD SAW SWARM | Plaits SWARM, slow detune movement (LFO target), hall | tone, detune, space, attack |
+| PD TEMPO GATE | Braids CSAW pad; FUNC opens the filter on every eighth and swells the resonance over each bar | cutoff, gate length, space, resonance |
+| PD SLOW BLOOM | Braids triple saw; FUNC opens the filter over 3.5 s while a chord is held, a slow loop breathes the chorus | cutoff, bloom time, space, resonance |
+| FX BOUNCE | Plaits WAVESHP; FUNC's two slopes in turn swing it left, then right and brighter | tone, left time, space, right time |
+| FX SPEAK | Plaits SPEECH; FUNC loops slowly through its words | tone, voice type, echo, word speed |
+
+BS WOBBLE and PD TEMPO GATE pulse in eighth notes at the tempo (GLOBAL TEMPO).
 
 Some basses use OSC as a sub-oscillator on the FM-1 (the browser build has no OSC, so they sound a little thinner there).
 

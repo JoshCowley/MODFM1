@@ -1,0 +1,31 @@
+wait 400
+turn PRESET 36
+wait 600
+key w1 down 100
+key w3 down 100
+key w5 down 100
+wait 900
+shot p_tempogate.png
+key w1 up
+key w3 up
+key w5 up
+turn PRESET 29
+wait 600
+key w1 down 100
+key w5 down 100
+wait 900
+shot p_bounce.png
+key w1 up
+key w5 up
+turn PRESET -42
+wait 600
+key w1 down 100
+wait 700
+shot p_analog.png
+key w1 up
+turn PRESET 4
+wait 600
+key w1 down 100
+wait 700
+shot p_resonant.png
+key w1 up
