@@ -188,15 +188,16 @@ static void bench_cases(void)
         bc_add(G_PRESET, i, p->mode ? 1 : p->voices > 6 ? 6 : p->voices, p->name);
     }
     /* the same on two cores (the second core renders the upper half of the voices): VA VCF with 2, 4 and 6 notes,
-     * and the presets with 6 voices; CPU % is the first core's time, waiting for the second included */
+     * and every played preset with more than one voice, at its voices (12 Nov 2026: the Rings presets, at 2-4, had
+     * no 2-core figure); CPU % is the first core's time, waiting for the second included */
     if (!bench_cpu2_run)                     /* one core only (it didn't start): no 2 CORES cases */
         return;
     bc_add(G_CORES2, P_INIT, 2, "VA VCF x2");
     bc_add(G_CORES2, P_INIT, 4, "VA VCF x4");
     bc_add(G_CORES2, P_INIT, 6, "VA VCF x6");
     for (i = P_PLAYED; i < NPRESETS; i++)
-        if (!PRESETS[i].mode && PRESETS[i].voices >= 6)
-            bc_add(G_CORES2, i, 6, PRESETS[i].name);
+        if (!PRESETS[i].mode && PRESETS[i].voices >= 2)
+            bc_add(G_CORES2, i, PRESETS[i].voices > 6 ? 6 : PRESETS[i].voices, PRESETS[i].name);
 }
 
 /* ------------------------------------------------------------------ running one --- */

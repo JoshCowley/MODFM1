@@ -178,3 +178,16 @@ resampling was a mean of each pair down and a straight line up, which let the so
 now a 39-tap halfband both ways. And Rings' string damping filter is a 3-tap filter whose slope is per sample, so at
 24 kHz it darkened the strings: its brightness is remapped to keep the 48 kHz response (shim string.h). Demos "C".
 PD RESONANT (STRUCT 0.1: Rings' curved-bridge buzz) still has more 2-8 kHz than at 48 kHz.
+
+# Sixth run: 12 November 2026 (Rings at 24 kHz, first try)
+
+Raw data: [`fm1-bench-2026-11-12.csv`](fm1-bench-2026-11-12.csv) (the reader wrote most lines twice). All OK, FPU exact.
+- Rings 34.4 -> 27.5 % of its own (STR+VERB 45 -> 30): less than the half the computer showed.
+- FX RESONATOR (2 voices) 125 %, FX STRING BLOOM (3) 130 % on one core; no 2-core figures for them. On the FM-1
+  Josh saw SHED 4: shedding to one voice put that voice back on the first core with Rings and the effects.
+- Reverb 20.6 % of its own, the next fixed cost.
+
+**Changes after this run:** the reverb runs at 24 kHz on the FM-1 (Half24Down/Up around clouds::Reverb; time
+squared and damping doubled per sample to keep its decay and tone): 152 -> 76 M instructions on the computer;
+levels within 2 dB, tails' decay within a few dB/s. With Rings loaded the second core now takes the voices from one
+voice up (all of them at one or two). The 2 CORES group covers every played preset with two or more voices.

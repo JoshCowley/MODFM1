@@ -300,6 +300,36 @@ static inline float fast_sin01(float p) {
 }
 #define TANHF fast_tanh
 #define SIN01(p) fast_sin01(p)
+// 48 kHz <-> 24 kHz for the modules the FM-1 runs at half rate (Rings, the reverb): a 39-tap halfband filter (flat to
+// 10 kHz, -75 dB from 16 kHz), as its 10 taps either side of the middle (0.5); the others are 0
+static const float HB24[10] = {0.315457678f, -0.097823539f, 0.050681315f, -0.028869892f, 0.016396910f,
+                               -0.008843422f, 0.004345613f, -0.001840541f, 0.000600712f, -0.000099368f};
+struct Half24Down {   // 24 samples at 48 kHz in, 12 at 24 kHz out (19 samples late)
+  float h[38 + 24];
+  void run(const float* x, float* y) {
+    for (int n = 0; n < 24; ++n) h[38 + n] = x[n];
+    for (int m = 0; m < 12; ++m) {
+      const float* c = h + 19 + 2 * m;
+      float v = 0.5f * c[0];
+      for (int j = 0; j < 10; ++j) v += HB24[j] * (c[-(2 * j + 1)] + c[2 * j + 1]);
+      y[m] = v;
+    }
+    for (int n = 0; n < 38; ++n) h[n] = h[n + 24];   // (the FM-1 has no memmove)
+  }
+};
+struct Half24Up {     // 12 samples at 24 kHz in, 24 at 48 kHz out: each sample, then the one halfway to the next
+  float h[20 + 12];
+  void run(const float* y, float* x) {
+    for (int m = 0; m < 12; ++m) h[20 + m] = y[m];
+    for (int k = 0; k < 12; ++k) {
+      const float* u = h + 9 + k;
+      float v = 0.0f;
+      for (int j = 0; j < 10; ++j) v += HB24[j] * (u[-j] + u[1 + j]);
+      x[2 * k] = u[0]; x[2 * k + 1] = 2.0f * v;
+    }
+    for (int n = 0; n < 20; ++n) h[n] = h[n + 12];
+  }
+};
 #else
 #define TANHF tanhf
 #define SIN01(p) sinf((p) * 6.2831853f)
@@ -1366,10 +1396,16 @@ static void run_fx(int slot, float* l, float* r) {
     int type = PI(slot, 4, 0);                     // 0 PLATE, 1 HALL, 2 SHIMMER
     float size = P(slot, 0, 0), mix = P(slot, 3, 0);
     float time = type == 0 ? 0.35f + size * 0.63f : 0.6f + size * 0.39f;
+    float rlp = (type == 1 ? 0.8f : 0.95f) - P(slot, 1, 0) * 0.6f;
+#ifdef RACK_FM1
+    // the FM-1 runs the reverb at 24 kHz (12 Nov 2026: 21 % of a core at 48): its loops take twice as long, so each
+    // pass loses what two did (time squared), and its damping is per sample, so twice as much a sample
+    time *= time; rlp = 1.0f - (1.0f - rlp) * (1.0f - rlp);
+#endif
     reverb_.set_amount(1.0f);
     reverb_.set_time(time);
     reverb_.set_diffusion(0.3f + 0.6f * P(slot, 2, 0));
-    reverb_.set_lp((type == 1 ? 0.8f : 0.95f) - P(slot, 1, 0) * 0.6f);
+    reverb_.set_lp(rlp);
     reverb_.set_input_gain(type == 0 ? 0.25f : 0.2f);
     int pre = (int)(P(slot, 5, 0) * 0.15f * SR); if (pre > 7999) pre = 7999;
     float lc = P(slot, 7, 0), width = P(slot, 8, 0), duck = P(slot, 9, 0);
@@ -1395,7 +1431,22 @@ static void run_fx(int slot, float* l, float* r) {
       }
       fr[n].l = in_l; fr[n].r = in_r;
     }
+#ifdef RACK_FM1
+    {
+      static Half24Down dl, dr; static Half24Up ul, ur;
+      float xl[BLOCK], xr[BLOCK], yl[BLOCK / 2], yr[BLOCK / 2];
+      clouds::FloatFrame h[BLOCK / 2];
+      for (int n = 0; n < BLOCK; ++n) { xl[n] = fr[n].l; xr[n] = fr[n].r; }
+      dl.run(xl, yl); dr.run(xr, yr);
+      for (int m = 0; m < BLOCK / 2; ++m) { h[m].l = yl[m]; h[m].r = yr[m]; }
+      reverb_.Process(h, BLOCK / 2);
+      for (int m = 0; m < BLOCK / 2; ++m) { yl[m] = h[m].l; yr[m] = h[m].r; }
+      ul.run(yl, xl); ur.run(yr, xr);
+      for (int n = 0; n < BLOCK; ++n) { fr[n].l = xl[n]; fr[n].r = xr[n]; }
+    }
+#else
     reverb_.Process(fr, BLOCK);
+#endif
     for (int n = 0; n < BLOCK; ++n) {
       shim_fb_ = (fr[n].l + fr[n].r) * 0.5f;
       float wet = mix * (type == 1 ? 0.75f : 0.6f);
@@ -1496,9 +1547,12 @@ static void par_job(uint32_t) {
 }
 static void render_voices() {
   int split = nvoices_;
-  if (par_run_ && nvoices_ >= 2) {
+  bool rings = mod_id_[S_SHP] == M_RINGS;
+  if (par_run_ && nvoices_ >= (rings ? 1 : 2)) {
     par_from_ = nvoices_ / 2;
-    if (mod_id_[S_SHP] == M_RINGS) par_from_ = nvoices_ / 3;   // the first core also runs the shared Rings: the second takes more voices
+    // the first core also runs the shared Rings: the second takes more voices, and with one or two all of them (shed
+    // to one voice, the first core had them all with Rings and the effects: what overloaded, 12 Nov 2026)
+    if (rings) par_from_ = nvoices_ / 3;
     if (par_run_(par_job, 0)) split = par_from_;
   }
   for (int i = 0; i < split; ++i) render_voice(i, blk_l_, blk_r_);
@@ -1523,21 +1577,13 @@ static void run_rings_shared() {
   rp.damping = P(S_SHP, 3, v); rp.position = P(S_SHP, 4, v);
   float rt = P(S_SHP, 8, v), rf = P(S_SHP, 9, v), mix = P(S_SHP, 6, v), spread = P(S_SHP, 7, v);
   float level = P(S_AMP, 7, v), wet = 4.0f * level * level * mix;   // as a voice's AMP gain, without its envelope
-  // Rings runs at 24 kHz on the FM-1 (engine/shim/rings/dsp/dsp.h). Its excitation goes down and its output comes
-  // back up through a 39-tap halfband filter (flat to 10 kHz, -75 dB from 16 kHz): the first try (a mean of each pair,
-  // a straight line between samples) let the source's top fold into the strings' middle (11 Nov 2026)
-  static const float HB[10] = {0.315457678f, -0.097823539f, 0.050681315f, -0.028869892f, 0.016396910f,
-                               -0.008843422f, 0.004345613f, -0.001840541f, 0.000600712f, -0.000099368f};
-  static float dh[38 + BLOCK], uh1[20 + BLOCK / 2], uh2[20 + BLOCK / 2];
-  for (int n = 0; n < BLOCK; ++n) dh[38 + n] = rings_in_[0][n] + rings_in_[1][n];
-  float in[BLOCK / 2], o1[BLOCK / 2], o2[BLOCK / 2];
-  for (int m = 0; m < BLOCK / 2; ++m) {
-    const float* x = dh + 19 + 2 * m;
-    float y = 0.5f * x[0];
-    for (int j = 0; j < 10; ++j) y += HB[j] * (x[-(2 * j + 1)] + x[2 * j + 1]);
-    in[m] = y;
-  }
-  for (int n = 0; n < 38; ++n) dh[n] = dh[n + BLOCK];   // (the FM-1 has no memmove)
+  // Rings runs at 24 kHz on the FM-1 (engine/shim/rings/dsp/dsp.h): its excitation down and its output back up
+  // through the halfband filter (Half24Down/Up; a mean of each pair and a straight line between let the source's top
+  // fold into the strings' middle, 11 Nov 2026)
+  static Half24Down rdown; static Half24Up rup1, rup2;
+  float x48[BLOCK], in[BLOCK / 2], o1[BLOCK / 2], o2[BLOCK / 2], w1[BLOCK], w2[BLOCK];
+  for (int n = 0; n < BLOCK; ++n) x48[n] = rings_in_[0][n] + rings_in_[1][n];
+  rdown.run(x48, in);
   rings::PerformanceState ps;
   ps.strum = rings_qn_ > 0;   // one strum a block (0.5 ms): a chord's notes follow each other that far apart
   if (ps.strum) { rings_note_ = rings_q_[0]; for (int k = 1; k < rings_qn_; ++k) rings_q_[k - 1] = rings_q_[k]; --rings_qn_; }
@@ -1545,20 +1591,12 @@ static void run_rings_shared() {
   ps.tonic = 0.0f; ps.note = rt != 0.0f || rf != 0.0f ? rings_note_ + floorf(rt + 0.5f) + rf : rings_note_;
   ps.fm = 0.0f; ps.chord = PI(S_SHP, 11, v);
   r.Process(ps, rp, in, o1, o2, BLOCK / 2);
-  for (int m = 0; m < BLOCK / 2; ++m) { uh1[20 + m] = o1[m]; uh2[20 + m] = o2[m]; }
-  for (int k = 0; k < BLOCK / 2; ++k) {
-    const float *u1 = uh1 + 9 + k, *u2 = uh2 + 9 + k;   // each sample, then the one halfway to the next
-    float h1 = 0.0f, h2 = 0.0f;
-    for (int j = 0; j < 10; ++j) { h1 += HB[j] * (u1[-j] + u1[1 + j]); h2 += HB[j] * (u2[-j] + u2[1 + j]); }
-    float a1 = u1[0], a2 = u2[0], b1 = 2.0f * h1, b2 = 2.0f * h2;
-    float c = (a1 + a2) * 0.5f;
-    blk_l_[2 * k] += (c + (a1 - c) * spread) * wet;
-    blk_r_[2 * k] += (c + (a2 - c) * spread) * wet;
-    c = (b1 + b2) * 0.5f;
-    blk_l_[2 * k + 1] += (c + (b1 - c) * spread) * wet;
-    blk_r_[2 * k + 1] += (c + (b2 - c) * spread) * wet;
+  rup1.run(o1, w1); rup2.run(o2, w2);
+  for (int n = 0; n < BLOCK; ++n) {
+    float c = (w1[n] + w2[n]) * 0.5f;
+    blk_l_[n] += (c + (w1[n] - c) * spread) * wet;
+    blk_r_[n] += (c + (w2[n] - c) * spread) * wet;
   }
-  for (int n = 0; n < 20; ++n) { uh1[n] = uh1[n + BLOCK / 2]; uh2[n] = uh2[n + BLOCK / 2]; }
 }
 #endif
 static void process_block() {
