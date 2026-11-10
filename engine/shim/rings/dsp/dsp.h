@@ -1,5 +1,5 @@
 // FM1 Rack's copy of rings/dsp/dsp.h (pichenettes/eurorack, MIT), found before the original by the include path
-// (engine/shim first). One change: with RACK_FM1 (the FM-1 build), Rings runs at 24 kHz in blocks of 12 (FM1 Rack's
+// (engine/shim first). One change: with RACK_FM1 (the FM-1 build), Rings runs at 24 kHz in blocks of 24 (FM1 Rack's
 // engine feeds it every other sample and fills in between, rack.cc run_rings_shared): half its time, which the
 // fifth benchmark (10 Nov 2026) found it needed. Every time constant in Rings is written against kSampleRate, so its
 // decays, tunings and filters stay as they were; what goes is the top octave (above 12 kHz) of the resonators.
@@ -46,7 +46,7 @@ namespace rings {
 #ifdef RACK_FM1
 static const float kSampleRate = 24000.0f;
 const float a3 = 440.0f / kSampleRate;
-const size_t kMaxBlockSize = 12;
+const size_t kMaxBlockSize = 24;   // half the engine's block of 48 (rack.cc BLOCK)
 #else
 static const float kSampleRate = 48000.0f;
 const float a3 = 440.0f / kSampleRate;

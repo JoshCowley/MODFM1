@@ -204,3 +204,17 @@ Raw data: [`fm1-bench-2026-11-12-b.csv`](fm1-bench-2026-11-12-b.csv). All OK.
 **Changes after this run:** Rings and the reverb (when one FX slot has it) run a block (0.5 ms) behind, on the first
 core while the second renders the voices (rack.cc early_work). The voices' Rings notes are queued per core and merged
 after. With one core the same work runs in the same order, so one and two cores sound the same (bench_host: 0).
+
+# Eighth run: 13 November 2026 (Rings and the reverb overlapped with the voices)
+
+Raw data: [`fm1-bench-2026-11-13.csv`](fm1-bench-2026-11-13.csv). All OK.
+- The overlap worked: on two cores FX RESONATOR 136 -> 95 %, PD RESONANT 127 -> 97, FX STRING BLOOM 119 -> 106.
+  Still at or over the line, as are PD WARM STRINGS 108, FX CHORD DRIFT 108, FX DRONE, PD CHOIR, PD ANALOG ~101.
+- Rings' own share (36 %) and the reverb's (28 %) are no lower at 24 kHz than they were at 48 (34, 21) over four
+  runs: on the FM-1 their cost isn't the samples. The likeliest cause: each module's code is fetched from flash
+  (the FM-1 runs code from flash through a cache) once a block, whatever the block holds.
+
+**Changes after this run:** blocks of 48 on the FM-1 (1 ms; were 24), so that fetch is paid half as often. Plaits
+still runs in calls of 12 (its envelopes' timing), Braids in calls of 24 (its largest), Rings at 24 kHz in calls of
+24 (its own kMaxBlockSize again). Second core's stack: about +130 B (x86-64 measure: 1119 -> 1247 B; its stack is
+2816 B on the FM-1). If this halves the per-block costs, Rings and the reverb should show it most.

@@ -65,7 +65,14 @@ extern const uint8_t node_0[], node_1[], node_2[], node_3[], node_4[], node_5[],
 using namespace stmlib;
 
 static const float SR = 48000.0f;
+#ifdef RACK_FM1
+// the FM-1: blocks of 48 (1 ms). Each module's code is fetched from flash about once a block, and on the FM-1 that,
+// not the samples, was most of Rings' and the reverb's time (bench 5-7, 12 Nov 2026: half the samples saved them
+// nothing), so twice the samples a block halves it. Every time in the engine is written against BLOCK.
+static const int BLOCK = 48;
+#else
 static const int BLOCK = 24;
+#endif
 static const int MAXV = 6;
 
 enum Slot { S_SRC, S_SHP, S_MODA, S_MODB, S_FX1, S_FX2, S_AMP, S_GLO, S_LFO, NSLOT };
@@ -304,30 +311,30 @@ static inline float fast_sin01(float p) {
 // 10 kHz, -75 dB from 16 kHz), as its 10 taps either side of the middle (0.5); the others are 0
 static const float HB24[10] = {0.315457678f, -0.097823539f, 0.050681315f, -0.028869892f, 0.016396910f,
                                -0.008843422f, 0.004345613f, -0.001840541f, 0.000600712f, -0.000099368f};
-struct Half24Down {   // 24 samples at 48 kHz in, 12 at 24 kHz out (19 samples late)
-  float h[38 + 24];
+struct Half24Down {   // a block at 48 kHz in, half a block at 24 kHz out (19 samples late)
+  float h[38 + BLOCK];
   void run(const float* x, float* y) {
-    for (int n = 0; n < 24; ++n) h[38 + n] = x[n];
-    for (int m = 0; m < 12; ++m) {
+    for (int n = 0; n < BLOCK; ++n) h[38 + n] = x[n];
+    for (int m = 0; m < BLOCK / 2; ++m) {
       const float* c = h + 19 + 2 * m;
       float v = 0.5f * c[0];
       for (int j = 0; j < 10; ++j) v += HB24[j] * (c[-(2 * j + 1)] + c[2 * j + 1]);
       y[m] = v;
     }
-    for (int n = 0; n < 38; ++n) h[n] = h[n + 24];   // (the FM-1 has no memmove)
+    for (int n = 0; n < 38; ++n) h[n] = h[n + BLOCK];   // (the FM-1 has no memmove)
   }
 };
-struct Half24Up {     // 12 samples at 24 kHz in, 24 at 48 kHz out: each sample, then the one halfway to the next
-  float h[20 + 12];
+struct Half24Up {     // half a block at 24 kHz in, a block at 48 kHz out: each sample, then the one halfway to the next
+  float h[20 + BLOCK / 2];
   void run(const float* y, float* x) {
-    for (int m = 0; m < 12; ++m) h[20 + m] = y[m];
-    for (int k = 0; k < 12; ++k) {
+    for (int m = 0; m < BLOCK / 2; ++m) h[20 + m] = y[m];
+    for (int k = 0; k < BLOCK / 2; ++k) {
       const float* u = h + 9 + k;
       float v = 0.0f;
       for (int j = 0; j < 10; ++j) v += HB24[j] * (u[-j] + u[1 + j]);
       x[2 * k] = u[0]; x[2 * k + 1] = 2.0f * v;
     }
-    for (int n = 0; n < 20; ++n) h[n] = h[n + 12];
+    for (int n = 0; n < 20; ++n) h[n] = h[n + BLOCK / 2];
   }
 };
 #else
@@ -1068,8 +1075,8 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
     plaits::Voice::Frame fr[BLOCK];
     // two calls of 12 (Plaits' kBlockSize): its envelopes, LPG and trigger delay step once a call and are timed for
     // 12 frames (one call of 24, tried on the FM-1 in update 18, halved them and wasn't faster: benchmark 5)
-    for (int h = 0; h < 2; ++h) {
-      m.trigger = (v.retrig && h == 0) || !v.gate ? 0.0f : 1.0f;   // gate level; a retrigger drops it for half a block
+    for (int h = 0; h < BLOCK / 12; ++h) {
+      m.trigger = (v.retrig && h == 0) || !v.gate ? 0.0f : 1.0f;   // gate level; a retrigger drops it for 12 frames
       plaits_[i].Render(p, m, fr + h * 12, 12);
     }
     float lvl = P(S_SRC, 7, &v);
@@ -1093,7 +1100,7 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
     bool vca = PI(S_SRC, 15, &v) == 1;
     if (v.retrig) b.Strike();
     int16_t buf[BLOCK]; uint8_t sync[BLOCK]; memset(sync, 0, sizeof(sync));
-    b.Render(sync, buf, BLOCK);
+    for (int h = 0; h < BLOCK; h += 24) b.Render(sync + h, buf + h, BLOCK - h < 24 ? BLOCK - h : 24);   // Braids' largest call: 24
     static const int bits_tab[] = { 2, 3, 4, 6, 8, 12, 16 };
     static const int rate_div[] = { 12, 6, 3, 2, 1, 1 };
     int bits = bits_tab[PI(S_SRC, 4, &v)], div = rate_div[PI(S_SRC, 5, &v)];
@@ -1126,7 +1133,7 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
     ps.gate = v.gate; ps.note = (eoct != 0.0f || efine != 0.0f ? note + floorf(eoct + 0.5f) * 12.0f + efine : note) - 7.02f;   // Elements runs at 32 kHz natively
     ps.modulation = 0.0f; ps.strength = 0.4f + 0.6f * v.vel;
     float zero[12] = { 0 }, a[12], b2[12];
-    for (int h = 0; h < 2; ++h) {
+    for (int h = 0; h < BLOCK / 12; ++h) {
       elements_[i].Process(ps, zero, zero, a, b2, 12);
       for (int n = 0; n < 12; ++n) { vbuf_[h * 12 + n] = a[n] * 2.4f; vaux_[h * 12 + n] = b2[n] * 2.4f; }
     }
