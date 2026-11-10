@@ -59,7 +59,7 @@ static struct {
 
 static const uint8_t SRC_CH[] = {1, 2};
 static const uint8_t SHP_CH[] = {10, 12, 0};
-static const uint8_t MOD_CH[] = {20, 21, 23, 0};
+static const uint8_t MOD_CH[] = {20, 21, 23, 24, 0};
 static const uint8_t FX_CH[] = {31, 32, 33, 0};
 static const char *const SRC_NAMES[] = {"-", "M1", "M2", "M3", "M4", "VELO", "KEY TRK", "RANDOM", "AMP ENV", "A OUT 1",
                                         "A OUT 2", "B OUT 1", "B OUT 2", "LFO 1", "LFO 2", "LFO 3", "MOD ENV", "SEQ 1",
@@ -107,7 +107,7 @@ static void choices(int slot, const uint8_t **ch, int *n)
 {
     if (slot == RS_SRC) { *ch = SRC_CH; *n = 2; }
     else if (slot == RS_SHP) { *ch = SHP_CH; *n = 3; }
-    else if (slot == RS_MODA || slot == RS_MODB) { *ch = MOD_CH; *n = 4; }
+    else if (slot == RS_MODA || slot == RS_MODB) { *ch = MOD_CH; *n = 5; }
     else { *ch = FX_CH; *n = 4; }
 }
 static int page_first(const ui_mod_t *m, int sub)
@@ -518,7 +518,7 @@ static void big_well_h(int pg, const ui_mod_t *m, uint16_t c, int32_t wh)
             vm_on = 0;
             vm_lab = 0;
         }
-        if (m && pg != PG_AMP && pg != PG_LFO && pg != PG_OSC && !is_fixed(pg))
+        if (m && pg != PG_AMP && pg != PG_LFO && pg != PG_OSC && !is_fixed(pg) && m->id != 24)   /* (FUNC labels its own) */
             cv_text(220 - text_w(&FONT_T, m->blurb), 2, &FONT_T, m->blurb, K_DIM);
         cv_blit(6, (uint32_t)(BW_Y + y0));
     }

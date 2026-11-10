@@ -373,6 +373,74 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <h2 id="8-modulation-the-matrix-lfos-macros-and-learn">8. Modulation: the matrix, LFOs, macros and LEARN</h2>
 <h3 id="the-lfo-button">The LFO button</h3>
 <p>LFO steps through <strong>MOD A</strong>, <strong>MOD B</strong>, <strong>LFO</strong>, <strong>MSEQ</strong> and the <strong>MATRIX</strong>, then back to MOD A. <strong>Tap LFO twice quickly</strong> to jump straight to the MATRIX. A tap turns the page when you let go.</p>
+<h3 id="func-functions-and-a-mixer">FUNC: functions and a mixer</h3>
+<p>FUNC is a modulator you load into MOD A or MOD B (turn ALGORITHM on its page, then press LFO to load). It is after Make Noise's Maths: two function generators, two input channels and a mixer, with two outputs into the matrix (that slot's OUT 1 and OUT 2, for example <strong>A OUT 1</strong>).</p>
+<p><img src="img/fm1-func.png" alt="FUNC" /></p>
+<table>
+<thead>
+<tr class="header">
+<th>Page</th>
+<th>K1</th>
+<th>K2</th>
+<th>K3</th>
+<th>K4</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CH 1</td>
+<td>RISE 1</td>
+<td>FALL 1</td>
+<td>CURVE 1</td>
+<td>CYCLE 1</td>
+</tr>
+<tr class="even">
+<td>CH 4</td>
+<td>RISE 4</td>
+<td>FALL 4</td>
+<td>CURVE 4</td>
+<td>CYCLE 4</td>
+</tr>
+<tr class="odd">
+<td>TRIG</td>
+<td>TRIG 1</td>
+<td>TRIG 4</td>
+<td>TRIG SRC</td>
+<td>HOLD</td>
+</tr>
+<tr class="even">
+<td>IN</td>
+<td>CH 2 SRC</td>
+<td>CH 2 AMT</td>
+<td>CH 3 SRC</td>
+<td>CH 3 AMT</td>
+</tr>
+<tr class="odd">
+<td>MIX</td>
+<td>LVL 1</td>
+<td>LVL 2</td>
+<td>LVL 3</td>
+<td>LVL 4</td>
+</tr>
+<tr class="even">
+<td>OUT</td>
+<td>OUT 1</td>
+<td>OUT 2</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Channels 1 and 4</strong> rise and fall once each trigger (1 ms to 20 s each). CURVE bends them: left is log (fast, then slow), right is exponential. <strong>CYCLE</strong> ON makes a channel run over and over: an LFO whose shape is its rise and fall.</li>
+<li><strong>TRIG</strong>: NOTE (each key), GATE (while keys are held), 1/16, 1/8, 1/4 or BAR (the tempo or MIDI clock), OTHER EOC (the other channel finishing: chain them, or cross-trigger them into a loop), SOURCE (the source in TRIG SRC going over the middle, such as an LFO or an MSEQ lane), or OFF. A trigger during a slope starts the rise again from where it is.</li>
+<li><strong>HOLD</strong>: AD falls straight after the rise; AR stays up while the trigger is held (with GATE or SOURCE, an attack-release envelope).</li>
+<li><strong>Channels 2 and 3</strong> take any matrix source (an LFO, a macro, velocity, MSEQ...) and scale it by their AMT (−100 to +100); with no source, AMT is a fixed offset.</li>
+<li><strong>MIX</strong>: each channel's level into the SUM (−100 to +100).</li>
+<li><strong>OUT 1 and OUT 2</strong> each pick CH 1, CH 4, SUM, INV (the SUM upside down), OR (the highest of the four), EOR (on while channel 1 falls) or EOC (a short pulse when channel 4 finishes). Route them anywhere in the matrix.</li>
+<li>Every RISE, FALL, CURVE and LVL can be modulated, so FUNC's outputs (or the LFOs) can change its own shapes.</li>
+</ul>
+<p>The picture shows both channels' shapes (rise in K1's colour, fall in K2's on the channel's page) and OUT 1 and OUT 2 scrolling under them. FUNC runs once a millisecond: on the computer it costs almost nothing; its cost on the FM-1 is still to be measured.</p>
 <h3 id="lfos">LFOs</h3>
 <p>The LFO page has nine pages (SELECT):</p>
 <ul>

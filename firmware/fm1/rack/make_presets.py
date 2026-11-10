@@ -128,6 +128,8 @@ def main():
     CAP = {p["name"]: p["fm1_voices"] for p in json.loads((HERE.parent.parent.parent / "web" / "presets.json").read_text())
            if p.get("fm1_voices")}
     meta = meta_table(data)
+    from func_def import FUNC_ID, func_meta     # FUNC: the firmware's own module, in no preset yet: its ranges here
+    meta[FUNC_ID] = func_meta()
     byname = {p["name"]: p for p in data}
     init = final_state(byname["INIT"]["calls"])
     keep = [p for p in data if not any(c[0] == "set_module" and c[2] in LITE_OUT for c in p["calls"])]

@@ -354,6 +354,43 @@ static void vis_chorus(const float *mon, uint16_t c)
     vlabel(UI_OPT[UP_CHORUS[4].opt + (((int)(P(mon, 4) + 0.5f)) % 3)]);
 }
 
+
+/* FUNC: its two functions' shapes (rise in its knob's colour, then fall), and its two outputs scrolling under them */
+static void vis_func(int slot, const float *mon, uint16_t c)
+{
+    int ch, x, h0 = slot == RS_MODA ? 0 : 2, j;
+    for (ch = 0; ch < 2; ch++) {
+        int b = ch * 4;
+        float r = 0.001f * fm_powf(20000.0f, P(mon, b)), f = 0.001f * fm_powf(20000.0f, P(mon, b + 1)), cv = P(mon, b + 2);
+        float lr = fm_log2f(r * 1000.0f + 1.0f), lf = fm_log2f(f * 1000.0f + 1.0f);
+        int32_t x0 = ch ? 120 : 6, w = 102, xr = x0 + (int32_t)((float)w * lr / (lr + lf + 1e-6f));
+        int16_t py = 26, y;
+        for (x = x0; x <= x0 + w; x++) {
+            float u, v;
+            if (x <= xr) { u = xr > x0 ? (float)(x - x0) / (float)(xr - x0) : 1.0f; }
+            else { u = 1.0f - (float)(x - xr) / (float)(x0 + w - xr); }
+            v = cv > 0.01f ? fm_powf(u, 1.0f + cv * 3.0f) : cv < -0.01f ? 1.0f - fm_powf(1.0f - u, 1.0f - cv * 3.0f) : u;
+            y = (int16_t)(26.0f - v * 20.0f);
+            if (x > x0)
+                cv_line(x - 1, py, x, y, kc(b + (x <= xr ? 0 : 1), c));
+            py = y;
+        }
+        cv_text(x0 + 2, 1, &FONT_T, ch ? "CH 4" : "CH 1", K_DIM);
+        if (P(mon, b + 3) > 0.5f)
+            cv_text(x0 + w - 30, 1, &FONT_T, "CYCLE", mix565(c, K_WELL, 160));
+    }
+    for (j = 0; j < 2; j++) {                 /* OUT 1 and OUT 2, the last few seconds */
+        int16_t py = 0;
+        for (x = 0; x < 114; x++) {
+            float v = (float)vz.hist[h0 + j][(vz.hist_w + x) % 114u] * 0.01f;
+            int16_t y = (int16_t)(36.0f - fm_clampf(v, -1.0f, 1.0f) * 4.5f);
+            if (x)
+                cv_line((x - 1) * 2, py, x * 2, y, j ? mix565(c, K_WELL, 120) : c);
+            py = y;
+        }
+    }
+}
+
 /* the history of the modulators' and LFOs' outputs, ~30 times a second */
 static void vis_tick(void)
 {
@@ -405,6 +442,7 @@ static void vis_draw(int slot, int id, int sub, uint16_t c)
         vlabel(id == 20 ? "PEAKS" : "TIDES");
         break;
     case 23: vis_grids(mon, c); break;
+    case 24: vis_func(slot, mon, c); break;
     case 31: vis_delay(mon, c); break;
     case 32: vis_reverb(mon, c); break;
     case 33: vis_chorus(mon, c); break;
@@ -423,7 +461,7 @@ static void vis_mini(int slot, int id, int32_t x, int32_t y, int32_t w, int32_t 
     vm_oy = y;
     vm_sx = (float)w / (float)VW;
     vm_sy = (float)h / (float)VH;
-    if (id == 1 || id == 2 || id == 10 || id == 12 || id == 20 || id == 21 || id == 23 || id >= 31)
+    if (id == 1 || id == 2 || id == 10 || id == 12 || id == 20 || id == 21 || id == 23 || id == 24 || id >= 31)
         vis_draw(slot, id, 0, c);
     vm_on = 0;
 }

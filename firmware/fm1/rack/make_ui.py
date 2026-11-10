@@ -13,14 +13,15 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from func_def import FUNC                # the firmware's own module (not on the page)
 
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "../../../web/src/1-data.js"
 TOOLS = HERE / "../../../web/src/5c-tools.js"
 GLO_PAGES = 5                     # SETTINGS PLAYING TUNING MIDI MASTER (the page's STEP ADV, HARDWARE, FIRMWARE: not here)
 OUT = HERE / "ui_defs.h"
-LITE = ["PLAITS", "BRAIDS", "RINGS", "FILTER", "PEAKS", "TIDES", "GRIDS", "DELAY", "REVERB", "CHORUS"]
-MID = {"PLAITS": 1, "BRAIDS": 2, "RINGS": 10, "FILTER": 12, "PEAKS": 20, "TIDES": 21, "GRIDS": 23,
+LITE = ["PLAITS", "BRAIDS", "RINGS", "FILTER", "PEAKS", "TIDES", "GRIDS", "FUNC", "DELAY", "REVERB", "CHORUS"]
+MID = {"PLAITS": 1, "BRAIDS": 2, "RINGS": 10, "FILTER": 12, "PEAKS": 20, "TIDES": 21, "GRIDS": 23, "FUNC": 24,
        "DELAY": 31, "REVERB": 32, "CHORUS": 33}
 KIND = {"src": 0, "shp": 1, "mod": 2, "fx": 3, "amp": 4, "lfo": 5}
 TYPE = {"num": 0, "bip": 1, "list": 2, "int": 3}
@@ -87,6 +88,7 @@ def main():
         return len(pages), len(flat)
 
     mods = []
+    d["MODULES"]["FUNC"] = FUNC
     for name in LITE:
         m = d["MODULES"][name]
         npg, npar = params(name, m["pages"])

@@ -1,0 +1,23 @@
+wait 400
+tap LFO
+wait 400
+turn ALGO 4
+wait 200
+shot f_pick.png
+tap LFO
+wait 800
+shot f_page1.png
+key w5 down 100
+wait 150
+shot f_page1b.png
+key w5 up
+turn SELECT 3
+wait 300
+shot f_page4.png
+turn K1 13
+turn K2 60
+wait 300
+shot f_page4b.png
+tap HOME
+wait 600
+shot f_home.png

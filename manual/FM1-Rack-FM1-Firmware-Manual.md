@@ -233,6 +233,31 @@ The well shows the envelope on every page. UNI 2 and UNI 4 play two or four detu
 
 LFO steps through **MOD A**, **MOD B**, **LFO**, **MSEQ** and the **MATRIX**, then back to MOD A. **Tap LFO twice quickly** to jump straight to the MATRIX. A tap turns the page when you let go.
 
+### FUNC: functions and a mixer
+
+FUNC is a modulator you load into MOD A or MOD B (turn ALGORITHM on its page, then press LFO to load). It is after Make Noise's Maths: two function generators, two input channels and a mixer, with two outputs into the matrix (that slot's OUT 1 and OUT 2, for example **A OUT 1**).
+
+![FUNC](../web/manual/img/fm1-func.png)
+
+| Page | K1 | K2 | K3 | K4 |
+|---|---|---|---|---|
+| CH 1 | RISE 1 | FALL 1 | CURVE 1 | CYCLE 1 |
+| CH 4 | RISE 4 | FALL 4 | CURVE 4 | CYCLE 4 |
+| TRIG | TRIG 1 | TRIG 4 | TRIG SRC | HOLD |
+| IN | CH 2 SRC | CH 2 AMT | CH 3 SRC | CH 3 AMT |
+| MIX | LVL 1 | LVL 2 | LVL 3 | LVL 4 |
+| OUT | OUT 1 | OUT 2 | | |
+
+- **Channels 1 and 4** rise and fall once each trigger (1 ms to 20 s each). CURVE bends them: left is log (fast, then slow), right is exponential. **CYCLE** ON makes a channel run over and over: an LFO whose shape is its rise and fall.
+- **TRIG**: NOTE (each key), GATE (while keys are held), 1/16, 1/8, 1/4 or BAR (the tempo or MIDI clock), OTHER EOC (the other channel finishing: chain them, or cross-trigger them into a loop), SOURCE (the source in TRIG SRC going over the middle, such as an LFO or an MSEQ lane), or OFF. A trigger during a slope starts the rise again from where it is.
+- **HOLD**: AD falls straight after the rise; AR stays up while the trigger is held (with GATE or SOURCE, an attack-release envelope).
+- **Channels 2 and 3** take any matrix source (an LFO, a macro, velocity, MSEQ...) and scale it by their AMT (−100 to +100); with no source, AMT is a fixed offset.
+- **MIX**: each channel's level into the SUM (−100 to +100).
+- **OUT 1 and OUT 2** each pick CH 1, CH 4, SUM, INV (the SUM upside down), OR (the highest of the four), EOR (on while channel 1 falls) or EOC (a short pulse when channel 4 finishes). Route them anywhere in the matrix.
+- Every RISE, FALL, CURVE and LVL can be modulated, so FUNC's outputs (or the LFOs) can change its own shapes.
+
+The picture shows both channels' shapes (rise in K1's colour, fall in K2's on the channel's page) and OUT 1 and OUT 2 scrolling under them. FUNC runs once a millisecond: on the computer it costs almost nothing; its cost on the FM-1 is still to be measured.
+
 ### LFOs
 
 The LFO page has nine pages (SELECT):

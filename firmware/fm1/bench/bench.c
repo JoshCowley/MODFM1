@@ -154,6 +154,12 @@ static void bench_cases(void)
     bc_change(k, 1, 1, S_FX1, 0, 0);
     bc_change(k, 2, 1, S_FX2, 0, 0);
     bcases[k].minus = (int8_t)base;
+    k = bc_add(G_MOD, P_TIDAL_FM, 1, "FUNC");   /* (13 Nov 2026) the firmware's own function generator in MOD A */
+    bc_change(k, 0, 1, S_MODA, 24, 0);
+    bc_change(k, 1, 1, S_MODB, 0, 0);
+    bc_change(k, 2, 1, S_FX1, 0, 0);
+    bc_change(k, 3, 1, S_FX2, 0, 0);
+    bcases[k].minus = (int8_t)base;
     base = bc_add(G_MOD, P_GRID_GATE, 1, "(NO GRIDS)");
     bc_change(base, 0, 1, S_MODA, 0, 0);
     bc_change(base, 1, 1, S_FX1, 0, 0);

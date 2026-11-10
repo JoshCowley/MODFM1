@@ -78,7 +78,7 @@ static const int MAXV = 6;
 enum Slot { S_SRC, S_SHP, S_MODA, S_MODB, S_FX1, S_FX2, S_AMP, S_GLO, S_LFO, NSLOT };
 enum ModId { M_NONE = 0, M_PLAITS = 1, M_BRAIDS = 2, M_ELEMENTS = 3,
              M_RINGS = 10, M_WARPS = 11, M_FILTER = 12,
-             M_PEAKS = 20, M_TIDES = 21, M_MARBLES = 22, M_GRIDS = 23,
+             M_PEAKS = 20, M_TIDES = 21, M_MARBLES = 22, M_GRIDS = 23, M_FUNC = 24,
              M_CLOUDS = 30, M_DELAY = 31, M_REVERB = 32, M_CHORUS = 33 };
 enum Src { SR_NONE, SR_M1, SR_M2, SR_M3, SR_M4, SR_VELO, SR_KEY, SR_RAND, SR_ENV,
            SR_MA0, SR_MA1, SR_MB0, SR_MB1, SR_LFO1, SR_LFO2, SR_LFO3, SR_MENV,
@@ -98,6 +98,9 @@ static float lo_[NSLOT][NP], hi_[NSLOT][NP], span_[NSLOT][NP];
 static int mod_id_[NSLOT];
 static float macros_[4];
 static float mod_out_[4];       // MOD A out0/out1, MOD B out0/out1
+struct FuncCh { float x; int stage; bool trig_prev, evt; float eoc; };   // FUNC (run_func): x 0..1 along the slope; stage 0 idle 1 rise 2 fall 3 hold
+struct FuncState { FuncCh ch[2]; uint32_t ages; };
+static FuncState func_[2];
 static float pitch_mod_dummy;
 
 struct Route { int src, slot, param, via; float amt; };
@@ -615,6 +618,7 @@ EXPORT void set_module(int slot, int id) {
     for (int s = 0; s < 6; ++s) marbles_xy_[k].LoadScale(s, marbles::preset_scales[s]);
 #endif
     marbles_t_env_[k] = 0.0f; grids_env_[k][0] = grids_env_[k][1] = 0.0f;
+    memset(&func_[k], 0, sizeof(func_[k]));
     mod_out_[k * 2] = mod_out_[k * 2 + 1] = 0.0f;
   }
   if (slot == S_FX1 || slot == S_FX2) init_fx(id);
@@ -800,11 +804,82 @@ static float division_gate(int which) {   // 0 NOTE 1 GRID 2 1/16 3 1/8 4 1/4 5 
   return p < 0.5f ? 1.0f : 0.0f;
 }
 
+
+// ------------------------------------------------------------------ FUNC (13 Nov 2026): a function generator after
+// Make Noise's Maths, as a MOD module. Two function channels (1 and 4): a rise and a fall (1 ms to 20 s), a curve
+// (log, linear, exp), triggered by a key, the keys held, the clock, the other channel's end of cycle or any matrix
+// source crossing the middle; CYCLE makes one an LFO, HOLD (AR) keeps it up while its trigger is held. Two input
+// channels (2 and 3) scale any matrix source (or, with none, give an offset). A mixer of the four: SUM, INV and OR.
+// OUT 1 and OUT 2 each pick one of CH 1, CH 4, SUM, INV, OR, EOR (channel 1 falling) or EOC (channel 4 done).
+// Parameters: 0-3 CH 1 RISE FALL CURVE CYCLE | 4-7 CH 4 the same | 8 TRIG 1, 9 TRIG 4, 10 TRIG SRC, 11 HOLD |
+// 12 CH 2 SRC, 13 CH 2 AMT, 14 CH 3 SRC, 15 CH 3 AMT | 16-19 LVL 1-4 | 20 OUT 1, 21 OUT 2. Once a block, like Tides.
+static float func_shape(float x, float curve) {   // the curve: -1 log (fast then slow), 0 linear, +1 exp (slow then fast)
+  if (curve > 0.01f) return powf(x, 1.0f + curve * 3.0f);
+  if (curve < -0.01f) return 1.0f - powf(1.0f - x, 1.0f - curve * 3.0f);
+  return x;
+}
+static bool func_trigger(int k, int which, int c, bool* level) {   // a rising edge of channel c's trigger this block
+  FuncState& f = func_[k];
+  int slot = S_MODA + k;
+  bool now = false;
+  *level = false;
+  switch (which) {
+    case 1: now = age_counter_ != f.ages; *level = any_gate_; return now;           // NOTE: each key
+    case 2: now = any_gate_; break;                                                   // GATE: keys held
+    case 3: case 4: case 5: case 6: now = division_gate(which - 1) > 0.5f; break;    // 1/16 1/8 1/4 BAR
+    case 7: return f.ch[1 - c].evt;                                                  // the other's end of cycle
+    case 8: now = source_value(PI(slot, 10, 0), &vs_[last_voice_]) > 0.5f; break;    // a matrix source over the middle
+    default: return false;
+  }
+  *level = now;
+  bool rise = now && !f.ch[c].trig_prev;
+  f.ch[c].trig_prev = now;
+  return rise;
+}
+static void run_func(int k) {
+  FuncState& f = func_[k];
+  int slot = S_MODA + k;
+  const VoiceState* v = &vs_[last_voice_];
+  float dt = BLOCK / SR, chv[4];
+  bool hold = PI(slot, 11, 0) == 1;
+  for (int c = 0; c < 2; ++c) {
+    FuncCh& h = f.ch[c];
+    int b = c * 4;
+    float rise = 0.001f * powf(20000.0f, P(slot, b + 0, 0)), fall = 0.001f * powf(20000.0f, P(slot, b + 1, 0));
+    bool cyc = PI(slot, b + 3, 0) == 1, lvl;
+    bool trg = func_trigger(k, PI(slot, 8 + c, 0), c, &lvl);
+    h.evt = false;
+    if (h.eoc > 0.0f) h.eoc -= dt / 0.01f;   // the end-of-cycle gate: 10 ms
+    if (trg || (cyc && h.stage == 0)) h.stage = 1;   // a trigger restarts the rise from where it is (as Maths)
+    if (h.stage == 1) { h.x += dt / rise; if (h.x >= 1.0f) { h.x = 1.0f; h.stage = hold && lvl ? 3 : 2; } }
+    else if (h.stage == 3) { if (!lvl) h.stage = 2; }
+    else if (h.stage == 2) { h.x -= dt / fall; if (h.x <= 0.0f) { h.x = 0.0f; h.stage = 0; h.eoc = 1.0f; h.evt = true; } }
+    chv[c ? 3 : 0] = func_shape(h.x, P(slot, b + 2, 0));
+  }
+  f.ages = age_counter_;
+  for (int c = 0; c < 2; ++c) {   // channels 2 and 3: a source scaled, or an offset with none
+    int src = PI(slot, 12 + c * 2, 0);
+    float amt = P(slot, 13 + c * 2, 0);
+    chv[1 + c] = src ? source_value(src, v) * amt : amt;
+  }
+  float sum = 0.0f, orv = 0.0f;
+  for (int i = 0; i < 4; ++i) {
+    float x = chv[i] * P(slot, 16 + i, 0);
+    sum += x;
+    if (x > orv) orv = x;
+  }
+  sum = clampf(sum, -1.5f, 1.5f);
+  float outs[7] = { chv[0], chv[3], sum, -sum, orv, f.ch[0].stage == 2 ? 1.0f : 0.0f, f.ch[1].eoc > 0.0f ? 1.0f : 0.0f };
+  float* o = &mod_out_[k * 2];
+  for (int j = 0; j < 2; ++j) { int w = PI(slot, 20 + j, 0); o[j] = outs[w < 0 ? 0 : w > 6 ? 6 : w]; }
+}
 static void run_mod(int k) {
   int slot = S_MODA + k;
   int id = mod_id_[slot];
   float* o = &mod_out_[k * 2];
-  if (id == M_PEAKS) {
+  if (id == M_FUNC) {
+    run_func(k);
+  } else if (id == M_PEAKS) {
     int func = PI(slot, 0, 0);
     float k1 = P(slot, 1, 0), k2 = P(slot, 2, 0);
     bool g = division_gate(PI(slot, 3, 0)) > 0.5f;
