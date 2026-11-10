@@ -118,8 +118,8 @@ Every page has the same frame:
   - the octave (**O+1** and so on; green while keys are held);
   - the output meter (red near clipping).
 - **The header**: the page's tag in its colour, the page name, and dots for the pages within it.
-- **The picture**: a moving picture of what the page does (the module's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats...). On module, AMP and LFO pages it takes the top half of the screen; GLOBAL › ANIMATION sets it to full, calm or still.
-- **The gauges**: up to four parameters along the bottom, one per knob, each an arc with its value. On module, AMP and LFO pages these are flat arc gauges; SEL, ARP, GLOBAL and OSC keep their slider cells.
+- **The picture**: a moving picture of what the page does (the module's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats...). It takes the top half of the screen on every page with a picture (modules, AMP, LFO, OSC, SEL, ARP and GLOBAL), and most of the top on a MOD page; GLOBAL › ANIMATION sets it to full, calm or still.
+- **The gauges**: up to four parameters along the bottom, one per knob, each an arc with its value. They are flat arc gauges everywhere but GLOBAL's SYSTEM page and the LFO target pages.
 
 ### Knob colours
 
@@ -171,7 +171,7 @@ HOME shows the preset (its category in a coloured tab, its name, and its number,
 ![HOME](../web/manual/img/fm1-home.png)
 
 - **Tiles**: each slot's module, moving to show what it is doing to the sound right now: the source's wave changing shape with TIMBRE and MORPH, the filter's curve opening and closing, Rings ringing as you play, the modulators' and LFOs' outputs swinging, the delay's echoes falling away, the reverb's cloud and the chorus wobbling. They are small versions of each module page's picture. The icon and name sit under each; orange source, teal shaper, purple modulators, blue effects. A red tile is a module the preset asks for but that didn't fit in memory; an empty slot is a dark box.
-- **The scope** at the bottom shows the output; **tabs over it** show what's on besides the preset: the scale and chord (SEL), the arpeggiator mode, a tuning.
+- **The scope** along the bottom shows the output, in colour: the matrix routes moving right now tint it in their sources' colours (violet for an LFO, gold for a macro, pink for MSEQ...), as strongly as they move, and the loudest parts glow white. The effects leave marks: with the reverb, a fading trail of the last few traces; with the delay, a dim echo of the wave further along; with the chorus, a second line drifting beside it. **Tabs over it** show what's on besides the preset: the scale and chord (SEL), the arpeggiator mode, a tuning.
 - **Macros**: each with its value (0–100), a slider and what it moves (the first destination, "+2" if more), or **UNSET**. K1–K4 turn them; MIDI CC 20–23 do too.
 - **PRESET** steps through the factory presets, then your user presets; the sound changes when you stop turning. **ALGORITHM** jumps by category. **SELECT** sets the voices (1–6).
 - Tap HOME again for **RACK**, an overview of every slot, AMP, the outputs and how many matrix routes are set; tap once more to come home with all notes off.

@@ -1,0 +1,26 @@
+wait 400
+turn PRESET 52
+wait 1500
+key w5 down 100
+key w9 down 100
+wait 600
+shot g_home.png
+tap SEL
+wait 500
+shot g_sel.png
+tap ARP
+wait 500
+shot g_arp.png
+tap GLO
+wait 500
+shot g_glo.png
+tap EDIT
+wait 300
+tap EDIT
+wait 500
+shot g_osc.png
+tap EDIT
+wait 400
+turn SELECT -4
+wait 400
+shot g_mod.png

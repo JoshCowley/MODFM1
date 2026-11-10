@@ -59,6 +59,13 @@ static void vm_rrect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c, int
     if (r * 2 > hh) r = hh / 2;
     rrect(x0, y0, ww, hh, c, r);
 }
+static int32_t vm_text(int32_t x, int32_t y, const felucca_font_t *f, const char *t, uint16_t c)
+{
+    if (vm_on && !vm_lab)
+        return x;
+    return cv_text(vmx(x), vmy(y), f, t, c);   /* the words keep their size; only where they sit scales */
+}
+#define cv_text vm_text
 #define cv_line vm_line
 #define cv_pset vm_pset
 #define cv_rect vm_rect
@@ -103,7 +110,7 @@ static void ellipse(float cx, float cy, float rx, float ry, uint16_t c)
         py = y;
     }
 }
-static void vlabel(const char *s) { if (!vm_on || vm_lab) cv_text(6, 2, &FONT_T, s, K_DIM); }
+static void vlabel(const char *s) { cv_text(6, 2, &FONT_T, s, K_DIM); }
 static float P(const float *mon, int i) { return i < 16 ? mon[i] : mon[168 + i - 16]; }
 
 static void vis_plaits(const float *mon, uint16_t c)
@@ -407,10 +414,6 @@ static void vis_draw(int slot, int id, int sub, uint16_t c)
     }
 }
 
-#undef cv_line
-#undef cv_pset
-#undef cv_rect
-#undef rrect
 
 /* a module's picture in a home tile: its page's well, small, in w x h from (x, y) of the tile's canvas */
 static void vis_mini(int slot, int id, int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)

@@ -231,8 +231,8 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li>the output meter (red near clipping).</li>
 </ul></li>
 <li><strong>The header</strong>: the page's tag in its colour, the page name, and dots for the pages within it.</li>
-<li><strong>The picture</strong>: a moving picture of what the page does (the module's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats...). On module, AMP and LFO pages it takes the top half of the screen; GLOBAL › ANIMATION sets it to full, calm or still.</li>
-<li><strong>The gauges</strong>: up to four parameters along the bottom, one per knob, each an arc with its value. On module, AMP and LFO pages these are flat arc gauges; SEL, ARP, GLOBAL and OSC keep their slider cells.</li>
+<li><strong>The picture</strong>: a moving picture of what the page does (the module's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats...). It takes the top half of the screen on every page with a picture (modules, AMP, LFO, OSC, SEL, ARP and GLOBAL), and most of the top on a MOD page; GLOBAL › ANIMATION sets it to full, calm or still.</li>
+<li><strong>The gauges</strong>: up to four parameters along the bottom, one per knob, each an arc with its value. They are flat arc gauges everywhere but GLOBAL's SYSTEM page and the LFO target pages.</li>
 </ul>
 <h3 id="knob-colours">Knob colours</h3>
 <p>Each knob has its own colour on every page: <strong>K1 blue, K2 green, K3 white, K4 orange</strong> (the numbered dot by each gauge, and the gauge's arc). The part of the picture a knob moves is drawn in that knob's colour, so turning the green knob moves the green part:</p>
@@ -309,7 +309,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p><img src="img/fm1-home.png" alt="HOME" /></p>
 <ul>
 <li><strong>Tiles</strong>: each slot's module, moving to show what it is doing to the sound right now: the source's wave changing shape with TIMBRE and MORPH, the filter's curve opening and closing, Rings ringing as you play, the modulators' and LFOs' outputs swinging, the delay's echoes falling away, the reverb's cloud and the chorus wobbling. They are small versions of each module page's picture. The icon and name sit under each; orange source, teal shaper, purple modulators, blue effects. A red tile is a module the preset asks for but that didn't fit in memory; an empty slot is a dark box.</li>
-<li><strong>The scope</strong> at the bottom shows the output; <strong>tabs over it</strong> show what's on besides the preset: the scale and chord (SEL), the arpeggiator mode, a tuning.</li>
+<li><strong>The scope</strong> along the bottom shows the output, in colour: the matrix routes moving right now tint it in their sources' colours (violet for an LFO, gold for a macro, pink for MSEQ...), as strongly as they move, and the loudest parts glow white. The effects leave marks: with the reverb, a fading trail of the last few traces; with the delay, a dim echo of the wave further along; with the chorus, a second line drifting beside it. <strong>Tabs over it</strong> show what's on besides the preset: the scale and chord (SEL), the arpeggiator mode, a tuning.</li>
 <li><strong>Macros</strong>: each with its value (0–100), a slider and what it moves (the first destination, "+2" if more), or <strong>UNSET</strong>. K1–K4 turn them; MIDI CC 20–23 do too.</li>
 <li><strong>PRESET</strong> steps through the factory presets, then your user presets; the sound changes when you stop turning. <strong>ALGORITHM</strong> jumps by category. <strong>SELECT</strong> sets the voices (1–6).</li>
 <li>Tap HOME again for <strong>RACK</strong>, an overview of every slot, AMP, the outputs and how many matrix routes are set; tap once more to come home with all notes off.</li>

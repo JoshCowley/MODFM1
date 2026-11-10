@@ -387,6 +387,11 @@ static void adsr(int32_t w, int32_t h, uint16_t c)
 
 #include "vis.c"
 #include "vis3.c"
+#undef cv_text                                /* (vis.c and vis3.c draw through vm_*: scalable) */
+#undef cv_line
+#undef cv_pset
+#undef cv_rect
+#undef rrect
 
 static void well(int pg, const ui_mod_t *m, uint16_t c)
 {
@@ -471,49 +476,67 @@ static void cell(int i, const ui_param_t *p, float v, float live, uint16_t mc, u
 #define BW_H 88
 #define G4_Y 126                              /* the four gauges: a column each */
 #define G4_H 94
-static int picture_first(int pg)
+static int picture_first(int pg)              /* (13 Nov 2026: every page with a picture, but GLOBAL's SYSTEM) */
 {
     if (is_mod_sub(pg))
         return 0;
     if (pg == PG_LFO)
         return mn.sub < UI_LFO.npages;
-    return pg == PG_AMP || (pg >= PG_SRC && pg <= PG_FX2 && page_mod(pg));
+    if (is_fixed(pg))
+        return !(pg == PG_GLO && mn.sub == 5);
+    return pg == PG_AMP || pg == PG_OSC || (pg >= PG_SRC && pg <= PG_FX2 && page_mod(pg));
 }
-static void big_well(int pg, const ui_mod_t *m, uint16_t c)
+static void big_well_h(int pg, const ui_mod_t *m, uint16_t c, int32_t wh)
 {
-    int slot = page_slot(pg), bnd, id = slot >= 0 && slot < 6 ? rc_patch.mod[slot] : 0;
+    int slot = page_slot(pg), bnd, id = slot >= 0 && slot < 6 ? rc_patch.mod[slot] : 0, nb = (wh + 29) / 30;
     int32_t x, i;
-    vk_on = 1;
-    vk_first = page_first(m, mn.sub);
-    vk_n = m->pages[mn.sub];
-    for (bnd = 0; bnd < 3; bnd++) {
-        int32_t y0 = bnd * 30, hb = bnd < 2 ? 30 : BW_H - 60;
+    vk_on = !is_fixed(pg) && m && mn.sub < m->npages;
+    vk_first = vk_on ? page_first(m, mn.sub) : 0;
+    vk_n = vk_on ? m->pages[mn.sub] : 0;
+    for (bnd = 0; bnd < nb; bnd++) {
+        int32_t y0 = bnd * 30, hb = wh - y0 < 30 ? wh - y0 : 30;
         cv_begin(228, (uint32_t)hb, K_BG);
         cv_band(-y0, hb);
         cv_y0 = 0;
         cv_y1 = hb;
-        rrect(0, 0, 228, BW_H, K_WELL, 4);
+        rrect(0, 0, 228, wh, K_WELL, 4);
         for (x = 12; x < 228; x += 12)
-            for (i = 8; i < BW_H; i += 8)
+            for (i = 8; i < wh; i += 8)
                 cv_pset(x, i, K_GRID);
-        if (slot == RS_AMP) {
-            adsr(228, BW_H, c);
+        if (slot == RS_AMP && pg != PG_OSC) {
+            adsr(228, wh, c);
         } else {
             vm_on = 1;
             vm_lab = 1;
             vm_ox = 0;
             vm_oy = 0;
             vm_sx = 1.0f;
-            vm_sy = (float)BW_H / (float)VH;
-            vis_draw(slot, id, mn.sub, c);
+            vm_sy = (float)wh / (float)VH;
+            if (is_fixed(pg)) vis_fixed(pg, mn.sub, c);
+            else if (pg == PG_OSC) vis_osc(c);
+            else vis_draw(slot, id, mn.sub, c);
             vm_on = 0;
             vm_lab = 0;
         }
-        if (pg != PG_AMP && pg != PG_LFO)
+        if (m && pg != PG_AMP && pg != PG_LFO && pg != PG_OSC && !is_fixed(pg))
             cv_text(220 - text_w(&FONT_T, m->blurb), 2, &FONT_T, m->blurb, K_DIM);
         cv_blit(6, (uint32_t)(BW_Y + y0));
     }
     vk_on = 0;
+}
+static void big_well(int pg, const ui_mod_t *m, uint16_t c) { big_well_h(pg, m, c, BW_H); }
+/* the page's picture, as big as the page leaves room for: 88 rows on picture-first pages, 60 on a MOD page, else
+ * the band of 42 */
+static void page_well(int pg)
+{
+    const ui_mod_t *m = page_mod(pg);
+    uint16_t c = page_colour(pg);
+    if (picture_first(pg))
+        big_well(pg, m, c);
+    else if (is_mod_sub(pg))
+        big_well_h(pg, m, c, 60);
+    else
+        well(pg, pg == PG_AMP || pg == PG_LFO || pg == PG_OSC ? 0 : m, c);
 }
 /* a gauge: 270 degrees of arc from bottom left round to bottom right, f of it lit */
 static void arc(int32_t cx, int32_t cy, float r, float f0, float f1, uint16_t col, int thick)
@@ -773,15 +796,15 @@ static void draw_mod_page(int pg)
     cv_text(76, 2, &FONT_T, "TARGET", K_DIM);
     cv_text(150, 2, &FONT_T, "AMOUNT", K_DIM);
     cv_text(204, 2, &FONT_T, "VIA", K_DIM);
-    cv_blit(0, 80);
+    cv_blit(0, 96);
     for (k = 0; k < MOD_ROWS; k++) {
         int on = k < n, src = 0, via = 0, isel = k == sel;
         float amt = 0.0f;
         uint16_t d = on ? route_dst(rows[k], &src, &via, &amt) : 0;
-        cv_begin(232, 28, K_BG);
-        rrect(0, 0, 232, 28, isel ? K_SEL : K_CELL, 4);
+        cv_begin(232, 25, K_BG);
+        rrect(0, 0, 232, 25, isel ? K_SEL : K_CELL, 4);
         if (isel)
-            cv_rect(0, 0, 2, 28, c);
+            cv_rect(0, 0, 2, 25, c);
         if (on) {
             int32_t a = (int32_t)(amt * 100.0f + (amt < 0 ? -0.5f : 0.5f)), z = 172, ex = z + (int32_t)(amt * 24.0f);
             rrect(5, 11, 6, 6, src_colour(src), 3);
@@ -802,7 +825,7 @@ static void draw_mod_page(int pg)
         } else {
             cv_text(14, 7, &FONT_T, isel ? "FREE: TURN K1-K4 TO ADD" : "-", isel ? K_DIM : K_FAINT);
         }
-        cv_blit(4, 98 + (uint32_t)k * 30);
+        cv_blit(4, 112 + (uint32_t)k * 27);
     }
     if (n > MOD_ROWS) {
         int_text(n - MOD_ROWS, t);
@@ -836,14 +859,17 @@ static void draw_param_page(int pg)
         int ic = pg == PG_GLO ? (mn.sub == 3 ? IC_MIDI : mn.sub == 4 ? IC_OUT : IC_GLOBAL) : pg == PG_SEL ? (mn.sub ? IC_SCALE : IC_CHORD) : IC_ARP;
         header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 6] : pg == PG_SEL ? ST[mn.sub & 1] : AT[mn.sub & 1],
                ic, npages(pg), mn.sub);
-        well(pg, m, c);
+        page_well(pg);
         off = page_first(m, mn.sub);
         if (pg == PG_GLO && mn.sub == 5)
             system_cells(c);
         else
             for (i = 0; i < 4; i++) {
                 const ui_param_t *p = i < m->pages[mn.sub] ? &m->p[off + i] : 0;
-                cell(i, p, p ? fv[off + i] : 0.0f, 0.0f, 0, c);
+                if (picture_first(pg))
+                    gauge(i, p, p ? fv[off + i] : 0.0f, p ? fv[off + i] : 0.0f, 0);
+                else
+                    cell(i, p, p ? fv[off + i] : 0.0f, 0.0f, 0, c);
             }
         help(pg == PG_GLO && mn.sub == 5 ? "SELECT: PAGE   (MEASURED LIVE)" : pg == PG_ARP ? "SELECT: PAGE   K1-K4: VALUES"
              : "SELECT: PAGE   K1-K4: VALUES");
@@ -868,10 +894,7 @@ static void draw_param_page(int pg)
         header(pg == PG_OSC ? "OSC" : SLOT_TAG[slot], c, is_mod_sub(pg) ? title : pg == PG_OSC ? (mn.sub ? "MIXER" : "OSCILLATOR") : title,
                pg == PG_AMP ? IC_AMP : pg == PG_LFO ? IC_LFO : pg == PG_OSC ? IC_KNOB : module_icon(m->id), np, sb);
     }
-    if (picture_first(pg))
-        big_well(pg, m, c);
-    else
-        well(pg, pg == PG_AMP || pg == PG_LFO || pg == PG_OSC ? 0 : m, c);
+    page_well(pg);
     if (pg == PG_LFO && mn.sub >= m->npages) {
         draw_lfo_targets(mn.sub - m->npages);
         help("K1 K3: DESTINATION   K2 K4: AMOUNT");
