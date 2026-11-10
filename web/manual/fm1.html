@@ -231,19 +231,31 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li>the output meter (red near clipping).</li>
 </ul></li>
 <li><strong>The header</strong>: the page's tag in its colour, the page name, and dots for the pages within it.</li>
-<li><strong>The well</strong>: a moving picture of what the page does (the module's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats...). GLOBAL › ANIMATION sets it to full, calm or still.</li>
-<li><strong>The cells</strong>: up to four parameters, each with its number (matching K1–K4), its name, its value and a <strong>slider</strong>.</li>
+<li><strong>The picture</strong>: a moving picture of what the page does (the module's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats...). On module, AMP and LFO pages it takes the top half of the screen; GLOBAL › ANIMATION sets it to full, calm or still.</li>
+<li><strong>The gauges</strong>: up to four parameters along the bottom, one per knob, each an arc with its value. On module, AMP and LFO pages these are flat arc gauges; SEL, ARP, GLOBAL and OSC keep their slider cells.</li>
+</ul>
+<h3 id="knob-colours">Knob colours</h3>
+<p>Each knob has its own colour on every page: <strong>K1 blue, K2 green, K3 white, K4 orange</strong> (the numbered dot by each gauge, and the gauge's arc). The part of the picture a knob moves is drawn in that knob's colour, so turning the green knob moves the green part:</p>
+<ul>
+<li><strong>AMP</strong>: attack, decay, sustain and release are four coloured segments of the envelope;</li>
+<li><strong>the filter</strong>: a dashed line at the cutoff (K2's colour) and a dot on the resonance peak (K3's);</li>
+<li><strong>Plaits and Braids</strong>: the wave in TIMBRE's colour; <strong>Rings</strong>: the guide rings in STRUCTURE's colour and the ripples in BRIGHTNESS's;</li>
+<li><strong>the delay</strong>: the repeats in FEEDBACK's colour, their spacing marked in TIME's; <strong>the reverb</strong>: the cloud in SIZE's; <strong>the chorus</strong>: its two lines in RATE's and DEPTH's;</li>
+<li><strong>LFO pages</strong>: the LFO's trace in RATE's colour.</li>
+</ul>
+<p>On HOME the macros use the same colours: M1 is K1's blue, M2 K2's green, and so on.</p>
+<ul>
 <li><strong>The help line</strong> at the bottom says what the controls do on that page.</li>
 <li><strong>Messages</strong> appear as a light box near the bottom for a moment ("LOADING", "SAVED TO U01", "PLAITS 6 V").</li>
 </ul>
-<h3 id="sliders-and-modulation-halos">Sliders and modulation halos</h3>
-<p>A parameter that something in the matrix moves <strong>glows in the colour of what moves it</strong>:</p>
+<h3 id="gauges-and-modulation">Gauges and modulation</h3>
+<p>A parameter that something in the matrix moves <strong>shows the colour of what moves it</strong>:</p>
 <ul>
-<li>a soft halo round the track shows the range it has swept lately;</li>
-<li>the track fills to where it is now, and the number under it (› 62) is the live value;</li>
-<li>a thin tick stays at the value you set;</li>
-<li>the thumb and the cell's edge glow, brighter the faster the modulation moves.</li>
+<li>an outer arc round the gauge shows the range it has swept lately, brighter the faster it moves;</li>
+<li>a dot on that outer arc is where it is now, and the number under the gauge (› 62) is the live value;</li>
+<li>the inner arc and its white thumb stay at the value you set.</li>
 </ul>
+<p>(On the slider pages the same shows as a halo round the track.)</p>
 <p><img src="img/fm1-module.png" alt="A page with two parameters moved by a macro" /></p>
 <h3 id="colours-of-modulation">Colours of modulation</h3>
 <p>Each kind of modulation source has its own colour everywhere (halos, matrix):</p>
@@ -290,7 +302,10 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </tbody>
 </table>
 <h2 id="6-home">6. HOME</h2>
-<p>HOME shows the preset (its category in a coloured tab, its name, and its number, or USER), then the chain of six slots as <strong>live tiles</strong>, the four macros under them, and the output's scope along the bottom.</p>
+<p>HOME shows the preset (its category in a coloured tab, its name, and its number, or USER), then the chain of six slots as <strong>live tiles</strong> on the sound's path, the four macros under them, and the output's scope along the bottom.</p>
+<ul>
+<li><strong>The path</strong>: the top row is the sound's path, SRC › SHP › FX 1, then down to FX 2 (AMP sits between SHP and FX 1). Arrows join the tiles, with dots running along them as bright as the output. Over MOD A and MOD B, small arrows pulse upward with each modulator's output: they feed the path.</li>
+</ul>
 <p><img src="img/fm1-home.png" alt="HOME" /></p>
 <ul>
 <li><strong>Tiles</strong>: each slot's module, moving to show what it is doing to the sound right now: the source's wave changing shape with TIMBRE and MORPH, the filter's curve opening and closing, Rings ringing as you play, the modulators' and LFOs' outputs swinging, the delay's echoes falling away, the reverb's cloud and the chorus wobbling. They are small versions of each module page's picture. The icon and name sit under each; orange source, teal shaper, purple modulators, blue effects. A red tile is a module the preset asks for but that didn't fit in memory; an empty slot is a dark box.</li>

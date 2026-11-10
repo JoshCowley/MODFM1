@@ -38,7 +38,7 @@ static float vis_t(void)
 }
 /* the home page's tiles draw these same pictures small (vm_on): every point of the 228 x 42 well is scaled into the
  * tile's picture (vm_sx, vm_sy, from vm_ox, vm_oy) and the labels are left out (12 Nov 2026: animated tiles) */
-static int vm_on;
+static int vm_on, vm_lab;                     /* vm_lab: the labels too (the pages' big picture) */
 static float vm_sx = 1.0f, vm_sy = 1.0f;
 static int32_t vm_ox, vm_oy;
 static int32_t vmx(int32_t x) { return vm_on ? vm_ox + (int32_t)((float)x * vm_sx + 0.5f) : x; }
@@ -103,7 +103,7 @@ static void ellipse(float cx, float cy, float rx, float ry, uint16_t c)
         py = y;
     }
 }
-static void vlabel(const char *s) { if (!vm_on) cv_text(6, 2, &FONT_T, s, K_DIM); }
+static void vlabel(const char *s) { if (!vm_on || vm_lab) cv_text(6, 2, &FONT_T, s, K_DIM); }
 static float P(const float *mon, int i) { return i < 16 ? mon[i] : mon[168 + i - 16]; }
 
 static void vis_plaits(const float *mon, uint16_t c)
@@ -147,7 +147,7 @@ static void vis_plaits(const float *mon, uint16_t c)
             y = y * (1.0f - mor * 0.55f) + saw * mor * 0.55f;
             ys[x] = ycl(21.0f - y * amp * 16.0f);
         }
-        glow(ys, 115, c);
+        glow(ys, 115, kc(2, c));              /* TIMBRE's knob: the wave it folds */
     }
     if (model >= 0 && model < 24)
         vlabel(UI_OPT[UP_PLAITS[0].opt + model]);
@@ -174,7 +174,7 @@ static void vis_braids(const float *mon, uint16_t c)
             }
             ys[x] = ycl(21.0f - held * amp * 16.0f);
         }
-        glow(ys, 115, s ? mix565(TINT[s], K_WELL, 150) : c);
+        glow(ys, 115, s ? mix565(TINT[s], K_WELL, 150) : kc(1, c));
     }
     lab[0] = 0;
     if (model >= 0 && model < 47)
@@ -196,7 +196,7 @@ static void vis_rings(const float *mon, uint16_t c)
     float bright = P(mon, 2), damp = P(mon, 3), pos = P(mon, 4), life = 0.6f + damp * 4.0f, sp = 4.0f + P(mon, 1) * 6.0f;
     float cx = 114.0f + (pos - 0.5f) * 114.0f;
     for (k = 1; k <= rings + 1; k++)
-        ellipse(cx, 21.0f, (float)k * (sp + 4.0f), (float)k * (sp + 4.0f) * 0.42f, mix565(c, K_WELL, 26));
+        ellipse(cx, 21.0f, (float)k * (sp + 4.0f), (float)k * (sp + 4.0f) * 0.42f, mix565(kc(1, c), K_WELL, vk_on ? 70 : 26));
     for (j = 0; j < 8; j++) {
         float age = (float)(plat_ms() - vz.pulse_t[j]) * 0.001f, a;
         float rx = cx + (float)(vz.pulse_n[j] % 7 - 3) * 6.0f;
@@ -207,7 +207,7 @@ static void vis_rings(const float *mon, uint16_t c)
             float rad = age * (24.0f + bright * 40.0f) - (float)k * sp;
             if (rad <= 0.0f)
                 continue;
-            ellipse(rx, 21.0f, rad, rad * 0.42f, mix565(k ? RGB(191, 245, 238) : c, K_WELL, (uint32_t)(256.0f * a * (1.0f - (float)k / (float)(rings + 1)))));
+            ellipse(rx, 21.0f, rad, rad * 0.42f, mix565(k ? RGB(191, 245, 238) : kc(2, c), K_WELL, (uint32_t)(256.0f * a * (1.0f - (float)k / (float)(rings + 1)))));
         }
     }
     if (model >= 0 && model < 6)
@@ -247,6 +247,15 @@ static void vis_filter(const float *mon, uint16_t c)
             cv_rect(x * 2, ys[x], 2, VH - ys[x], mix565(c, K_WELL, 22));
     }
     glow(ys, 115, c);
+    if (vk_on) {                              /* CUTOFF's knob: a line at the cutoff; RESO's: a dot on its peak */
+        float u = fm_log2f(fc / 20.0f) / 9.9658f;
+        int32_t cx = (int32_t)(u * 228.0f), yy;
+        if (cx > 1 && cx < 226) {
+            for (yy = 2; yy < VH - 2; yy += 4)
+                cv_rect(cx, yy, 1, 2, kc(1, c));
+            dot(cx, ys[cx / 2 < 114 ? cx / 2 : 114], 1 + (int32_t)(reso * 2.0f), kc(2, c));
+        }
+    }
     vlabel(NAME[type]);
 }
 
@@ -296,7 +305,8 @@ static void vis_delay(const float *mon, uint16_t c)
         else
             a *= 0.4f + 0.6f * fm_expf(-(age - (float)k * 0.25f) * 4.0f);
         h = (int)(a * 34.0f);
-        rrect((int32_t)x, 38 - h, 8, h + 1, mix565(c, K_WELL, (uint32_t)(60.0f + 196.0f * a)), 2);
+        rrect((int32_t)x, 38 - h, 8, h + 1, mix565(kc(1, c), K_WELL, (uint32_t)(60.0f + 196.0f * a)), 2);   /* FEEDBACK's knob */
+        if (vk_on) cv_rect((int32_t)x, 40, 8, 1, kc(0, c));                    /* TIME's: the repeats' spacing */
     }
     (void)t;
     vlabel(UI_OPT[UP_DELAY[0].opt + ((int)(P(mon, 0) + 0.5f) & 15) % 9]);
@@ -308,12 +318,16 @@ static void vis_reverb(const float *mon, uint16_t c)
     int k;
     vz.rng = 777u;
     lv = lv > 1.0f ? 1.0f : lv;
-    for (k = 0; k < 60; k++) {
+    for (k = 0; k < (vm_lab ? 160 : 60); k++) {
         float s = rnd(), a = rnd() * TAU + t * (0.2f + s * 0.5f), r = (0.2f + rnd() * 0.8f) * (40.0f + size * 70.0f);
         float x = 114.0f + fm_cosf(a) * r, y = 21.0f + fm_sinf(a) * r * 0.3f;
         if (x < 1 || x > VW - 2)
             continue;
-        cv_pset((int32_t)x, ycl(y), mix565(k % 3 ? c : K_FG, K_WELL, (uint32_t)(40.0f + 200.0f * s * (0.3f + 0.7f * lv) * (1.0f - damp * 0.6f))));
+        {
+            uint16_t col = mix565(k % 3 ? kc(0, c) : K_FG, K_WELL, (uint32_t)(40.0f + 200.0f * s * (0.3f + 0.7f * lv) * (1.0f - damp * 0.6f)));
+            if (vm_lab) cv_rect((int32_t)x, ycl(y), 2, 1, col);   /* the big picture: two-pixel grains */
+            else cv_pset((int32_t)x, ycl(y), col);
+        }
     }
     vlabel(UI_OPT[UP_REVERB[4].opt + (((int)(P(mon, 4) + 0.5f)) % 3)]);
 }
@@ -328,8 +342,8 @@ static void vis_chorus(const float *mon, uint16_t c)
         a[x] = ycl(21.0f - fm_sinf(ph - t * 3.0f + fm_sinf(t * rate) * depth * 2.0f) * 14.0f);
         b[x] = ycl(21.0f - fm_sinf(ph - t * 3.0f - fm_sinf(t * rate) * depth * 2.0f) * 14.0f);
     }
-    glow(b, 115, mix565(c, K_WELL, 120));
-    glow(a, 115, c);
+    glow(b, 115, mix565(kc(1, c), K_WELL, vk_on ? 200 : 120));   /* DEPTH's knob */
+    glow(a, 115, kc(0, c));                                         /* RATE's */
     vlabel(UI_OPT[UP_CHORUS[4].opt + (((int)(P(mon, 4) + 0.5f)) % 3)]);
 }
 
@@ -365,7 +379,7 @@ static void vis_draw(int slot, int id, int sub, uint16_t c)
     }
     if (slot == RS_LFO) {
         int l = sub % 3;
-        trace(4 + l, c, 1);
+        trace(4 + l, kc(l * 4 + 1, c), 1);   /* the LFO's RATE knob */
         {
             char t[6] = "LFO 1";
             t[4] = (char)('1' + l);

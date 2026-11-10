@@ -434,9 +434,11 @@ static void home_well(void)
 
 /* home's chain (12 Nov 2026): six tiles, each its module's page picture moving small, so what each module is doing
  * to the sound shows at a glance (a filter's curve opening, Rings ringing, the LFOs swinging, echoes falling); its
- * icon and name under it. Red: asked for but unloaded (no room) */
-#define HT_W 74
-#define HT_H 40
+ * icon and name under it. Red: asked for but unloaded (no room). After Teenage Engineering's mixer drawn as the
+ * sound's path: the tiles sit on the path SRC > SHP > FX 1 > FX 2, joined by arrows whose dots run at the output's
+ * level, and the modulators send their pulses up into it */
+#define HT_W 64
+#define HT_H 38
 static void home_tile(int32_t x, int32_t y, int slot, uint16_t kind)
 {
     int id = rc_patch.mod[slot];
@@ -445,30 +447,93 @@ static void home_tile(int32_t x, int32_t y, int slot, uint16_t kind)
     uint16_t c = lost ? K_WARN : n ? kind : K_FAINT;
     int32_t w;
     cv_begin(HT_W, HT_H, K_BG);
-    rrect(0, 0, HT_W, HT_H, n ? K_WELL : K_BG, 4);
-    if (!n) {
+    if (n)
+        rrect(0, 0, HT_W, HT_H, K_WELL, 4);
+    else {
         rrect(0, 0, HT_W, HT_H, K_CELL, 4);
         rrect(1, 1, HT_W - 2, HT_H - 2, K_BG, 3);
     }
     if (n && !lost)
-        vis_mini(slot, id, 2, 2, HT_W - 4, 25, kind);
+        vis_mini(slot, id, 2, 2, HT_W - 4, 23, kind);
     if (n) {
         w = 14 + text_w(&FONT_T, n);
-        icon(module_icon(id), HT_W / 2 - w / 2, 27, c);
-        cv_text(HT_W / 2 - w / 2 + 14, 27, &FONT_T, n, lost ? K_WARN : K_DIM);
+        icon(module_icon(id), HT_W / 2 - w / 2, 25, c);
+        cv_text(HT_W / 2 - w / 2 + 14, 25, &FONT_T, n, lost ? K_WARN : K_DIM);
     } else {
-        icon(IC_EMPTY, HT_W / 2 - 6, 14, c);
+        icon(IC_EMPTY, HT_W / 2 - 6, 13, c);
+    }
+    cv_blit((uint32_t)x, (uint32_t)y);
+}
+static float home_level(void)                 /* the output's level lately, 0..1 (the scope's last 256 samples) */
+{
+    uint32_t end = rc_scope_w, k;
+    float s = 0.0f;
+    for (k = 0; k < 256u; k++) {
+        float v = (float)rc_scope[(end - 1u - k) & (RC_SCOPE_N - 1u)] / 16384.0f;
+        s += v * v;
+    }
+    s = fm_sqrtf(s / 256.0f) * 3.0f;
+    return s > 1.0f ? 1.0f : s;
+}
+/* the path between two tiles: an arrow (across, or down), with two dots running along it, as bright as lev */
+static void path_arrow(int32_t x, int32_t y, int32_t w, int32_t h, int down, float lev, float t, uint16_t c)
+{
+    uint16_t line = mix565(c, K_BG, 70u + (uint32_t)(lev * 60.0f));
+    int j;
+    cv_begin((uint32_t)w, (uint32_t)h, K_BG);
+    if (!down) {
+        int32_t yy = h / 2;
+        cv_rect(1, yy, w - 4, 1, line);
+        cv_line(w - 5, yy - 3, w - 2, yy, line);
+        cv_line(w - 5, yy + 3, w - 2, yy, line);
+        for (j = 0; j < 2 && lev > 0.02f; j++) {
+            float u = t * 0.9f + (float)j * 0.5f;
+            u -= fm_floorf(u);
+            rrect(1 + (int32_t)(u * (float)(w - 7)), yy - 1, 3, 3, mix565(K_FG, K_BG, 60u + (uint32_t)(lev * 195.0f)), 1);
+        }
+    } else {
+        int32_t xx = w / 2;
+        cv_rect(xx, 0, 1, h - 2, line);
+        cv_line(xx - 3, h - 4, xx, h - 1, line);
+        cv_line(xx + 3, h - 4, xx, h - 1, line);
+        for (j = 0; j < 1 && lev > 0.02f; j++) {
+            float u = t * 0.9f;
+            u -= fm_floorf(u);
+            rrect(xx - 1, (int32_t)(u * (float)(h - 3)), 3, 3, mix565(K_FG, K_BG, 60u + (uint32_t)(lev * 195.0f)), 1);
+        }
+    }
+    cv_blit((uint32_t)x, (uint32_t)y);
+}
+/* a modulator's feed: dotted upward ticks over its tile, pulsing with its output */
+static void mod_feed(int32_t x, int32_t y, int slot, float out)
+{
+    float a = fm_fabsf(out);
+    int32_t k;
+    uint16_t c = rc_patch.mod[slot] ? mix565(K_MOD, K_BG, 50u + (uint32_t)((a > 1.0f ? 1.0f : a) * 205.0f)) : K_CELL;
+    cv_begin(HT_W, 8, K_BG);
+    for (k = 0; k < 3; k++) {
+        int32_t xx = 16 + k * 16;
+        cv_rect(xx, 3, 1, 4, c);
+        cv_line(xx - 2, 4, xx, 1, c);
+        cv_line(xx + 2, 4, xx, 1, c);
     }
     cv_blit((uint32_t)x, (uint32_t)y);
 }
 static void home_tiles(void)
 {
+    const float *mon = rk_monitor(RS_AMP);
+    float lev = home_level(), t = vis_t();
     home_tile(6, 34, RS_SRC, K_SRC);
-    home_tile(83, 34, RS_SHP, K_SHP);
-    home_tile(160, 34, RS_MODA, K_MOD);
-    home_tile(6, 76, RS_MODB, K_MOD);
-    home_tile(83, 76, RS_FX1, K_FX);
-    home_tile(160, 76, RS_FX2, K_FX);
+    home_tile(88, 34, RS_SHP, K_SHP);
+    home_tile(170, 34, RS_FX1, K_FX);
+    home_tile(6, 80, RS_MODA, K_MOD);
+    home_tile(88, 80, RS_MODB, K_MOD);
+    home_tile(170, 80, RS_FX2, K_FX);
+    path_arrow(70, 34, 18, HT_H, 0, lev, t, K_SRC);
+    path_arrow(152, 34, 18, HT_H, 0, lev, t + 0.3f, K_SHP);
+    path_arrow(170, 72, HT_W, 8, 1, lev, t + 0.6f, K_FX);
+    mod_feed(6, 72, RS_MODA, mon[40]);
+    mod_feed(88, 72, RS_MODB, mon[42]);
 }
 
 static void draw_footer(void)                 /* (the status strip on top; the modulation strip is gone) */
@@ -495,21 +560,26 @@ static void home_macros(void)
                 nt++;
             }
         }
-        cv_begin(57, HM_H, K_BG);
-        rrect(0, 0, 57, HM_H, sel ? RGB(40, 34, 18) : K_CELL, 4);
-        if (sel && (now / 250u) & 1u) {
-            cv_rect(0, 0, 57, 1, K_GOLD);
-            cv_rect(0, HM_H - 1, 57, 1, K_GOLD);
-            cv_rect(0, 0, 1, HM_H, K_GOLD);
-            cv_rect(56, 0, 1, HM_H, K_GOLD);
-        }
+        cv_begin(57, HM_H, K_BG);             /* flat (12 Nov 2026): an arc in its knob's colour, no box */
+        if (sel && (now / 250u) & 1u)
+            rrect(0, 0, 57, HM_H, RGB(40, 34, 18), 4);
+        rrect(1, 2, 11, 11, sel ? K_GOLD : KNOB_C[i], 5);
+        t[0] = (char)('1' + i);
+        t[1] = 0;
+        cv_text(7 - text_w(&FONT_T, t) / 2, 1, &FONT_T, t, K_BG);
         t[0] = 'M';
         t[1] = (char)('1' + i);
         t[2] = 0;
-        cv_text(4, 2, &FONT_T, t, sel ? K_GOLD : K_DIM);
+        cv_text(15, 1, &FONT_T, t, sel ? K_GOLD : K_DIM);
+        arc(36, 21, 12.0f, 0.0f, 1.0f, K_FAINT, 2);
+        if (v > 0.005f)
+            arc(36, 21, 12.0f, 0.0f, v > 1.0f ? 1.0f : v, nt ? KNOB_C[i] : mix565(KNOB_C[i], K_BG, 120), 3);
+        {
+            float an = 2.3561945f + (v > 1.0f ? 1.0f : v < 0.0f ? 0.0f : v) * 4.712389f;
+            rrect(36 + (int32_t)(11.0f * fm_cosf(an)) - 2, 21 + (int32_t)(11.0f * fm_sinf(an)) - 2, 5, 5, K_FG, 2);
+        }
         int_text((int32_t)(v * 100.0f + 0.5f), n);
-        cv_text(53 - text_w(&FONT_B, n), 0, &FONT_B, n, K_FG);
-        slider(7, 22, 43, v, nt ? K_GOLD : K_DIM, 0, 0.0f, 0.0f, v, 0.0f, K_CELL);
+        cv_text(36 - text_w(&FONT_T, n) / 2, 15, &FONT_T, n, K_FG);
         if (nt) {
             dst_name(first, t);
             if (nt > 1) {
@@ -526,7 +596,7 @@ static void home_macros(void)
             while (t[k]) k++;
             t[k - 1] = 0;
         }
-        cv_text(28 - text_w(&FONT_T, t) / 2, 33, &FONT_T, t, nt ? K_FG : K_DIM);
+        cv_text(28 - text_w(&FONT_T, t) / 2, 35, &FONT_T, t, nt ? K_FG : K_DIM);
         cv_blit(2u + (uint32_t)i * 59u, 120);
     }
 }
@@ -616,7 +686,10 @@ static void draw_well_only(void)
     } else if (is_seq_page(mn.page)) {
         seq_area();
     } else {
-        well(mn.page, page_mod(mn.page), page_colour(mn.page));
+        if (picture_first(mn.page))
+            big_well(mn.page, page_mod(mn.page), page_colour(mn.page));
+        else
+            well(mn.page, page_mod(mn.page), page_colour(mn.page));
         if (!is_fixed(mn.page) && !(mn.page == PG_LFO && mn.sub >= UI_LFO.npages) && !is_mod_sub(mn.page))
             param_cells(mn.page);             /* the modulated sliders' halos move with the well */
     }
@@ -625,7 +698,7 @@ static void draw_well_only(void)
 static void draw(void)
 {
     static int shown = -1;                    /* the page on the screen: a new one starts from a clear screen */
-    int now = mn.page | mn.pick << 5 | sv.open << 6 | sv.lib << 7 | sp.layer << 8;
+    int now = mn.page | mn.pick << 5 | sv.open << 6 | sv.lib << 7 | sp.layer << 8 | picture_first(mn.page) << 9 | is_mod_sub(mn.page) << 10;
     if (ui.clear) {                           /* a toast gone: what it covered is drawn again from clear */
         ui.clear = 0;
         shown = -1;

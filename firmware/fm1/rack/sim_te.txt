@@ -1,0 +1,40 @@
+wait 400
+turn PRESET 3
+wait 1500
+key w5 down 110
+wait 300
+tap EDIT
+wait 500
+shot te_src.png
+tap ENV
+wait 200
+tap ENV
+wait 500
+shot te_shp.png
+turn K2 5
+wait 300
+shot te_shp2.png
+tap ENV
+wait 500
+shot te_amp.png
+tap LFO
+wait 100
+tap LFO
+wait 100
+tap LFO
+wait 100
+tap LFO
+wait 600
+shot te_lfo.png
+key w5 up
+turn PRESET 50
+wait 1500
+key w9 down 100
+wait 200
+tap FX
+wait 600
+shot te_fx1.png
+tap FX
+wait 600
+shot te_fx2.png
+key w9 up

@@ -118,19 +118,32 @@ Every page has the same frame:
   - the octave (**O+1** and so on; green while keys are held);
   - the output meter (red near clipping).
 - **The header**: the page's tag in its colour, the page name, and dots for the pages within it.
-- **The well**: a moving picture of what the page does (the module's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats...). GLOBAL › ANIMATION sets it to full, calm or still.
-- **The cells**: up to four parameters, each with its number (matching K1–K4), its name, its value and a **slider**.
+- **The picture**: a moving picture of what the page does (the module's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats...). On module, AMP and LFO pages it takes the top half of the screen; GLOBAL › ANIMATION sets it to full, calm or still.
+- **The gauges**: up to four parameters along the bottom, one per knob, each an arc with its value. On module, AMP and LFO pages these are flat arc gauges; SEL, ARP, GLOBAL and OSC keep their slider cells.
+
+### Knob colours
+
+Each knob has its own colour on every page: **K1 blue, K2 green, K3 white, K4 orange** (the numbered dot by each gauge, and the gauge's arc). The part of the picture a knob moves is drawn in that knob's colour, so turning the green knob moves the green part:
+
+- **AMP**: attack, decay, sustain and release are four coloured segments of the envelope;
+- **the filter**: a dashed line at the cutoff (K2's colour) and a dot on the resonance peak (K3's);
+- **Plaits and Braids**: the wave in TIMBRE's colour; **Rings**: the guide rings in STRUCTURE's colour and the ripples in BRIGHTNESS's;
+- **the delay**: the repeats in FEEDBACK's colour, their spacing marked in TIME's; **the reverb**: the cloud in SIZE's; **the chorus**: its two lines in RATE's and DEPTH's;
+- **LFO pages**: the LFO's trace in RATE's colour.
+
+On HOME the macros use the same colours: M1 is K1's blue, M2 K2's green, and so on.
 - **The help line** at the bottom says what the controls do on that page.
 - **Messages** appear as a light box near the bottom for a moment ("LOADING", "SAVED TO U01", "PLAITS 6 V").
 
-### Sliders and modulation halos
+### Gauges and modulation
 
-A parameter that something in the matrix moves **glows in the colour of what moves it**:
+A parameter that something in the matrix moves **shows the colour of what moves it**:
 
-- a soft halo round the track shows the range it has swept lately;
-- the track fills to where it is now, and the number under it (› 62) is the live value;
-- a thin tick stays at the value you set;
-- the thumb and the cell's edge glow, brighter the faster the modulation moves.
+- an outer arc round the gauge shows the range it has swept lately, brighter the faster it moves;
+- a dot on that outer arc is where it is now, and the number under the gauge (› 62) is the live value;
+- the inner arc and its white thumb stay at the value you set.
+
+(On the slider pages the same shows as a halo round the track.)
 
 ![A page with two parameters moved by a macro](../web/manual/img/fm1-module.png)
 
@@ -151,7 +164,9 @@ Each kind of modulation source has its own colour everywhere (halos, matrix):
 
 ## 6. HOME
 
-HOME shows the preset (its category in a coloured tab, its name, and its number, or USER), then the chain of six slots as **live tiles**, the four macros under them, and the output's scope along the bottom.
+HOME shows the preset (its category in a coloured tab, its name, and its number, or USER), then the chain of six slots as **live tiles** on the sound's path, the four macros under them, and the output's scope along the bottom.
+
+- **The path**: the top row is the sound's path, SRC › SHP › FX 1, then down to FX 2 (AMP sits between SHP and FX 1). Arrows join the tiles, with dots running along them as bright as the output. Over MOD A and MOD B, small arrows pulse upward with each modulator's output: they feed the path.
 
 ![HOME](../web/manual/img/fm1-home.png)
 

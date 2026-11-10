@@ -118,6 +118,16 @@ static int page_first(const ui_mod_t *m, int sub)
  * into that module, four at a time. SELECT steps through its four rows as it steps through pages (MOD_ROWS subs) */
 #define MOD_ROWS 4
 static int has_mod_page(int pg) { return pg == PG_AMP || pg == PG_OSC || (pg >= PG_SRC && pg <= PG_FX2 && page_mod(pg)); }
+/* the knobs' colours (12 Nov 2026, after Teenage Engineering's colour-linked encoders): K1 blue, K2 green, K3 white,
+ * K4 orange, on a page's gauges and on the part of its picture each one moves, so the knob and what it changes on the
+ * screen read as one */
+static const uint16_t KNOB_C[4] = {RGB(72, 152, 255), RGB(72, 214, 122), RGB(236, 234, 226), RGB(255, 136, 46)};
+static int vk_on, vk_first, vk_n;             /* the picture being drawn: its parameters vk_first.. on K1.. */
+static uint16_t kc(int pi, uint16_t c)        /* parameter pi's knob's colour when it is on the page, else c */
+{
+    int k = pi - vk_first;
+    return vk_on && k >= 0 && k < vk_n ? KNOB_C[k] : c;
+}
 static int npages(int pg)
 {
     const ui_mod_t *m = page_mod(pg);
@@ -311,19 +321,28 @@ static void adsr(int32_t w, int32_t h, uint16_t c)
     float a = rk_get_param(RS_AMP, 0), d = rk_get_param(RS_AMP, 1), s = rk_get_param(RS_AMP, 2), r = rk_get_param(RS_AMP, 3);
     int32_t x0 = 6, top = 5, bot = h - 5, ax = x0 + (int32_t)(a * 50.0f) + 1, dx = ax + (int32_t)(d * 50.0f) + 1;
     int32_t sy = bot - (int32_t)(s * (float)(bot - top)), sx = dx + 40, rx = sx + (int32_t)(r * 60.0f) + 1;
-    uint16_t halo = mix565(c, K_WELL, 46);
+    uint16_t ca = kc(0, c), cd = kc(1, c), cs = kc(2, c), cr = kc(3, c);
     int i;
-    for (i = -1; i <= 1; i += 2) {
-        cv_line(x0, bot + i, ax, top + i, halo);
-        cv_line(ax, top + i, dx, sy + i, halo);
-        cv_line(dx, sy + i, sx, sy + i, halo);
-        cv_line(sx, sy + i, rx, bot + i, halo);
+    if (w > 228) w = 228;
+    if (h > 60) {                             /* the big picture: the envelope across the width */
+        float k = (float)(w - 12) / 150.0f;
+        ax = x0 + (int32_t)(a * 50.0f * k) + 1; dx = ax + (int32_t)(d * 50.0f * k) + 1;
+        sx = dx + (int32_t)(40.0f * k); rx = sx + (int32_t)(r * 60.0f * k) + 1;
+        if (vk_on && vk_n) {                  /* the segments' floor, shaded in their knobs' colours */
+            cv_rect(x0, bot + 3, ax - x0, 2, ca); cv_rect(ax, bot + 3, dx - ax, 2, cd);
+            cv_rect(dx, bot + 3, sx - dx, 2, cs); cv_rect(sx, bot + 3, rx - sx, 2, cr);
+        }
     }
-    cv_line(x0, bot, ax, top, c);
-    cv_line(ax, top, dx, sy, c);
-    cv_line(dx, sy, sx, sy, c);
-    cv_line(sx, sy, rx, bot, c);
-    (void)w;
+    for (i = -1; i <= 1; i += 2) {
+        cv_line(x0, bot + i, ax, top + i, mix565(ca, K_WELL, 46));
+        cv_line(ax, top + i, dx, sy + i, mix565(cd, K_WELL, 46));
+        cv_line(dx, sy + i, sx, sy + i, mix565(cs, K_WELL, 46));
+        cv_line(sx, sy + i, rx, bot + i, mix565(cr, K_WELL, 46));
+    }
+    cv_line(x0, bot, ax, top, ca);
+    cv_line(ax, top, dx, sy, cd);
+    cv_line(dx, sy, sx, sy, cs);
+    cv_line(sx, sy, rx, bot, cr);
 }
 
 #include "vis.c"
@@ -405,6 +424,148 @@ static void cell(int i, const ui_param_t *p, float v, float live, uint16_t mc, u
     cv_blit((uint32_t)x, (uint32_t)y);
 }
 
+
+/* ---------------------------------------------------------- picture-first pages (12 Nov 2026, after Teenage
+ * Engineering's screens: the moving picture explains the module, four colour-linked gauges set it) */
+#define BW_Y 34                               /* the big picture: 88 rows from here, drawn in three bands */
+#define BW_H 88
+#define G4_Y 126                              /* the four gauges: a column each */
+#define G4_H 94
+static int picture_first(int pg)
+{
+    if (is_mod_sub(pg))
+        return 0;
+    if (pg == PG_LFO)
+        return mn.sub < UI_LFO.npages;
+    return pg == PG_AMP || (pg >= PG_SRC && pg <= PG_FX2 && page_mod(pg));
+}
+static void big_well(int pg, const ui_mod_t *m, uint16_t c)
+{
+    int slot = page_slot(pg), bnd, id = slot >= 0 && slot < 6 ? rc_patch.mod[slot] : 0;
+    int32_t x, i;
+    vk_on = 1;
+    vk_first = page_first(m, mn.sub);
+    vk_n = m->pages[mn.sub];
+    for (bnd = 0; bnd < 3; bnd++) {
+        int32_t y0 = bnd * 30, hb = bnd < 2 ? 30 : BW_H - 60;
+        cv_begin(228, (uint32_t)hb, K_BG);
+        cv_band(-y0, hb);
+        cv_y0 = 0;
+        cv_y1 = hb;
+        rrect(0, 0, 228, BW_H, K_WELL, 4);
+        for (x = 12; x < 228; x += 12)
+            for (i = 8; i < BW_H; i += 8)
+                cv_pset(x, i, K_GRID);
+        if (slot == RS_AMP) {
+            adsr(228, BW_H, c);
+        } else {
+            vm_on = 1;
+            vm_lab = 1;
+            vm_ox = 0;
+            vm_oy = 0;
+            vm_sx = 1.0f;
+            vm_sy = (float)BW_H / (float)VH;
+            vis_draw(slot, id, mn.sub, c);
+            vm_on = 0;
+            vm_lab = 0;
+        }
+        if (pg != PG_AMP && pg != PG_LFO)
+            cv_text(220 - text_w(&FONT_T, m->blurb), 2, &FONT_T, m->blurb, K_DIM);
+        cv_blit(6, (uint32_t)(BW_Y + y0));
+    }
+    vk_on = 0;
+}
+/* a gauge: 270 degrees of arc from bottom left round to bottom right, f of it lit */
+static void arc(int32_t cx, int32_t cy, float r, float f0, float f1, uint16_t col, int thick)
+{
+    int n = (int)((f1 - f0) * 28.0f) + 1, k, t;
+    for (t = 0; t < thick; t++) {
+        float rr = r - (float)t, px = 0, py = 0;
+        for (k = 0; k <= n; k++) {
+            float f = f0 + (f1 - f0) * (float)k / (float)n, a = 2.3561945f + f * 4.712389f;
+            float x = (float)cx + rr * fm_cosf(a), y = (float)cy + rr * fm_sinf(a);
+            if (k)
+                cv_line((int32_t)px, (int32_t)py, (int32_t)x, (int32_t)y, col);
+            px = x;
+            py = y;
+        }
+    }
+}
+/* one of the four gauges: its knob's number in its colour, the name, the arc and the value; a modulated parameter
+ * draws the range it has swept lately round the outside in its source's colour, and its live value as a dot there */
+static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
+{
+    char t[24];
+    int32_t cx = 28, cy = 46, w;
+    float f, lf;
+    int key = mn.page << 4 | mn.sub;
+    uint16_t kcol = KNOB_C[i];
+    if (key != cl_page) {
+        int k;
+        cl_page = key;
+        for (k = 0; k < 4; k++)
+            cl_lo[k] = 2.0f, cl_hi[k] = -2.0f, cl_prev[k] = -1.0f, cl_e[k] = 0.0f;
+    }
+    cv_begin(57, G4_H, K_BG);
+    rrect(1, 3, 11, 11, p ? kcol : K_FAINT, 5);   /* the knob's dot and number */
+    t[0] = (char)('1' + i);
+    t[1] = 0;
+    cv_text(7 - text_w(&FONT_T, t) / 2, 2, &FONT_T, t, K_BG);
+    if (!p) {
+        arc(cx, cy, 18.0f, 0.0f, 1.0f, RGB(24, 24, 22), 1);
+        cv_blit(3u + (uint32_t)i * 59u, G4_Y);
+        return;
+    }
+    {
+        char l[16];
+        int k = 0;
+        while (p->l[k] && k < 15) { l[k] = p->l[k]; k++; }
+        l[k] = 0;
+        while (text_w(&FONT_T, l) > 42 && k > 1) l[--k] = 0;
+        cv_text(15, 2, &FONT_T, l, K_DIM);
+    }
+    f = fm_clampf(frac(p, v), 0.0f, 1.0f);
+    lf = fm_clampf(frac(p, live), 0.0f, 1.0f);
+    arc(cx, cy, 18.0f, 0.0f, 1.0f, K_FAINT, 2);   /* the track */
+    if (f > 0.005f)
+        arc(cx, cy, 18.0f, 0.0f, f, kcol, 3);     /* the value, in its knob's colour */
+    {
+        float a = 2.3561945f + f * 4.712389f;
+        int32_t tx = cx + (int32_t)(16.5f * fm_cosf(a)), ty = cy + (int32_t)(16.5f * fm_sinf(a));
+        rrect(tx - 2, ty - 2, 5, 5, K_FG, 2);
+    }
+    if (mc) {
+        float d;
+        if (cl_lo[i] > 1.5f) cl_lo[i] = cl_hi[i] = lf;
+        if (lf < cl_lo[i]) cl_lo[i] = lf; else cl_lo[i] += (lf - cl_lo[i]) * 0.01f;
+        if (lf > cl_hi[i]) cl_hi[i] = lf; else cl_hi[i] += (lf - cl_hi[i]) * 0.01f;
+        d = cl_prev[i] < 0.0f ? 0.0f : fm_fabsf(lf - cl_prev[i]) * 25.0f;
+        cl_prev[i] = lf;
+        cl_e[i] += ((d > 1.0f ? 1.0f : d) - cl_e[i]) * 0.3f;
+        arc(cx, cy, 23.0f, cl_lo[i], cl_hi[i] > cl_lo[i] + 0.01f ? cl_hi[i] : cl_lo[i] + 0.01f,
+            mix565(mc, K_BG, 110u + (uint32_t)(cl_e[i] * 140.0f)), 2);
+        {
+            float a = 2.3561945f + lf * 4.712389f;
+            rrect(cx + (int32_t)(23.0f * fm_cosf(a)) - 2, cy + (int32_t)(23.0f * fm_sinf(a)) - 2, 5, 5, mc, 2);
+        }
+    }
+    fmt(p, v, t);                             /* the value under the arc (a short one in its middle) */
+    w = text_w(&FONT_T, t);
+    if (w <= 26)
+        cv_text(cx - w / 2, cy - 6, &FONT_T, t, K_FG);
+    else {
+        while (text_w(&FONT_T, t) > 55 && t[0] && t[1]) { int k = 0; while (t[k]) k++; t[k - 1] = 0; }
+        cv_text(cx - text_w(&FONT_T, t) / 2, 70, &FONT_T, t, K_FG);
+    }
+    if (mc) {
+        char u[24] = "> ";
+        fmt(p, live, u + 2);
+        while (text_w(&FONT_T, u) > 55 && u[2] && u[3]) { int k = 0; while (u[k]) k++; u[k - 1] = 0; }
+        cv_text(cx - text_w(&FONT_T, u) / 2, 81, &FONT_T, u, mc);
+    }
+    cv_blit(3u + (uint32_t)i * 59u, G4_Y);
+}
+
 static void help(const char *s)
 {
     cv_begin(240, 16, K_BG);
@@ -478,7 +639,10 @@ static void param_cells(int pg)
             lv = ei < 16 ? live[ei] : live[168 + ei - 16];
             mc = mod_colour(slot, ei);
         }
-        cell(i, p, v, lv, mc, c);
+        if (picture_first(pg))
+            gauge(i, p, v, lv, mc);
+        else
+            cell(i, p, v, lv, mc, c);
     }
 }
 
@@ -664,7 +828,10 @@ static void draw_param_page(int pg)
         header(pg == PG_OSC ? "OSC" : SLOT_TAG[slot], c, is_mod_sub(pg) ? title : pg == PG_OSC ? (mn.sub ? "MIXER" : "OSCILLATOR") : title,
                pg == PG_AMP ? IC_AMP : pg == PG_LFO ? IC_LFO : pg == PG_OSC ? IC_KNOB : module_icon(m->id), np, sb);
     }
-    well(pg, pg == PG_AMP || pg == PG_LFO || pg == PG_OSC ? 0 : m, c);
+    if (picture_first(pg))
+        big_well(pg, m, c);
+    else
+        well(pg, pg == PG_AMP || pg == PG_LFO || pg == PG_OSC ? 0 : m, c);
     if (pg == PG_LFO && mn.sub >= m->npages) {
         draw_lfo_targets(mn.sub - m->npages);
         help("K1 K3: DESTINATION   K2 K4: AMOUNT");
