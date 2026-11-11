@@ -15,7 +15,8 @@
 #define RC_IN_UNITY
 #include "rack_core.c"
 
-#define SET_MAGIC 0x524B4C33u                 /* "RKL3": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC 0x524B4C34u                 /* "RKL4": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC3 0x524B4C33u                /* "RKL3" (updates 34-35): ARP 18 values, the layer switches in their old order */
 #define SET_MAGIC1 0x524B4C31u
 #define SET_MAGIC2 0x524B4C32u                /* "RKL2": ARP's 8 values only (before STYLE): all but the new ones kept */
 typedef struct {
@@ -24,7 +25,7 @@ typedef struct {
     int8_t octave;
     uint8_t voices;                           /* 0: the preset's own (GLOBAL > VOICES AUTO) */
     uint8_t rsv;
-    float glo[19], sel[8], arp[18];           /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*); ARP 8-17: STYLE */
+    float glo[19], sel[8], arp[20];           /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*); ARP 8-19: STYLE, layers */
 } settings_t;
 static settings_t set;
 #include "ui_defs.h"
@@ -780,6 +781,7 @@ static void draw_well_only(void)
         if (!is_fixed(mn.page) && !(mn.page == PG_LFO && mn.sub >= UI_LFO.npages) && !is_mod_sub(mn.page))
             param_cells(mn.page);             /* the modulated sliders' halos move with the well */
     }
+    draw_toast();                             /* a toast stays on top (HOME's macros and scope drew over it, update 36) */
 }
 
 static void draw(void)
@@ -1025,7 +1027,17 @@ void app_init(void)
     if (plat_cpu2_set(1) == 0)                /* the second core (now: the one time it may start) renders half the voices */
         rk_set_worker(plat_cpu2_run, plat_cpu2_wait);
     n = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
-    if (n == (int)(sizeof set - 10u * sizeof(float)) && set.magic == SET_MAGIC2) {   /* RKL2: the same, shorter */
+    if (n == (int)(sizeof set - 2u * sizeof(float)) && set.magic == SET_MAGIC3) {   /* RKL3: ON FM-1 was CHORD, BASS, ARP */
+        float lc = set.arp[15], lb = set.arp[16], la = set.arp[17];
+        set.arp[A_LBS] = lb;
+        set.arp[A_LCH] = lc;
+        set.arp[A_SCH] = UP_ARP[A_SCH].def;
+        set.arp[A_LAR] = la;
+        set.arp[A_SAR] = UP_ARP[A_SAR].def;
+        set.magic = SET_MAGIC;
+        n = (int)sizeof set;
+    }
+    if (n == (int)(sizeof set - 12u * sizeof(float)) && set.magic == SET_MAGIC2) {   /* RKL2: the same, shorter */
         for (i = A_STYLE; i < NA; i++)
             set.arp[i] = UP_ARP[i].def;
         set.magic = SET_MAGIC;

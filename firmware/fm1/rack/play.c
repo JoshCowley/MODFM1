@@ -16,7 +16,8 @@ enum { C_SCALE, C_KEY, C_TYPE, C_VOICE, C_QNT, C_HARM, C_ZONE, C_STRUM, NC };
 enum { A_MODE, A_RATE, A_OCT, A_GATE, A_HOLD, A_MUT, A_LOOP, A_SWING,
        A_STYLE, A_BOCT, A_ACC, A_CLEN,           /* STYLE (style_def.py): the style, the bass's octave, accents, length */
        A_CHCH, A_BSCH, A_ARCH,                    /* each layer's MIDI channel (0 off, 1-16) */
-       A_LCH, A_LBS, A_LAR, NA };                 /* which layers the FM-1 plays itself */
+       A_LBS,                                     /* the bass on the FM-1 */
+       A_LCH, A_SCH, A_LAR, A_SAR, NA };          /* CHORD + ARP: each on the FM-1, each sent (update 36) */
 enum { L_CHORD, L_BASS, L_ARP };                  /* STYLE's three layers */
 #define ST_HELD 1                                 /* STYLE HELD: the layers held as long as the chord, no rhythm */
 enum { CT_OFF, CT_TRIAD, CT_7TH, CT_9TH, CT_11TH, CT_SUS4, CT_6TH, CT_POWER };
@@ -24,7 +25,7 @@ enum { VO_CLOSE, VO_LEAD, VO_OPEN, VO_INV1, VO_INV2, VO_OCT };
 enum { AM_OFF, AM_UP, AM_DOWN, AM_UPDN, AM_DNUP, AM_RANDOM, AM_ORDER, AM_CHORD, AM_REPEAT, AM_UP8, AM_CONV, AM_DIVG,
        AM_PINKY, AM_THUMB, AM_TURING };
 /* rack_core's queue: the play events (rc_do hands them to pl_event) */
-enum { PLE_KEY_ON = 16, PLE_KEY_OFF, PLE_ZONE, PLE_RESET, PLE_ARP_CLEAR };   /* (ARP_CLEAR: STYLE starts afresh too) */
+enum { PLE_KEY_ON = 16, PLE_KEY_OFF, PLE_ZONE, PLE_RESET, PLE_ARP_CLEAR, PLE_LAYER };   /* (ARP_CLEAR: STYLE starts afresh too) */
 
 #define GI(i) ((int)(set.glo[i] + 0.5f))
 /* the sequencer's (seq.c, after this file) */
@@ -498,7 +499,7 @@ static void pl_key_on(int raw, int note, float vel)
         pv.chord_seq++;
     }
     sq_note_in(raw, notes, n);               /* the sequencer: REC, step entry, the last notes (seq.c) */
-    r->lay = 0;
+    r->lay = style_on() || raw >= PL_RAW_KEY;   /* the keys: the chord layer (CHORD + ARP); MIDI in: as before */
     if (style_on()) {                         /* STYLE: the chord as played on its layer; the bass follows it */
         static uint32_t ord;
         int rt = CI(C_TYPE) == CT_OFF && !q && !(zone_on() && (pl_zone & 0x55u)) ? (n ? notes[0] : note)
@@ -507,7 +508,6 @@ static void pl_key_on(int raw, int note, float vel)
         r->root = (uint8_t)(rt < 0 ? 0 : rt > 127 ? 127 : rt);
         r->vel = (uint8_t)(vel * 127.0f);
         r->ord = ++ord;
-        r->lay = 1;                           /* the chord layer: CHORD CH, and the FM-1 if ON FM-1 > CHORD */
         if (AI(A_MODE) != AM_OFF)
             arp_add(raw, notes, n);
         style_refresh(0);
@@ -741,14 +741,24 @@ static void arp_step(uint32_t at)             /* a step at frame at: its notes o
  * keys are, strummed as STRUM), a bass line from its root in the style's rhythm, and the arpeggiator (when its MODE is
  * on) as it runs. Each layer goes to its own MIDI channel (ARP >
  * LAYER CH; MIDI OUT on) and, if chosen, to the FM-1's own sound (ARP > ON FM-1). The patterns: style_def.py. */
+/* a layer on the FM-1's sound: CHORD + ARP's FM-1 switches (the chord also needs GLOBAL > LOCAL on), the bass's */
+static int lay_local(int L)
+{
+    return L == L_CHORD ? AI(A_LCH) && GI(G_LOCAL) == 0 : L == L_BASS ? AI(A_LBS) : AI(A_LAR);
+}
+/* a layer sent: its channel set, its SEND switch on (the bass: its channel), and GLOBAL > MIDI OUT on */
+static int lay_send(int L)
+{
+    return AI(A_CHCH + L) && GI(G_MOUT) && (L == L_CHORD ? AI(A_SCH) : L == L_ARP ? AI(A_SAR) : 1);
+}
 static void lay_on(int L, int note, float vel)
 {
     int v;
     if (note < 0 || note > 127 || L < 0 || L > 2)
         return;
-    if (AI(A_LCH + L) && lay_loc[L][note] < 255 && !lay_loc[L][note]++)
+    if (lay_local(L) && lay_loc[L][note] < 255 && !lay_loc[L][note]++)
         snd_on(note, vel, 1, 0);
-    if (!AI(A_CHCH + L) || !GI(G_MOUT) || lay_out[L][note] == 255)
+    if (!lay_send(L) || lay_out[L][note] == 255)
         return;
     if (!lay_tot[L])
         lay_ch[L] = (int8_t)(AI(A_CHCH + L) - 1);
@@ -770,15 +780,20 @@ static void lay_off(int L, int note)
             midi_ch_note(lay_ch[L], note, 0);
     }
 }
-static void lay_layer_off(int L)
+/* a layer's notes ended: what: 1 those on the FM-1, 2 those sent, 3 both (a switch turned off: they stop now) */
+static void lay_cut(int L, int what)
 {
     int x;
+    if (L < 0 || L > 2)
+        return;
     for (x = 0; x < 128; x++) {
-        if (lay_loc[L][x]) { lay_loc[L][x] = 0; snd_off(x, 1, 0); }
-        if (lay_out[L][x]) { lay_out[L][x] = 0; midi_ch_note(lay_ch[L], x, 0); }
+        if ((what & 1) && lay_loc[L][x]) { lay_loc[L][x] = 0; snd_off(x, 1, 0); }
+        if ((what & 2) && lay_out[L][x]) { lay_out[L][x] = 0; midi_ch_note(lay_ch[L], x, 0); }
     }
-    lay_tot[L] = 0;
+    if (what & 2)
+        lay_tot[L] = 0;
 }
+static void lay_layer_off(int L) { lay_cut(L, 3); }
 static void lay_all_off(void)
 {
     int L;
@@ -1014,15 +1029,12 @@ static void pl_block(uint32_t n)
             for (j = i; j < pl_npend - 1; j++)
                 pl_pend[j] = pl_pend[j + 1];
             pl_npend--;
-            if (e.raw == 255 && style_on()) { /* the arp as STYLE's third layer */
+            if (e.raw == 255) {               /* the arp: its layer (ARP FM-1, ARP SEND on ARP CH) */
                 if (e.on) lay_on(L_ARP, e.note, e.vel);
                 else lay_off(L_ARP, e.note);
-            } else if (e.raw >= 250 && e.raw <= 252) {   /* STYLE's chord and bass steps */
+            } else if (e.raw >= 250 && e.raw <= 252) {   /* STYLE's bass steps */
                 if (e.on) lay_on(e.raw - 250, e.note, e.vel);
                 else lay_off(e.raw - 250, e.note);
-            } else if (e.raw == 255) {        /* the arp: always local, always out */
-                if (e.on) snd_on(e.note, e.vel, 1, 1);
-                else snd_off(e.note, 1, 1);
             } else if (e.raw < PL_NRAW) {     /* a strummed note: e.note is its place in the key's chord */
                 pl_raw_t *r = &pl_raw[e.raw];
                 if (e.note < r->n) {
@@ -1060,6 +1072,7 @@ static void pl_event(int type, int a, float x, float y)
         st.running = 0;
         style_refresh(1);
         break;
+    case PLE_LAYER: lay_cut(a, (int)x); break;   /* a layer switched off: its notes end now */
     case RCE_ALL_OFF: pl_reset(1); break;
     }
 }

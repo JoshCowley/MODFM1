@@ -61,12 +61,14 @@ for name, div, sw, b in STYLES:
     assert len(name) <= 10 and div in (16, 3) and len(b) <= 32 and len(b) == (12 if div == 3 else len(b)), name
     assert set(b) <= set("Rr53781pab-."), name
 
-# the ARP pages after the arpeggiator's two: STYLE, the layers' MIDI channels, which layers the FM-1 plays
+# the ARP pages after the arpeggiator's two: STYLE, the layers' MIDI channels (+ the bass on the FM-1), CHORD + ARP
 ARP_EXTRA = [
     [_L("STYLE", ["OFF", "HELD"] + [s[0] for s in STYLES], 0), _I("BASS OCT", -2, 1, 0), _n("ACCENT", 0.6),
      _n("BASS LEN", 0.6)],
-    [_L("CHORD CH", CH, 1), _L("BASS CH", CH, 2), _L("ARP CH", CH, 3)],
-    [_L("CHORD", ONOFF, 1), _L("BASS", ONOFF, 0), _L("ARP", ONOFF, 1)],
+    [_L("CHORD CH", CH, 1), _L("BASS CH", CH, 2), _L("ARP CH", CH, 3), _L("BASS FM1", ONOFF, 0)],
+    # CHORD + ARP (update 36): each in two stages, the FM-1's sound and the send to its MIDI channel, with or without
+    # STYLE. Two taps on SEL / ARP: FM-1 on/off; three taps: SEND on/off
+    [_L("CHD FM-1", ONOFF, 1), _L("CHD SEND", ONOFF, 1), _L("ARP FM-1", ONOFF, 1), _L("ARP SEND", ONOFF, 1)],
 ]
 
 

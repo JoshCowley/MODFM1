@@ -54,11 +54,10 @@ static struct {
     uint32_t combo_at;                        /* SEL + EDIT both went down (held: LEARN on or off), 0 both up */
     int combo_done;
     uint32_t lfo_at;                          /* LFO tapped, waiting for a second tap (two taps: the MATRIX) */
-    uint32_t sel_tap, arp_at;                 /* SEL let go / ARP tapped, waiting for a second tap (two: chords / arp
-                                               * off or back on) */
+    uint32_t sel_tap, arp_tap, arp_at;        /* SEL / ARP let go, waiting for another tap; ARP went down */
+    int sel_n, arp_n, arp_long;               /* taps so far: 1 the page, 2 FM-1 on/off, 3 SEND on/off (update 36) */
     uint32_t fx_at, fx_arm, fx_tap;           /* FX down (held: FX on/off armed), armed since, first tap of two */
     int fx_long;
-    float chord_mem, arp_mem;                 /* the chord and arp mode two taps turned off (what they turn back on) */
     int mtab, hrow[4];                        /* the matrix hub's table (ALGORITHM): ROUTES ENV EDIT OSC; each one's row */                       /* LEARN on; the macro it links (0-3: M1-M4) */
     uint32_t home_at;                         /* HOME went down (a hold starts LEARN), 0 up */
     int home_long;
@@ -863,7 +862,7 @@ static void draw_param_page(int pg)
     if (is_fixed(pg)) {
         static const char *const GT[] = {"SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"};
         static const char *const ST[] = {"SCALE + CHORD", "KEYS + STRUM"}, *const AT[] = {"ARPEGGIATOR", "HOLD + TURING", "STYLE",
-                                                                                                    "LAYER MIDI CH", "ON THE FM-1"};
+                                                                                                    "LAYER MIDI CH", "CHORD + ARP"};
         int ic = pg == PG_GLO ? (mn.sub == 3 ? IC_MIDI : mn.sub == 4 ? IC_OUT : IC_GLOBAL) : pg == PG_SEL ? (mn.sub ? IC_SCALE : IC_CHORD) : IC_ARP;
         header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 6] : pg == PG_SEL ? ST[mn.sub & 1] : AT[mn.sub % 5],
                ic, npages(pg), mn.sub);
@@ -1229,9 +1228,15 @@ static void fixed_changed(int pg, int pi, float old, float v)
         } else if (pi >= G_LOW) {
             master_apply();
         }
-    } else if (pg == PG_ARP && (pi == A_HOLD || pi >= A_STYLE || (pi == A_MODE && ((old < 0.5f) != (v < 0.5f))))) {
+    } else if (pg == PG_ARP && (pi == A_HOLD || (pi >= A_STYLE && pi <= A_CLEN) || (pi == A_MODE && ((old < 0.5f) != (v < 0.5f))))) {
         rc_push(PLE_ARP_CLEAR, 0, 0.0f, 0.0f);   /* the arp on or off, HOLD or a STYLE setting changed: start again
                                                   * from the keys held now (the layers' notes end first) */
+    } else if (pg == PG_ARP && pi >= A_CHCH) {   /* a layer's channel changed, or a switch turned off: its notes end */
+        if (pi <= A_ARCH)
+            rc_push(PLE_LAYER, pi - A_CHCH, 2.0f, 0.0f);
+        else if (v < 0.5f)
+            rc_push(PLE_LAYER, pi == A_LBS ? L_BASS : pi <= A_SCH ? L_CHORD : L_ARP,
+                    pi == A_SCH || pi == A_SAR ? 2.0f : 1.0f, 0.0f);
     }
     settings_touch();
 }
@@ -1419,26 +1424,23 @@ static void undo_last(void)
     ui.redraw = 1;
 }
 
-/* Two taps on SEL / ARP (14 Nov 2026): chords / the arpeggiator off, and two taps again back to what they were; as
- * turning the knob on their page does (UNDO, saved with the settings) */
-static void fixed_toggle(int pg, int pi, float *mem, const char *what)
+/* Two taps on SEL / ARP: the chords / the arp on the FM-1's sound on or off; three taps: their SEND to their MIDI
+ * channel on or off (update 36). As turning the switch on ARP > CHORD + ARP does (UNDO, saved with the settings) */
+static void layer_toggle(int pi, const char *title)
 {
-    const ui_mod_t *m = page_mod(pg);
-    float *fv = page_vals(pg), old = fv[pi];
-    char t[32];
-    undo_note(UN_FIXED, pg, pi, old, 0, 0, 0);
-    if (old > 0.5f) {
-        *mem = old;
-        fv[pi] = 0.0f;
-    } else {
-        fv[pi] = *mem > 0.5f ? *mem : 1.0f;   /* never turned off here: the first choice after OFF */
-    }
-    fixed_changed(pg, pi, old, fv[pi]);
+    float *fv = page_vals(PG_ARP), old = fv[pi];
+    int send = pi == A_SCH || pi == A_SAR, ch = AI(pi == A_SCH ? A_CHCH : A_ARCH);
+    char t[32], m[8];
+    undo_note(UN_FIXED, PG_ARP, pi, old, 0, 0, 0);
+    fv[pi] = old > 0.5f ? 0.0f : 1.0f;
+    fixed_changed(PG_ARP, pi, old, fv[pi]);
     t[0] = 0;
-    cat(t, fv[pi] > 0.5f ? "ON: " : "OFF");
-    if (fv[pi] > 0.5f)
-        cat(t, UI_OPT[m->p[pi].opt + (int)(fv[pi] + 0.5f)]);
-    app_say(what, t);
+    if (fv[pi] < 0.5f) cat(t, "OFF");
+    else if (!send) cat(t, pi == A_LCH && GI(G_LOCAL) ? "ON (LOCAL IS OFF)" : "ON");
+    else if (!GI(G_MOUT)) cat(t, "ON (MIDI OUT IS OFF)");
+    else if (!ch) cat(t, "ON (ITS CH IS OFF)");
+    else { cat(t, "ON: CH "); int_text(ch, m); cat(t, m); }
+    app_say(title, t);
     ui.redraw = 1;
 }
 /* Hold FX, then one tap: FX 1 off or on, two taps: FX 2 (14 Nov 2026). The engine skips it (no CPU) and keeps its
@@ -1474,6 +1476,7 @@ static int menu_input(uint32_t press, uint32_t btn)
             mn.combo_at = plat_ms() | 1u;
         mn.edit_long = mn.sel_long = 1;
         mn.sel_tap = 0;
+        mn.sel_n = 0;
         if (!mn.combo_done && plat_ms() - mn.combo_at >= LEARN_MS) {
             mn.combo_done = 1;
             learn_set(!mn.learn);
@@ -1542,40 +1545,60 @@ static int menu_input(uint32_t press, uint32_t btn)
         mn.fx_arm = 0;
         app_say("FX ON/OFF", "NOTHING CHANGED");
     }
-    /* ARP (14 Nov 2026): as LFO, a tap opens ARP once a second tap can't come; two taps: the arpeggiator off / on */
+    /* ARP and SEL (update 36): a tap opens the page once another tap can't come (0.3 s after letting go); two taps:
+     * the arp / the chords on the FM-1 on or off; three taps: their SEND on or off. Held: never a tap (SEL held with
+     * EDIT: LEARN, above) */
     if (press >> B_ARP & 1u) {
-        if (mn.arp_at && plat_ms() - mn.arp_at < EDIT_DOUBLE_MS) {
-            mn.arp_at = 0;
-            fixed_toggle(PG_ARP, 0, &mn.arp_mem, "ARP");
-        } else {
-            mn.arp_at = plat_ms() | 1u;
-        }
+        if (!(mn.arp_tap && plat_ms() - mn.arp_tap < EDIT_DOUBLE_MS))
+            mn.arp_n = 0;
+        mn.arp_tap = 0;
+        mn.arp_at = plat_ms() | 1u;
+        mn.arp_long = 0;
     }
-    if (mn.arp_at && !(btn >> B_ARP & 1u) && plat_ms() - mn.arp_at >= EDIT_DOUBLE_MS) {
+    if (mn.arp_at && (btn >> B_ARP & 1u) && !mn.arp_long && plat_ms() - mn.arp_at >= HOLD_MS) {
+        mn.arp_long = 1;
+        mn.arp_n = 0;
+    }
+    if (mn.arp_at && !(btn >> B_ARP & 1u)) {
+        if (!mn.arp_long) {
+            mn.arp_n++;
+            mn.arp_tap = plat_ms() | 1u;
+        }
         mn.arp_at = 0;
-        page_button(ARP_CYC, 1);
     }
-    /* SEL (10 Nov 2026): a tap opens SEL once a second tap can't come; two taps: chords off / back on; held with
-     * EDIT: LEARN (above); held alone: nothing */
+    if (mn.arp_tap && !(btn >> B_ARP & 1u) && plat_ms() - mn.arp_tap >= EDIT_DOUBLE_MS) {
+        int n = mn.arp_n;
+        mn.arp_tap = 0;
+        mn.arp_n = 0;
+        if (n >= 3) layer_toggle(A_SAR, "ARP: SEND");
+        else if (n == 2) layer_toggle(A_LAR, "ARP: ON FM-1");
+        else page_button(ARP_CYC, 1);
+    }
     if (press >> B_SEL & 1u) {
-        if (!both && mn.sel_tap && plat_ms() - mn.sel_tap < EDIT_DOUBLE_MS) {
-            mn.sel_tap = 0;
-            fixed_toggle(PG_SEL, 2, &mn.chord_mem, "CHORDS");
-        } else {
-            mn.sel_at = plat_ms() | 1u;
-            mn.sel_long = both;
-        }
+        if (both || !(mn.sel_tap && plat_ms() - mn.sel_tap < EDIT_DOUBLE_MS))
+            mn.sel_n = 0;
+        mn.sel_tap = 0;
+        mn.sel_at = plat_ms() | 1u;
+        mn.sel_long = both;
     }
     if (mn.sel_at && (btn >> B_SEL & 1u) && !mn.sel_long && plat_ms() - mn.sel_at >= HOLD_MS)
         mn.sel_long = 1;                      /* held: never a tap */
     if (mn.sel_at && !(btn >> B_SEL & 1u)) {
-        if (!mn.sel_long)
-            mn.sel_tap = plat_ms() | 1u;      /* let go: a second tap may still come */
+        if (!mn.sel_long) {
+            mn.sel_n++;
+            mn.sel_tap = plat_ms() | 1u;      /* let go: another tap may still come */
+        } else {
+            mn.sel_n = 0;
+        }
         mn.sel_at = 0;
     }
     if (mn.sel_tap && !(btn >> B_SEL & 1u) && plat_ms() - mn.sel_tap >= EDIT_DOUBLE_MS) {
+        int n = mn.sel_n;
         mn.sel_tap = 0;
-        page_button(SEL_CYC, 1);
+        mn.sel_n = 0;
+        if (n >= 3) layer_toggle(A_SCH, "CHORDS: SEND");
+        else if (n == 2) layer_toggle(A_LCH, "CHORDS: ON FM-1");
+        else page_button(SEL_CYC, 1);
     }
     if (press >> B_GLO & 1u) page_button(GLO_CYC, 1);
     if (press >> B_HOME & 1u) {               /* HOME: a tap on letting go (LEARN is EDIT's double tap now) */

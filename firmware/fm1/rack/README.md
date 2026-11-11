@@ -23,8 +23,8 @@ the sequencer and the new frame) are in: the page's own pages, buttons and knobs
 | ENV | AMP (envelopes, voice mode; its well shows the envelope on every page), then the shaper (Rings or filter) |
 | LFO | MOD A, MOD B, then the three LFOs (and each LFO's two direct targets), then MSEQ, then the 12-row matrix |
 | FX | FX 1, then FX 2. Hold, let go, then one tap: FX 1 off / on, two taps: FX 2 (engine set_fx_bypass: skipped, buffers cleared when back on; a preset load turns both on) |
-| ARP | the arpeggiator, then STYLE (style_def.py: while a chord is held, three layers, each on its own MIDI channel and, if chosen, the FM-1's sound: the chord as played, held while its keys are; a bass line in the style's rhythm; the arp as it runs; play.c st_*, lay_*), LAYER MIDI CH, ON THE FM-1. Two quick taps: arp MODE off, and back |
-| SEL | scale + chord, then the keys (QNT, harmony, zone, strum). Two quick taps: CHORD off, and back. Held with EDIT (0.5 s, LEARN_MS): LEARN on / off |
+| ARP | the arpeggiator, then STYLE (style_def.py: while a chord is held, three layers, each on its own MIDI channel and, if chosen, the FM-1's sound: the chord as played, held while its keys are; a bass line in the style's rhythm; the arp as it runs; play.c st_*, lay_*), LAYER MIDI CH (+ BASS FM1), CHORD + ARP (each in two stages: FM-1 and SEND, with or without STYLE; play.c lay_local, lay_send). Two quick taps: ARP FM-1 on/off; three: ARP SEND |
+| SEL | scale + chord, then the keys (QNT, harmony, zone, strum). Two quick taps: CHD FM-1 on/off; three: CHD SEND (the keys always play through the chord layer, update 36). Held with EDIT (0.5 s, LEARN_MS): LEARN on / off |
 | GLO | GLOBAL: settings, playing, tuning, MIDI, master, system |
 | SAVE | the SAVE page: name, slot and category; SAVE again stores it (and it comes back at power-on). OCT+ the library |
 | SEQ | the sequencer: NOTES, PATTERN, SPICE, GEN, BANKS, SONG in turn. Hold (0.6 s): the step layer (the 16 white keys are steps) |

@@ -25,7 +25,7 @@ img[src*="fm1-"]{width:320px;image-rendering:pixelated}
 <p>Nov 11, 2026 · Josh Cowley</p>
 <p>FM1 Rack turns the M-VAVE FM-1 into a small modular synthesizer built from Mutable Instruments' open module code. Each sound is a short chain of modules: a source (Plaits or Braids), a shaper (Rings or a filter), two modulators, two effects and an amplifier. You play it from the keys, shape it with the knobs, and link anything to anything through a modulation matrix. This manual covers the firmware on the FM-1; the browser version has its own manual, the <a href="index.html">FM1 Rack Manual</a>.</p>
 <blockquote>
-<p><strong>This is a test version (update 35).</strong> The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, and LEARN on SEL + EDIT have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.</p>
+<p><strong>This is a test version (update 36).</strong> The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, and the chords' and arpeggio's FM-1 / SEND switches have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.</p>
 </blockquote>
 <h2 id="contents">Contents</h2>
 <ol type="1">
@@ -101,7 +101,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <th>Button</th>
 <th>Tap</th>
 <th>Tap again</th>
-<th>Hold, or two quick taps</th>
+<th>Hold, or two or three quick taps</th>
 </tr>
 </thead>
 <tbody>
@@ -138,14 +138,14 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <tr class="even">
 <td><strong>ARP</strong></td>
 <td>the arpeggiator</td>
-<td>HOLD + TURING, STYLE, LAYER MIDI CH, ON THE FM-1</td>
-<td><strong>Two taps: the arpeggiator off</strong>, and two again back on</td>
+<td>HOLD + TURING, STYLE, LAYER MIDI CH, CHORD + ARP</td>
+<td><strong>Two taps: the arpeggio on the FM-1 off or on. Three taps: its send off or on</strong> (section 10)</td>
 </tr>
 <tr class="odd">
 <td><strong>SEL</strong></td>
 <td>scale and chord</td>
 <td>(SELECT turns to the keys page)</td>
-<td><strong>Two taps: chords off</strong>, and two again back on. <strong>Hold SEL and EDIT together (half a second): LEARN on or off</strong> (section 8)</td>
+<td><strong>Two taps: the chords on the FM-1 off or on. Three taps: their send off or on</strong> (section 10). <strong>Hold SEL and EDIT together (half a second): LEARN on or off</strong> (section 8)</td>
 </tr>
 <tr class="even">
 <td><strong>GLO</strong></td>
@@ -186,7 +186,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </tbody>
 </table>
 <p>SEL held on its own does nothing, so LEARN can't start by accident; held together with EDIT it never counts as UNDO or a page turn.</p>
-<p>Buttons with a hold or a double tap act when you let go, so a single tap of EDIT, LFO, FX, ARP or SEL turns the page a moment after you release it (up to 0.3 s for those with a double tap).</p>
+<p>Buttons with a hold or a double tap act when you let go, so a single tap of EDIT, LFO, FX, ARP or SEL turns the page a moment after you release it (up to 0.3 s for those with a double or triple tap).</p>
 <p><strong>The lights</strong> show where you are. The page's button is lit and the others glow (GLOBAL › LED BRIGHT sets how much). SEL glows half while chords or QNT are on, and ARP while the arpeggiator is on. PLAY is lit while the sequencer runs; REC is lit while recording and blinks during REC READY. HOME blinks while LEARN is on.</p>
 <h3 id="knobs">Knobs</h3>
 <table>
@@ -640,6 +640,47 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </ul>
 <p>It follows the tempo (GLOBAL › TEMPO) or MIDI clock, and the picture shows the pattern and the step playing.</p>
 <p><strong>HOLD as a chord latch</strong>: with HOLD on and MODE OFF, notes and chords keep sounding after you let go. Playing again once every key is up replaces them; keys added while others are held add to them. Turning HOLD off, changing MODE, or stopping the sequencer with PLAY ends them.</p>
+<h3 id="chords-and-arpeggio-on-the-fm-1-and-sent">Chords and arpeggio: on the FM-1, and sent</h3>
+<p>What you play on the keys (a chord, or a single note with chords off) and what the arpeggiator plays each have two stages, switched separately:</p>
+<ul>
+<li><strong>ON FM-1</strong>: you hear it on the FM-1's own sound;</li>
+<li><strong>SEND</strong>: it goes out over MIDI on its own channel, ARP › LAYER MIDI CH › <strong>CHORD CH</strong> (1 to start with) or <strong>ARP CH</strong> (3), so another synth can play it.</li>
+</ul>
+<p>All four are on to start with. Switch them with quick taps, or on ARP's last page, <strong>CHORD + ARP</strong>:</p>
+<p><img src="img/fm1-chordarp.png" alt="CHORD + ARP: each stage&#39;s switch, and where each layer goes" /></p>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th>On the FM-1</th>
+<th>Sent</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Chords (SEL)</td>
+<td><strong>two taps on SEL</strong></td>
+<td><strong>three taps on SEL</strong></td>
+</tr>
+<tr class="even">
+<td>Arpeggio (ARP)</td>
+<td><strong>two taps on ARP</strong></td>
+<td><strong>three taps on ARP</strong></td>
+</tr>
+<tr class="odd">
+<td>On the page</td>
+<td>CHD FM-1</td>
+<td>CHD SEND</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>ARP FM-1</td>
+<td>ARP SEND</td>
+</tr>
+</tbody>
+</table>
+<p>Each tap gesture shows what it did, for example <strong>CHORDS: ON FM-1 OFF</strong> or <strong>ARP: SEND ON: CH 3</strong>. Notes already sounding stop at once when you switch their stage off. With ON FM-1 off and SEND on, the FM-1 is silent and the other synth plays; with both off, nothing plays. SEND needs GLOBAL › MIDI OUT on (the message says so if it's off). The arpeggio's switches only matter while the arpeggiator is running (ARP › MODE).</p>
+<p>These work with or without a STYLE. To change the chord type or turn the arpeggiator off, use the SEL and ARP pages.</p>
 <h3 id="style-chords-bass-and-arpeggio-on-three-channels">STYLE: chords, bass and arpeggio on three channels</h3>
 <p>ARP's pages 3–5 turn the FM-1 into an accompaniment for itself and for other synths. While you hold a chord, it goes out in three layers:</p>
 <ul>
@@ -647,7 +688,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li><strong>BASS</strong>: a bass line built from the chord's root (root, fifth, third, seventh, octave, passing and approach notes), <strong>in the style's rhythm</strong>. The style shapes the bass only;</li>
 <li><strong>ARP</strong>: the arpeggiator as it runs, when its MODE (page 1) is on.</li>
 </ul>
-<p>Each layer goes out on its own MIDI channel, and you choose which ones the FM-1 plays itself. With a layer's ON THE FM-1 switch off, you don't hear it on the FM-1: it goes only to the other synth. So the FM-1 can play the chords and the arpeggio while another synth takes the bass, or you can send everything out and let the FM-1 play nothing but what you choose.</p>
+<p>Each layer goes out on its own MIDI channel, and you choose which ones the FM-1 plays itself (the chords and the arpeggio as in the section above). With a layer's FM-1 switch off, you don't hear it on the FM-1: it goes only to the other synth. So the FM-1 can play the chords and the arpeggio while another synth takes the bass, or you can send everything out and let the FM-1 play nothing but what you choose.</p>
 <p><img src="img/fm1-style.png" alt="STYLE playing HOUSE" /> <img src="img/fm1-layers.png" alt="Where each layer goes" /></p>
 <p><strong>Page 3, STYLE</strong>:</p>
 <ul>
@@ -656,13 +697,13 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li><strong>ACCENT</strong>: how much louder the accented bass notes (the roots marked as accents) are than the others.</li>
 <li><strong>BASS LEN</strong>: the bass notes' length, from short and punchy to legato.</li>
 </ul>
-<p><strong>Page 4, LAYER MIDI CH</strong>: <strong>CHORD CH</strong>, <strong>BASS CH</strong> and <strong>ARP CH</strong>, each OFF or 1–16 (1, 2 and 3 to start with).</p>
-<p><strong>Page 5, ON THE FM-1</strong>: <strong>CHORD</strong>, <strong>BASS</strong> and <strong>ARP</strong>, each ON (you hear it on the FM-1, and it goes out too) or OFF (it goes out only). To start with, the FM-1 plays the chords and the arpeggio, and the bass goes only to MIDI. (If you saved your settings with update 34, ARP may still be OFF there: turn it ON to hear the arpeggio on the FM-1.)</p>
+<p><strong>Page 4, LAYER MIDI CH</strong>: <strong>CHORD CH</strong>, <strong>BASS CH</strong> and <strong>ARP CH</strong>, each OFF or 1–16 (1, 2 and 3 to start with), and <strong>BASS FM1</strong>: ON (you hear the bass on the FM-1, and it goes out too) or OFF (it goes out only, to start with). The bass is sent whenever its channel is set.</p>
+<p><strong>Page 5, CHORD + ARP</strong>: the chords' and the arpeggio's FM-1 and SEND switches (above). (If you saved your settings with update 34 or 35, ARP FM-1 may still be OFF: two taps on ARP turn it on.)</p>
 <p>How it plays:</p>
 <ul>
 <li>The bass rhythm starts from its first step when you press a chord with nothing held, at the tempo (GLOBAL › TEMPO) or on MIDI clock, and stops when you let go. With ARP › HOLD on, the bass keeps playing the last chord's root until you press another, stop with PLAY, or change a STYLE setting.</li>
 <li>With SEL's CHORD on, the bass follows the latest key you pressed. With CHORD OFF, the keys you hold together make the chord, and the lowest is the bass's root.</li>
-<li><strong>GLOBAL › MIDI OUT must be on</strong> for the layers to reach other synths. With STYLE OFF, everything plays as before, on GLOBAL › OUT CH.</li>
+<li><strong>GLOBAL › MIDI OUT must be on</strong> for the layers to reach other synths. With STYLE OFF, there's no bass; the chords and the arpeggio still go out on their channels when their SEND is on.</li>
 <li>The picture on the STYLE page shows the style's bass rhythm (taller bars are the accented roots), with the step playing lit; the layer pages show where each layer goes. HOME shows the style's name in a tab over the scope.</li>
 </ul>
 <table>
@@ -705,10 +746,10 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </table>
 <p>Most are one bar of 16ths; 6/8 BALLAD is in 12/8 triplets, and AMB SWELL, BOSSA NOVA and SALSA are two bars long. The swung styles (UK GARAGE, BOOM BAP, LOFI, LOFI JAZZ, NEO SOUL and others) swing their 16ths by themselves.</p>
 <h3 id="shortcuts-while-you-play">Shortcuts while you play</h3>
-<p>Three gestures change things without opening a menu:</p>
+<p>These gestures change things without opening a menu:</p>
 <ul>
-<li><strong>Two quick taps on SEL</strong>: chords off. Two taps again bring back the chord you had (TRIAD if none was set). The message says <strong>CHORDS OFF</strong> or <strong>CHORDS ON: TRIAD</strong>.</li>
-<li><strong>Two quick taps on ARP</strong>: the arpeggiator off, and two again back to the mode it had. (With a STYLE on, the chords and the bass go on.)</li>
+<li><strong>Two quick taps on SEL</strong>: the chords on the FM-1 off or on; <strong>three taps</strong>: their send off or on.</li>
+<li><strong>Two quick taps on ARP</strong>: the arpeggio on the FM-1 off or on; <strong>three taps</strong>: its send off or on. (See <em>Chords and arpeggio: on the FM-1, and sent</em>, above.)</li>
 <li><strong>Hold FX, let go, then tap FX</strong>: after the hold the message says <strong>TAP FX 1, TWO TAPS FX 2</strong>. Within 2 seconds:
 <ul>
 <li>one tap turns FX 1 off or on;</li>
@@ -716,7 +757,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li>no tap leaves both as they were (<strong>NOTHING CHANGED</strong>).</li>
 </ul></li>
 </ul>
-<p>A switched-off effect shows <strong>OFF</strong> on its HOME tile and costs no processor time. Its settings stay, and when you turn it back on it starts clean, with no old echoes. Loading a preset turns both effects on again; this on/off isn't saved with a preset. UNDO puts back the chord and arpeggiator changes, as it does a knob turn.</p>
+<p>A switched-off effect shows <strong>OFF</strong> on its HOME tile and costs no processor time. Its settings stay, and when you turn it back on it starts clean, with no old echoes. Loading a preset turns both effects on again; this on/off isn't saved with a preset. UNDO puts back the chord and arpeggio switches, as it does a knob turn.</p>
 <p><img src="img/fm1-fxoff.png" alt="HOME with FX 2 switched off" /></p>
 <h3 id="global">GLOBAL</h3>
 <p>GLO opens six pages:</p>
@@ -741,7 +782,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </ul>
 <p><strong>Out</strong>, over USB, when GLOBAL › MIDI OUT is on (off by default):</p>
 <ul>
-<li>the notes played, chords, arpeggios and the sequencer included (MIDI that came in isn't echoed);</li>
+<li>the keys' notes and chords on CHORD CH and the arpeggio on ARP CH, when their SEND is on; the STYLE bass on BASS CH; the sequencer on OUT CH (MIDI that came in isn't echoed);</li>
 <li>clock on the internal tempo;</li>
 <li>with +CC, the macros as CC 21–24.</li>
 </ul>
@@ -1334,7 +1375,15 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </tr>
 <tr class="even">
 <td>Chords or the arpeggiator won't stop</td>
-<td>Two quick taps on SEL or ARP; PLAY also ends latched notes</td>
+<td>PLAY ends latched notes; ARP › MODE OFF stops the arpeggiator</td>
+</tr>
+<tr class="odd">
+<td>The FM-1 is silent but notes go out</td>
+<td>Two quick taps on SEL (chords) or ARP (arpeggio) turn their FM-1 stage back on</td>
+</tr>
+<tr class="even">
+<td>Another synth gets nothing</td>
+<td>GLOBAL › MIDI OUT on; three quick taps on SEL or ARP turn SEND on; check CHORD CH / ARP CH</td>
 </tr>
 <tr class="odd">
 <td>A moment of silence when loading a module or editing a delay or reverb</td>

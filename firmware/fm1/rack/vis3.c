@@ -203,7 +203,7 @@ static void vis_sel_keys(uint16_t c)
 }
 
 /* -------------------------------------------------- ARP's STYLE pages: the style's bass row, the step playing lit;
- * on LAYER CH and ON FM-1, where each layer goes */
+ * on LAYER CH and CHORD + ARP, where each layer goes */
 static void vis_arp(uint16_t c);
 static uint32_t vst_seq, vst_at;
 static void vis_style(uint16_t c, int sub)
@@ -213,22 +213,22 @@ static void vis_style(uint16_t c, int sub)
     uint32_t now = plat_ms();
     float fl;
     char t[32], m[8];
-    if (sub >= 3) {                           /* the layers: name, channel, FM-1 or not */
+    if (sub >= 3) {                           /* the layers: name, channel and sent or not, FM-1 or not */
         for (L = 0; L < 3; L++) {
-            int32_t y = 1 + L * 12, ch = AI(A_CHCH + L), loc = AI(A_LCH + L);
-            int act = L == L_ARP ? AI(A_MODE) != AM_OFF : s > 0;
+            int32_t y = 1 + L * 12, ch = AI(A_CHCH + L), loc = lay_local(L), snd = lay_send(L);
+            int act = L == L_ARP ? AI(A_MODE) != AM_OFF : L == L_BASS ? s > 0 : 1;
             uint16_t col = act ? (L == 0 ? K_CHD : L == 1 ? c : K_ARP) : K_FAINT;
             rrect(4, y, 50, 11, col, 3);
             cv_text(8, y, &FONT_T, LN[L], K_BG);
             t[0] = 0;
-            if (ch) { cat(t, "MIDI CH "); int_text(ch, m); cat(t, m); } else cat(t, "NO MIDI");
-            cv_text(62, y, &FONT_T, t, ch && GI(G_MOUT) ? K_FG : K_DIM);
-            cv_text(150, y, &FONT_T, loc ? "+ FM-1" : "MIDI ONLY", loc ? K_FG : K_DIM);
+            if (snd) { cat(t, "SENT CH "); int_text(ch, m); cat(t, m); } else cat(t, "NOT SENT");
+            cv_text(62, y, &FONT_T, t, snd ? K_FG : K_DIM);
+            cv_text(150, y, &FONT_T, loc ? "+ FM-1" : "FM-1 OFF", loc ? K_FG : K_DIM);
         }
         if (!GI(G_MOUT))
             cv_text(4, 38, &FONT_T, "GLOBAL > MIDI OUT IS OFF", K_WARN);
         else if (!s)
-            cv_text(4, 38, &FONT_T, "STYLE OFF: LAYERS NOT IN USE", K_DIM);
+            cv_text(4, 38, &FONT_T, "BASS: TURN ON A STYLE", K_DIM);
         return;
     }
     if (s < 2) {
