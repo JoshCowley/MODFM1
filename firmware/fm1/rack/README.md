@@ -23,8 +23,8 @@ the sequencer and the new frame) are in: the page's own pages, buttons and knobs
 | ENV | AMP (envelopes, voice mode; its well shows the envelope on every page), then the shaper (Rings or filter) |
 | LFO | MOD A, MOD B, then the three LFOs (and each LFO's two direct targets), then MSEQ, then the 12-row matrix |
 | FX | FX 1, then FX 2. Hold, let go, then one tap: FX 1 off / on, two taps: FX 2 (engine set_fx_bypass: skipped, buffers cleared when back on; a preset load turns both on) |
-| ARP | the arpeggiator, then STYLE (style_def.py: while a chord is held, chord, bass and arp layers in a style's rhythm, each on its own MIDI channel and, if chosen, the FM-1's sound; play.c st_*, lay_*), LAYER MIDI CH, ON THE FM-1. Two quick taps: arp MODE off, and back |
-| SEL | scale + chord, then the keys (QNT, harmony, zone, strum). Two quick taps: CHORD off, and back. Hold: LEARN on / off |
+| ARP | the arpeggiator, then STYLE (style_def.py: while a chord is held, three layers, each on its own MIDI channel and, if chosen, the FM-1's sound: the chord as played, held while its keys are; a bass line in the style's rhythm; the arp as it runs; play.c st_*, lay_*), LAYER MIDI CH, ON THE FM-1. Two quick taps: arp MODE off, and back |
+| SEL | scale + chord, then the keys (QNT, harmony, zone, strum). Two quick taps: CHORD off, and back. Held with EDIT (0.5 s, LEARN_MS): LEARN on / off |
 | GLO | GLOBAL: settings, playing, tuning, MIDI, master, system |
 | SAVE | the SAVE page: name, slot and category; SAVE again stores it (and it comes back at power-on). OCT+ the library |
 | SEQ | the sequencer: NOTES, PATTERN, SPICE, GEN, BANKS, SONG in turn. Hold (0.6 s): the step layer (the 16 white keys are steps) |
@@ -101,10 +101,10 @@ alone sounds exactly as before (every factory preset checked sample for sample a
 keeps OSC with the user preset; stage 2's user presets load with it off. The well: two cycles of the wave at its level,
 and MAIN and OSC as faders.
 
-**LEARN**: tap EDIT twice quickly (within 0.3 s; a single EDIT tap turns the page once that time has passed). It links the macro last turned on home (on home while learning,
+**LEARN** (update 35): hold SEL and EDIT together for 0.5 s (neither then taps, and EDIT's hold is no UNDO; SEL held alone does nothing). It links the macro last turned on home (on home while learning,
 SELECT or K1-K4 pick M1-M4; the macro framed in gold, HOME blinking, a gold band on the pages). On a module, AMP, LFO or
 OSC page, turning a parameter's knob links the macro to it in the matrix, in the row it already has or the first free
-one of the 12, and the turn sets the amount ("M2>SRC.TIMBRE +24"). Tap HOME, or EDIT twice, to finish. Home's macro cells now show what
+one of the 12, and the turn sets the amount ("M2>SRC.TIMBRE +24"). Tap HOME, or hold SEL + EDIT again, to finish. Home's macro cells now show what
 each macro moves (its first destination and how many more) or UNASSIGNED.
 
 ![OSC](screen-osc.png) ![Macros after LEARN](screen-learn.png)
@@ -206,6 +206,11 @@ tone, and some basses use OSC as a sub (`"osc"`: make_presets.py adds it as AMP 
 To change a preset: edit presets_fm1.py (or presets_src.py for both), then `python3 fm1_presets.py && python3
 level_fm1.py && python3 make_presets.py && python3 make_presets.py --full`, and the bench's make_cases.py (and --full).
 
+`build/host/swclick` (built by build_host.sh) measures the clicks of each preset change (the old way, silence at once,
+against the fade) and `build/host/swclick knobs` those of every continuous knob of every preset turned a quarter of its
+range (at once against gliding), each against the same moment with nothing changed. Update 35, host: preset changes worst
++30.6 dB the old way, 0.0 dB with the fade; knob turns over +6 dB: 21 of 1779 at once, 1 gliding.
+
 `build/host/audition OUTDIR` (built by build_host.sh) plays every preset through the firmware's sound path (rc_load,
 rc_render at 44.1 kHz) with a phrase for its category and writes a WAV each, with its peak and loudness.
 
@@ -214,7 +219,11 @@ rc_render at 44.1 kHz) with a phrase for its category and writes a WAV each, wit
 - `rack_core.c`: presets (INIT, then the preset's differences, then each module's parameter ranges, packed in
   `presets.h` by `make_presets.py`: 22 KB), a note queue from the main loop to the audio interrupt, the voice modes,
   the overload shedding, and the resampler: the engine renders 48 kHz, the codec plays 44.1 kHz, so the output is
-  resampled (linear) each block. Loading a preset makes the audio interrupt play silence while the main loop loads.
+  resampled (linear) each block. Loading a preset, swapping a module or refitting the memory (rc_fade_pause) first has
+  the audio interrupt fade its next block to silence (the main loop waits for it, 30 ms at most), then play silence while
+  the main loop loads, and the new sound fades in over 10 ms; the engine's init leaves nothing of the old patch in its
+  block buffer or the master's filters, compressor and limiter. A knob turned on a continuous parameter glides
+  (rc_set_glide, the engine's set_param_glide: about 5 ms); macros glide too; lists and steps change at once.
 - `app.c`: the screen and controls, on fm1-base (the template's patterns).
 - `../common/rk.cc`, `../common/rt.cc`: the engine's C names, and the C++ runtime and maths fm1-base lacks (as in
   `fm1/bench`).

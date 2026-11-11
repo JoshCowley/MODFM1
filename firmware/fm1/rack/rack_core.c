@@ -11,15 +11,18 @@
 #include <stdint.h>
 #ifndef RC_IN_UNITY   /* in fm1-base's unity build, felucca-bsp's chip/libc.c already has memset and memcpy */
 #include <string.h>
+uint32_t plat_ms(void);
 #endif
 
 void rk_init(void);
 void rk_seed(uint32_t s);
 void rk_set_module(int slot, int id);
 void rk_set_param(int slot, int param, float v);
+void rk_set_param_glide(int slot, int param, float v);
 void rk_set_meta(int slot, int param, float lo, float hi, float span);
 void rk_set_route(int i, int src, int slot, int param, float amt, int via);
 void rk_set_macro(int i, float v);
+void rk_set_macro_glide(int i, float v);
 void rk_set_master(float v);
 void rk_set_master_fx(float lo, float mid, float hi, float comp);
 void rk_set_legato(int on);
@@ -150,6 +153,13 @@ static void rc_set(int slot, int param, float v)
     if (slot == RS_AMP && param == 12)
         rc_patch.detune = v;
 }
+/* a knob turned: a continuous parameter glides to its new value over a few ms (no click, no zipper) */
+static void rc_set_glide(int slot, int param, float v)
+{
+    rk_set_param_glide(slot, param, v);
+    if (slot == RS_AMP && param == 12)
+        rc_patch.detune = v;
+}
 /* the main loop, with the audio interrupt standing aside (rc_pause): a module into a slot (0: empty), its ranges, its
  * parameters at their defaults (vals: one per parameter, n of them), then the buffers fitted again */
 static void rc_swap(int slot, int id, const float *vals, int n)
@@ -224,7 +234,7 @@ static void rc_do(int type, int a, float x, float y)
     case RCE_ON: k = rc_unison(x, n); for (i = 0; i < k; i++) rk_note_on(n[i], y); break;
     case RCE_OFF: k = rc_unison(x, n); for (i = 0; i < k; i++) rk_note_off(n[i]); break;
     case RCE_ALL_OFF: rk_all_off(); if (rc_ext) rc_ext(type, a, x, y); break;
-    case RCE_MACRO: rk_set_macro(a, x); break;
+    case RCE_MACRO: rk_set_macro_glide(a, x); break;   /* a knob or a CC: glides (a preset's macros: rc_run) */
     case RCE_VOICES: rk_set_voices(a); rc_patch.voices_now = a; break;
     case RCE_BEND: rk_set_bend(x); break;
     default: if (rc_ext) rc_ext(type, a, x, y);
@@ -290,7 +300,11 @@ static struct {
     float t;                                  /* where the next output frame falls after it, 0..1 */
     float peak;                               /* the loudest output since the screen last read it */
     volatile int pause_req, paused;           /* paused: the interrupt saw the request (shown, not needed) */
+    volatile int fade_req, faded;             /* rc_fade_out: the next block fades to silence, then silence */
+    float tail_l, tail_r;                     /* the last frame sent (-1..1): silence starts from it, not with a step */
+    uint32_t fin;                             /* frames since the sound came back: the fade in (RC_FIN) */
 } rc_audio;
+#define RC_FIN 441u                           /* 10 ms */
 static float rc_buf_l[1025], rc_buf_r[1025];  /* position 0: the last frame; then this block's */
 /* the screen's scope: the last 1024 output frames (mono, 16-bit), written by the audio interrupt, read by the main
  * loop (a frame torn between the two only draws one wrong pixel) */
@@ -299,13 +313,24 @@ static int16_t rc_scope[RC_SCOPE_N];
 static volatile uint32_t rc_scope_w;
 
 /* n output frames at the codec's rate into lr (stereo, interleaved), gain: full scale (24-bit) times MASTER */
+/* silence, from the last frame sent down to nothing over a few ms: a stop without a step (no click) */
+static void rc_tail(int32_t *lr, uint32_t n, float gain)
+{
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        rc_audio.tail_l *= 0.993f;
+        rc_audio.tail_r *= 0.993f;
+        lr[2u * i] = (int32_t)(rc_audio.tail_l * gain);
+        lr[2u * i + 1u] = (int32_t)(rc_audio.tail_r * gain);
+    }
+}
 static void rc_render(int32_t *lr, uint32_t n, float gain)
 {
-    float pos_end, a, b;
+    float pos_end, a, b, g = 1.0f, dg = 0.0f;
     uint32_t i, m, k;
-    if (rc_audio.pause_req) {                 /* a preset is loading: stand aside */
-        rc_audio.paused = 1;
-        memset(lr, 0, 8u * n);
+    if (rc_audio.pause_req || rc_audio.faded) {   /* a preset is loading: stand aside (silence) */
+        rc_audio.paused = rc_audio.pause_req;
+        rc_tail(lr, n, gain);
         return;
     }
     rc_audio.paused = 0;
@@ -314,7 +339,9 @@ static void rc_render(int32_t *lr, uint32_t n, float gain)
         rc_shed_wait--;
     rc_apply();
     if (rc_heavy) {                           /* too heavy for one core: silence until another preset loads */
-        memset(lr, 0, 8u * n);
+        rc_tail(lr, n, gain);
+        if (rc_audio.fade_req)
+            rc_audio.faded = 1;
         return;
     }
     pos_end = rc_audio.t + (float)n * RC_STEP;
@@ -326,6 +353,13 @@ static void rc_render(int32_t *lr, uint32_t n, float gain)
     rc_buf_r[0] = rc_audio.hist_r;
     memcpy(rc_buf_l + 1, rk_out_l(), m * sizeof(float));
     memcpy(rc_buf_r + 1, rk_out_r(), m * sizeof(float));
+    if (rc_audio.fade_req) {                  /* fading out: 1 to 0 over this block */
+        g = 1.0f;
+        dg = -1.0f / (float)n;
+    } else if (rc_audio.fin < RC_FIN) {       /* coming back: 0 to 1 over RC_FIN frames */
+        g = (float)rc_audio.fin / (float)RC_FIN;
+        dg = 1.0f / (float)RC_FIN;
+    }
     for (i = 0; i < n; i++) {
         float p = rc_audio.t + (float)i * RC_STEP, f;
         k = (uint32_t)p;
@@ -338,11 +372,25 @@ static void rc_render(int32_t *lr, uint32_t n, float gain)
         if (-a > rc_audio.peak) rc_audio.peak = -a;
         a = a > 1.0f ? 1.0f : a < -1.0f ? -1.0f : a;
         b = b > 1.0f ? 1.0f : b < -1.0f ? -1.0f : b;
+        if (dg != 0.0f) {
+            float gg = g < 0.0f ? 0.0f : g > 1.0f ? 1.0f : g;
+            a *= gg;
+            b *= gg;
+            g += dg;
+        }
         lr[2u * i] = (int32_t)(a * gain);
         lr[2u * i + 1u] = (int32_t)(b * gain);
         rc_scope[(rc_scope_w + i) & (RC_SCOPE_N - 1u)] = (int16_t)((a + b) * 16383.0f);
     }
     rc_scope_w += n;
+    if (n) {
+        rc_audio.tail_l = (float)lr[2u * n - 2u] / gain;
+        rc_audio.tail_r = (float)lr[2u * n - 1u] / gain;
+    }
+    if (rc_audio.fin < RC_FIN)
+        rc_audio.fin += n;
+    if (rc_audio.fade_req)
+        rc_audio.faded = 1;
     rc_audio.hist_l = rc_buf_l[m];
     rc_audio.hist_r = rc_buf_r[m];
     rc_audio.t = pos_end - (float)m;
@@ -355,6 +403,21 @@ static void rc_pause(void)
 {
     rc_audio.pause_req = 1;
 }
+/* the main loop, before a preset load, a module swap or a refit: the sound fades out over the next block (about 6
+ * ms) before the audio stands aside, so a change doesn't click. It waits for that block at most 30 ms (no audio
+ * running: the wait runs out, and the silence starts from the last frame sent instead) */
+static void rc_fade_pause(void)
+{
+    uint32_t t0 = plat_ms(), i;
+    if (!rc_audio.pause_req) {
+        rc_audio.faded = 0;
+        rc_audio.fade_req = 1;
+        for (i = 0; !rc_audio.faded && i < 2000000u; i++)
+            if (plat_ms() - t0 > 30u)
+                break;
+    }
+    rc_audio.pause_req = 1;
+}
 static void rc_resume(void)
 {
     rc_qtail = rc_qhead;                      /* notes queued for the old preset are dropped */
@@ -362,5 +425,8 @@ static void rc_resume(void)
     rc_audio.t = 0.0f;
     rc_heavy = 0;
     rc_heavy_streak = 0;
+    rc_audio.fin = 0;                         /* the new sound fades in */
+    rc_audio.fade_req = 0;
+    rc_audio.faded = 0;
     rc_audio.pause_req = 0;
 }

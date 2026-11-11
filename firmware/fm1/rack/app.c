@@ -125,7 +125,7 @@ void app_panic(void)
 #define START_VOICES (plat_cpu2_on() ? 6 : 4)
 static void load_preset(int k)
 {
-    rc_pause();
+    rc_fade_pause();
     rc_load(k);
     if (set.voices && rc_patch.mode == RVM_POLY) {
         rk_set_voices(set.voices);
@@ -255,6 +255,7 @@ static void octave_step(int d)
 #define HELP_Y 224
 #define HOLD_MS 600u                          /* a button held this long is a hold: its second function (never a tap) */
 #define EDIT_DOUBLE_MS 300u                   /* two LFO taps this close: the MATRIX */
+#define LEARN_MS 500u                         /* SEL + EDIT held together this long: LEARN on or off */
 #define K_BG RGB(0, 0, 0)
 #define K_FG RGB(242, 239, 230)
 #define K_DIM RGB(172, 168, 158)

@@ -24,9 +24,11 @@ extern "C" {
 void init(void);
 void set_module(int slot, int id);
 void set_param(int slot, int param, float value);
+void set_param_glide(int slot, int param, float value);   // the same, reached over a few ms (a knob turned)
 void set_meta(int slot, int param, float lo, float hi, float span);   // the parameter's range, for modulation
 void set_route(int i, int src, int slot, int param, float amount, int via);   // 12 matrix rows, then 6 LFO targets
 void set_macro(int i, float v);
+void set_macro_glide(int i, float v);   // the same, reached over a few ms
 void set_master(float v);
 void set_master_fx(float low_db, float mid_db, float high_db, float comp);
 void set_voices(int n);          // 1-6; the FM-1 build caps this at what fits

@@ -234,7 +234,7 @@ static void load_entry(int e)
     } else {
         int u = e - NPRESETS;
         group_read(u / UP_PER_OBJ);
-        rc_pause();
+        rc_fade_pause();
         apply(&ugroup[u % UP_PER_OBJ]);
         if (rc_patch.mode == RVM_POLY && rc_patch.voices_now > START_VOICES) {
             rk_set_voices(START_VOICES);

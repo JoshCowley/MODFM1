@@ -27,4 +27,6 @@ ${CXX%% *} -o $OUT/rack_host $OUT/*.o -lm
 ${CXX%% *} -o $OUT/audition $(ls $OUT/*.o | grep -v rack_host.o) $OUT/audition.oa -lm
 ${CC:-cc} -O2 -ffp-contract=off -std=gnu99 -Wall -Wno-unused-function -c click.c -o $OUT/click.oc
 ${CXX%% *} -o $OUT/click $(ls $OUT/*.o | grep -v rack_host.o) $OUT/click.oc -lm
+${CC:-cc} -O2 -ffp-contract=off -std=gnu99 -Wall -Wno-unused-function -c swclick.c -o $OUT/swclick.oc
+${CXX%% *} -o $OUT/swclick $(ls $OUT/*.o | grep -v rack_host.o) $OUT/swclick.oc -lm
 echo "built $OUT/rack_host $OUT/audition"

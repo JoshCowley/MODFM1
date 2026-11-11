@@ -254,6 +254,7 @@ typedef struct {
     uint16_t on;                              /* which of them sound (a strum sounds them one by one) */
     uint8_t note[PL_MAXN];
     uint8_t sn, root, vel;                    /* STYLE: its chord's notes (in note[]), root, velocity (0-127) */
+    uint8_t lay;                              /* its notes went to STYLE's chord layer (lay_on), not snd_on */
     uint32_t ord;                             /* STYLE: when it was pressed (the latest held key's chord plays) */
 } pl_raw_t;
 static pl_raw_t pl_raw[PL_NRAW];
@@ -390,6 +391,8 @@ static void arp_remove(int raw)
         }
 }
 
+static void lay_on(int L, int note, float vel);
+static void lay_off(int L, int note);
 static void raw_release(int raw)
 {
     pl_raw_t *r = &pl_raw[raw];
@@ -403,10 +406,15 @@ static void raw_release(int raw)
             i++;
         }
     for (i = 0; i < r->n; i++)
-        if (r->on >> i & 1u)
-            snd_off(r->note[i], raw_local(raw), raw_out(raw));
+        if (r->on >> i & 1u) {
+            if (r->lay)
+                lay_off(L_CHORD, r->note[i]);
+            else
+                snd_off(r->note[i], raw_local(raw), raw_out(raw));
+        }
     r->on = 0;
     r->n = 0;
+    r->lay = 0;
 }
 
 /* ARP > HOLD with the arpeggiator off: a latch. Keys let go keep sounding; the next key pressed when none is held
@@ -434,15 +442,12 @@ static struct {
     int8_t iv3, iv5, iv7, ivp;                /* the chord's third, fifth, seventh and the next scale step, above the root */
     float vel;
     uint32_t next_at, step, ticks, ord;
-    uint8_t held[PL_MAXN], nheld;             /* HELD: the chord notes and bass sounding */
     int hbass;
 } st;
 
 static void lay_all_off(void);
 static int style_on(void) { return AI(A_STYLE) > 0; }
 static void style_refresh(int clear);
-static void lay_on(int L, int note, float vel);
-static void lay_off(int L, int note);
 
 static void pl_key_on(int raw, int note, float vel)
 {
@@ -493,7 +498,8 @@ static void pl_key_on(int raw, int note, float vel)
         pv.chord_seq++;
     }
     sq_note_in(raw, notes, n);               /* the sequencer: REC, step entry, the last notes (seq.c) */
-    if (style_on()) {                         /* STYLE: the chord goes to the layers (the latest key held plays) */
+    r->lay = 0;
+    if (style_on()) {                         /* STYLE: the chord as played on its layer; the bass follows it */
         static uint32_t ord;
         int rt = CI(C_TYPE) == CT_OFF && !q && !(zone_on() && (pl_zone & 0x55u)) ? (n ? notes[0] : note)
                  : CI(C_QNT) ? quantize(note) : note;
@@ -501,13 +507,11 @@ static void pl_key_on(int raw, int note, float vel)
         r->root = (uint8_t)(rt < 0 ? 0 : rt > 127 ? 127 : rt);
         r->vel = (uint8_t)(vel * 127.0f);
         r->ord = ++ord;
-        r->n = 0;                             /* the layers play it, not the key */
+        r->lay = 1;                           /* the chord layer: CHORD CH, and the FM-1 if ON FM-1 > CHORD */
         if (AI(A_MODE) != AM_OFF)
             arp_add(raw, notes, n);
         style_refresh(0);
-        return;
-    }
-    if (AI(A_MODE) != AM_OFF) {
+    } else if (AI(A_MODE) != AM_OFF) {
         arp_add(raw, notes, n);
         r->n = 0;                             /* the arp plays them */
         return;
@@ -517,7 +521,10 @@ static void pl_key_on(int raw, int note, float vel)
         if (i && strum > 1.0f) {
             pend(pl_now + (uint32_t)(strum * (float)i), i, raw, 1, vel);
         } else {
-            snd_on(notes[i], vel, raw_local(raw), raw_out(raw));
+            if (r->lay)
+                lay_on(L_CHORD, notes[i], vel);
+            else
+                snd_on(notes[i], vel, raw_local(raw), raw_out(raw));
             r->on |= (uint16_t)(1u << i);
         }
     }
@@ -532,12 +539,9 @@ static void pl_key_off(int raw)
     }
     pl_raw[raw].active = 0;
     sq_note_out(raw);
-    if (style_on()) {                         /* STYLE: the chord of the latest key still held, or (HOLD) the last */
-        if (AI(A_MODE) != AM_OFF)
-            arp_remove(raw);
+    if (pl_raw[raw].sn) {                     /* STYLE: the bass follows the latest key still held, or (HOLD) the last */
         pl_raw[raw].sn = 0;
         style_refresh(0);
-        return;
     }
     if (pl_latch_on()) {                      /* the latch: it keeps sounding */
         pl_latched[raw] = 1;
@@ -593,7 +597,6 @@ static void pl_reset(int all)                 /* the engine was reset (a preset 
         if (all)
             pl_raw[i].active = pl_raw[i].sus = 0;
     }
-    st.nheld = 0;
     st.hbass = -1;
     if (all) {
         st.on = 0;
@@ -734,8 +737,9 @@ static void arp_step(uint32_t at)             /* a step at frame at: its notes o
 }
 
 /* ------------------------------------------------------------------ STYLE: the chord in three layers --- */
-/* While a chord is held (or latched with HOLD), STYLE plays it as three layers: the chord in the style's rhythm, a
- * bass line from its root, and the arpeggiator (when its MODE is on). Each layer goes to its own MIDI channel (ARP >
+/* While a chord is held (or latched with HOLD), STYLE plays it as three layers: the chord as played (held while its
+ * keys are, strummed as STRUM), a bass line from its root in the style's rhythm, and the arpeggiator (when its MODE is
+ * on) as it runs. Each layer goes to its own MIDI channel (ARP >
  * LAYER CH; MIDI OUT on) and, if chosen, to the FM-1's own sound (ARP > ON FM-1). The patterns: style_def.py. */
 static void lay_on(int L, int note, float vel)
 {
@@ -766,15 +770,20 @@ static void lay_off(int L, int note)
             midi_ch_note(lay_ch[L], note, 0);
     }
 }
+static void lay_layer_off(int L)
+{
+    int x;
+    for (x = 0; x < 128; x++) {
+        if (lay_loc[L][x]) { lay_loc[L][x] = 0; snd_off(x, 1, 0); }
+        if (lay_out[L][x]) { lay_out[L][x] = 0; midi_ch_note(lay_ch[L], x, 0); }
+    }
+    lay_tot[L] = 0;
+}
 static void lay_all_off(void)
 {
-    int L, x;
+    int L;
     for (L = 0; L < 3; L++)
-        for (x = 0; x < 128; x++) {
-            while (lay_loc[L][x]) { if (!--lay_loc[L][x]) snd_off(x, 1, 0); }
-            if (lay_out[L][x]) { lay_out[L][x] = 0; midi_ch_note(lay_ch[L], x, 0); }
-        }
-    memset(lay_tot, 0, sizeof lay_tot);
+        lay_layer_off(L);
 }
 
 static int iv_find(int a, int b, int dflt)    /* the first interval of the chord, as a pitch class, that is a or b */
@@ -807,22 +816,12 @@ static int st_bass(char c)                    /* a bass step's note: from the ro
 }
 static void st_held_off(void)
 {
-    int i;
-    for (i = 0; i < st.nheld; i++)
-        lay_off(L_CHORD, st.held[i]);
-    st.nheld = 0;
     if (st.hbass >= 0)
         lay_off(L_BASS, st.hbass);
     st.hbass = -1;
 }
-static void st_held_on(void)                  /* HELD: the chord and its root held */
+static void st_held_on(void)                  /* HELD: the root held as long as the chord */
 {
-    int i;
-    for (i = 0; i < st.n; i++) {
-        lay_on(L_CHORD, st.note[i], st.vel);
-        st.held[i] = st.note[i];
-    }
-    st.nheld = st.n;
     st.hbass = st_bass('R');
     lay_on(L_BASS, st.hbass, st.vel);
 }
@@ -923,7 +922,7 @@ static void style_step(uint32_t at)
 {
     const style_t *S = st_style();
     float d, acc = set.arp[A_ACC], v;
-    int i, k, j;
+    int i, k;
     uint32_t t, len;
     char c;
     if (!S || !st.on)
@@ -931,23 +930,12 @@ static void style_step(uint32_t at)
     d = st_frames(S);
     i = (int)(st.step % S->len);
     t = at + (S->div == 16 && (i & 1) ? (uint32_t)(S->swing * 0.5f * d) : 0u);
-    c = S->chord[i];
-    if (c == 'X' || c == 'x' || c == 'o') {
-        k = st_tie(S->chord, i, S->len);
-        v = st.vel * (c == 'X' ? 1.0f : c == 'x' ? 1.0f - 0.35f * acc : 1.0f - 0.65f * acc);
-        len = (uint32_t)(((float)(k - 1) + 0.3f + 0.65f * set.arp[A_CLEN]) * d);
-        if (len < 882u) len = 882u;
-        for (j = 0; j < st.n; j++) {
-            pend(t, st.note[j], 250 + L_CHORD, 1, v < 0.05f ? 0.05f : v);
-            pend(t + len, st.note[j], 250 + L_CHORD, 0, 0.0f);
-        }
-    }
     c = S->bass[i];
     if (c != '.' && c != '-') {
         int bn = st_bass(c);
         k = st_tie(S->bass, i, S->len);
         v = st.vel * (c == 'R' ? 1.0f : 1.0f - 0.25f * acc);
-        len = (uint32_t)(((float)(k - 1) + 0.85f) * d);
+        len = (uint32_t)(((float)(k - 1) + 0.3f + 0.65f * set.arp[A_CLEN]) * d);
         if (len < 882u) len = 882u;
         pend(t, bn, 250 + L_BASS, 1, v < 0.05f ? 0.05f : v);
         pend(t + len, bn, 250 + L_BASS, 0, 0.0f);
@@ -1038,7 +1026,10 @@ static void pl_block(uint32_t n)
             } else if (e.raw < PL_NRAW) {     /* a strummed note: e.note is its place in the key's chord */
                 pl_raw_t *r = &pl_raw[e.raw];
                 if (e.note < r->n) {
-                    snd_on(r->note[e.note], e.vel, raw_local(e.raw), raw_out(e.raw));
+                    if (r->lay)
+                        lay_on(L_CHORD, r->note[e.note], e.vel);
+                    else
+                        snd_on(r->note[e.note], e.vel, raw_local(e.raw), raw_out(e.raw));
                     r->on |= (uint16_t)(1u << e.note);
                 }
             }
@@ -1063,7 +1054,8 @@ static void pl_event(int type, int a, float x, float y)
         { int i, j, k; for (i = 0; i < pl_npend;) {   /* the layers' notes still due: dropped, those on ended */
             if (pl_pend[i].raw >= 250 && pl_pend[i].raw <= 252) { for (j = i; j < pl_npend - 1; j++) pl_pend[j] = pl_pend[j + 1]; pl_npend--; } else i++; }
           (void)k; }
-        lay_all_off();
+        lay_layer_off(L_BASS);                /* the chord layer stays: its keys are still held */
+        lay_layer_off(L_ARP);
         st.on = 0;
         st.running = 0;
         style_refresh(1);

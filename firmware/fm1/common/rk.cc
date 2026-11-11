@@ -10,9 +10,11 @@ void rk_init(void) { init(); }
 void rk_seed(uint32_t s) { stmlib::Random::Seed(s); }   // each case starts from the same random numbers
 void rk_set_module(int slot, int id) { set_module(slot, id); }
 void rk_set_param(int slot, int param, float v) { set_param(slot, param, v); }
+void rk_set_param_glide(int slot, int param, float v) { set_param_glide(slot, param, v); }
 void rk_set_meta(int slot, int param, float lo, float hi, float span) { set_meta(slot, param, lo, hi, span); }
 void rk_set_route(int i, int src, int slot, int param, float amt, int via) { set_route(i, src, slot, param, amt, via); }
 void rk_set_macro(int i, float v) { set_macro(i, v); }
+void rk_set_macro_glide(int i, float v) { set_macro_glide(i, v); }
 void rk_set_master(float v) { set_master(v); }
 void rk_set_master_fx(float lo, float mid, float hi, float comp) { set_master_fx(lo, mid, hi, comp); }
 void rk_set_legato(int on) { set_legato(on); }

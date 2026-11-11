@@ -18,7 +18,9 @@ shot u_undone.png
 release EDIT
 wait 300
 press SEL
-wait 800
+press EDIT
+wait 700
+release EDIT
 release SEL
 wait 200
 turn ALGO 12
@@ -27,7 +29,9 @@ turn K2 10
 wait 300
 shot u_learn.png
 press SEL
-wait 800
+press EDIT
+wait 700
+release EDIT
 release SEL
 wait 300
 shot u_learnoff.png

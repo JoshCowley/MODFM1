@@ -59,7 +59,9 @@ key w8 up
 tap HOME
 wait 600
 press SEL
-wait 800
+press EDIT
+wait 700
+release EDIT
 release SEL
 wait 600
 shot m_learn.png
@@ -69,7 +71,9 @@ turn ALGO 13
 wait 600
 shot m_learnsrc.png
 press SEL
-wait 800
+press EDIT
+wait 700
+release EDIT
 release SEL
 wait 400
 tap SEL

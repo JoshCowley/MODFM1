@@ -202,8 +202,8 @@ static void vis_sel_keys(uint16_t c)
     }
 }
 
-/* -------------------------------------------------- ARP's STYLE pages: the style's two rows (chord, bass) and the
- * arp's, the step playing lit; on LAYER CH and ON FM-1, where each layer goes */
+/* -------------------------------------------------- ARP's STYLE pages: the style's bass row, the step playing lit;
+ * on LAYER CH and ON FM-1, where each layer goes */
 static void vis_arp(uint16_t c);
 static uint32_t vst_seq, vst_at;
 static void vis_style(uint16_t c, int sub)
@@ -232,8 +232,8 @@ static void vis_style(uint16_t c, int sub)
         return;
     }
     if (s < 2) {
-        cv_text(114 - text_w(&FONT_XS, s ? "HELD: LAYERS HOLD THE CHORD" : "STYLE OFF: TURN K1") / 2, 14, &FONT_XS,
-                s ? "HELD: LAYERS HOLD THE CHORD" : "STYLE OFF: TURN K1", K_DIM);
+        cv_text(114 - text_w(&FONT_XS, s ? "HELD: THE BASS HOLDS THE ROOT" : "STYLE OFF: TURN K1") / 2, 14, &FONT_XS,
+                s ? "HELD: THE BASS HOLDS THE ROOT" : "STYLE OFF: TURN K1", K_DIM);
         return;
     }
     {
@@ -243,16 +243,16 @@ static void vis_style(uint16_t c, int sub)
         if (pv.st_seq != vst_seq) { vst_seq = pv.st_seq; vst_at = now; }
         fl = 1.0f - (float)(now - vst_at) * 0.004f;
         fl = fl < 0.0f ? 0.0f : fl;
-        for (L = 0; L < 2; L++) {
-            const char *p = L ? S->bass : S->chord;
-            int32_t y = 14 + L * 15;
-            uint16_t base = L ? c : K_CHD;
+        {                                     /* the bass row: the rhythm shapes the bass only */
+            const char *p = S->bass;
+            int32_t y = 14;
+            uint16_t base = c;
             for (i = 0; i < n; i++) {
                 char ch = p[i];
                 int hit = ch != '.' && ch != '-';
-                int32_t h = ch == 'X' || ch == 'R' ? 12 : ch == 'o' ? 5 : hit ? 9 : ch == '-' ? 3 : 1;
+                int32_t h = ch == 'R' ? 22 : hit ? 16 : ch == '-' ? 5 : 1;
                 uint16_t col = i == cur ? mix565(K_FG, base, (uint32_t)(255.0f * fl)) : hit || ch == '-' ? mix565(base, K_WELL, ch == '-' ? 90 : 190) : RGB(29, 29, 27);
-                rrect(x0 + i * bw, y + 12 - h, bw > 3 ? bw - 2 : 1, h, col, 1);
+                rrect(x0 + i * bw, y + 22 - h, bw > 3 ? bw - 2 : 1, h, col, 1);
             }
         }
         t[0] = 0;

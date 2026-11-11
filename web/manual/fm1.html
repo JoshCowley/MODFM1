@@ -25,7 +25,7 @@ img[src*="fm1-"]{width:320px;image-rendering:pixelated}
 <p>Nov 11, 2026 · Josh Cowley</p>
 <p>FM1 Rack turns the M-VAVE FM-1 into a small modular synthesizer built from Mutable Instruments' open module code. Each sound is a short chain of modules: a source (Plaits or Braids), a shaper (Rings or a filter), two modulators, two effects and an amplifier. You play it from the keys, shape it with the knobs, and link anything to anything through a modulation matrix. This manual covers the firmware on the FM-1; the browser version has its own manual, the <a href="index.html">FM1 Rack Manual</a>.</p>
 <blockquote>
-<p><strong>This is a test version (update 34).</strong> The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts and STYLE have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.</p>
+<p><strong>This is a test version (update 35).</strong> The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, and LEARN on SEL + EDIT have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.</p>
 </blockquote>
 <h2 id="contents">Contents</h2>
 <ol type="1">
@@ -115,7 +115,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <td><strong>EDIT</strong></td>
 <td>the source (Plaits or Braids)</td>
 <td>OSC, the second oscillator and mixer</td>
-<td><strong>Hold: UNDO</strong> the last change; hold again to go further back (up to 16)</td>
+<td><strong>Hold: UNDO</strong> the last change; hold again to go further back (up to 16). With SEL: LEARN</td>
 </tr>
 <tr class="odd">
 <td><strong>ENV</strong></td>
@@ -145,7 +145,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <td><strong>SEL</strong></td>
 <td>scale and chord</td>
 <td>(SELECT turns to the keys page)</td>
-<td><strong>Two taps: chords off</strong>, and two again back on. <strong>Hold: LEARN on or off</strong> (section 8)</td>
+<td><strong>Two taps: chords off</strong>, and two again back on. <strong>Hold SEL and EDIT together (half a second): LEARN on or off</strong> (section 8)</td>
 </tr>
 <tr class="even">
 <td><strong>GLO</strong></td>
@@ -185,6 +185,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </tr>
 </tbody>
 </table>
+<p>SEL held on its own does nothing, so LEARN can't start by accident; held together with EDIT it never counts as UNDO or a page turn.</p>
 <p>Buttons with a hold or a double tap act when you let go, so a single tap of EDIT, LFO, FX, ARP or SEL turns the page a moment after you release it (up to 0.3 s for those with a double tap).</p>
 <p><strong>The lights</strong> show where you are. The page's button is lit and the others glow (GLOBAL › LED BRIGHT sets how much). SEL glows half while chords or QNT are on, and ARP while the arpeggiator is on. PLAY is lit while the sequencer runs; REC is lit while recording and blinks during REC READY. HOME blinks while LEARN is on.</p>
 <h3 id="knobs">Knobs</h3>
@@ -334,7 +335,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li><strong>The macros</strong>: each with its value (0–100), an arc in its knob's colour, and what it moves (the first destination, "+2" if more), or <strong>UNSET</strong>. K1–K4 turn them; so do MIDI CC 20–23.</li>
 <li><strong>The scope</strong> along the bottom draws the output, coloured by the modulation moving right now (violet for an LFO, gold for a macro, pink for MSEQ), and glowing white at its loudest. The effects leave marks: a reverb's fading trail, a delay's echo, a chorus' second line. Tabs over it show what's on besides the preset: the scale and chord, the arpeggiator, a tuning.</li>
 </ul>
-<p><strong>PRESET</strong> chooses the preset, <strong>ALGORITHM</strong> jumps a category and <strong>SELECT</strong> sets the voices (1–6). Tap HOME again for <strong>RACK</strong>, a list of every slot, AMP, the outputs and how many matrix routes are set.</p>
+<p><strong>PRESET</strong> chooses the preset, <strong>ALGORITHM</strong> jumps a category and <strong>SELECT</strong> sets the voices (1–6). Changing preset, or loading a module into a slot, fades the sound out over a few milliseconds and the new one in, so it doesn't click; nothing of the old sound (its echoes, its last few samples) carries into the new one. Knobs glide to their new values over a few milliseconds too, so a level, a cutoff or a chorus turned quickly doesn't click or zipper; a choice from a list (a model, a type) still changes at once. Tap HOME again for <strong>RACK</strong>, a list of every slot, AMP, the outputs and how many matrix routes are set.</p>
 <p><img src="img/fm1-rack.png" alt="RACK" /></p>
 <h2 id="6-how-a-sound-is-built">6. How a sound is built</h2>
 <h3 id="the-chain">The chain</h3>
@@ -512,12 +513,12 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <h3 id="learn-linking-by-turning-a-knob">LEARN: linking by turning a knob</h3>
 <ol type="1">
 <li>On HOME, turn the macro you want to link.</li>
-<li><strong>Hold SEL</strong>. LEARN is on: the macro is framed in gold on HOME, HOME blinks, and a gold band replaces the help line on every page.</li>
+<li><strong>Hold SEL and EDIT together</strong> for half a second. LEARN is on: the macro is framed in gold on HOME, HOME blinks, and a gold band replaces the help line on every page.</li>
 <li>Go to any module, AMP, LFO or OSC page and <strong>turn the knob of the parameter</strong> you want it to move. The link is made in the matrix, and how far you turned sets the amount: <strong>M2&gt;SRC.TIMBRE +24</strong>.</li>
-<li>Turn more parameters to link more, then <strong>hold SEL again</strong> to finish (tapping HOME also ends it).</li>
+<li>Turn more parameters to link more, then <strong>hold SEL and EDIT again</strong> to finish (tapping HOME also ends it).</li>
 </ol>
 <p><img src="img/fm1-learn.png" alt="LEARN on HOME, M1 selected" /></p>
-<p><strong>Any source</strong>: while LEARN is on, <strong>turn ALGORITHM</strong> to choose what you're linking: a macro, velocity, key tracking, random, an envelope, a modulator's output, an LFO or an MSEQ lane. The gold band shows it. Then turn a parameter's knob as before. For example: hold SEL, turn ALGORITHM to LFO 1, open the filter and turn CUTOFF: <strong>LFO 1&gt;SHP.CUTOFF +20</strong>.</p>
+<p><strong>Any source</strong>: while LEARN is on, <strong>turn ALGORITHM</strong> to choose what you're linking: a macro, velocity, key tracking, random, an envelope, a modulator's output, an LFO or an MSEQ lane. The gold band shows it. Then turn a parameter's knob as before. For example: hold SEL and EDIT, turn ALGORITHM to LFO 1, open the filter and turn CUTOFF: <strong>LFO 1&gt;SHP.CUTOFF +20</strong>.</p>
 <p><img src="img/fm1-learnsrc.png" alt="LEARN choosing its source with ALGORITHM" /></p>
 <h3 id="mseq-the-modulation-sequencer">MSEQ: the modulation sequencer</h3>
 <p>MSEQ (on LFO, after the LFOs) has four lanes of 16 values that step with the tempo: the sources <strong>SEQ 1–4</strong>. <strong>SELECT</strong> chooses the step, <strong>ALGORITHM</strong> the lane, <strong>K1</strong> the value (−100 to +100), <strong>K2</strong> a shape to draw across the lane (RAMP+, RAMP−, TRI, SINE, SQR, RND, FLAT, INVERT, SHIFT), <strong>K3</strong> the RATE (1/32 to 2 BARS), <strong>K4</strong> SMOOTH.</p>
@@ -640,29 +641,29 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p>It follows the tempo (GLOBAL › TEMPO) or MIDI clock, and the picture shows the pattern and the step playing.</p>
 <p><strong>HOLD as a chord latch</strong>: with HOLD on and MODE OFF, notes and chords keep sounding after you let go. Playing again once every key is up replaces them; keys added while others are held add to them. Turning HOLD off, changing MODE, or stopping the sequencer with PLAY ends them.</p>
 <h3 id="style-chords-bass-and-arpeggio-on-three-channels">STYLE: chords, bass and arpeggio on three channels</h3>
-<p>ARP's pages 3–5 turn the FM-1 into an accompaniment for itself and for other synths. While you hold a chord, a <strong>style</strong> plays it as three layers:</p>
+<p>ARP's pages 3–5 turn the FM-1 into an accompaniment for itself and for other synths. While you hold a chord, it goes out in three layers:</p>
 <ul>
-<li><strong>CHORD</strong>: the chord, in the style's rhythm;</li>
-<li><strong>BASS</strong>: a bass line built from the chord's root (root, fifth, third, seventh, octave, passing and approach notes);</li>
-<li><strong>ARP</strong>: the arpeggiator, when its MODE (page 1) is on.</li>
+<li><strong>CHORD</strong>: the chord, as you play it: it starts when you press the keys (strummed, if SEL › STRUM is set) and holds for as long as you hold them;</li>
+<li><strong>BASS</strong>: a bass line built from the chord's root (root, fifth, third, seventh, octave, passing and approach notes), <strong>in the style's rhythm</strong>. The style shapes the bass only;</li>
+<li><strong>ARP</strong>: the arpeggiator as it runs, when its MODE (page 1) is on.</li>
 </ul>
-<p>Each layer goes out on its own MIDI channel, and you choose which ones the FM-1 plays itself, so the FM-1 can play the chords while other synths take the bass and the arpeggio.</p>
+<p>Each layer goes out on its own MIDI channel, and you choose which ones the FM-1 plays itself. With a layer's ON THE FM-1 switch off, you don't hear it on the FM-1: it goes only to the other synth. So the FM-1 can play the chords and the arpeggio while another synth takes the bass, or you can send everything out and let the FM-1 play nothing but what you choose.</p>
 <p><img src="img/fm1-style.png" alt="STYLE playing HOUSE" /> <img src="img/fm1-layers.png" alt="Where each layer goes" /></p>
 <p><strong>Page 3, STYLE</strong>:</p>
 <ul>
-<li><strong>STYLE</strong>: OFF, HELD (the layers hold the chord with no rhythm) or one of 32 rhythms (below).</li>
+<li><strong>STYLE</strong>: OFF, HELD (the bass holds the chord's root, with no rhythm) or one of 32 rhythms for the bass (below).</li>
 <li><strong>BASS OCT</strong>: the bass's octave, −2 to +1.</li>
-<li><strong>ACCENT</strong>: how much louder the accented steps are than the others.</li>
-<li><strong>CHD LEN</strong>: the chord hits' length, from short stabs to legato.</li>
+<li><strong>ACCENT</strong>: how much louder the accented bass notes (the roots marked as accents) are than the others.</li>
+<li><strong>BASS LEN</strong>: the bass notes' length, from short and punchy to legato.</li>
 </ul>
 <p><strong>Page 4, LAYER MIDI CH</strong>: <strong>CHORD CH</strong>, <strong>BASS CH</strong> and <strong>ARP CH</strong>, each OFF or 1–16 (1, 2 and 3 to start with).</p>
-<p><strong>Page 5, ON THE FM-1</strong>: <strong>CHORD</strong>, <strong>BASS</strong> and <strong>ARP</strong>, each ON (the FM-1 plays it too) or OFF (MIDI only). To start with, the FM-1 plays the chords, and the bass and arpeggio go only to MIDI.</p>
+<p><strong>Page 5, ON THE FM-1</strong>: <strong>CHORD</strong>, <strong>BASS</strong> and <strong>ARP</strong>, each ON (you hear it on the FM-1, and it goes out too) or OFF (it goes out only). To start with, the FM-1 plays the chords and the arpeggio, and the bass goes only to MIDI. (If you saved your settings with update 34, ARP may still be OFF there: turn it ON to hear the arpeggio on the FM-1.)</p>
 <p>How it plays:</p>
 <ul>
-<li>A style starts from its first step when you press a chord with nothing held, at the tempo (GLOBAL › TEMPO) or on MIDI clock, and stops when you let go. With ARP › HOLD on, it keeps playing the last chord until you press another, stop with PLAY, or change a STYLE setting.</li>
-<li>With SEL's CHORD on, each key's chord plays (the latest key you pressed). With CHORD OFF, the keys you hold together make the chord, and the lowest is the bass's root.</li>
+<li>The bass rhythm starts from its first step when you press a chord with nothing held, at the tempo (GLOBAL › TEMPO) or on MIDI clock, and stops when you let go. With ARP › HOLD on, the bass keeps playing the last chord's root until you press another, stop with PLAY, or change a STYLE setting.</li>
+<li>With SEL's CHORD on, the bass follows the latest key you pressed. With CHORD OFF, the keys you hold together make the chord, and the lowest is the bass's root.</li>
 <li><strong>GLOBAL › MIDI OUT must be on</strong> for the layers to reach other synths. With STYLE OFF, everything plays as before, on GLOBAL › OUT CH.</li>
-<li>The picture on the STYLE page shows the style's chord and bass rows, with the step playing lit; the layer pages show where each layer goes. HOME shows the style's name in a tab over the scope.</li>
+<li>The picture on the STYLE page shows the style's bass rhythm (taller bars are the accented roots), with the step playing lit; the layer pages show where each layer goes. HOME shows the style's name in a tab over the scope.</li>
 </ul>
 <table>
 <thead>
@@ -707,7 +708,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p>Three gestures change things without opening a menu:</p>
 <ul>
 <li><strong>Two quick taps on SEL</strong>: chords off. Two taps again bring back the chord you had (TRIAD if none was set). The message says <strong>CHORDS OFF</strong> or <strong>CHORDS ON: TRIAD</strong>.</li>
-<li><strong>Two quick taps on ARP</strong>: the arpeggiator off, and two again back to the mode it had. (A STYLE keeps playing its chord and bass layers.)</li>
+<li><strong>Two quick taps on ARP</strong>: the arpeggiator off, and two again back to the mode it had. (With a STYLE on, the chords and the bass go on.)</li>
 <li><strong>Hold FX, let go, then tap FX</strong>: after the hold the message says <strong>TAP FX 1, TWO TAPS FX 2</strong>. Within 2 seconds:
 <ul>
 <li>one tap turns FX 1 off or on;</li>

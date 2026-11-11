@@ -393,8 +393,26 @@ EXPORT float* out_l() { return out_l_; }
 EXPORT float* out_r() { return out_r_; }
 EXPORT float* scope() { return scope_; }
 
-EXPORT void set_param(int slot, int param, float value) { base_[slot][param] = value; }
-EXPORT float get_param(int slot, int param) { return slot >= 0 && slot < NSLOT && param >= 0 && param < NP ? base_[slot][param] : 0.0f; }
+// a knob's turn glides (set_param_glide, 11 Nov 2026): the parameter moves to its target over a few ms, a step of a
+// block at a time, so a level, a cutoff or a delay time turned doesn't click or zipper. One bit per parameter says it
+// glides; the main loop sets targets and bits, the render moves and clears them (a bit set again by a racing
+// main-loop write only glides once more to where it already is).
+static float tgt_[NSLOT][NP];
+static uint32_t glide_[NSLOT];
+EXPORT void set_param(int slot, int param, float value) {
+  if (slot < 0 || slot >= NSLOT || param < 0 || param >= NP) return;
+  glide_[slot] &= ~(1u << param);
+  tgt_[slot][param] = value; base_[slot][param] = value;
+}
+EXPORT void set_param_glide(int slot, int param, float value) {
+  if (slot < 0 || slot >= NSLOT || param < 0 || param >= NP) return;
+  tgt_[slot][param] = value;
+  glide_[slot] |= 1u << param;
+}
+EXPORT float get_param(int slot, int param) {
+  if (slot < 0 || slot >= NSLOT || param < 0 || param >= NP) return 0.0f;
+  return glide_[slot] >> param & 1u ? tgt_[slot][param] : base_[slot][param];
+}
 // a matrix row as set: out[0] source, [1] slot, [2] param, [3] via; returns its amount
 EXPORT float get_route(int i, int* out) {
   if (i < 0 || i >= NROUTE) { out[0] = out[1] = out[2] = out[3] = 0; return 0.0f; }
@@ -404,7 +422,30 @@ EXPORT float get_route(int i, int* out) {
 EXPORT void set_meta(int slot, int param, float lo, float hi, float span) {
   lo_[slot][param] = lo; hi_[slot][param] = hi; span_[slot][param] = span;
 }
-EXPORT void set_macro(int i, float v) { macros_[i] = v; }
+static float macro_tgt_[4];
+static uint8_t macro_gl_[4];
+EXPORT void set_macro(int i, float v) { if (i >= 0 && i < 4) { macro_gl_[i] = 0; macro_tgt_[i] = v; macros_[i] = v; } }
+EXPORT void set_macro_glide(int i, float v) { if (i >= 0 && i < 4) { macro_tgt_[i] = v; macro_gl_[i] = 1; } }
+// each block: the gliding parameters and macros a part of the way to their targets (about 5 ms to settle)
+static void glide_step() {
+  const float k = BLOCK >= 48 ? 0.2f : 0.1f;
+  for (int s = 0; s < NSLOT; ++s) {
+    uint32_t g = glide_[s];
+    while (g) {
+      int p = __builtin_ctz(g);
+      g &= g - 1u;
+      float d = tgt_[s][p] - base_[s][p];
+      if (fabsf(d) <= 1e-4f * (1.0f + fabsf(tgt_[s][p]))) { base_[s][p] = tgt_[s][p]; glide_[s] &= ~(1u << p); }
+      else base_[s][p] += d * k;
+    }
+  }
+  for (int i = 0; i < 4; ++i)
+    if (macro_gl_[i]) {
+      float d = macro_tgt_[i] - macros_[i];
+      if (fabsf(d) <= 1e-4f) { macros_[i] = macro_tgt_[i]; macro_gl_[i] = 0; }
+      else macros_[i] += d * k;
+    }
+}
 EXPORT void set_master(float v) { master_ = v; }
 EXPORT void set_ext(int i, float v) { if (i >= 0 && i < 6) ext_tgt_[i] = v; }
 EXPORT void set_ext_slew(int i, float s) { if (i >= 0 && i < 6) ext_slew_[i] = clampf(s, 0.001f, 1.0f); }
@@ -693,12 +734,16 @@ EXPORT void note_off(float note) {
 }
 EXPORT void all_off() { for (int i = 0; i < MAXV; ++i) { vs_[i].gate = false; if (vs_[i].stage) vs_[i].stage = 4; } any_gate_ = false; }
 
+static void master_reset();
 EXPORT void init() {
 #ifdef RACK_FM1
   fit_reset();
 #endif
   fx_off_[0] = fx_off_[1] = 0; fx_clear_[0] = fx_clear_[1] = 0;
   memset(base_, 0, sizeof(base_));
+  memset(tgt_, 0, sizeof(tgt_)); memset(glide_, 0, sizeof(glide_)); memset(macro_gl_, 0, sizeof(macro_gl_));
+  blk_pos_ = BLOCK; memset(blk_l_, 0, sizeof(blk_l_)); memset(blk_r_, 0, sizeof(blk_r_));
+  master_reset();   // none of the old patch's block left to play
   for (int s = 0; s < NSLOT; ++s) for (int p = 0; p < NP; ++p) { lo_[s][p] = -1e9f; hi_[s][p] = 1e9f; span_[s][p] = 1.0f; }
   osc_defaults();
   for (int i = 0; i < MAXV; ++i) { memset(&vs_[i], 0, sizeof(VoiceState)); svf_[i].Init(); svf2_[i].Init(); card_[i] = randf() * 2.0f - 1.0f; vdrift_[i] = 0.0f; }
@@ -1310,8 +1355,16 @@ static void render_voice(int i, float* mix_l, float* mix_r, int core = 0) {
     bool four = type == 3;
     svf_[i].set_f_q<FREQUENCY_FAST>(f, four ? 0.5f + reso * reso * 4.0f : q);
     if (four) svf2_[i].set_f_q<FREQUENCY_FAST>(f, 0.6f + reso * reso * 20.0f);
-    float g = 1.0f + drive * 6.0f, norm = drive > 0.0f ? sqrtf(g) : 1.0f;
+    float g1 = 1.0f + drive * 6.0f, norm1 = drive > 0.0f ? sqrtf(g1) : 1.0f;
+    // DRIVE and GAIN ramp across the block from the last block's (a knob turned stepped the level, 11 Nov 2026)
+    static float flt_g_[MAXV], flt_norm_[MAXV], flt_post_[MAXV];
+    if (flt_g_[i] <= 0.0f || v.retrig) { flt_g_[i] = g1; flt_norm_[i] = norm1; flt_post_[i] = post; }
+    float g = flt_g_[i], norm = flt_norm_[i], post1 = post;
+    const float dgr = (g1 - g) * (1.0f / BLOCK), dnr = (norm1 - norm) * (1.0f / BLOCK), dpo = (post1 - flt_post_[i]) * (1.0f / BLOCK);
+    post = flt_post_[i];
+    flt_g_[i] = g1; flt_norm_[i] = norm1; flt_post_[i] = post1;
     for (int n = 0; n < BLOCK; ++n) {
+      g += dgr; norm += dnr; post += dpo;
       float in = (vbuf_[n] + vaux_[n]) * 0.5f, xg = in * g, x;
       switch (sat) {
         case 1: x = clampf(xg, -1.0f, 1.0f) / norm; break;                        // HARD
@@ -1374,6 +1427,12 @@ static float lim_buf_l_[64], lim_buf_r_[64]; static int lim_w_ = 0;
 // once and out once) instead of reading all 48 for every sample. The same peak exactly; NaN counts as 0, as fmaxf
 // skipped it.
 static float lim_qv_[64]; static uint32_t lim_qi_[64], lim_qh_ = 0, lim_qt_ = 0, lim_n_ = 0;
+// a new patch (init): nothing of the old one's sound left in the master's filters, compressor and limiter
+static void master_reset() {
+  for (int c = 0; c < 2; ++c) for (int b = 0; b < 3; ++b) eq_[c][b].z1 = eq_[c][b].z2 = 0.0f;
+  memset(lim_buf_l_, 0, sizeof(lim_buf_l_)); memset(lim_buf_r_, 0, sizeof(lim_buf_r_));
+  lim_qh_ = lim_qt_ = 0; lim_gain_ = 1.0f; comp_env_ = 0.0f; comp_g_ = 0.0f;
+}
 EXPORT void set_master_fx(float low, float mid, float high, float comp) { eq_db_[0] = low; eq_db_[1] = mid; eq_db_[2] = high; comp_amt_ = comp; }
 static void run_master(float* l, float* r) {
   // EQ: the gains glide, the filters are re-designed only when they move
@@ -1615,7 +1674,14 @@ static void run_fx(int slot, float* l, float* r) {
     int cmode = PI(slot, 4, 0); float cfb = P(slot, 5, 0) * 0.9f, cdl = P(slot, 6, 0);   // MODE CHORUS/FLANGER/VIBRATO, FEEDBACK, DELAY
     float base = cmode == 1 ? 24.0f + cdl * 20.0f : 240.0f + cdl * 200.0f, swing = cmode == 1 ? 200.0f : 600.0f;
     if (cmode == 2) mix = 1.0f;
+    // the delay's centre, its depth and the mix ramp across the block from the last block's: a knob turned moved
+    // the taps in jumps (11 Nov 2026)
+    static float ch_base0 = -1.0f, ch_dep0, ch_mix0;
+    if (ch_base0 < 0.0f) { ch_base0 = base; ch_dep0 = depth; ch_mix0 = mix; }
+    const float dbs = (base - ch_base0) * (1.0f / BLOCK), ddp = (depth - ch_dep0) * (1.0f / BLOCK), dmx = (mix - ch_mix0) * (1.0f / BLOCK);
+    { float tb = base, td = depth, tm = mix; base = ch_base0; depth = ch_dep0; mix = ch_mix0; ch_base0 = tb; ch_dep0 = td; ch_mix0 = tm; }
     for (int n = 0; n < BLOCK; ++n) {
+      base += dbs; depth += ddp; mix += dmx;
       chorus_phase_ += rate / SR; if (chorus_phase_ >= 1.0f) chorus_phase_ -= 1.0f;
       float s = SIN01(chorus_phase_);
       chorus_l_[chorus_w_] = DS(cfb > 0.0f ? l[n] + ch_fb_l_ * cfb : l[n]); chorus_r_[chorus_w_] = DS(cfb > 0.0f ? r[n] + ch_fb_r_ * cfb : r[n]);
@@ -1691,6 +1757,9 @@ static void run_rings_shared() {
   rp.damping = P(S_SHP, 3, v); rp.position = P(S_SHP, 4, v);
   float rt = P(S_SHP, 8, v), rf = P(S_SHP, 9, v), mix = P(S_SHP, 6, v), spread = P(S_SHP, 7, v);
   float level = P(S_AMP, 7, v), wet = 4.0f * level * level * mix;   // as a voice's AMP gain, without its envelope
+  static float wet_last = -1.0f;
+  float wet0 = wet_last < 0.0f ? wet : wet_last;
+  wet_last = wet;
   // Rings runs at 24 kHz on the FM-1 (engine/shim/rings/dsp/dsp.h): its excitation down and its output back up
   // through the halfband filter (Half24Down/Up; a mean of each pair and a straight line between let the source's top
   // fold into the strings' middle, 11 Nov 2026)
@@ -1708,8 +1777,9 @@ static void run_rings_shared() {
   rup1.run(o1, w1); rup2.run(o2, w2);
   for (int n = 0; n < BLOCK; ++n) {
     float c = (w1[n] + w2[n]) * 0.5f;
-    blk_l_[n] += (c + (w1[n] - c) * spread) * wet;
-    blk_r_[n] += (c + (w2[n] - c) * spread) * wet;
+    float wn = wet0 + (wet - wet0) * (float)(n + 1) * (1.0f / BLOCK);   // ramped from the last block's (a knob, a macro)
+    blk_l_[n] += (c + (w1[n] - c) * spread) * wn;
+    blk_r_[n] += (c + (w2[n] - c) * spread) * wn;
   }
 }
 #endif
@@ -1720,6 +1790,7 @@ static void early_work() {
 }
 #endif
 static void process_block() {
+  glide_step();
   float bpm = base_[S_GLO][0] > 1.0f ? base_[S_GLO][0] : 112.0f;
   clk_advance(BLOCK / SR * bpm / 60.0f * 4.0f);
   for (int i = 0; i < 6; ++i) ext_cur_[i] += (ext_tgt_[i] - ext_cur_[i]) * ext_slew_[i];

@@ -49,8 +49,10 @@ static struct {
     int lfo_hold;                             /* LFO held: K1 picks LEARN's source, K2-K4 link it */
     uint32_t edit_at;                         /* EDIT went down (a hold is UNDO), 0 up */
     int edit_long;
-    uint32_t sel_at;                          /* SEL went down (a hold turns LEARN on or off), 0 up */
+    uint32_t sel_at;                          /* SEL went down, 0 up */
     int sel_long;
+    uint32_t combo_at;                        /* SEL + EDIT both went down (held: LEARN on or off), 0 both up */
+    int combo_done;
     uint32_t lfo_at;                          /* LFO tapped, waiting for a second tap (two taps: the MATRIX) */
     uint32_t sel_tap, arp_at;                 /* SEL let go / ARP tapped, waiting for a second tap (two: chords / arp
                                                * off or back on) */
@@ -640,7 +642,7 @@ static void help(const char *s)
     if (mn.learn) {                           /* LEARN: a gold band in its place */
         char t[48] = "LEARN ";
         cat(t, src_name(learn_source()));
-        cat(t, ": ALGO SRC  HOLD SEL: DONE");
+        cat(t, ": ALGO SRC  SEL+EDIT: DONE");
         rrect(2, 0, 236, 15, K_GOLD, 4);
         icon(IC_KNOB, 6, 2, K_BG);
         cv_text(22, 1, &FONT_T, t, K_BG);
@@ -1172,7 +1174,7 @@ static void load_module(void)
     m = ui_mod(ch[mn.pick_ix]);
     for (i = 0; m && i < m->nparams && i < 32; i++)
         vals[i] = m->p[i].def;
-    rc_pause();
+    rc_fade_pause();
     rc_swap(slot, ch[mn.pick_ix], vals, m ? m->nparams : 0);
     rc_resume();
     mn.pick = 0;
@@ -1362,7 +1364,10 @@ static void knob(int k, int32_t e)
             v = (float)RM[j < 0 ? 0 : j > 2 ? 2 : j];
         }
         undo_note(UN_PARAM, slot, pofs(mn.page) + pi, rk_get_param(slot, pofs(mn.page) + pi), 0, 0, 0);
-        rc_set(slot, pofs(mn.page) + pi, v);
+        if (p->t == UT_NUM || p->t == UT_BIP)   /* continuous: glides; a list or a number of steps: at once */
+            rc_set_glide(slot, pofs(mn.page) + pi, v);
+        else
+            rc_set(slot, pofs(mn.page) + pi, v);
         if (mn.page == PG_AMP && pi == 11) {  /* MODE: the voices follow */
             int md = (int)(v + 0.5f);
             rc_patch.mode = md;
@@ -1462,10 +1467,24 @@ static int menu_input(uint32_t press, uint32_t btn)
     static const uint8_t ENV_CYC[] = {PG_AMP, PG_SHP}, LFO_CYC[] = {PG_MODA, PG_MODB, PG_LFO, PG_MSEQ, PG_MATRIX}, FX_CYC[] = {PG_FX1, PG_FX2};
     static const uint8_t SRC_CYC[] = {PG_SRC, PG_OSC}, ARP_CYC[] = {PG_ARP}, SEL_CYC[] = {PG_SEL}, GLO_CYC[] = {PG_GLO};
     int32_t e;
-    int k;
-    if (press >> B_EDIT & 1u) {               /* EDIT (12 Nov 2026): a tap turns the page when let go; held, UNDO */
+    int k, both = (btn >> B_EDIT & 1u) && (btn >> B_SEL & 1u);
+    /* SEL + EDIT held together (LEARN_MS): LEARN on or off. Neither key then taps, and EDIT's hold is no UNDO */
+    if (both) {
+        if (!mn.combo_at)
+            mn.combo_at = plat_ms() | 1u;
+        mn.edit_long = mn.sel_long = 1;
+        mn.sel_tap = 0;
+        if (!mn.combo_done && plat_ms() - mn.combo_at >= LEARN_MS) {
+            mn.combo_done = 1;
+            learn_set(!mn.learn);
+        }
+    } else if (!(btn >> B_EDIT & 1u) && !(btn >> B_SEL & 1u)) {
+        mn.combo_at = 0;
+        mn.combo_done = 0;
+    }
+    if (press >> B_EDIT & 1u) {               /* EDIT (10 Nov 2026): a tap turns the page when let go; held, UNDO */
         mn.edit_at = plat_ms() | 1u;
-        mn.edit_long = 0;
+        mn.edit_long = both;
     }
     if (mn.edit_at && (btn >> B_EDIT & 1u) && !mn.edit_long && plat_ms() - mn.edit_at >= HOLD_MS) {
         mn.edit_long = 1;
@@ -1536,21 +1555,19 @@ static int menu_input(uint32_t press, uint32_t btn)
         mn.arp_at = 0;
         page_button(ARP_CYC, 1);
     }
-    /* SEL (12 Nov 2026): held, LEARN on or off; a tap opens SEL once a second tap can't come (14 Nov); two taps:
-     * chords off / back on */
+    /* SEL (10 Nov 2026): a tap opens SEL once a second tap can't come; two taps: chords off / back on; held with
+     * EDIT: LEARN (above); held alone: nothing */
     if (press >> B_SEL & 1u) {
-        if (mn.sel_tap && plat_ms() - mn.sel_tap < EDIT_DOUBLE_MS) {
+        if (!both && mn.sel_tap && plat_ms() - mn.sel_tap < EDIT_DOUBLE_MS) {
             mn.sel_tap = 0;
             fixed_toggle(PG_SEL, 2, &mn.chord_mem, "CHORDS");
         } else {
             mn.sel_at = plat_ms() | 1u;
-            mn.sel_long = 0;
+            mn.sel_long = both;
         }
     }
-    if (mn.sel_at && (btn >> B_SEL & 1u) && !mn.sel_long && plat_ms() - mn.sel_at >= HOLD_MS) {
-        mn.sel_long = 1;
-        learn_set(!mn.learn);
-    }
+    if (mn.sel_at && (btn >> B_SEL & 1u) && !mn.sel_long && plat_ms() - mn.sel_at >= HOLD_MS)
+        mn.sel_long = 1;                      /* held: never a tap */
     if (mn.sel_at && !(btn >> B_SEL & 1u)) {
         if (!mn.sel_long)
             mn.sel_tap = plat_ms() | 1u;      /* let go: a second tap may still come */
@@ -1639,7 +1656,7 @@ static void menu_tick(void)
         mn.edited = 0;
         if (rk_fm1_fit_needed()) {
             char t[8];
-            rc_pause();
+            rc_fade_pause();
             rc_refit();
             rc_resume();
             int_text(rk_fm1_status(2), t);
