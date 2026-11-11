@@ -18,11 +18,15 @@ key w1 down 100
 wait 300
 key w1 up
 wait 300
+tap HOME
+wait 500
 tap SEL
 wait 100
 tap SEL
 wait 450
 shot y_chord_fm1_off.png
+wait 1500
+shot y_home_warn.png
 key w3 down 100
 wait 300
 key w3 up

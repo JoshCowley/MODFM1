@@ -43,21 +43,119 @@ static float vm_sx = 1.0f, vm_sy = 1.0f;
 static int32_t vm_ox, vm_oy;
 static int32_t vmx(int32_t x) { return vm_on ? vm_ox + (int32_t)((float)x * vm_sx + 0.5f) : x; }
 static int32_t vmy(int32_t y) { return vm_on ? vm_oy + (int32_t)((float)y * vm_sy + 0.5f) : y; }
-static void vm_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c) { cv_line(vmx(x0), vmy(y0), vmx(x1), vmy(y1), c); }
+/* The fine look (update 37): the pictures' bars about half as thick, every shape and line laid over what is under it
+ * at about three quarters, with a 1 px halo of its own colour around it. Words, and boxes with words in them
+ * (vf_keep: the layer boxes, HOME's tabs, the SEL keyboards), keep their size. */
+#define VF_FILL 212u                          /* a shape over what's under it (of 256) */
+#define VF_LINE 232u                          /* a line */
+#define VF_HALO 70u                           /* its halo */
+static int vf_keep;                           /* 1: boxes with words (size kept); 2: drawn as before (the keyboards) */
+static void vf_px(int32_t x, int32_t y, uint16_t c, uint32_t a)   /* canvas coordinates: c over the pixel, a of 256 */
+{
+    y += cv_oy;
+    if ((uint32_t)x < cv_w && y >= cv_y0 && y < cv_y1) {
+        uint16_t *p = &cv_px[(uint32_t)y * cv_w + (uint32_t)x];
+        *p = swap16(mix565(c, swap16(*p), a));
+    }
+}
+static void vf_span(int32_t x, int32_t y, int32_t w, uint16_t c, uint32_t a)
+{
+    for (; w > 0; w--, x++)
+        vf_px(x, y, c, a);
+}
+static void vf_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c, uint32_t a)
+{
+    int32_t dx = x1 > x0 ? x1 - x0 : x0 - x1, sx = x0 < x1 ? 1 : -1;
+    int32_t dy = y1 > y0 ? y0 - y1 : y1 - y0, sy = y0 < y1 ? 1 : -1;
+    int32_t err = dx + dy, guard = 2000;
+    while (guard--) {
+        int32_t e2 = 2 * err;
+        vf_px(x0, y0, c, a);
+        if (x0 == x1 && y0 == y1)
+            break;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+}
+/* a bar's narrow side halved (a bar: one side at least twice the other, the narrow one 3 px or more) */
+static void vf_thin(int32_t *x, int32_t *y, int32_t *w, int32_t *h)
+{
+    if (vf_keep)
+        return;
+    if (*w >= 3 && *h >= 2 * *w) {
+        int32_t n = (*w + 1) / 2;
+        *x += (*w - n) / 2;
+        *w = n;
+    } else if (*h >= 3 && *w >= 2 * *h) {
+        int32_t n = (*h + 1) / 2;
+        *y += (*h - n) / 2;
+        *h = n;
+    }
+}
+static void vf_ring(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)   /* the halo: the pixels just outside */
+{
+    vf_span(x, y - 1, w, c, VF_HALO);
+    vf_span(x, y + h, w, c, VF_HALO);
+    for (int32_t i = 0; i < h; i++) {
+        vf_px(x - 1, y + i, c, VF_HALO);
+        vf_px(x + w, y + i, c, VF_HALO);
+    }
+}
+static void vm_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c)
+{
+    if (vf_keep == 2) {
+        cv_line(vmx(x0), vmy(y0), vmx(x1), vmy(y1), c);
+        return;
+    }
+    int32_t a = vmx(x0), b = vmy(y0), d = vmx(x1), e = vmy(y1), ax = d > a ? d - a : a - d, ay = e > b ? e - b : b - e;
+    if (ax >= ay) {                           /* mostly across: the halo above and below; else either side */
+        vf_line(a, b - 1, d, e - 1, c, VF_HALO);
+        vf_line(a, b + 1, d, e + 1, c, VF_HALO);
+    } else {
+        vf_line(a - 1, b, d - 1, e, c, VF_HALO);
+        vf_line(a + 1, b, d + 1, e, c, VF_HALO);
+    }
+    vf_line(a, b, d, e, c, VF_LINE);
+}
 static void vm_pset(int32_t x, int32_t y, uint16_t c) { cv_pset(vmx(x), vmy(y), c); }
 static void vm_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
 {
-    int32_t x0 = vmx(x), y0 = vmy(y), x1 = vmx(x + w), y1 = vmy(y + h);
-    cv_rect(x0, y0, x1 > x0 ? x1 - x0 : 1, y1 > y0 ? y1 - y0 : 1, c);
+    int32_t x0 = vmx(x), y0 = vmy(y), x1 = vmx(x + w), y1 = vmy(y + h), ww = x1 > x0 ? x1 - x0 : 1, hh = y1 > y0 ? y1 - y0 : 1;
+    if (vf_keep == 2) {
+        cv_rect(x0, y0, ww, hh, c);
+        return;
+    }
+    vf_thin(&x0, &y0, &ww, &hh);
+    vf_ring(x0, y0, ww, hh, c);
+    for (int32_t i = 0; i < hh; i++)
+        vf_span(x0, y0 + i, ww, c, ww == 1 || hh == 1 ? VF_LINE : VF_FILL);
 }
 static void vm_rrect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c, int32_t r)
 {
+    static const uint8_t INSET[5][4] = {{0}, {1}, {1, 0}, {2, 1, 0}, {2, 1, 0, 0}};
     int32_t x0 = vmx(x), y0 = vmy(y), x1 = vmx(x + w), y1 = vmy(y + h);
-    int32_t ww = x1 > x0 ? x1 - x0 : 1, hh = y1 > y0 ? y1 - y0 : 1;
+    int32_t ww = x1 > x0 ? x1 - x0 : 1, hh = y1 > y0 ? y1 - y0 : 1, i;
     if (vm_on) r = r * ww / (w > 0 ? w : 1);
+    if (vf_keep == 2) {
+        if (r * 2 > ww) r = ww / 2;
+        if (r * 2 > hh) r = hh / 2;
+        rrect(x0, y0, ww, hh, c, r);
+        return;
+    }
+    vf_thin(&x0, &y0, &ww, &hh);
+    if (r > 4) r = 4;
     if (r * 2 > ww) r = ww / 2;
     if (r * 2 > hh) r = hh / 2;
-    rrect(x0, y0, ww, hh, c, r);
+    vf_span(x0 + r, y0 - 1, ww - 2 * r, c, VF_HALO);   /* the halo, following the rounding */
+    vf_span(x0 + r, y0 + hh, ww - 2 * r, c, VF_HALO);
+    for (i = r; i < hh - r; i++) {
+        vf_px(x0 - 1, y0 + i, c, VF_HALO);
+        vf_px(x0 + ww, y0 + i, c, VF_HALO);
+    }
+    for (i = 0; i < hh; i++) {
+        int32_t in = i < r ? INSET[r][i] : i >= hh - r ? INSET[r][hh - 1 - i] : 0;
+        vf_span(x0 + in, y0 + i, ww - 2 * in, c, vf_keep ? 236u : VF_FILL);
+    }
 }
 static int32_t vm_text(int32_t x, int32_t y, const felucca_font_t *f, const char *t, uint16_t c)
 {
@@ -82,14 +180,9 @@ static float env_max(const float *mon)
 }
 
 /* the page's glow(): a soft halo above and below, then the line; ys one per 2 pixels across */
-static void glow(const int16_t *ys, int n, uint16_t c)
+static void glow(const int16_t *ys, int n, uint16_t c)   /* (the fine look's lines bring their own halo, update 37) */
 {
-    uint16_t halo = mix565(c, K_WELL, 46);
     int i;
-    for (i = 1; i < n; i++) {
-        cv_line((i - 1) * 2, ys[i - 1] - 1, i * 2, ys[i] - 1, halo);
-        cv_line((i - 1) * 2, ys[i - 1] + 1, i * 2, ys[i] + 1, halo);
-    }
     for (i = 1; i < n; i++)
         cv_line((i - 1) * 2, ys[i - 1], i * 2, ys[i], c);
 }

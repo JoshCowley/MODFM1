@@ -25,7 +25,7 @@ img[src*="fm1-"]{width:320px;image-rendering:pixelated}
 <p>Nov 11, 2026 · Josh Cowley</p>
 <p>FM1 Rack turns the M-VAVE FM-1 into a small modular synthesizer built from Mutable Instruments' open module code. Each sound is a short chain of modules: a source (Plaits or Braids), a shaper (Rings or a filter), two modulators, two effects and an amplifier. You play it from the keys, shape it with the knobs, and link anything to anything through a modulation matrix. This manual covers the firmware on the FM-1; the browser version has its own manual, the <a href="index.html">FM1 Rack Manual</a>.</p>
 <blockquote>
-<p><strong>This is a test version (update 36).</strong> The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, and the chords' and arpeggio's FM-1 / SEND switches have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.</p>
+<p><strong>This is a test version (update 37).</strong> The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, and the finer pictures have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.</p>
 </blockquote>
 <h2 id="contents">Contents</h2>
 <ol type="1">
@@ -333,7 +333,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </ul></li>
 <li><strong>The modulators</strong> loaded in MOD A and MOD B sit under the path; small arrows pulse up from them as their outputs move.</li>
 <li><strong>The macros</strong>: each with its value (0–100), an arc in its knob's colour, and what it moves (the first destination, "+2" if more), or <strong>UNSET</strong>. K1–K4 turn them; so do MIDI CC 20–23.</li>
-<li><strong>The scope</strong> along the bottom draws the output, coloured by the modulation moving right now (violet for an LFO, gold for a macro, pink for MSEQ), and glowing white at its loudest. The effects leave marks: a reverb's fading trail, a delay's echo, a chorus' second line. Tabs over it show what's on besides the preset: the scale and chord, the arpeggiator, a tuning.</li>
+<li><strong>The scope</strong> along the bottom draws the output, coloured by the modulation moving right now (violet for an LFO, gold for a macro, pink for MSEQ), and glowing white at its loudest. The effects leave marks: a reverb's fading trail, a delay's echo, a chorus' second line. Tabs over it show what's on besides the preset: the scale and chord, the arpeggiator, a tuning. A red tab on the left, <strong>KEYS: FM-1 OFF</strong> (or <strong>ARP: FM-1 OFF</strong>), means the keys or the arpeggio aren't playing the FM-1's sound (two quick taps on SEL or ARP bring it back; section 10).</li>
 </ul>
 <p><strong>PRESET</strong> chooses the preset, <strong>ALGORITHM</strong> jumps a category and <strong>SELECT</strong> sets the voices (1–6). Changing preset, or loading a module into a slot, fades the sound out over a few milliseconds and the new one in, so it doesn't click; nothing of the old sound (its echoes, its last few samples) carries into the new one. Knobs glide to their new values over a few milliseconds too, so a level, a cutoff or a chorus turned quickly doesn't click or zipper; a choice from a list (a model, a type) still changes at once. Tap HOME again for <strong>RACK</strong>, a list of every slot, AMP, the outputs and how many matrix routes are set.</p>
 <p><img src="img/fm1-rack.png" alt="RACK" /></p>
@@ -679,7 +679,8 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </tr>
 </tbody>
 </table>
-<p>Each tap gesture shows what it did, for example <strong>CHORDS: ON FM-1 OFF</strong> or <strong>ARP: SEND ON: CH 3</strong>. Notes already sounding stop at once when you switch their stage off. With ON FM-1 off and SEND on, the FM-1 is silent and the other synth plays; with both off, nothing plays. SEND needs GLOBAL › MIDI OUT on (the message says so if it's off). The arpeggio's switches only matter while the arpeggiator is running (ARP › MODE).</p>
+<p>Each tap gesture shows what it did, for example <strong>CHORDS: ON FM-1 OFF</strong> or <strong>ARP: SEND ON: CH 3</strong>, and while one is off HOME shows a red <strong>KEYS: FM-1 OFF</strong> or <strong>ARP: FM-1 OFF</strong> tab, so a silent FM-1 is never a mystery.</p>
+<p><img src="img/fm1-fm1off.png" alt="HOME with the keys&#39; FM-1 stage off" /> Notes already sounding stop at once when you switch their stage off. With ON FM-1 off and SEND on, the FM-1 is silent and the other synth plays; with both off, nothing plays. SEND needs GLOBAL › MIDI OUT on (the message says so if it's off). The arpeggio's switches only matter while the arpeggiator is running (ARP › MODE).</p>
 <p>These work with or without a STYLE. To change the chord type or turn the arpeggiator off, use the SEL and ARP pages.</p>
 <h3 id="style-chords-bass-and-arpeggio-on-three-channels">STYLE: chords, bass and arpeggio on three channels</h3>
 <p>ARP's pages 3–5 turn the FM-1 into an accompaniment for itself and for other synths. While you hold a chord, it goes out in three layers:</p>
@@ -1378,34 +1379,38 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <td>PLAY ends latched notes; ARP › MODE OFF stops the arpeggiator</td>
 </tr>
 <tr class="odd">
-<td>The FM-1 is silent but notes go out</td>
-<td>Two quick taps on SEL (chords) or ARP (arpeggio) turn their FM-1 stage back on</td>
+<td>The keys are silent (except while recording), or HOME shows <strong>KEYS: FM-1 OFF</strong></td>
+<td>The chords' FM-1 stage is off: two quick taps on SEL turn it back on (or ARP › CHORD + ARP › CHD FM-1). Also check GLOBAL › MIDI › LOCAL is ON</td>
 </tr>
 <tr class="even">
+<td>The arpeggio is silent, or HOME shows <strong>ARP: FM-1 OFF</strong></td>
+<td>Two quick taps on ARP (or ARP FM-1 on CHORD + ARP)</td>
+</tr>
+<tr class="odd">
 <td>Another synth gets nothing</td>
 <td>GLOBAL › MIDI OUT on; three quick taps on SEL or ARP turn SEND on; check CHORD CH / ARP CH</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>A moment of silence when loading a module or editing a delay or reverb</td>
 <td>Normal: memory is being laid out again (<strong>MEMORY FITTED</strong>)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>A short gap when pressing SAVE on a sequencer page</td>
 <td>Normal: the flash is being written</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>A page opens a moment after the tap</td>
 <td>Normal on buttons with a hold or a double tap: the tap acts once it can't be either</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>The installer can't find the FM-1</td>
 <td>Plug it straight into the Mac (no hub), quit DAWs and Web MIDI tabs, run the script again</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>The FM-1 won't start after an install</td>
 <td>Follow section 2, "Getting back to the stock firmware"</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>A preset sounds wrong</td>
 <td>Note its name and what you hear, and report it: not every preset has been heard on an FM-1 yet</td>
 </tr>

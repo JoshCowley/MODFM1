@@ -214,6 +214,14 @@ range (at once against gliding), each against the same moment with nothing chang
 `build/host/audition OUTDIR` (built by build_host.sh) plays every preset through the firmware's sound path (rc_load,
 rc_render at 44.1 kHz) with a phrase for its category and writes a WAV each, with its peak and loudness.
 
+## The look
+
+The pictures (each page's well, HOME's tiles, the STYLE and layer pages) are drawn through vis.c's vm_* wrappers in a
+fine look (update 37): a bar's narrow side halved, shapes laid over what's under them at about 83 % (lines 91 %), each
+with a 1 px halo of its own colour at about 27 %. vf_keep 1 keeps boxes with words in them their size (the layer
+boxes, HOME's tabs); 2 draws as before (the SEL keyboards). HOME shows a red KEYS / ARP: FM-1 OFF tab while either is
+off the FM-1's sound.
+
 ## How it works
 
 - `rack_core.c`: presets (INIT, then the preset's differences, then each module's parameter ranges, packed in

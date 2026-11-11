@@ -214,6 +214,7 @@ static void vis_style(uint16_t c, int sub)
     float fl;
     char t[32], m[8];
     if (sub >= 3) {                           /* the layers: name, channel and sent or not, FM-1 or not */
+        vf_keep = 1;                          /* (boxes with words in them) */
         for (L = 0; L < 3; L++) {
             int32_t y = 1 + L * 12, ch = AI(A_CHCH + L), loc = lay_local(L), snd = lay_send(L);
             int act = L == L_ARP ? AI(A_MODE) != AM_OFF : L == L_BASS ? s > 0 : 1;
@@ -225,6 +226,7 @@ static void vis_style(uint16_t c, int sub)
             cv_text(62, y, &FONT_T, t, snd ? K_FG : K_DIM);
             cv_text(150, y, &FONT_T, loc ? "+ FM-1" : "FM-1 OFF", loc ? K_FG : K_DIM);
         }
+        vf_keep = 0;
         if (!GI(G_MOUT))
             cv_text(4, 38, &FONT_T, "GLOBAL > MIDI OUT IS OFF", K_WARN);
         else if (!s)
@@ -251,7 +253,7 @@ static void vis_style(uint16_t c, int sub)
                 char ch = p[i];
                 int hit = ch != '.' && ch != '-';
                 int32_t h = ch == 'R' ? 22 : hit ? 16 : ch == '-' ? 5 : 1;
-                uint16_t col = i == cur ? mix565(K_FG, base, (uint32_t)(255.0f * fl)) : hit || ch == '-' ? mix565(base, K_WELL, ch == '-' ? 90 : 190) : RGB(29, 29, 27);
+                uint16_t col = i == cur ? mix565(K_FG, base, (uint32_t)(255.0f * fl)) : hit || ch == '-' ? mix565(base, K_WELL, ch == '-' ? 110 : 240) : RGB(29, 29, 27);
                 rrect(x0 + i * bw, y + 22 - h, bw > 3 ? bw - 2 : 1, h, col, 1);
             }
         }
@@ -505,9 +507,11 @@ static void vis_system(uint16_t c)
 
 static void vis_fixed(int pg, int sub, uint16_t c)
 {
-    if (pg == PG_SEL) {
+    if (pg == PG_SEL) {                       /* the keyboards: drawn solid, as before */
+        vf_keep = 2;
         if (sub == 0) vis_sel_chord(c);
         else vis_sel_keys(c);
+        vf_keep = 0;
     } else if (pg == PG_ARP) {
         if (sub >= 2) vis_style(c, sub);
         else vis_arp(c);
@@ -567,6 +571,15 @@ static void home_chips(void)
 {
     char t[24];
     int32_t x = 222;
+    vf_keep = 1;
+    {                                         /* update 37: a warning when the keys or the arp aren't on the FM-1 */
+        int kc = !lay_local(L_CHORD), ka = AI(A_MODE) != AM_OFF && !lay_local(L_ARP);
+        if (kc || ka) {
+            const char *s = kc && ka ? "KEYS+ARP: FM-1 OFF" : kc ? "KEYS: FM-1 OFF" : "ARP: FM-1 OFF";
+            rrect(4, 2, text_w(&FONT_T, s) + 6, 11, K_WARN, 3);
+            cv_text(7, 2, &FONT_T, s, K_BG);
+        }
+    }
     if (GI(G_TUNE)) {
         const char *s = UI_OPT[UP_GLO[G_TUNE].opt + GI(G_TUNE) % NTUNE];
         x -= text_w(&FONT_T, s) + 8;
@@ -599,6 +612,7 @@ static void home_chips(void)
         rrect(x, 2, text_w(&FONT_T, t) + 6, 11, K_CHD, 3);
         cv_text(x + 3, 2, &FONT_T, t, K_BG);
     }
+    vf_keep = 0;
 }
 
 /* -------------------------------------------------- OSC: two cycles of its wave at its level, and the mixer's faders */

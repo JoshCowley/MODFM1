@@ -4,7 +4,7 @@ Nov 11, 2026 · Josh Cowley
 
 FM1 Rack turns the M-VAVE FM-1 into a small modular synthesizer built from Mutable Instruments' open module code. Each sound is a short chain of modules: a source (Plaits or Braids), a shaper (Rings or a filter), two modulators, two effects and an amplifier. You play it from the keys, shape it with the knobs, and link anything to anything through a modulation matrix. This manual covers the firmware on the FM-1; the browser version has its own manual, the [FM1 Rack Manual](index.html).
 
-> **This is a test version (update 36).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, and the chords' and arpeggio's FM-1 / SEND switches have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
+> **This is a test version (update 37).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, and the finer pictures have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
 
 ## Contents
 
@@ -193,7 +193,7 @@ HOME shows the preset's category, name and number (or its user slot), the sound'
     - A red tile is a module the preset needs that didn't fit in memory.
 - **The modulators** loaded in MOD A and MOD B sit under the path; small arrows pulse up from them as their outputs move.
 - **The macros**: each with its value (0–100), an arc in its knob's colour, and what it moves (the first destination, "+2" if more), or **UNSET**. K1–K4 turn them; so do MIDI CC 20–23.
-- **The scope** along the bottom draws the output, coloured by the modulation moving right now (violet for an LFO, gold for a macro, pink for MSEQ), and glowing white at its loudest. The effects leave marks: a reverb's fading trail, a delay's echo, a chorus' second line. Tabs over it show what's on besides the preset: the scale and chord, the arpeggiator, a tuning.
+- **The scope** along the bottom draws the output, coloured by the modulation moving right now (violet for an LFO, gold for a macro, pink for MSEQ), and glowing white at its loudest. The effects leave marks: a reverb's fading trail, a delay's echo, a chorus' second line. Tabs over it show what's on besides the preset: the scale and chord, the arpeggiator, a tuning. A red tab on the left, **KEYS: FM-1 OFF** (or **ARP: FM-1 OFF**), means the keys or the arpeggio aren't playing the FM-1's sound (two quick taps on SEL or ARP bring it back; section 10).
 
 **PRESET** chooses the preset, **ALGORITHM** jumps a category and **SELECT** sets the voices (1–6). Changing preset, or loading a module into a slot, fades the sound out over a few milliseconds and the new one in, so it doesn't click; nothing of the old sound (its echoes, its last few samples) carries into the new one. Knobs glide to their new values over a few milliseconds too, so a level, a cutoff or a chorus turned quickly doesn't click or zipper; a choice from a list (a model, a type) still changes at once. Tap HOME again for **RACK**, a list of every slot, AMP, the outputs and how many matrix routes are set.
 
@@ -444,7 +444,10 @@ All four are on to start with. Switch them with quick taps, or on ARP's last pag
 | On the page | CHD FM-1 | CHD SEND |
 | | ARP FM-1 | ARP SEND |
 
-Each tap gesture shows what it did, for example **CHORDS: ON FM-1 OFF** or **ARP: SEND ON: CH 3**. Notes already sounding stop at once when you switch their stage off. With ON FM-1 off and SEND on, the FM-1 is silent and the other synth plays; with both off, nothing plays. SEND needs GLOBAL › MIDI OUT on (the message says so if it's off). The arpeggio's switches only matter while the arpeggiator is running (ARP › MODE).
+Each tap gesture shows what it did, for example **CHORDS: ON FM-1 OFF** or **ARP: SEND ON: CH 3**, and while one is off HOME shows a red **KEYS: FM-1 OFF** or **ARP: FM-1 OFF** tab, so a silent FM-1 is never a mystery.
+
+![HOME with the keys' FM-1 stage off](../web/manual/img/fm1-fm1off.png)
+ Notes already sounding stop at once when you switch their stage off. With ON FM-1 off and SEND on, the FM-1 is silent and the other synth plays; with both off, nothing plays. SEND needs GLOBAL › MIDI OUT on (the message says so if it's off). The arpeggio's switches only matter while the arpeggiator is running (ARP › MODE).
 
 These work with or without a STYLE. To change the chord type or turn the arpeggiator off, use the SEL and ARP pages.
 
@@ -749,7 +752,8 @@ The Voices column gives how many notes each plays at once on the FM-1 (mono, leg
 | **SHED n** on the status strip | Voices were dropped for time. Play fewer notes, lower the voices, switch an effect off, or choose lighter modules |
 | No effect on a preset | It may be switched off: hold FX, let go, then one or two taps; or check the HOME tile for OFF |
 | Chords or the arpeggiator won't stop | PLAY ends latched notes; ARP › MODE OFF stops the arpeggiator |
-| The FM-1 is silent but notes go out | Two quick taps on SEL (chords) or ARP (arpeggio) turn their FM-1 stage back on |
+| The keys are silent (except while recording), or HOME shows **KEYS: FM-1 OFF** | The chords' FM-1 stage is off: two quick taps on SEL turn it back on (or ARP › CHORD + ARP › CHD FM-1). Also check GLOBAL › MIDI › LOCAL is ON |
+| The arpeggio is silent, or HOME shows **ARP: FM-1 OFF** | Two quick taps on ARP (or ARP FM-1 on CHORD + ARP) |
 | Another synth gets nothing | GLOBAL › MIDI OUT on; three quick taps on SEL or ARP turn SEND on; check CHORD CH / ARP CH |
 | A moment of silence when loading a module or editing a delay or reverb | Normal: memory is being laid out again (**MEMORY FITTED**) |
 | A short gap when pressing SAVE on a sequencer page | Normal: the flash is being written |

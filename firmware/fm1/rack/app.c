@@ -493,9 +493,9 @@ static void home_well(void)
     for (x = 1; x < 228; x++) {               /* the wave: tinted by what moves it, white where it is loud */
         int32_t dev = y[x] - mid, ad = dev < 0 ? -dev : dev;
         uint16_t c = mix565(K_FG, body, (uint32_t)(ad * 255 / (mid - 2)));
-        cv_line(x - 1, y[x - 1] - 1, x, y[x] - 1, mix565(c, K_WELL, 50));
-        cv_line(x - 1, y[x - 1] + 1, x, y[x] + 1, mix565(c, K_WELL, 50));
-        cv_line(x - 1, y[x - 1], x, y[x], c);
+        cv_line(x - 1, y[x - 1] - 1, x, y[x] - 1, mix565(c, K_WELL, 40));   /* (finer, update 37: a fainter halo, */
+        cv_line(x - 1, y[x - 1] + 1, x, y[x] + 1, mix565(c, K_WELL, 40));   /* the line at about 85 %) */
+        cv_line(x - 1, y[x - 1], x, y[x], mix565(c, K_WELL, 220));
     }
     home_chips();
     cv_blit(6, HOME_WY);
