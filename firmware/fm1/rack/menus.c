@@ -860,9 +860,10 @@ static void draw_param_page(int pg)
     title[0] = 0;
     if (is_fixed(pg)) {
         static const char *const GT[] = {"SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"};
-        static const char *const ST[] = {"SCALE + CHORD", "KEYS + STRUM"}, *const AT[] = {"ARPEGGIATOR", "HOLD + TURING"};
+        static const char *const ST[] = {"SCALE + CHORD", "KEYS + STRUM"}, *const AT[] = {"ARPEGGIATOR", "HOLD + TURING", "STYLE",
+                                                                                                    "LAYER MIDI CH", "ON THE FM-1"};
         int ic = pg == PG_GLO ? (mn.sub == 3 ? IC_MIDI : mn.sub == 4 ? IC_OUT : IC_GLOBAL) : pg == PG_SEL ? (mn.sub ? IC_SCALE : IC_CHORD) : IC_ARP;
-        header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 6] : pg == PG_SEL ? ST[mn.sub & 1] : AT[mn.sub & 1],
+        header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 6] : pg == PG_SEL ? ST[mn.sub & 1] : AT[mn.sub % 5],
                ic, npages(pg), mn.sub);
         page_well(pg);
         off = page_first(m, mn.sub);
@@ -1226,8 +1227,9 @@ static void fixed_changed(int pg, int pi, float old, float v)
         } else if (pi >= G_LOW) {
             master_apply();
         }
-    } else if (pg == PG_ARP && (pi == A_HOLD || (pi == A_MODE && ((old < 0.5f) != (v < 0.5f))))) {
-        rc_push(PLE_ARP_CLEAR, 0, 0.0f, 0.0f);   /* the arp on or off, HOLD changed: start from the keys held now */
+    } else if (pg == PG_ARP && (pi == A_HOLD || pi >= A_STYLE || (pi == A_MODE && ((old < 0.5f) != (v < 0.5f))))) {
+        rc_push(PLE_ARP_CLEAR, 0, 0.0f, 0.0f);   /* the arp on or off, HOLD or a STYLE setting changed: start again
+                                                  * from the keys held now (the layers' notes end first) */
     }
     settings_touch();
 }

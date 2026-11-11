@@ -15,15 +15,16 @@
 #define RC_IN_UNITY
 #include "rack_core.c"
 
-#define SET_MAGIC 0x524B4C32u                 /* "RKL2": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC 0x524B4C33u                 /* "RKL3": the settings record; "RKL1" (stage 2) keeps its first three */
 #define SET_MAGIC1 0x524B4C31u
+#define SET_MAGIC2 0x524B4C32u                /* "RKL2": ARP's 8 values only (before STYLE): all but the new ones kept */
 typedef struct {
     uint32_t magic;
     uint8_t preset;
     int8_t octave;
     uint8_t voices;                           /* 0: the preset's own (GLOBAL > VOICES AUTO) */
     uint8_t rsv;
-    float glo[19], sel[8], arp[8];            /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*) */
+    float glo[19], sel[8], arp[18];           /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*); ARP 8-17: STYLE */
 } settings_t;
 static settings_t set;
 #include "ui_defs.h"
@@ -819,7 +820,7 @@ static void leds(uint32_t lit, uint32_t keys)
     uint32_t dim = glow ? ((1u << NB) - 1u) & ~lit : 0u, mid = 0u, dimk = 0u, midk = 0u, play = 1u << B_PLAY, k;
     if (CI(C_TYPE) != CT_OFF || CI(C_QNT))
         mid |= 1u << B_SEL;
-    if (AI(A_MODE) != AM_OFF)
+    if (AI(A_MODE) != AM_OFF || AI(A_STYLE))
         mid |= 1u << B_ARP;
     if (mn.page == PG_SEL)
         for (k = 0; k < NKEYS; k++) {
@@ -1023,6 +1024,12 @@ void app_init(void)
     if (plat_cpu2_set(1) == 0)                /* the second core (now: the one time it may start) renders half the voices */
         rk_set_worker(plat_cpu2_run, plat_cpu2_wait);
     n = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
+    if (n == (int)(sizeof set - 10u * sizeof(float)) && set.magic == SET_MAGIC2) {   /* RKL2: the same, shorter */
+        for (i = A_STYLE; i < NA; i++)
+            set.arp[i] = UP_ARP[i].def;
+        set.magic = SET_MAGIC;
+        n = (int)sizeof set;
+    }
     if (n != (int)sizeof set || set.magic != SET_MAGIC) {
         int ok1 = n >= 8 && set.magic == SET_MAGIC1;   /* stage 2's record: its preset, octave and voices stay */
         uint8_t p = set.preset, v = set.voices;

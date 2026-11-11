@@ -13,13 +13,18 @@
 enum { G_TEMPO, G_MIDICH, G_VOICES, G_CLOCK, G_VEL, G_ANIM, G_LED, G_TUNE, G_TROOT, G_A4, G_BEND, G_PROG, G_MOUT,
        G_OUTCH, G_LOCAL, G_LOW, G_MID, G_HIGH, G_COMP, NG };
 enum { C_SCALE, C_KEY, C_TYPE, C_VOICE, C_QNT, C_HARM, C_ZONE, C_STRUM, NC };
-enum { A_MODE, A_RATE, A_OCT, A_GATE, A_HOLD, A_MUT, A_LOOP, A_SWING, NA };
+enum { A_MODE, A_RATE, A_OCT, A_GATE, A_HOLD, A_MUT, A_LOOP, A_SWING,
+       A_STYLE, A_BOCT, A_ACC, A_CLEN,           /* STYLE (style_def.py): the style, the bass's octave, accents, length */
+       A_CHCH, A_BSCH, A_ARCH,                    /* each layer's MIDI channel (0 off, 1-16) */
+       A_LCH, A_LBS, A_LAR, NA };                 /* which layers the FM-1 plays itself */
+enum { L_CHORD, L_BASS, L_ARP };                  /* STYLE's three layers */
+#define ST_HELD 1                                 /* STYLE HELD: the layers held as long as the chord, no rhythm */
 enum { CT_OFF, CT_TRIAD, CT_7TH, CT_9TH, CT_11TH, CT_SUS4, CT_6TH, CT_POWER };
 enum { VO_CLOSE, VO_LEAD, VO_OPEN, VO_INV1, VO_INV2, VO_OCT };
 enum { AM_OFF, AM_UP, AM_DOWN, AM_UPDN, AM_DNUP, AM_RANDOM, AM_ORDER, AM_CHORD, AM_REPEAT, AM_UP8, AM_CONV, AM_DIVG,
        AM_PINKY, AM_THUMB, AM_TURING };
 /* rack_core's queue: the play events (rc_do hands them to pl_event) */
-enum { PLE_KEY_ON = 16, PLE_KEY_OFF, PLE_ZONE, PLE_RESET, PLE_ARP_CLEAR };
+enum { PLE_KEY_ON = 16, PLE_KEY_OFF, PLE_ZONE, PLE_RESET, PLE_ARP_CLEAR };   /* (ARP_CLEAR: STYLE starts afresh too) */
 
 #define GI(i) ((int)(set.glo[i] + 0.5f))
 /* the sequencer's (seq.c, after this file) */
@@ -248,11 +253,13 @@ typedef struct {
     uint8_t n, active, sus;                   /* its notes; held; let go while the sustain pedal was down */
     uint16_t on;                              /* which of them sound (a strum sounds them one by one) */
     uint8_t note[PL_MAXN];
+    uint8_t sn, root, vel;                    /* STYLE: its chord's notes (in note[]), root, velocity (0-127) */
+    uint32_t ord;                             /* STYLE: when it was pressed (the latest held key's chord plays) */
 } pl_raw_t;
 static pl_raw_t pl_raw[PL_NRAW];
 static uint8_t pl_snd[128];                   /* how many keys sound each note */
 typedef struct { uint32_t at; uint8_t note, raw, on, k; float vel; } pl_ev_t;
-#define PL_NPEND 64
+#define PL_NPEND 128                          /* (STYLE: a chord hit, its bass and the arp at once) */
 static pl_ev_t pl_pend[PL_NPEND];
 static int pl_npend;
 static uint32_t pl_now;                       /* codec frames */
@@ -279,10 +286,19 @@ static volatile struct {
     uint32_t ring_w;
     float bpm_in;                             /* the MIDI clock's tempo, 0: none */
     uint32_t clock_at;                        /* plat_ms of the last MIDI clock */
+    uint32_t st_step, st_seq;                 /* STYLE: the step it played last, counted */
 } pv;
 
 static float rand01(void) { pl_rng = pl_rng * 1664525u + 1013904223u; return (float)(pl_rng >> 8) * (1.0f / 16777216.0f); }
 
+static void midi_ch_note(int ch0, int note, int vel)   /* ch0: 0-15 */
+{
+    uint32_t ch = (uint32_t)ch0 & 15u;
+    if (vel)
+        plat_midi_send(0x09u | (0x90u | ch) << 8 | (uint32_t)note << 16 | (uint32_t)vel << 24, TO_USB);
+    else
+        plat_midi_send(0x08u | (0x80u | ch) << 8 | (uint32_t)note << 16, TO_USB);
+}
 static void midi_out_note(int note, int vel)
 {
     uint32_t ch = (uint32_t)GI(G_OUTCH) & 15u;
@@ -408,6 +424,26 @@ static void latch_release_all(void)
         }
 }
 
+/* STYLE (after the arpeggiator, below) */
+static uint8_t lay_loc[3][128], lay_out[3][128];   /* each layer's notes sounding: on the FM-1, out over MIDI */
+static uint16_t lay_tot[3];                         /* the out ones, all together */
+static int8_t lay_ch[3];                            /* the channel its notes went out on (it may change under them) */
+static struct {
+    int on, running;                          /* a chord to play; the rhythm started */
+    uint8_t note[PL_MAXN], n, root;
+    int8_t iv3, iv5, iv7, ivp;                /* the chord's third, fifth, seventh and the next scale step, above the root */
+    float vel;
+    uint32_t next_at, step, ticks, ord;
+    uint8_t held[PL_MAXN], nheld;             /* HELD: the chord notes and bass sounding */
+    int hbass;
+} st;
+
+static void lay_all_off(void);
+static int style_on(void) { return AI(A_STYLE) > 0; }
+static void style_refresh(int clear);
+static void lay_on(int L, int note, float vel);
+static void lay_off(int L, int note);
+
 static void pl_key_on(int raw, int note, float vel)
 {
     pl_raw_t *r;
@@ -457,6 +493,20 @@ static void pl_key_on(int raw, int note, float vel)
         pv.chord_seq++;
     }
     sq_note_in(raw, notes, n);               /* the sequencer: REC, step entry, the last notes (seq.c) */
+    if (style_on()) {                         /* STYLE: the chord goes to the layers (the latest key held plays) */
+        static uint32_t ord;
+        int rt = CI(C_TYPE) == CT_OFF && !q && !(zone_on() && (pl_zone & 0x55u)) ? (n ? notes[0] : note)
+                 : CI(C_QNT) ? quantize(note) : note;
+        r->sn = (uint8_t)n;
+        r->root = (uint8_t)(rt < 0 ? 0 : rt > 127 ? 127 : rt);
+        r->vel = (uint8_t)(vel * 127.0f);
+        r->ord = ++ord;
+        r->n = 0;                             /* the layers play it, not the key */
+        if (AI(A_MODE) != AM_OFF)
+            arp_add(raw, notes, n);
+        style_refresh(0);
+        return;
+    }
     if (AI(A_MODE) != AM_OFF) {
         arp_add(raw, notes, n);
         r->n = 0;                             /* the arp plays them */
@@ -482,6 +532,13 @@ static void pl_key_off(int raw)
     }
     pl_raw[raw].active = 0;
     sq_note_out(raw);
+    if (style_on()) {                         /* STYLE: the chord of the latest key still held, or (HOLD) the last */
+        if (AI(A_MODE) != AM_OFF)
+            arp_remove(raw);
+        pl_raw[raw].sn = 0;
+        style_refresh(0);
+        return;
+    }
     if (pl_latch_on()) {                      /* the latch: it keeps sounding */
         pl_latched[raw] = 1;
         return;
@@ -525,6 +582,7 @@ static void pl_reset(int all)                 /* the engine was reset (a preset 
     for (i = 0; i < 128; i++)                 /* MIDI out: what it had sent on ends */
         if (pl_snd[i])
             midi_out_note(i, 0);
+    lay_all_off();                            /* STYLE's layers: what they had sent ends */
     memset(pl_snd, 0, sizeof pl_snd);
     memset(pl_latched, 0, sizeof pl_latched);
     sq_reset_counts();
@@ -535,7 +593,11 @@ static void pl_reset(int all)                 /* the engine was reset (a preset 
         if (all)
             pl_raw[i].active = pl_raw[i].sus = 0;
     }
+    st.nheld = 0;
+    st.hbass = -1;
     if (all) {
+        st.on = 0;
+        st.running = 0;
         pa.count = 0;
         pa.latch_free = 0;
         pl_zone = 0;
@@ -671,6 +733,230 @@ static void arp_step(uint32_t at)             /* a step at frame at: its notes o
     pa.step++;
 }
 
+/* ------------------------------------------------------------------ STYLE: the chord in three layers --- */
+/* While a chord is held (or latched with HOLD), STYLE plays it as three layers: the chord in the style's rhythm, a
+ * bass line from its root, and the arpeggiator (when its MODE is on). Each layer goes to its own MIDI channel (ARP >
+ * LAYER CH; MIDI OUT on) and, if chosen, to the FM-1's own sound (ARP > ON FM-1). The patterns: style_def.py. */
+static void lay_on(int L, int note, float vel)
+{
+    int v;
+    if (note < 0 || note > 127 || L < 0 || L > 2)
+        return;
+    if (AI(A_LCH + L) && lay_loc[L][note] < 255 && !lay_loc[L][note]++)
+        snd_on(note, vel, 1, 0);
+    if (!AI(A_CHCH + L) || !GI(G_MOUT) || lay_out[L][note] == 255)
+        return;
+    if (!lay_tot[L])
+        lay_ch[L] = (int8_t)(AI(A_CHCH + L) - 1);
+    lay_tot[L]++;
+    if (lay_out[L][note]++)
+        return;
+    v = (int)(vel * 127.0f + 0.5f);
+    midi_ch_note(lay_ch[L], note, v < 1 ? 1 : v > 127 ? 127 : v);
+}
+static void lay_off(int L, int note)
+{
+    if (note < 0 || note > 127 || L < 0 || L > 2)
+        return;
+    if (lay_loc[L][note] && !--lay_loc[L][note])
+        snd_off(note, 1, 0);
+    if (lay_out[L][note]) {
+        lay_tot[L]--;
+        if (!--lay_out[L][note])
+            midi_ch_note(lay_ch[L], note, 0);
+    }
+}
+static void lay_all_off(void)
+{
+    int L, x;
+    for (L = 0; L < 3; L++)
+        for (x = 0; x < 128; x++) {
+            while (lay_loc[L][x]) { if (!--lay_loc[L][x]) snd_off(x, 1, 0); }
+            if (lay_out[L][x]) { lay_out[L][x] = 0; midi_ch_note(lay_ch[L], x, 0); }
+        }
+    memset(lay_tot, 0, sizeof lay_tot);
+}
+
+static int iv_find(int a, int b, int dflt)    /* the first interval of the chord, as a pitch class, that is a or b */
+{
+    int i;
+    for (i = 0; i < st.n; i++) {
+        int d = pc12(st.note[i] - st.root);
+        if (d == a || d == b)
+            return d;
+    }
+    return dflt;
+}
+static int st_bass(char c)                    /* a bass step's note: from the root, in the bass's octave */
+{
+    float bo = set.arp[A_BOCT];
+    int b = 36 + pc12(st.root) + 12 * (bo < 0.0f ? -(int)(-bo + 0.5f) : (int)(bo + 0.5f)), d = 0;
+    switch (c) {
+    case '5': d = st.iv5; break;
+    case '3': d = st.iv3; break;
+    case '7': d = st.iv7; break;
+    case '8': d = 12; break;
+    case 'b': d = st.iv5 - 12; break;
+    case 'p': d = st.ivp; break;
+    case 'a': d = -1; break;
+    }
+    b += d;
+    while (b < 12) b += 12;
+    while (b > 100) b -= 12;
+    return b;
+}
+static void st_held_off(void)
+{
+    int i;
+    for (i = 0; i < st.nheld; i++)
+        lay_off(L_CHORD, st.held[i]);
+    st.nheld = 0;
+    if (st.hbass >= 0)
+        lay_off(L_BASS, st.hbass);
+    st.hbass = -1;
+}
+static void st_held_on(void)                  /* HELD: the chord and its root held */
+{
+    int i;
+    for (i = 0; i < st.n; i++) {
+        lay_on(L_CHORD, st.note[i], st.vel);
+        st.held[i] = st.note[i];
+    }
+    st.nheld = st.n;
+    st.hbass = st_bass('R');
+    lay_on(L_BASS, st.hbass, st.vel);
+}
+static void style_stop(void)
+{
+    st_held_off();
+    st.on = 0;
+    st.running = 0;
+}
+/* the chord to play: the latest key held; none held: stop, unless HOLD keeps the last (clear: HOLD's latch ends) */
+static void style_refresh(int clear)
+{
+    int i, best = -1, sc = 0, ns;
+    uint32_t bo = 0;
+    for (i = 0; i < PL_NRAW; i++)
+        if (pl_raw[i].active && pl_raw[i].sn && pl_raw[i].ord >= bo) {
+            bo = pl_raw[i].ord;
+            best = i;
+        }
+    if (!style_on()) {
+        style_stop();
+        return;
+    }
+    if (best < 0) {
+        if (clear || !AI(A_HOLD))
+            style_stop();
+        return;
+    }
+    {
+        pl_raw_t *r = &pl_raw[best];
+        int rel, di, many = CI(C_TYPE) == CT_OFF && !zone_on();   /* chords off: the keys held make the chord */
+        uint32_t sig = bo;
+        if (many) {
+            sig = 0;
+            for (i = 0; i < PL_NRAW; i++)
+                if (pl_raw[i].active && pl_raw[i].sn)
+                    sig = sig * 31u + pl_raw[i].ord;
+        }
+        if (st.on && st.ord == sig)
+            return;
+        st.ord = sig;
+        if (many) {
+            int a[PL_MAXN + 2], na = 0, j;
+            for (i = 0; i < PL_NRAW; i++)
+                if (pl_raw[i].active)
+                    for (j = 0; j < pl_raw[i].sn; j++)
+                        na = add_unique(a, na, pl_raw[i].note[j]);
+            sort_i(a, na);
+            st.n = (uint8_t)(na > PL_MAXN ? PL_MAXN : na);
+            for (i = 0; i < st.n; i++)
+                st.note[i] = (uint8_t)a[i];
+            st.root = st.note[0];             /* the lowest key: the bass's root */
+        } else {
+            st.n = r->sn;
+            for (i = 0; i < st.n; i++)
+                st.note[i] = r->note[i];
+            st.root = r->root;
+        }
+        st.vel = (float)r->vel / 127.0f;
+        st.iv3 = (int8_t)iv_find(3, 4, 4);
+        st.iv5 = (int8_t)iv_find(7, 6, 7);
+        st.iv7 = (int8_t)iv_find(10, 11, 12);
+        rel = pc12(st.root - CI(C_KEY));
+        di = deg_index(rel);
+        sdeg(&ns);
+        st.ivp = (int8_t)(di >= 0 ? step_of(di + 1) - step_of(di) : 2);
+        (void)sc;
+    }
+    if (!st.on) {                             /* from silence: the pattern from its first step */
+        st.on = 1;
+        st.running = 0;
+        st.ticks = 0;
+    }
+    if (AI(A_STYLE) == ST_HELD) {
+        st_held_off();
+        st_held_on();
+    }
+}
+static const style_t *st_style(void)
+{
+    int s = AI(A_STYLE) - 2;
+    return s >= 0 && s < NSTYLE ? &STYLES[s] : 0;
+}
+static float st_frames(const style_t *S)      /* a step: a 16th, or an 8th-note triplet */
+{
+    if (GI(G_CLOCK) == 1 && pa.tick_frames > 0.0f)
+        return pa.tick_frames * (S->div == 3 ? 8.0f : 6.0f);
+    return (S->div == 3 ? 1.0f / 3.0f : 0.25f) * 60.0f / tempo_bpm() * PL_HZ;
+}
+static int st_tie(const char *p, int i, int len)   /* steps the note at i lasts: itself and the holds after it */
+{
+    int k = 1;
+    while (i + k < len && p[i + k] == '-')
+        k++;
+    return k;
+}
+static void style_step(uint32_t at)
+{
+    const style_t *S = st_style();
+    float d, acc = set.arp[A_ACC], v;
+    int i, k, j;
+    uint32_t t, len;
+    char c;
+    if (!S || !st.on)
+        return;
+    d = st_frames(S);
+    i = (int)(st.step % S->len);
+    t = at + (S->div == 16 && (i & 1) ? (uint32_t)(S->swing * 0.5f * d) : 0u);
+    c = S->chord[i];
+    if (c == 'X' || c == 'x' || c == 'o') {
+        k = st_tie(S->chord, i, S->len);
+        v = st.vel * (c == 'X' ? 1.0f : c == 'x' ? 1.0f - 0.35f * acc : 1.0f - 0.65f * acc);
+        len = (uint32_t)(((float)(k - 1) + 0.3f + 0.65f * set.arp[A_CLEN]) * d);
+        if (len < 882u) len = 882u;
+        for (j = 0; j < st.n; j++) {
+            pend(t, st.note[j], 250 + L_CHORD, 1, v < 0.05f ? 0.05f : v);
+            pend(t + len, st.note[j], 250 + L_CHORD, 0, 0.0f);
+        }
+    }
+    c = S->bass[i];
+    if (c != '.' && c != '-') {
+        int bn = st_bass(c);
+        k = st_tie(S->bass, i, S->len);
+        v = st.vel * (c == 'R' ? 1.0f : 1.0f - 0.25f * acc);
+        len = (uint32_t)(((float)(k - 1) + 0.85f) * d);
+        if (len < 882u) len = 882u;
+        pend(t, bn, 250 + L_BASS, 1, v < 0.05f ? 0.05f : v);
+        pend(t + len, bn, 250 + L_BASS, 0, 0.0f);
+    }
+    pv.st_step = (uint32_t)i;
+    pv.st_seq++;
+    st.step++;
+}
+
 /* a MIDI clock tick (0xF8), in the interrupt; CLOCK MIDI: the arp's steps */
 static void pl_clock_tick(void)
 {
@@ -682,12 +968,17 @@ static void pl_clock_tick(void)
     pa.last_tick = pl_now;
     pv.clock_at = plat_ms();
     sq_clock_tick();
+    if (GI(G_CLOCK) == 1 && st.on && st_style()) {   /* STYLE on MIDI clock: a step every 6 ticks (8: triplets) */
+        if (!st.running) { st.running = 1; st.step = 0; st.ticks = 0; }
+        if (st.ticks++ % (st_style()->div == 3 ? 8u : 6u) == 0u)
+            style_step(pl_now);
+    }
     if (GI(G_CLOCK) != 1 || AI(A_MODE) == AM_OFF || !pa.count)
         return;
     if (pa.ticks++ % ARP_TICKS[AI(A_RATE) > 5 ? 5 : AI(A_RATE)] == 0u)
         arp_step(pl_now);
 }
-static void pl_clock_start(void) { pa.ticks = 0; pa.idx = 0; pa.step = 0; }
+static void pl_clock_start(void) { pa.ticks = 0; pa.idx = 0; pa.step = 0; st.ticks = 0; st.step = 0; }
 
 /* each block (the interrupt, before the render): the arp's steps on the internal clock, then what falls due */
 static void pl_block(uint32_t n)
@@ -710,6 +1001,18 @@ static void pl_block(uint32_t n)
     } else {
         pa.running = 0;
     }
+    if (st.on && st_style() && GI(G_CLOCK) != 1) {   /* STYLE on the internal tempo */
+        float d = st_frames(st_style());
+        if (!st.running || (int32_t)(st.next_at - pl_now) < -(int32_t)d) {
+            st.running = 1;
+            st.next_at = pl_now;
+            st.step = 0;
+        }
+        while ((int32_t)(st.next_at - end) < 0) {
+            style_step(st.next_at);
+            st.next_at += (uint32_t)d;
+        }
+    }
     if (GI(G_MOUT) && GI(G_CLOCK) != 1) {     /* MIDI clock out on the internal tempo */
         pa.clock_acc -= (float)n;
         while (pa.clock_acc <= 0.0f) {
@@ -723,7 +1026,13 @@ static void pl_block(uint32_t n)
             for (j = i; j < pl_npend - 1; j++)
                 pl_pend[j] = pl_pend[j + 1];
             pl_npend--;
-            if (e.raw == 255) {               /* the arp: always local, always out */
+            if (e.raw == 255 && style_on()) { /* the arp as STYLE's third layer */
+                if (e.on) lay_on(L_ARP, e.note, e.vel);
+                else lay_off(L_ARP, e.note);
+            } else if (e.raw >= 250 && e.raw <= 252) {   /* STYLE's chord and bass steps */
+                if (e.on) lay_on(e.raw - 250, e.note, e.vel);
+                else lay_off(e.raw - 250, e.note);
+            } else if (e.raw == 255) {        /* the arp: always local, always out */
                 if (e.on) snd_on(e.note, e.vel, 1, 1);
                 else snd_off(e.note, 1, 1);
             } else if (e.raw < PL_NRAW) {     /* a strummed note: e.note is its place in the key's chord */
@@ -748,7 +1057,17 @@ static void pl_event(int type, int a, float x, float y)
     case PLE_KEY_OFF: pl_key_off(a); break;
     case PLE_ZONE: pl_zone_key(a, x > 0.5f); break;
     case PLE_RESET: pl_reset(a); break;
-    case PLE_ARP_CLEAR: pa.count = 0; pa.latch_free = 0; pa.idx = 0; latch_release_all(); break;   /* and the latch */
+    case PLE_ARP_CLEAR:                       /* and the latch; STYLE: from the keys held now, its notes ended */
+        pa.count = 0; pa.latch_free = 0; pa.idx = 0; latch_release_all();
+        st_held_off();
+        { int i, j, k; for (i = 0; i < pl_npend;) {   /* the layers' notes still due: dropped, those on ended */
+            if (pl_pend[i].raw >= 250 && pl_pend[i].raw <= 252) { for (j = i; j < pl_npend - 1; j++) pl_pend[j] = pl_pend[j + 1]; pl_npend--; } else i++; }
+          (void)k; }
+        lay_all_off();
+        st.on = 0;
+        st.running = 0;
+        style_refresh(1);
+        break;
     case RCE_ALL_OFF: pl_reset(1); break;
     }
 }

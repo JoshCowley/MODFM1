@@ -202,6 +202,70 @@ static void vis_sel_keys(uint16_t c)
     }
 }
 
+/* -------------------------------------------------- ARP's STYLE pages: the style's two rows (chord, bass) and the
+ * arp's, the step playing lit; on LAYER CH and ON FM-1, where each layer goes */
+static void vis_arp(uint16_t c);
+static uint32_t vst_seq, vst_at;
+static void vis_style(uint16_t c, int sub)
+{
+    static const char *const LN[3] = {"CHORD", "BASS", "ARP"};
+    int s = AI(A_STYLE), i, L;
+    uint32_t now = plat_ms();
+    float fl;
+    char t[32], m[8];
+    if (sub >= 3) {                           /* the layers: name, channel, FM-1 or not */
+        for (L = 0; L < 3; L++) {
+            int32_t y = 1 + L * 12, ch = AI(A_CHCH + L), loc = AI(A_LCH + L);
+            int act = L == L_ARP ? AI(A_MODE) != AM_OFF : s > 0;
+            uint16_t col = act ? (L == 0 ? K_CHD : L == 1 ? c : K_ARP) : K_FAINT;
+            rrect(4, y, 50, 11, col, 3);
+            cv_text(8, y, &FONT_T, LN[L], K_BG);
+            t[0] = 0;
+            if (ch) { cat(t, "MIDI CH "); int_text(ch, m); cat(t, m); } else cat(t, "NO MIDI");
+            cv_text(62, y, &FONT_T, t, ch && GI(G_MOUT) ? K_FG : K_DIM);
+            cv_text(150, y, &FONT_T, loc ? "+ FM-1" : "MIDI ONLY", loc ? K_FG : K_DIM);
+        }
+        if (!GI(G_MOUT))
+            cv_text(4, 38, &FONT_T, "GLOBAL > MIDI OUT IS OFF", K_WARN);
+        else if (!s)
+            cv_text(4, 38, &FONT_T, "STYLE OFF: LAYERS NOT IN USE", K_DIM);
+        return;
+    }
+    if (s < 2) {
+        cv_text(114 - text_w(&FONT_XS, s ? "HELD: LAYERS HOLD THE CHORD" : "STYLE OFF: TURN K1") / 2, 14, &FONT_XS,
+                s ? "HELD: LAYERS HOLD THE CHORD" : "STYLE OFF: TURN K1", K_DIM);
+        return;
+    }
+    {
+        const style_t *S = &STYLES[(s - 2) % NSTYLE];
+        int n = S->len, cur = st.on ? (int)(pv.st_step % (uint32_t)n) : -1;
+        int32_t bw = 220 / n, x0 = 4 + (220 - bw * n) / 2;
+        if (pv.st_seq != vst_seq) { vst_seq = pv.st_seq; vst_at = now; }
+        fl = 1.0f - (float)(now - vst_at) * 0.004f;
+        fl = fl < 0.0f ? 0.0f : fl;
+        for (L = 0; L < 2; L++) {
+            const char *p = L ? S->bass : S->chord;
+            int32_t y = 14 + L * 15;
+            uint16_t base = L ? c : K_CHD;
+            for (i = 0; i < n; i++) {
+                char ch = p[i];
+                int hit = ch != '.' && ch != '-';
+                int32_t h = ch == 'X' || ch == 'R' ? 12 : ch == 'o' ? 5 : hit ? 9 : ch == '-' ? 3 : 1;
+                uint16_t col = i == cur ? mix565(K_FG, base, (uint32_t)(255.0f * fl)) : hit || ch == '-' ? mix565(base, K_WELL, ch == '-' ? 90 : 190) : RGB(29, 29, 27);
+                rrect(x0 + i * bw, y + 12 - h, bw > 3 ? bw - 2 : 1, h, col, 1);
+            }
+        }
+        t[0] = 0;
+        cat(t, UI_OPT[UP_ARP[A_STYLE].opt + s]);
+        cat(t, n == 12 ? "  12/8" : n == 32 ? "  2 BARS" : "");
+        if (S->swing > 0.01f) cat(t, "  SWING");
+        cv_text(4, 1, &FONT_T, t, K_FG);
+        t[0] = 0;
+        cat(t, st.on ? "PLAYING" : "HOLD A CHORD");
+        cv_text(224 - text_w(&FONT_T, t), 1, &FONT_T, t, st.on ? c : K_DIM);
+    }
+}
+
 /* -------------------------------------------------- ARP: the pattern, the step it plays, the Turing register */
 static uint32_t va_seq, va_at;
 static void vis_arp(uint16_t c)
@@ -445,7 +509,8 @@ static void vis_fixed(int pg, int sub, uint16_t c)
         if (sub == 0) vis_sel_chord(c);
         else vis_sel_keys(c);
     } else if (pg == PG_ARP) {
-        vis_arp(c);
+        if (sub >= 2) vis_style(c, sub);
+        else vis_arp(c);
     } else {
         switch (sub) {
         case 0: vis_metronome(c); break;
@@ -506,6 +571,13 @@ static void home_chips(void)
         const char *s = UI_OPT[UP_GLO[G_TUNE].opt + GI(G_TUNE) % NTUNE];
         x -= text_w(&FONT_T, s) + 8;
         rrect(x, 2, text_w(&FONT_T, s) + 6, 11, K_GLO, 3);
+        cv_text(x + 3, 2, &FONT_T, s, K_BG);
+        x -= 4;
+    }
+    if (AI(A_STYLE)) {                        /* STYLE: its name */
+        const char *s = UI_OPT[UP_ARP[A_STYLE].opt + AI(A_STYLE) % (NSTYLE + 2)];
+        x -= text_w(&FONT_T, s) + 8;
+        rrect(x, 2, text_w(&FONT_T, s) + 6, 11, K_ARP, 3);
         cv_text(x + 3, 2, &FONT_T, s, K_BG);
         x -= 4;
     }

@@ -1,0 +1,34 @@
+wait 400
+tap GLO
+wait 600
+turn SELECT 3
+wait 300
+turn K2 1
+wait 300
+tap ARP
+wait 800
+turn SELECT 2
+wait 400
+turn K1 1
+wait 400
+key w1 down 100
+key w3 down 100
+wait 800
+key w5 down 100
+wait 800
+key w1 up
+key w3 up
+key w5 up
+wait 400
+turn K1 6
+wait 400
+key w2 down 100
+wait 2500
+key w2 up
+wait 300
+turn K1 27
+wait 300
+key w6 down 100
+wait 4500
+key w6 up
+wait 1500

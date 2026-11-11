@@ -14,6 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 from func_def import FUNC                # the firmware's own module (not on the page)
+from style_def import ARP_EXTRA, style_table   # ARP's STYLE and layer pages, the styles' patterns (firmware only)
 
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "../../../web/src/1-data.js"
@@ -109,7 +110,8 @@ def main():
     o_pg, o_n = params("OSC", osc)
     g_pg, g_n = params("GLO", d["GLOBAL"]["pages"][:GLO_PAGES] + [[]])
     s_pg, s_n = params("SEL", d["CHORD"]["pages"])
-    r_pg, r_n = params("ARP", d["ARPDEF"]["pages"])
+    r_pg, r_n = params("ARP", d["ARPDEF"]["pages"] + ARP_EXTRA)   # + STYLE, LAYER CH, ON FM-1 (style_def.py)
+    tables.append(style_table())
     tune = d["TUNINGS"]
     tables.append("static const float TUNE_CENTS[] = {" + ", ".join(f"{c:.2f}f" for t in tune for c in t[1]) + "};")
     at = 0

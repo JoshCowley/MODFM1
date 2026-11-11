@@ -1,10 +1,10 @@
 # FM1 Rack on the FM-1: Firmware Manual
 
-Nov 10, 2026 · Josh Cowley
+Nov 11, 2026 · Josh Cowley
 
 FM1 Rack turns the M-VAVE FM-1 into a small modular synthesizer built from Mutable Instruments' open module code. Each sound is a short chain of modules: a source (Plaits or Braids), a shaper (Rings or a filter), two modulators, two effects and an amplifier. You play it from the keys, shape it with the knobs, and link anything to anything through a modulation matrix. This manual covers the firmware on the FM-1; the browser version has its own manual, the [FM1 Rack Manual](index.html).
 
-> **This is a test version (update 32).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets and the button shortcuts have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
+> **This is a test version (update 34).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts and STYLE have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
 
 ## Contents
 
@@ -95,7 +95,7 @@ Each page button opens its first page; tap it again for its next page, and after
 | **ENV** | AMP (envelopes, voice mode) | the shaper (Rings or the filter) | |
 | **LFO** | MOD A | MOD B, the LFOs, MSEQ, the MATRIX | **Two taps: the MATRIX** |
 | **FX** | FX 1 | FX 2 | **Hold, let go, then one tap: FX 1 off or on; two taps: FX 2** (section 10) |
-| **ARP** | the arpeggiator | | **Two taps: the arpeggiator off**, and two again back on |
+| **ARP** | the arpeggiator | HOLD + TURING, STYLE, LAYER MIDI CH, ON THE FM-1 | **Two taps: the arpeggiator off**, and two again back on |
 | **SEL** | scale and chord | (SELECT turns to the keys page) | **Two taps: chords off**, and two again back on. **Hold: LEARN on or off** (section 8) |
 | **GLO** | GLOBAL settings | | |
 | **SAVE** | the SAVE page | SAVE again stores the preset | On a sequencer page: stores the sequencer |
@@ -424,12 +424,54 @@ It follows the tempo (GLOBAL › TEMPO) or MIDI clock, and the picture shows the
 
 **HOLD as a chord latch**: with HOLD on and MODE OFF, notes and chords keep sounding after you let go. Playing again once every key is up replaces them; keys added while others are held add to them. Turning HOLD off, changing MODE, or stopping the sequencer with PLAY ends them.
 
+### STYLE: chords, bass and arpeggio on three channels
+
+ARP's pages 3–5 turn the FM-1 into an accompaniment for itself and for other synths. While you hold a chord, a **style** plays it as three layers:
+
+- **CHORD**: the chord, in the style's rhythm;
+- **BASS**: a bass line built from the chord's root (root, fifth, third, seventh, octave, passing and approach notes);
+- **ARP**: the arpeggiator, when its MODE (page 1) is on.
+
+Each layer goes out on its own MIDI channel, and you choose which ones the FM-1 plays itself, so the FM-1 can play the chords while other synths take the bass and the arpeggio.
+
+![STYLE playing HOUSE](../web/manual/img/fm1-style.png) ![Where each layer goes](../web/manual/img/fm1-layers.png)
+
+**Page 3, STYLE**:
+
+- **STYLE**: OFF, HELD (the layers hold the chord with no rhythm) or one of 32 rhythms (below).
+- **BASS OCT**: the bass's octave, −2 to +1.
+- **ACCENT**: how much louder the accented steps are than the others.
+- **CHD LEN**: the chord hits' length, from short stabs to legato.
+
+**Page 4, LAYER MIDI CH**: **CHORD CH**, **BASS CH** and **ARP CH**, each OFF or 1–16 (1, 2 and 3 to start with).
+
+**Page 5, ON THE FM-1**: **CHORD**, **BASS** and **ARP**, each ON (the FM-1 plays it too) or OFF (MIDI only). To start with, the FM-1 plays the chords, and the bass and arpeggio go only to MIDI.
+
+How it plays:
+
+- A style starts from its first step when you press a chord with nothing held, at the tempo (GLOBAL › TEMPO) or on MIDI clock, and stops when you let go. With ARP › HOLD on, it keeps playing the last chord until you press another, stop with PLAY, or change a STYLE setting.
+- With SEL's CHORD on, each key's chord plays (the latest key you pressed). With CHORD OFF, the keys you hold together make the chord, and the lowest is the bass's root.
+- **GLOBAL › MIDI OUT must be on** for the layers to reach other synths. With STYLE OFF, everything plays as before, on GLOBAL › OUT CH.
+- The picture on the STYLE page shows the style's chord and bass rows, with the step playing lit; the layer pages show where each layer goes. HOME shows the style's name in a tab over the scope.
+
+| Group | Styles |
+| --- | --- |
+| Pop, rock, ballad | POP 8THS, POP PUSH, ROCK, POWER ROCK, BALLAD, 6/8 BALLAD |
+| Dance | HOUSE, DEEP HOUSE, TECHNO, DISCO, TRANCE, UK GARAGE |
+| Drum and bass | DNB ROLLER, LIQUID DNB, JUNGLE |
+| Hip-hop and lo-fi | BOOM BAP, TRAP, WEST COAST, LOFI, LOFI JAZZ |
+| Groove | FUNK, R&B, NEO SOUL |
+| Ambient | AMB SWELL, AMB PULSE, DRONE |
+| World and jazz | REGGAE, BOSSA NOVA, SAMBA, AFROBEAT, SALSA, JAZZ SWING |
+
+Most are one bar of 16ths; 6/8 BALLAD is in 12/8 triplets, and AMB SWELL, BOSSA NOVA and SALSA are two bars long. The swung styles (UK GARAGE, BOOM BAP, LOFI, LOFI JAZZ, NEO SOUL and others) swing their 16ths by themselves.
+
 ### Shortcuts while you play
 
 Three gestures change things without opening a menu:
 
 - **Two quick taps on SEL**: chords off. Two taps again bring back the chord you had (TRIAD if none was set). The message says **CHORDS OFF** or **CHORDS ON: TRIAD**.
-- **Two quick taps on ARP**: the arpeggiator off, and two again back to the mode it had.
+- **Two quick taps on ARP**: the arpeggiator off, and two again back to the mode it had. (A STYLE keeps playing its chord and bass layers.)
 - **Hold FX, let go, then tap FX**: after the hold the message says **TAP FX 1, TWO TAPS FX 2**. Within 2 seconds:
     - one tap turns FX 1 off or on;
     - two quick taps turn FX 2 off or on;

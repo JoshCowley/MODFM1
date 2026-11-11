@@ -1,0 +1,44 @@
+wait 400
+tap GLO
+wait 600
+turn SELECT 3
+wait 300
+turn K2 1
+wait 300
+tap ARP
+wait 800
+turn SELECT 2
+wait 400
+turn K1 8
+wait 600
+shot s_style.png
+key w1 down 100
+key w3 down 100
+key w5 down 100
+wait 2200
+shot s_playing.png
+key w1 up
+key w3 up
+key w5 up
+wait 300
+turn SELECT -2
+wait 300
+turn K1 1
+wait 300
+key w4 down 100
+key w6 down 100
+key w8 down 100
+wait 1500
+key w4 up
+key w6 up
+key w8 up
+wait 400
+turn SELECT 3
+wait 400
+shot s_layers.png
+turn SELECT 1
+wait 400
+shot s_onfm1.png
+tap HOME
+wait 600
+shot s_home.png
