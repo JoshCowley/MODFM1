@@ -214,6 +214,14 @@ range (at once against gliding), each against the same moment with nothing chang
 `build/host/audition OUTDIR` (built by build_host.sh) plays every preset through the firmware's sound path (rc_load,
 rc_render at 44.1 kHz) with a phrase for its category and writes a WAV each, with its peak and loudness.
 
+## Update 39
+
+- Sequencer: SELECT turns its pages (PATTERN / SPICE cursor on ALGORITHM, BANKS / SONG on K1). NOTES: K4 DYNAMICS
+  PP-FFF (lvl bits 0-2), SEL held + K4 the articulation (bits 4-6: staccato, tenuto, accent, marcato; seq.c plays
+  them: length x0.5 / full +, +1 / +2 dynamics, x0.75). Only EDIT deletes. A lasso moves: K1 steps, K2 semitones.
+- Note names by key signature (vis3.c key_sharps; flats '\x01' drawn by cv_text_acc).
+- HOME: no scope; a 16-row tab strip (home_strip) and the macros redrawn only when they change.
+
 ## Update 38
 
 - Buttons: presses are counted by the render (btn_count, every 5.8 ms) and input() takes each once; ms_stamp()

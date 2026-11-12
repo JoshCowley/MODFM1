@@ -17,7 +17,7 @@ wait 60
 key w8 up
 wait 300
 shot e_roll.png
-turn SELECT -4
+turn ALGO -1
 wait 200
 turn K1 1
 wait 200
@@ -37,7 +37,7 @@ wait 800
 release SAVE
 wait 300
 shot e_copied.png
-turn SELECT 6
+turn ALGO 2
 wait 200
 press SAVE
 wait 800

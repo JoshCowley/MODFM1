@@ -18,7 +18,8 @@
 #define SQ_BANKS 8
 #define SQ_MAGIC 0x53514231u                  /* "SQB1" */
 typedef struct {
-    uint8_t n[SQ_NOTES], len[SQ_NOTES], lvl[SQ_NOTES];   /* pitch, length in quarter steps, force 0-4 */
+    uint8_t n[SQ_NOTES], len[SQ_NOTES], lvl[SQ_NOTES];   /* pitch, length in quarter steps, dynamics (bits 0-2) and
+                                                        * articulation (bits 4-6, update 39: SQ_LV, SQ_ART) */
     uint8_t cnt, ratchet, chance, flags;      /* notes, 1-4, 0-100 %, bit 0 slide, bits 1-2 fill (1 FILL, 2 NOT FILL) */
     int8_t nudge;                             /* -32..31, 64ths of a step */
 } sq_step_t;
@@ -39,7 +40,13 @@ static sq_song_t sqs;
 static const char *const SQ_DIVS[10] = {"1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1BAR", "2BAR", "4BAR"};
 static const float SQ_DIV16[10] = {4.0f, 2.0f, 1.0f, 0.5f, 4.0f / 3.0f, 2.0f / 3.0f, 8.0f, 16.0f, 32.0f, 64.0f};
 static const uint8_t SQ_DIVTICK[10] = {24, 12, 6, 3, 16, 4, 48, 96, 192, 255};   /* MIDI clock ticks a step */
-static const char *const SQ_LEVELS[5] = {"GHOST", "SOFT", "NORM", "HARD", "ACC"};
+static const char *const SQ_LEVELS[5] = {"PP", "MP", "MF", "FF", "FFF"};   /* (update 39: dynamics) */
+/* articulations (update 39): none, staccato (half as long), tenuto (full, a little louder), accent (a dynamic
+ * louder), marcato (two louder, three quarters long) */
+static const char *const SQ_ARTS[5] = {"NONE", "STACC .", "TENUTO _", "ACCENT >", "MARCATO ^"};
+#define SQ_LV(x) ((x) & 7)
+#define SQ_ART(x) (((x) >> 4) & 7)
+#define SQ_MKLVL(lv, art) ((uint8_t)(((lv) & 7) | ((art) & 7) << 4))
 static const float SQ_LVEL[5] = {0.32f, 0.55f, 0.75f, 0.9f, 1.0f};
 static const char *const MS_RATES[7] = {"1/32", "1/16", "1/8", "1/4", "1/2", "1 BAR", "2 BARS"};
 static const float MS_BEATS[7] = {0.125f, 0.25f, 0.5f, 1.0f, 2.0f, 4.0f, 8.0f};
@@ -232,11 +239,15 @@ static void sq_step(int i, uint32_t tg, float d)
     r = s->ratchet < 1 ? 1 : s->ratchet > 4 ? 4 : s->ratchet;
     for (j = 0; j < s->cnt && j < SQ_NOTES; j++) {
         int pitch = s->n[j] + oct + (sq.song_on ? sq.trn : 0);
-        float vel = SQ_LVEL[s->lvl[j] > 4 ? 2 : s->lvl[j]] + spv;
+        int lv = SQ_LV(s->lvl[j]), art = SQ_ART(s->lvl[j]);
+        float vel, alen = art == 1 ? 0.5f : art == 4 ? 0.75f : 1.0f;
+        lv = lv > 4 ? 2 : lv;
+        lv += art == 3 ? 1 : art == 4 ? 2 : 0;
+        vel = SQ_LVEL[lv > 4 ? 4 : lv] + spv + (art == 2 ? 0.05f : 0.0f) + (lv > 4 ? 0.05f : 0.0f);
         vel = vel < 0.05f ? 0.05f : vel > 1.0f ? 1.0f : vel;
         for (k = 0; k < r; k++) {
             uint32_t tr = t + (uint32_t)((float)k * d / (float)r);
-            float len = r > 1 ? d / (float)r * 0.55f : (float)s->len[j] * 0.25f * d * (1.0f + spg * 0.5f);
+            float len = r > 1 ? d / (float)r * 0.55f * alen : (float)s->len[j] * 0.25f * d * (1.0f + spg * 0.5f) * alen;
             if (len < 882.0f) len = 882.0f;
             if ((s->flags & 1u) && r == 1 && len < d + 1323.0f)
                 len = d + 1323.0f;            /* slide: overlap the next, so a mono voice glides */

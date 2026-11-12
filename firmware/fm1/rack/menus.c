@@ -30,6 +30,7 @@ enum { PG_HOME, PG_RACK, PG_SRC, PG_SHP, PG_MODA, PG_MODB, PG_FX1, PG_FX2, PG_AM
 static int is_seq_page(int pg);               /* the sequencer's pages (seqpages.c) */
 static void seq_encoders(void);
 static void seq_delete(void);
+static int32_t cv_text_acc(int32_t x, int32_t y, const felucca_font_t *f, const char *s, uint16_t c);
 #define OSC_P0 24                             /* OSC's first parameter on AMP (engine/rack.cc OSC_WAVE) */
 #define K_OSC RGB(255, 214, 150)
 #define K_AMP RGB(255, 122, 107)
@@ -362,7 +363,7 @@ static void header(const char *tag, uint16_t c, const char *title, int ic, int p
     w = text_w(&FONT_T, tag) + 8;
     rrect(22, 4, w, 14, c, 3);
     cv_text(26, 4, &FONT_T, tag, K_BG);
-    cv_text(28 + w, 3, &FONT_B, title, K_FG);
+    cv_text_acc(28 + w, 3, &FONT_B, title, K_FG);
     for (i = 0; i < pages && pages > 1; i++) {
         int32_t x = 232 - (pages - 1 - i) * 9, r = i == sub ? 3 : 2;
         rrect(x - r, 11 - r, 2 * r + 1, 2 * r + 1, i == sub ? K_FG : K_DIM, r);

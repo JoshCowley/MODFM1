@@ -433,95 +433,24 @@ static void scope(int32_t w, int32_t h, uint16_t c)
 #include "frame.c"
 #include "seqpages.c"
 
-/* home's scope (13 Nov 2026: 40 rows at the bottom, one canvas). Its colours tell more than the wave: the matrix's
- * routes moving now tint it in their sources' colours (an LFO swinging violet, a macro gold, MSEQ pink), as much as
- * they move; the loud parts burn towards white; and the effects loaded leave their marks: the reverb a fading trail of
- * the last traces, the delay a dim echo of the wave further along, the chorus a second line beside it */
-#define HOME_WH 40
-#define HOME_WY 198u
-static int16_t hs_trail[3][114];              /* the reverb's trail: the last traces, every other point */
-static uint8_t hs_tw;
-static uint16_t home_tint(float *amount)      /* the moving routes' colours, mixed by how much each moves now */
+#define HOME_WY 198u                          /* HOME's bottom strip (the scope until update 38) */
+/* HOME's bottom strip (update 39: the scope is gone, as Josh asked): the tabs of what plays the keys besides the
+ * preset (scale and chord, arp, STYLE, a tuning, the red FM-1 OFF warning), redrawn only when one of them changes */
+#define HOME_SH 16
+static uint32_t home_strip_sig = 1u;
+static void home_strip(int force)
 {
-    const float *mon = rk_monitor(RS_AMP);
-    float wr = 0, wg = 0, wb = 0, wt = 0;
-    int r;
-    for (r = 0; r < 12; r++) {
-        int src, via;
-        float amt, x = fm_fabsf(mon[50 + r]);
-        uint16_t c;
-        if (!route_dst(r, &src, &via, &amt) || x < 0.002f)
-            continue;
-        c = src_colour(src);
-        x = x > 1.0f ? 1.0f : x;
-        wr += (float)(c >> 11) * x; wg += (float)((c >> 5) & 63u) * x; wb += (float)(c & 31u) * x; wt += x;
-    }
-    *amount = wt > 0.6f ? 0.6f : wt;
-    if (wt <= 0.0f)
-        return K_FG;
-    return (uint16_t)((uint16_t)(wr / wt) << 11 | (uint16_t)(wg / wt) << 5 | (uint16_t)(wb / wt));
-}
-static void home_well(void)
-{
-    static int16_t y[228];
-    int32_t x, i, mid = HOME_WH / 2;
-    uint32_t end = rc_scope_w, start = end - RC_SCOPE_N + 8u, k;
-    float tint_amt, t = vis_t();
-    uint16_t tint = home_tint(&tint_amt), body = mix565(tint, K_FG, (uint32_t)(tint_amt / 0.6f * 220.0f));
-    int rev = rc_patch.mod[RS_FX1] == 32 || rc_patch.mod[RS_FX2] == 32;
-    int dly = rc_patch.mod[RS_FX1] == 31 || rc_patch.mod[RS_FX2] == 31;
-    int cho = rc_patch.mod[RS_FX1] == 33 || rc_patch.mod[RS_FX2] == 33;
-    cv_begin(228, HOME_WH, K_BG);
-    rrect(0, 0, 228, HOME_WH, K_WELL, 4);
-    for (x = 12; x < 228; x += 12)
-        for (i = 5; i < HOME_WH; i += 10)
-            cv_pset(x, i, K_GRID);
-    if (rc_heavy) {
-        cv_text(114 - text_w(&FONT_XS, "TOO HEAVY FOR FM-1: MUTED") / 2, mid - 8, &FONT_XS, "TOO HEAVY FOR FM-1: MUTED", K_WARN);
-        cv_blit(6, HOME_WY);
+    uint32_t sig = (uint32_t)GI(G_TUNE) * 7919u ^ (uint32_t)AI(A_STYLE) * 131u ^ (uint32_t)AI(A_MODE) * 17u
+                   ^ (uint32_t)CI(C_TYPE) * 1031u ^ (uint32_t)CI(C_QNT) * 3u ^ (uint32_t)CI(C_KEY) * 65537u
+                   ^ (uint32_t)lay_local(L_CHORD) << 28 ^ (uint32_t)lay_local(L_ARP) << 29 ^ (uint32_t)rc_heavy << 30;
+    if (!force && sig == home_strip_sig)
         return;
-    }
-    for (k = 0; k < 400u; k++) {              /* a rising zero crossing near the start: a steady note stands still */
-        int16_t a = rc_scope[(start + k) & (RC_SCOPE_N - 1u)], b = rc_scope[(start + k + 1u) & (RC_SCOPE_N - 1u)];
-        if (a < 0 && b >= 0)
-            break;
-    }
-    if (k == 400u)
-        k = 0;
-    for (x = 0; x < 228; x++) {
-        int32_t v = rc_scope[(start + k + 2u * (uint32_t)x) & (RC_SCOPE_N - 1u)];
-        int32_t py = mid - (v * (mid - 3)) / 16384;
-        y[x] = (int16_t)(py < 1 ? 1 : py > HOME_WH - 2 ? HOME_WH - 2 : py);
-    }
-    if (rev) {                                /* the reverb: the last three traces, fading */
-        int j;
-        for (j = 0; j < 3; j++) {
-            const int16_t *tr = hs_trail[(hs_tw + 3u - 1u - (uint32_t)j) % 3u];
-            uint16_t tc = mix565(K_FX, K_WELL, (uint32_t)(90 - j * 28));
-            for (x = 1; x < 114; x++)
-                if (tr[x] || tr[x - 1])
-                    cv_line((x - 1) * 2, tr[x - 1], x * 2, tr[x], tc);
-        }
-        for (x = 0; x < 114; x++)
-            hs_trail[hs_tw][x] = y[x * 2];
-        hs_tw = (uint8_t)((hs_tw + 1u) % 3u);
-    }
-    if (dly)                                  /* the delay: an echo of the wave, further along and dimmer */
-        for (x = 25; x < 228; x++)
-            cv_line(x - 1, mid + (y[x - 25] - mid) / 2, x, mid + (y[x - 24] - mid) / 2, mix565(K_FX, K_WELL, 120));
-    if (cho) {                                /* the chorus: a second line beside the wave, drifting */
-        int32_t off = 1 + (int32_t)(1.5f + 1.5f * fm_sinf(t * 2.0f));
-        for (x = 1; x < 228; x++)
-            cv_line(x - 1, y[x - 1] + off, x, y[x] + off, mix565(RGB(80, 230, 220), K_WELL, 110));
-    }
-    for (x = 1; x < 228; x++) {               /* the wave: tinted by what moves it, white where it is loud */
-        int32_t dev = y[x] - mid, ad = dev < 0 ? -dev : dev;
-        uint16_t c = mix565(K_FG, body, (uint32_t)(ad * 255 / (mid - 2)));
-        cv_line(x - 1, y[x - 1] - 1, x, y[x] - 1, mix565(c, K_WELL, 40));   /* (finer, update 37: a fainter halo, */
-        cv_line(x - 1, y[x - 1] + 1, x, y[x] + 1, mix565(c, K_WELL, 40));   /* the line at about 85 %) */
-        cv_line(x - 1, y[x - 1], x, y[x], mix565(c, K_WELL, 220));
-    }
-    home_chips();
+    home_strip_sig = sig;
+    cv_begin(228, HOME_SH, K_BG);
+    if (rc_heavy)
+        cv_text(114 - text_w(&FONT_XS, "TOO HEAVY FOR FM-1: MUTED") / 2, 0, &FONT_XS, "TOO HEAVY FOR FM-1: MUTED", K_WARN);
+    else
+        home_chips();
     cv_blit(6, HOME_WY);
 }
 
@@ -659,11 +588,22 @@ static void draw_footer(void)                 /* (the status strip on top; the m
 /* home's macros as sliders (12 Nov 2026: 48 rows, under the tiles): each with what it moves underneath; LEARN: the
  * macro being linked framed gold */
 #define HM_H 48
-static void home_macros(void)
+static uint32_t home_macros_sig = 1u;
+static void home_macros(int force)            /* (update 39: drawn again only when a value, LEARN or a route changes) */
 {
     char t[24], n[8];
     int i;
-    uint32_t now = plat_ms();
+    uint32_t now = plat_ms(), sig = (uint32_t)mn.learn * 7u + (uint32_t)mn.learn_m * 31u + (mn.learn ? (now / 250u) & 1u : 0u);
+    for (i = 0; i < 4; i++)
+        sig = sig * 131u + (uint32_t)(rc_patch.macro[i] * 1000.0f);
+    for (i = 0; i < 18; i++) {
+        int src, via;
+        float amt;
+        sig = sig * 31u + route_dst(i, &src, &via, &amt) + (uint32_t)src * 977u;
+    }
+    if (!force && sig == home_macros_sig)
+        return;
+    home_macros_sig = sig;
     for (i = 0; i < 4; i++) {                 /* (one canvas each: the canvas holds 9600 pixels) */
         float v = rc_patch.macro[i], amt;
         int r, nt = 0, src, via, sel = mn.learn && !mn.learn_src && mn.learn_m == i;
@@ -744,9 +684,9 @@ static void draw_home(void)
         cv_text(234 - text_w(&FONT_T, "USER"), 5, &FONT_T, "USER", K_GOLD);
     }
     cv_blit(0, 10);
-    home_tiles();                             /* the chain, moving; the macros under it; the scope at the bottom */
-    home_macros();
-    home_well();
+    home_tiles();                             /* the chain, moving; the macros under it; the tabs at the bottom */
+    home_macros(1);
+    home_strip(1);
 }
 
 /* the lit buttons: the page's button (as the page's syncLeds) */
@@ -794,10 +734,10 @@ static void draw_well_only(void)
 {
     if (sv.open || mn.pick || sp.layer || mn.page == PG_RACK || mn.page == PG_MATRIX)
         return;
-    if (mn.page == PG_HOME) {
+    if (mn.page == PG_HOME) {                 /* (update 39: only the tiles move; macros and tabs when they change) */
         home_tiles();
-        home_macros();
-        home_well();
+        home_macros(0);
+        home_strip(0);
     } else if (is_seq_page(mn.page)) {
         seq_area();
     } else {

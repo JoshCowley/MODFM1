@@ -6,11 +6,54 @@
  * the EQ's curve and the CPU's history. */
 static const char *const NOTE12[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
+/* a note's name, spelt for the key signature (update 39): sharps in G, D, A, E, B and F# major (and their relative
+ * minors), flats otherwise (F, Bb, Eb, Ab, Db, and C by default). A flat is written '\x01': cv_text_acc draws it ♭ */
+static const char *const NOTE12F[12] = {"C", "D\x01", "D", "E\x01", "E", "F", "G\x01", "G", "A\x01", "A", "B\x01", "B"};
+static int key_sharps(void)
+{
+    int k = CI(C_KEY) % 12, maj = k;
+    if (in_scale(60 + k + 3) && !in_scale(60 + k + 4))
+        maj = (k + 3) % 12;                   /* a minor scale: its relative major's signature */
+    return maj == 7 || maj == 2 || maj == 9 || maj == 4 || maj == 11 || maj == 6;
+}
 static void note_name(int n, char *t)
 {
+    const char *nm = key_sharps() ? NOTE12[pc12(n)] : NOTE12F[pc12(n)];
     t[0] = 0;
-    cat(t, NOTE12[pc12(n)]);
-    int_text(idiv(n, 12) - 1, t + (NOTE12[pc12(n)][1] ? 2 : 1));
+    cat(t, nm);
+    int_text(idiv(n, 12) - 1, t + (nm[1] ? 2 : 1));
+}
+/* cv_text, and '\x01' drawn as a flat sign (the small font has no ♭) */
+static int32_t cv_text_acc(int32_t x, int32_t y, const felucca_font_t *f, const char *s, uint16_t c)
+{
+    char one[2] = {0, 0};
+    int keep = vf_keep;
+    vf_keep = 2;                              /* (drawn plain, as the words are) */
+    for (; *s; s++) {
+        if (*s == '\x01') {                  /* ♭: a stem, a small bowl at its foot */
+            int32_t b = y + f->h - 3, top = b - (f->h * 3) / 4;
+            cv_rect(x, top, 1, b - top + 1, c);
+            cv_rect(x + 1, b - 3, 2, 1, c);
+            cv_rect(x + 3, b - 2, 1, 2, c);
+            cv_rect(x + 1, b, 2, 1, c);
+            x += 5;
+        } else {
+            one[0] = *s;
+            x = cv_text(x, y, f, one, c);
+        }
+    }
+    vf_keep = keep;
+    return x;
+}
+static int32_t text_w_acc(const felucca_font_t *f, const char *s)
+{
+    int32_t w = 0;
+    char one[2] = {0, 0};
+    for (; *s; s++) {
+        one[0] = *s;
+        w += *s == '\x01' ? 5 : text_w(f, one);
+    }
+    return w;
 }
 
 /* the page's chordName: the root and quality that explain most of the notes, the bass after a slash */
@@ -155,8 +198,8 @@ static void vis_sel_chord(uint16_t c)
         name[0] = 0;
         cat(name, CI(C_QNT) ? "SCALE" : "SINGLE");
     }
-    cv_text(189 - text_w(text_w(&FONT_B, name) > 74 ? &FONT_XS : &FONT_B, name) / 2, 6,
-            text_w(&FONT_B, name) > 74 ? &FONT_XS : &FONT_B, name, fresh ? K_FG : CI(C_TYPE) ? mix565(K_FG, K_WELL, 160) : K_DIM);
+    cv_text_acc(189 - text_w_acc(text_w_acc(&FONT_B, name) > 74 ? &FONT_XS : &FONT_B, name) / 2, 6,
+            text_w_acc(&FONT_B, name) > 74 ? &FONT_XS : &FONT_B, name, fresh ? K_FG : CI(C_TYPE) ? mix565(K_FG, K_WELL, 160) : K_DIM);
     t[0] = 0;
     cat(t, NOTE12[key]);
     cat(t, " ");

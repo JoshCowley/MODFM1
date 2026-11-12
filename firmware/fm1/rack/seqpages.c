@@ -75,7 +75,7 @@ static void seq_dials(const char *const *l, char v[4][16], const float *f, uint1
             n[0] = (char)('1' + i);
             cv_text(3, -1, &FONT_T, n, K_FAINT);
             cv_text(11, -1, &FONT_T, l[i], K_DIM);
-            cv_text(4, 9, &FONT_T, v[i], K_FG);
+            cv_text_acc(4, 9, &FONT_T, v[i], K_FG);
             slider(5, 23, 47, f[i], c, 0, 0.0f, 0.0f, f[i], 0.0f, K_CELL);
         }
         cv_blit(2u + (uint32_t)i * 59u, 34);
@@ -148,26 +148,34 @@ static void pic_roll(void)                    /* NOTES: a piano roll of 16 steps
         for (i = 0; i < s->cnt; i++) {
             int32_t y = AH - 4 - (s->n[i] - lo) * (AH - 10) / (hi - lo), w = (int32_t)((float)s->len[i] * 0.25f * sw) - 1, sel = si == sq_cursor && i == sp.note_ix;
             int32_t nh = (AH - 10) / (hi - lo) - 1, t0;   /* (update 38: as tall as its lane, 4 to 9 px) */
-            uint16_t col = lvl_col(s->lvl[i], K_SEQC);
+            int dyn = SQ_LV(s->lvl[i]), art = SQ_ART(s->lvl[i]);
+            uint16_t col = lvl_col(dyn, K_SEQC);
             nh = nh < 4 ? 4 : nh > 9 ? 9 : nh;
             t0 = y - nh / 2;
             if (w < (int32_t)(sw * 0.75f)) w = (int32_t)(sw * 0.75f);   /* short notes: at least 3/4 of a step wide */
             if (flash_on(si)) col = mix565(K_FG, col, 90);
-            if (s->lvl[i] == 1) {             /* SOFT: an outline */
+            if (dyn == 0) {                   /* PP: an outline */
                 cv_rect(x0, t0, w, 1, col); cv_rect(x0, t0 + nh - 1, w, 1, col);
                 cv_rect(x0, t0, 1, nh, col); cv_rect(x0 + w - 1, t0, 1, nh, col);
             } else {
                 cv_rect(x0, t0, w, nh, col);
                 cv_rect(x0, t0, w, 1, mix565(K_FG, col, 70));   /* a light top edge */
             }
-            if (s->lvl[i] == 4) cv_rect(x0, y - 3, 3, 2, K_FG);
+            if (dyn == 4) cv_rect(x0, t0 - 1, 3, 2, K_FG);   /* FFF: a mark */
+            if (art) {                        /* the articulation, over the note's start (update 39) */
+                int32_t ax = x0 + 1, ay = t0 - 4;
+                if (art == 1) cv_rect(ax + 1, ay + 1, 2, 2, K_FG);                       /* staccato: a dot */
+                else if (art == 2) cv_rect(ax, ay + 2, 5, 1, K_FG);                      /* tenuto: a line */
+                else if (art == 3) { cv_line(ax, ay, ax + 4, ay + 2, K_FG); cv_line(ax + 4, ay + 2, ax, ay + 4, K_FG); }   /* accent > */
+                else { cv_line(ax, ay + 3, ax + 2, ay - 1, K_FG); cv_line(ax + 2, ay - 1, ax + 4, ay + 3, K_FG); }   /* marcato: a tepee */
+            }
             if (s->ratchet > 1) { int k; for (k = 1; k < s->ratchet; k++) cv_rect(x0 + k * (int32_t)sw / s->ratchet, y - 2, 1, 4, K_BG); }
             if (s->flags & 1u) cv_rect(x0 + w - 1, y - 1, 3, 2, K_FG);
             if (sel) {
                 cv_rect(x0 - 2, y - 4, w + 4, 1, K_FG); cv_rect(x0 - 2, y + 3, w + 4, 1, K_FG);
                 cv_rect(x0 - 2, y - 4, 1, 8, K_FG); cv_rect(x0 + w + 1, y - 4, 1, 8, K_FG);
                 note_name(s->n[i], t);
-                cv_text(x0 + w + 4 > 200 ? x0 - 26 : x0 + w + 4, y - 7, &FONT_T, t, K_FG);
+                cv_text_acc(x0 + w + 4 > 200 ? x0 - 26 : x0 + w + 4, y - 7, &FONT_T, t, K_FG);
             }
         }
         if (si == sq_cursor && sp.note_ix < 0 && (plat_ms() / 300u) & 1u) {
@@ -418,7 +426,8 @@ static void draw_seq_page(void)
     switch (mn.sub) {
     case SQP_NOTES: {
         int ok = sp.note_ix >= 0 && sp.note_ix < s->cnt;
-        l[0] = "NOTE"; l[1] = "PITCH"; l[2] = "LENGTH"; l[3] = "FORCE";
+        int artm = (in_btn >> B_SEL & 1u) != 0;   /* SEL held: K4 is the articulation (update 39) */
+        l[0] = "NOTE"; l[1] = "PITCH"; l[2] = "LENGTH"; l[3] = artm ? "ARTIC" : "DYNAMICS";
         if (ok) {
             int_text(sp.note_ix + 1, v[0]); cat(v[0], "/"); int_text(s->cnt, u); cat(v[0], u);
             f[0] = (float)(sp.note_ix + 1) / (float)s->cnt;
@@ -426,12 +435,14 @@ static void draw_seq_page(void)
             int_text(s->len[sp.note_ix] / 4, v[2]);
             if (s->len[sp.note_ix] % 4) { static const char *const Q[4] = {"", ".25", ".5", ".75"}; cat(v[2], Q[s->len[sp.note_ix] % 4]); }
             f[2] = (float)s->len[sp.note_ix] / 64.0f;
-            cat(v[3], SQ_LEVELS[s->lvl[sp.note_ix] > 4 ? 2 : s->lvl[sp.note_ix]]); f[3] = (float)(s->lvl[sp.note_ix] + 1) / 5.0f;
+            if (artm) { int a = SQ_ART(s->lvl[sp.note_ix]); cat(v[3], SQ_ARTS[a > 4 ? 0 : a]); f[3] = (float)a / 4.0f; }
+            else { int d = SQ_LV(s->lvl[sp.note_ix]); cat(v[3], SQ_LEVELS[d > 4 ? 2 : d]); f[3] = (float)(d + 1) / 5.0f; }
         } else {
             cat(v[0], s->cnt ? "-" : "EMPTY"); cat(v[1], "-"); cat(v[2], "-"); cat(v[3], "-");
         }
         seq_dials(l, v, f, K_SEQC);
-        help(sq.run ? "SELECT: STEP  K1 NOTE  K4 BELOW GHOST: DELETE" : "PLAY A KEY: WRITE THE STEP  K4 LOW: DELETE");
+        help(sp.lasso ? "LASSO: K1 STEPS  K2 PITCH  EDIT: DELETE" : artm ? "SEL HELD: K4 ARTICULATION" :
+             sq.run ? "SELECT: PAGE  K1 NOTE  EDIT: DELETE" : "PLAY A KEY: WRITE  EDIT: DELETE");
         break;
     }
     case SQP_PATTERN:
@@ -521,23 +532,23 @@ static void draw_seq_layer(void)
             if (s->cnt) {
                 if (s->cnt >= 3) chord_name(s->n, s->cnt, t);
                 else note_name(s->n[0], t);
-                while (text_w(&FONT_T, t) > 32 && t[1]) { int k = 0; while (t[k]) k++; t[k - 1] = 0; }
-                cv_text(x + 17 - text_w(&FONT_T, t) / 2, 19, &FONT_T, t, i % 4 == 0 ? K_BG : K_FG);
+                while (text_w_acc(&FONT_T, t) > 32 && t[1]) { int k = 0; while (t[k]) k++; t[k - 1] = 0; }
+                cv_text_acc(x + 17 - text_w_acc(&FONT_T, t) / 2, 19, &FONT_T, t, i % 4 == 0 ? K_BG : K_FG);
             }
             if (s->ratchet > 1) { int k; for (k = 0; k < s->ratchet; k++) cv_rect(x + 3 + k * 4, 29, 2, 2, K_FG); }
         }
         if (r == 0 || r == 1 || r == 2 || r == 3) {   /* the held step's values, one a row */
-            static const char *const LB[4] = {"K1 NOTE", "K2 FORCE", "K3 RATCHET", "K4 NUDGE"};
+            static const char *const LB[4] = {"K1 NOTE", "K2 DYNAMICS", "K3 RATCHET", "K4 NUDGE"};
             const sq_step_t *s = sp.held >= 0 ? &b->s[sp.held] : 0;
             rrect(158, 1, 78, 33, K_CELL, 4);
             cv_text(162, -1, &FONT_T, LB[r], K_DIM);
             t[0] = 0;
             if (!s || !s->cnt) cat(t, s ? "EMPTY" : "-");
             else if (r == 0) note_name(s->n[0], t);
-            else if (r == 1) cat(t, SQ_LEVELS[s->lvl[0] > 4 ? 2 : s->lvl[0]]);
+            else if (r == 1) cat(t, SQ_LEVELS[SQ_LV(s->lvl[0]) > 4 ? 2 : SQ_LV(s->lvl[0])]);
             else if (r == 2) { cat(t, "X"); int_text(s->ratchet, t + 1); }
             else { if (s->nudge >= 0) cat(t, "+"); int_text(s->nudge, t + (s->nudge >= 0)); }
-            cv_text(162, 13, &FONT_XS, t, K_FG);
+            cv_text_acc(162, 13, &FONT_XS, t, K_FG);
         }
         cv_blit(0, 28u + (uint32_t)r * 40u);
     }
@@ -674,6 +685,35 @@ static void ms_apply(void)                    /* MSEQ's smoothing into the engin
 }
 
 /* SELECT, ALGORITHM, K1-K4 on a sequencer page */
+/* the lasso's steps moved d steps (as far as the pattern allows; what they move over is replaced, update 39) */
+static void seq_lasso_move(int d)
+{
+    sq_bank_t *b = cur_bank();
+    int a = sp.lasso_a < sp.lasso_b ? sp.lasso_a : sp.lasso_b, z = sp.lasso_a < sp.lasso_b ? sp.lasso_b : sp.lasso_a, n, i;
+    sq_step_t tmp[SQ_CLIP];
+    d = d > 0 ? 1 : -1;
+    n = z - a + 1;
+    if (n > SQ_CLIP || a + d < 0 || z + d >= b->len)
+        return;
+    for (i = 0; i < n; i++) { tmp[i] = b->s[a + i]; b->s[a + i].cnt = 0; }
+    for (i = 0; i < n; i++) b->s[a + d + i] = tmp[i];
+    sp.lasso_a += d;
+    sp.lasso_b += d;
+    sq_cursor += d;
+    sq_cursor = sq_cursor < 0 ? 0 : sq_cursor >= b->len ? b->len - 1 : sq_cursor;
+    sq_touch();
+}
+static void seq_lasso_pitch(int d)                /* every note in the lasso a semitone a click */
+{
+    sq_bank_t *b = cur_bank();
+    int a = sp.lasso_a < sp.lasso_b ? sp.lasso_a : sp.lasso_b, z = sp.lasso_a < sp.lasso_b ? sp.lasso_b : sp.lasso_a, i, j;
+    for (i = a; i <= z && i < b->len; i++)
+        for (j = 0; j < b->s[i].cnt; j++) {
+            int v = b->s[i].n[j] + d;
+            b->s[i].n[j] = (uint8_t)(v < 12 ? 12 : v > 120 ? 120 : v);
+        }
+    sq_touch();
+}
 static void seq_encoders(void)
 {
     sq_bank_t *b = cur_bank();
@@ -696,8 +736,19 @@ static void seq_encoders(void)
         if (e[5]) { int v = sqs.ms_smooth[sp.ms_lane] + (int)e[5]; sqs.ms_smooth[sp.ms_lane] = (uint8_t)(v < 0 ? 0 : v > 100 ? 100 : v); ms_apply(); }
         return;
     }
+    if (e[0]) {                               /* SELECT: the sequencer's pages (update 39) */
+        mn.sub = sp.seq_sub = (mn.sub + (e[0] > 0 ? 1 : SQP_N - 1)) % SQP_N;
+        sp.lasso = 0;
+        e[0] = 0;
+        ui.clear = 1;
+    }
     switch (mn.sub) {
     case SQP_NOTES:
+        if (sp.lasso && !(in_btn >> B_SEL & 1u) && (e[2] || e[3])) {   /* the lasso: K1 moves it by steps, K2 its pitch */
+            if (e[2]) seq_lasso_move((int)e[2]);
+            if (e[3]) seq_lasso_pitch((int)e[3]);
+            break;
+        }
         if (e[2] && (in_btn >> B_SEL & 1u)) {   /* SEL held + K1: the lasso, a step a click from where it started */
             if (!sp.lasso) { sp.lasso = 1; sp.lasso_a = sq_cursor; }
             d = sq_cursor + (int)e[2];
@@ -708,8 +759,7 @@ static void seq_encoders(void)
             mn.sel_n = 0;
             e[2] = 0;
         }
-        if (e[0] || e[1] || e[2]) sp.lasso = 0;   /* moving on: the lasso goes */
-        if (e[0]) { sq_cursor = (sq_cursor + (e[0] > 0 ? 1 : b->len - 1)) % b->len; sp.note_ix = b->s[sq_cursor].cnt ? 0 : -1; }
+        if (e[1] || e[2]) sp.lasso = 0;       /* moving on: the lasso goes */
         if (e[1]) { sq_cursor = (sq_cursor + (e[1] > 0 ? 4 : b->len * 4 - 4)) % b->len; sp.note_ix = b->s[sq_cursor].cnt ? 0 : -1; }
         s = &b->s[sq_cursor];
         if (e[2]) {                           /* K1: the next / previous note, across the steps */
@@ -729,22 +779,21 @@ static void seq_encoders(void)
             int j = sp.note_ix;
             if (e[3]) { int v = s->n[j] + (e[3] > 0 ? 1 : -1); s->n[j] = (uint8_t)(v < 12 ? 12 : v > 120 ? 120 : v); sq_touch(); }
             if (e[4]) { int v = s->len[j] + (int)e[4]; s->len[j] = (uint8_t)(v < 1 ? 1 : v > 255 ? 255 : v); sq_touch(); }
-            if (e[5]) {
-                int v = s->lvl[j] + (e[5] > 0 ? 1 : -1);
-                if (v < 0) {                  /* below GHOST: the note goes */
-                    for (k = j; k < s->cnt - 1; k++) { s->n[k] = s->n[k + 1]; s->len[k] = s->len[k + 1]; s->lvl[k] = s->lvl[k + 1]; }
-                    s->cnt--;
-                    sp.note_ix = s->cnt ? (j < s->cnt ? j : s->cnt - 1) : -1;
-                    app_say("NOTE", "DELETED");
-                } else {
-                    s->lvl[j] = (uint8_t)(v > 4 ? 4 : v);
-                }
+            if (e[5] && (in_btn >> B_SEL & 1u)) {   /* SEL held: the articulation (only EDIT deletes, update 39) */
+                int a = SQ_ART(s->lvl[j]) + (e[5] > 0 ? 1 : -1);
+                s->lvl[j] = SQ_MKLVL(SQ_LV(s->lvl[j]), a < 0 ? 0 : a > 4 ? 4 : a);
+                mn.sel_long = 1;              /* (SEL let go now is no tap) */
+                mn.sel_n = 0;
+                sq_touch();
+            } else if (e[5]) {                /* the dynamics, PP to FFF */
+                int v = SQ_LV(s->lvl[j]) + (e[5] > 0 ? 1 : -1);
+                s->lvl[j] = SQ_MKLVL(v < 0 ? 0 : v > 4 ? 4 : v, SQ_ART(s->lvl[j]));
                 sq_touch();
             }
         }
         break;
-    case SQP_PATTERN: case SQP_SPICE:
-        if (e[0]) sq_cursor = (sq_cursor + (e[0] > 0 ? 1 : b->len - 1)) % b->len;
+    case SQP_PATTERN: case SQP_SPICE:             /* (ALGORITHM moves the cursor: SELECT turns the pages) */
+        if (e[1]) sq_cursor = (sq_cursor + (e[1] > 0 ? 1 : b->len - 1)) % b->len;
         if (mn.sub == SQP_PATTERN) {
             if (e[2]) { int v = b->len + (int)e[2]; b->len = (uint8_t)(v < 1 ? 1 : v > SQ_STEPS ? SQ_STEPS : v); }
             if (e[3]) { int v = b->div + (e[3] > 0 ? 1 : -1); b->div = (uint8_t)(v < 0 ? 0 : v > 9 ? 9 : v); }
@@ -768,7 +817,7 @@ static void seq_encoders(void)
         if (e[5]) { sp.gen_seed += e[5] > 0 ? 1 : -1; sp.gen_seed = sp.gen_seed < 0 ? 0 : sp.gen_seed > 99 ? 99 : sp.gen_seed; }
         break;
     case SQP_BANKS:
-        if (e[0] || e[2]) { int c = sq.queue >= 0 ? sq.queue : sq.bank, dd = e[0] ? e[0] : e[2]; c += dd > 0 ? 1 : -1; select_bank(c < 0 ? 0 : c > 7 ? 7 : c); }
+        if (e[2]) { int c = sq.queue >= 0 ? sq.queue : sq.bank, dd = e[2]; c += dd > 0 ? 1 : -1; select_bank(c < 0 ? 0 : c > 7 ? 7 : c); }
         if (e[1] > 0) bank_action();
         if (e[1] < 0 && sp.undo_ok && share_undo) { *b = sp_undo; sp.undo_ok = 0; sq_touch(); app_say("PUT", "BACK"); }
         if (e[3]) { sp.bank_act += e[3] > 0 ? 1 : -1; sp.bank_act = sp.bank_act < 0 ? 0 : sp.bank_act > 3 ? 3 : sp.bank_act; }
@@ -776,7 +825,7 @@ static void seq_encoders(void)
         if (e[5]) sp.now = e[5] > 0;
         break;
     default:
-        if (e[0] || e[2]) { int dd = e[0] ? e[0] : e[2]; sp.song_cur += dd > 0 ? 1 : -1; sp.song_cur = sp.song_cur < 0 ? 0 : sp.song_cur > 15 ? 15 : sp.song_cur; }
+        if (e[2]) { int dd = e[2]; sp.song_cur += dd > 0 ? 1 : -1; sp.song_cur = sp.song_cur < 0 ? 0 : sp.song_cur > 15 ? 15 : sp.song_cur; }
         if (e[1] > 0) {
             int r, any = 0;
             for (r = 0; r < 16; r++) any |= sqs.bank[r] >= 0;
@@ -966,7 +1015,7 @@ static void seq_layer_encoders(void)
         }
         for (j = 0; j < s->cnt; j++) {
             if (k == 0) { int v = s->n[j] + (e > 0 ? 1 : -1); s->n[j] = (uint8_t)(v < 12 ? 12 : v > 120 ? 120 : v); }
-            if (k == 1) { int v = s->lvl[j] + (e > 0 ? 1 : -1); s->lvl[j] = (uint8_t)(v < 0 ? 0 : v > 4 ? 4 : v); }
+            if (k == 1) { int v = SQ_LV(s->lvl[j]) + (e > 0 ? 1 : -1); s->lvl[j] = SQ_MKLVL(v < 0 ? 0 : v > 4 ? 4 : v, SQ_ART(s->lvl[j])); }
         }
         if (k == 2) { int v = s->ratchet + (e > 0 ? 1 : -1); s->ratchet = (uint8_t)(v < 1 ? 1 : v > 4 ? 4 : v); }
         if (k == 3) { int v = s->nudge + (int)e; s->nudge = (int8_t)(v < -32 ? -32 : v > 31 ? 31 : v); }

@@ -25,7 +25,7 @@ img[src*="fm1-"]{width:320px;image-rendering:pixelated}
 <p>Nov 11, 2026 · Josh Cowley</p>
 <p>FM1 Rack turns the M-VAVE FM-1 into a small modular synthesizer built from Mutable Instruments' open module code. Each sound is a short chain of modules: a source (Plaits or Braids), a shaper (Rings or a filter), two modulators, two effects and an amplifier. You play it from the keys, shape it with the knobs, and link anything to anything through a modulation matrix. This manual covers the firmware on the FM-1; the browser version has its own manual, the <a href="index.html">FM1 Rack Manual</a>.</p>
 <blockquote>
-<p><strong>This is a test version (update 38).</strong> The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, the finer pictures, the BASS zone and the sequencer's lasso, copy and paste have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.</p>
+<p><strong>This is a test version (update 39).</strong> The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, the finer pictures, the BASS zone and the sequencer's editing (lasso, copy and paste, dynamics, articulations) have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.</p>
 </blockquote>
 <h2 id="contents">Contents</h2>
 <ol type="1">
@@ -333,7 +333,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </ul></li>
 <li><strong>The modulators</strong> loaded in MOD A and MOD B sit under the path; small arrows pulse up from them as their outputs move.</li>
 <li><strong>The macros</strong>: each with its value (0–100), an arc in its knob's colour, and what it moves (the first destination, "+2" if more), or <strong>UNSET</strong>. K1–K4 turn them; so do MIDI CC 20–23.</li>
-<li><strong>The scope</strong> along the bottom draws the output, coloured by the modulation moving right now (violet for an LFO, gold for a macro, pink for MSEQ), and glowing white at its loudest. The effects leave marks: a reverb's fading trail, a delay's echo, a chorus' second line. Tabs over it show what's on besides the preset: the scale and chord, the arpeggiator, a tuning. A red tab on the left, <strong>KEYS: FM-1 OFF</strong> (or <strong>ARP: FM-1 OFF</strong>), means the keys or the arpeggio aren't playing the FM-1's sound (SEL › CHORD + ARP › CHD FM-1, or two quick taps on ARP; section 10).</li>
+<li><strong>The tabs</strong> along the bottom show what's on besides the preset: the scale and chord, the arpeggiator, the STYLE, a tuning. A red tab on the left, <strong>KEYS: FM-1 OFF</strong> (or <strong>ARP: FM-1 OFF</strong>), means the keys or the arpeggio aren't playing the FM-1's sound (SEL › CHORD + ARP › CHD FM-1, or two quick taps on ARP; section 10). (Update 39 took away the waveform that ran along the bottom, and HOME now only redraws the macros and tabs when they change, so it takes less of the processor's time.)</li>
 </ul>
 <p><strong>PRESET</strong> chooses the preset, <strong>ALGORITHM</strong> jumps a category and <strong>SELECT</strong> sets the voices (1–6). Changing preset, or loading a module into a slot, fades the sound out over a few milliseconds and the new one in, so it doesn't click; nothing of the old sound (its echoes, its last few samples) carries into the new one. Knobs glide to their new values over a few milliseconds too, so a level, a cutoff or a chorus turned quickly doesn't click or zipper; a choice from a list (a model, a type) still changes at once. Tap HOME again for <strong>RACK</strong>, a list of every slot, AMP, the outputs and how many matrix routes are set.</p>
 <p><img src="img/fm1-rack.png" alt="RACK" /></p>
@@ -713,7 +713,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li>The bass rhythm starts from its first step when you press a chord with nothing held, at the tempo (GLOBAL › TEMPO) or on MIDI clock, and stops when you let go. With ARP › HOLD on, the bass keeps playing the last chord's root until you press another, stop with PLAY, or change a STYLE setting.</li>
 <li>With SEL's CHORD on, the bass follows the latest key you pressed. With CHORD OFF, the keys you hold together make the chord, and the lowest is the bass's root.</li>
 <li><strong>GLOBAL › MIDI OUT must be on</strong> for the layers to reach other synths. With STYLE OFF, there's no bass; the chords and the arpeggio still go out on their channels when their SEND is on.</li>
-<li>The picture on the STYLE page shows the style's bass rhythm (taller bars are the accented roots), with the step playing lit; the layer pages show where each layer goes. HOME shows the style's name in a tab over the scope.</li>
+<li>The picture on the STYLE page shows the style's bass rhythm (taller bars are the accented roots), with the step playing lit; the layer pages show where each layer goes. HOME shows the style's name in a tab at the bottom.</li>
 </ul>
 <table>
 <thead>
@@ -796,33 +796,46 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li>with +CC, the macros as CC 21–24.</li>
 </ul>
 <h2 id="11-the-sequencer">11. The sequencer</h2>
-<p>Tap <strong>SEQ</strong> to open it; it remembers the page you were on. Tap SEQ again to step through its six pages: <strong>NOTES, PATTERN, SPICE, GEN, BANKS, SONG</strong>. On each, the four values sit as sliders along the top and the rest of the screen is the piano roll or the page's picture.</p>
+<p>Tap <strong>SEQ</strong> to open it; it remembers the page you were on. Tap SEQ again, or turn <strong>SELECT</strong>, to step through its six pages: <strong>NOTES, PATTERN, SPICE, GEN, BANKS, SONG</strong>. On each, the four values sit as sliders along the top and the rest of the screen is the piano roll or the page's picture.</p>
 <ul>
 <li><strong>PLAY</strong> starts and stops it from any page. Stopping also ends held notes (latched chords and the arpeggiator's HOLD).</li>
 <li>It plays at GLOBAL › TEMPO or on MIDI clock, and sends its notes to MIDI out when that's on.</li>
-<li>There are 8 <strong>banks</strong> (A–H) of up to 64 steps. Each step holds up to 6 notes, each with its own length and force (GHOST, SOFT, NORM, HARD, ACC), plus a ratchet, nudge, slide, chance and fill condition.</li>
+<li>There are 8 <strong>banks</strong> (A–H) of up to 64 steps. Each step holds up to 6 notes, each with its own length, dynamics (PP, MP, MF, FF, FFF) and articulation (none, staccato, tenuto, accent, marcato), plus a ratchet, nudge, slide, chance and fill condition.</li>
 </ul>
 <h3 id="notes-writing-steps">NOTES: writing steps</h3>
 <p><img src="img/fm1-notes.png" alt="NOTES" /></p>
 <ul>
 <li><strong>Step entry</strong>: with the sequencer stopped, play a note or a chord and let go. It's written into the step under the cursor, and the cursor moves on.</li>
-<li><strong>SELECT</strong> moves the cursor one step, <strong>ALGORITHM</strong> four.</li>
-<li><strong>K1</strong> chooses a note in the step (and moves to the next step that has notes), <strong>K2</strong> its pitch, <strong>K3</strong> its length, <strong>K4</strong> its force. Turning K4 below GHOST deletes the note.</li>
-<li><strong>EDIT</strong> deletes the note K1 picked (<strong>NOTE DELETED</strong>).</li>
+<li><strong>SELECT</strong> turns the sequencer's pages; <strong>ALGORITHM</strong> moves the cursor four steps.</li>
+<li><strong>K1</strong> chooses a note, step to step (the steps with notes), <strong>K2</strong> its pitch, <strong>K3</strong> its length, <strong>K4</strong> its <strong>DYNAMICS</strong>: PP, MP, MF, FF, FFF.</li>
+<li><strong>Hold SEL and turn K4</strong>: the note's <strong>articulation</strong> instead (the slider reads ARTIC while SEL is held), drawn over the note:
+<ul>
+<li>none;</li>
+<li><strong>staccato</strong> <code>.</code>: half as long;</li>
+<li><strong>tenuto</strong> <code>_</code>: its full length, a little louder;</li>
+<li><strong>accent</strong> <code>&gt;</code>: a dynamic louder;</li>
+<li><strong>marcato</strong> (an accent standing up, like a tepee <code>^</code>): two dynamics louder and a little short.</li>
+</ul></li>
+</ul>
+<p><img src="img/fm1-artic.png" alt="Holding SEL: K4 sets the articulation (MARCATO); the note reads B♭4" /></p>
+<ul>
+<li>Only <strong>EDIT</strong> deletes: the note K1 picked (<strong>NOTE DELETED</strong>). Turning K4 down stops at PP.</li>
 <li><strong>Lasso</strong>: hold <strong>SEL</strong> and turn <strong>K1</strong>: the steps from where you started to where you turn are picked, lit gold. Then:
 <ul>
+<li>turn <strong>K1</strong> to move the whole group a step a click, <strong>K2</strong> to move all its notes up or down a semitone a click;</li>
 <li><strong>EDIT</strong> clears every note in them;</li>
 <li><strong>hold SAVE</strong> copies them (<strong>COPIED 3 STEPS</strong>; up to 32).</li>
 </ul></li>
-<li><strong>Paste</strong>: move the cursor with SELECT, then <strong>hold SAVE</strong> with nothing lassoed: what you copied is written from the cursor's step on (<strong>PASTED</strong>). A tap of SAVE still saves the sequencer.</li>
-<li>Turning SELECT, ALGORITHM or K1 alone lets the lasso go.</li>
+<li><strong>Paste</strong>: move the cursor (ALGORITHM, or K1 to a note), then <strong>hold SAVE</strong> with nothing lassoed: what you copied is written from the cursor's step on (<strong>PASTED</strong>). A tap of SAVE still saves the sequencer.</li>
+<li>Note names follow the key signature (SEL's ROOT and SCALE): sharps in G, D, A, E, B and F# major and their relative minors, flats in the others, C included (B♭, E♭...).</li>
+<li>Turning ALGORITHM (or SELECT, to another page) ends the lasso.</li>
 </ul>
 <p><img src="img/fm1-lasso.png" alt="Three steps lassoed" /></p>
 <ul>
 <li>The roll has a lane for each semitone, a see-through keyboard down its left edge with the C's named, and notes as tall as their lane and at least three quarters of a step wide.</li>
 </ul>
 <h3 id="pattern">PATTERN</h3>
-<p><strong>K1</strong> LENGTH (1–64 steps), <strong>K2</strong> DIV (1/4, 1/8, 1/16, 1/32, 8T, 16T, 1/2, 1 BAR, 2 BAR, 4 BAR), <strong>K3</strong> SWING, <strong>K4</strong> GATE. SELECT moves the cursor over the step grid.</p>
+<p><strong>K1</strong> LENGTH (1–64 steps), <strong>K2</strong> DIV (1/4, 1/8, 1/16, 1/32, 8T, 16T, 1/2, 1 BAR, 2 BAR, 4 BAR), <strong>K3</strong> SWING, <strong>K4</strong> GATE. ALGORITHM moves the cursor over the step grid.</p>
 <p><img src="img/fm1-pattern.png" alt="PATTERN" /></p>
 <h3 id="spice">SPICE</h3>
 <p><strong>K1</strong> SPICE adds random rests, octave jumps and force changes, more as you turn it up. <strong>K2</strong> DICE rolls the same amount differently. <strong>K3</strong> CHANCE sets how often the step under the cursor plays. <strong>K4</strong> FILL: –, FILL (only in a fill) or NO FILL (only outside one).</p>
@@ -831,10 +844,10 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p><strong>K1</strong> chooses the tool: EUCLID, RANDOM, ACID, ARP UP, ARP UPDN, BERLIN, OCTAVES, OFFBEAT, ROLLING, STABS, PROGRESS, GATES, SHIFT &gt;, SHIFT &lt;, REVERSE, DOUBLE, HALF or CLEAR. <strong>K2</strong> and <strong>K3</strong> are its two values (for EUCLID, pulses and rotation, with a ring showing the result), and <strong>K4</strong> is the seed. <strong>Turn ALGORITHM right to apply it, left to put the bank back.</strong> New notes follow SEL's scale and key.</p>
 <p><img src="img/fm1-gen.png" alt="GEN" /></p>
 <h3 id="banks">BANKS</h3>
-<p><strong>SELECT</strong> or <strong>K1</strong> picks a bank. While playing, the switch waits for the end of the loop (the queued bank blinks) unless <strong>K4</strong> SWITCH is NOW. <strong>K2</strong> chooses an action (COPY TO, CLEAR, DOUBLE, HALVE) and <strong>K3</strong> the target bank for COPY TO. <strong>ALGORITHM right</strong> does it, <strong>left</strong> undoes it.</p>
+<p><strong>K1</strong> picks a bank. While playing, the switch waits for the end of the loop (the queued bank blinks) unless <strong>K4</strong> SWITCH is NOW. <strong>K2</strong> chooses an action (COPY TO, CLEAR, DOUBLE, HALVE) and <strong>K3</strong> the target bank for COPY TO. <strong>ALGORITHM right</strong> does it, <strong>left</strong> undoes it.</p>
 <p><img src="img/fm1-banks.png" alt="BANKS" /></p>
 <h3 id="song">SONG</h3>
-<p>16 rows, each a bank with how many times it repeats (1–16) and a transposition (±12). <strong>SELECT</strong> or <strong>K1</strong> chooses the row, <strong>K2</strong> the bank (END stops the song there), <strong>K3</strong> REPEATS, <strong>K4</strong> TRANSP. <strong>ALGORITHM right</strong> turns the song on or off; <strong>ALGORITHM left</strong> turns your jam (the banks you've just played, in order) into the song.</p>
+<p>16 rows, each a bank with how many times it repeats (1–16) and a transposition (±12). <strong>K1</strong> chooses the row, <strong>K2</strong> the bank (END stops the song there), <strong>K3</strong> REPEATS, <strong>K4</strong> TRANSP. <strong>ALGORITHM right</strong> turns the song on or off; <strong>ALGORITHM left</strong> turns your jam (the banks you've just played, in order) into the song.</p>
 <p><img src="img/fm1-song.png" alt="SONG" /></p>
 <h3 id="recording">Recording</h3>
 <ul>
@@ -845,7 +858,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <p><strong>Hold SEQ</strong> (and keep holding) to turn the 16 white keys into steps:</p>
 <ul>
 <li>tap a key to switch that step on (with the notes you last played) or off;</li>
-<li>hold a step's key and turn <strong>K1</strong> NOTE, <strong>K2</strong> FORCE, <strong>K3</strong> RATCHET, <strong>K4</strong> NUDGE;</li>
+<li>hold a step's key and turn <strong>K1</strong> NOTE, <strong>K2</strong> DYNAMICS, <strong>K3</strong> RATCHET, <strong>K4</strong> NUDGE;</li>
 <li><strong>OCT− / OCT+</strong> show the previous or next 16 steps.</li>
 </ul>
 <p>Let go of SEQ to play again.</p>
@@ -900,7 +913,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <ul>
 <li><strong>Voices</strong>: each preset starts with its own number of voices, up to 6, within what fits in memory and time. SELECT on HOME (or GLOBAL › VOICES) asks for 1–6; FM1 Rack keeps to what fits.</li>
 <li><strong>SHED n</strong>: if a block of sound takes more than 90 % of its time, FM1 Rack drops a voice and the status strip shows SHED n.</li>
-<li><strong>TOO HEAVY FOR FM-1</strong>: a preset too heavy even at one voice is muted, with the message on the scope and HEAVY in red on the status strip, so the screen and controls keep working. Pick another preset.</li>
+<li><strong>TOO HEAVY FOR FM-1</strong>: a preset too heavy even at one voice is muted, with the message at the bottom of HOME and HEAVY in red on the status strip, so the screen and controls keep working. Pick another preset.</li>
 <li><strong>What costs most</strong>: Plaits voices cost more than Braids voices, and the reverb and Rings are the heaviest modules. The reverb and the delay also use the most memory, so presets with both may get fewer voices. Switching an effect off (section 10) frees its time.</li>
 </ul>
 <h2 id="14-factory-presets">14. Factory presets</h2>

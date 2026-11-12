@@ -4,7 +4,7 @@ Nov 11, 2026 · Josh Cowley
 
 FM1 Rack turns the M-VAVE FM-1 into a small modular synthesizer built from Mutable Instruments' open module code. Each sound is a short chain of modules: a source (Plaits or Braids), a shaper (Rings or a filter), two modulators, two effects and an amplifier. You play it from the keys, shape it with the knobs, and link anything to anything through a modulation matrix. This manual covers the firmware on the FM-1; the browser version has its own manual, the [FM1 Rack Manual](index.html).
 
-> **This is a test version (update 38).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, the finer pictures, the BASS zone and the sequencer's lasso, copy and paste have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
+> **This is a test version (update 39).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, the finer pictures, the BASS zone and the sequencer's editing (lasso, copy and paste, dynamics, articulations) have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
 
 ## Contents
 
@@ -193,7 +193,7 @@ HOME shows the preset's category, name and number (or its user slot), the sound'
     - A red tile is a module the preset needs that didn't fit in memory.
 - **The modulators** loaded in MOD A and MOD B sit under the path; small arrows pulse up from them as their outputs move.
 - **The macros**: each with its value (0–100), an arc in its knob's colour, and what it moves (the first destination, "+2" if more), or **UNSET**. K1–K4 turn them; so do MIDI CC 20–23.
-- **The scope** along the bottom draws the output, coloured by the modulation moving right now (violet for an LFO, gold for a macro, pink for MSEQ), and glowing white at its loudest. The effects leave marks: a reverb's fading trail, a delay's echo, a chorus' second line. Tabs over it show what's on besides the preset: the scale and chord, the arpeggiator, a tuning. A red tab on the left, **KEYS: FM-1 OFF** (or **ARP: FM-1 OFF**), means the keys or the arpeggio aren't playing the FM-1's sound (SEL › CHORD + ARP › CHD FM-1, or two quick taps on ARP; section 10).
+- **The tabs** along the bottom show what's on besides the preset: the scale and chord, the arpeggiator, the STYLE, a tuning. A red tab on the left, **KEYS: FM-1 OFF** (or **ARP: FM-1 OFF**), means the keys or the arpeggio aren't playing the FM-1's sound (SEL › CHORD + ARP › CHD FM-1, or two quick taps on ARP; section 10). (Update 39 took away the waveform that ran along the bottom, and HOME now only redraws the macros and tabs when they change, so it takes less of the processor's time.)
 
 **PRESET** chooses the preset, **ALGORITHM** jumps a category and **SELECT** sets the voices (1–6). Changing preset, or loading a module into a slot, fades the sound out over a few milliseconds and the new one in, so it doesn't click; nothing of the old sound (its echoes, its last few samples) carries into the new one. Knobs glide to their new values over a few milliseconds too, so a level, a cutoff or a chorus turned quickly doesn't click or zipper; a choice from a list (a model, a type) still changes at once. Tap HOME again for **RACK**, a list of every slot, AMP, the outputs and how many matrix routes are set.
 
@@ -484,7 +484,7 @@ How it plays:
 - The bass rhythm starts from its first step when you press a chord with nothing held, at the tempo (GLOBAL › TEMPO) or on MIDI clock, and stops when you let go. With ARP › HOLD on, the bass keeps playing the last chord's root until you press another, stop with PLAY, or change a STYLE setting.
 - With SEL's CHORD on, the bass follows the latest key you pressed. With CHORD OFF, the keys you hold together make the chord, and the lowest is the bass's root.
 - **GLOBAL › MIDI OUT must be on** for the layers to reach other synths. With STYLE OFF, there's no bass; the chords and the arpeggio still go out on their channels when their SEND is on.
-- The picture on the STYLE page shows the style's bass rhythm (taller bars are the accented roots), with the step playing lit; the layer pages show where each layer goes. HOME shows the style's name in a tab over the scope.
+- The picture on the STYLE page shows the style's bass rhythm (taller bars are the accented roots), with the step playing lit; the layer pages show where each layer goes. HOME shows the style's name in a tab at the bottom.
 
 | Group | Styles |
 | --- | --- |
@@ -545,25 +545,36 @@ GLO opens six pages:
 
 ## 11. The sequencer
 
-Tap **SEQ** to open it; it remembers the page you were on. Tap SEQ again to step through its six pages: **NOTES, PATTERN, SPICE, GEN, BANKS, SONG**. On each, the four values sit as sliders along the top and the rest of the screen is the piano roll or the page's picture.
+Tap **SEQ** to open it; it remembers the page you were on. Tap SEQ again, or turn **SELECT**, to step through its six pages: **NOTES, PATTERN, SPICE, GEN, BANKS, SONG**. On each, the four values sit as sliders along the top and the rest of the screen is the piano roll or the page's picture.
 
 - **PLAY** starts and stops it from any page. Stopping also ends held notes (latched chords and the arpeggiator's HOLD).
 - It plays at GLOBAL › TEMPO or on MIDI clock, and sends its notes to MIDI out when that's on.
-- There are 8 **banks** (A–H) of up to 64 steps. Each step holds up to 6 notes, each with its own length and force (GHOST, SOFT, NORM, HARD, ACC), plus a ratchet, nudge, slide, chance and fill condition.
+- There are 8 **banks** (A–H) of up to 64 steps. Each step holds up to 6 notes, each with its own length, dynamics (PP, MP, MF, FF, FFF) and articulation (none, staccato, tenuto, accent, marcato), plus a ratchet, nudge, slide, chance and fill condition.
 
 ### NOTES: writing steps
 
 ![NOTES](../web/manual/img/fm1-notes.png)
 
 - **Step entry**: with the sequencer stopped, play a note or a chord and let go. It's written into the step under the cursor, and the cursor moves on.
-- **SELECT** moves the cursor one step, **ALGORITHM** four.
-- **K1** chooses a note in the step (and moves to the next step that has notes), **K2** its pitch, **K3** its length, **K4** its force. Turning K4 below GHOST deletes the note.
-- **EDIT** deletes the note K1 picked (**NOTE DELETED**).
+- **SELECT** turns the sequencer's pages; **ALGORITHM** moves the cursor four steps.
+- **K1** chooses a note, step to step (the steps with notes), **K2** its pitch, **K3** its length, **K4** its **DYNAMICS**: PP, MP, MF, FF, FFF.
+- **Hold SEL and turn K4**: the note's **articulation** instead (the slider reads ARTIC while SEL is held), drawn over the note:
+    - none;
+    - **staccato** `.`: half as long;
+    - **tenuto** `_`: its full length, a little louder;
+    - **accent** `>`: a dynamic louder;
+    - **marcato** (an accent standing up, like a tepee `^`): two dynamics louder and a little short.
+
+![Holding SEL: K4 sets the articulation (MARCATO); the note reads B♭4](../web/manual/img/fm1-artic.png)
+
+- Only **EDIT** deletes: the note K1 picked (**NOTE DELETED**). Turning K4 down stops at PP.
 - **Lasso**: hold **SEL** and turn **K1**: the steps from where you started to where you turn are picked, lit gold. Then:
+    - turn **K1** to move the whole group a step a click, **K2** to move all its notes up or down a semitone a click;
     - **EDIT** clears every note in them;
     - **hold SAVE** copies them (**COPIED 3 STEPS**; up to 32).
-- **Paste**: move the cursor with SELECT, then **hold SAVE** with nothing lassoed: what you copied is written from the cursor's step on (**PASTED**). A tap of SAVE still saves the sequencer.
-- Turning SELECT, ALGORITHM or K1 alone lets the lasso go.
+- **Paste**: move the cursor (ALGORITHM, or K1 to a note), then **hold SAVE** with nothing lassoed: what you copied is written from the cursor's step on (**PASTED**). A tap of SAVE still saves the sequencer.
+- Note names follow the key signature (SEL's ROOT and SCALE): sharps in G, D, A, E, B and F# major and their relative minors, flats in the others, C included (B♭, E♭...).
+- Turning ALGORITHM (or SELECT, to another page) ends the lasso.
 
 ![Three steps lassoed](../web/manual/img/fm1-lasso.png)
 
@@ -571,7 +582,7 @@ Tap **SEQ** to open it; it remembers the page you were on. Tap SEQ again to step
 
 ### PATTERN
 
-**K1** LENGTH (1–64 steps), **K2** DIV (1/4, 1/8, 1/16, 1/32, 8T, 16T, 1/2, 1 BAR, 2 BAR, 4 BAR), **K3** SWING, **K4** GATE. SELECT moves the cursor over the step grid.
+**K1** LENGTH (1–64 steps), **K2** DIV (1/4, 1/8, 1/16, 1/32, 8T, 16T, 1/2, 1 BAR, 2 BAR, 4 BAR), **K3** SWING, **K4** GATE. ALGORITHM moves the cursor over the step grid.
 
 ![PATTERN](../web/manual/img/fm1-pattern.png)
 
@@ -589,13 +600,13 @@ Tap **SEQ** to open it; it remembers the page you were on. Tap SEQ again to step
 
 ### BANKS
 
-**SELECT** or **K1** picks a bank. While playing, the switch waits for the end of the loop (the queued bank blinks) unless **K4** SWITCH is NOW. **K2** chooses an action (COPY TO, CLEAR, DOUBLE, HALVE) and **K3** the target bank for COPY TO. **ALGORITHM right** does it, **left** undoes it.
+**K1** picks a bank. While playing, the switch waits for the end of the loop (the queued bank blinks) unless **K4** SWITCH is NOW. **K2** chooses an action (COPY TO, CLEAR, DOUBLE, HALVE) and **K3** the target bank for COPY TO. **ALGORITHM right** does it, **left** undoes it.
 
 ![BANKS](../web/manual/img/fm1-banks.png)
 
 ### SONG
 
-16 rows, each a bank with how many times it repeats (1–16) and a transposition (±12). **SELECT** or **K1** chooses the row, **K2** the bank (END stops the song there), **K3** REPEATS, **K4** TRANSP. **ALGORITHM right** turns the song on or off; **ALGORITHM left** turns your jam (the banks you've just played, in order) into the song.
+16 rows, each a bank with how many times it repeats (1–16) and a transposition (±12). **K1** chooses the row, **K2** the bank (END stops the song there), **K3** REPEATS, **K4** TRANSP. **ALGORITHM right** turns the song on or off; **ALGORITHM left** turns your jam (the banks you've just played, in order) into the song.
 
 ![SONG](../web/manual/img/fm1-song.png)
 
@@ -609,7 +620,7 @@ Tap **SEQ** to open it; it remembers the page you were on. Tap SEQ again to step
 **Hold SEQ** (and keep holding) to turn the 16 white keys into steps:
 
 - tap a key to switch that step on (with the notes you last played) or off;
-- hold a step's key and turn **K1** NOTE, **K2** FORCE, **K3** RATCHET, **K4** NUDGE;
+- hold a step's key and turn **K1** NOTE, **K2** DYNAMICS, **K3** RATCHET, **K4** NUDGE;
 - **OCT− / OCT+** show the previous or next 16 steps.
 
 Let go of SEQ to play again.
@@ -653,7 +664,7 @@ The FM-1 has two processor cores. FM1 Rack shares the voices between them: the f
 
 - **Voices**: each preset starts with its own number of voices, up to 6, within what fits in memory and time. SELECT on HOME (or GLOBAL › VOICES) asks for 1–6; FM1 Rack keeps to what fits.
 - **SHED n**: if a block of sound takes more than 90 % of its time, FM1 Rack drops a voice and the status strip shows SHED n.
-- **TOO HEAVY FOR FM-1**: a preset too heavy even at one voice is muted, with the message on the scope and HEAVY in red on the status strip, so the screen and controls keep working. Pick another preset.
+- **TOO HEAVY FOR FM-1**: a preset too heavy even at one voice is muted, with the message at the bottom of HOME and HEAVY in red on the status strip, so the screen and controls keep working. Pick another preset.
 - **What costs most**: Plaits voices cost more than Braids voices, and the reverb and Rings are the heaviest modules. The reverb and the delay also use the most memory, so presets with both may get fewer voices. Switching an effect off (section 10) frees its time.
 
 ## 14. Factory presets
