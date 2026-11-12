@@ -69,6 +69,9 @@ ARP_EXTRA = [
     # CHORD + ARP (update 36): each in two stages, the FM-1's sound and the send to its MIDI channel, with or without
     # STYLE. Two taps on SEL / ARP: FM-1 on/off; three taps: SEND on/off
     [_L("CHD FM-1", ONOFF, 1), _L("CHD SEND", ONOFF, 1), _L("ARP FM-1", ONOFF, 1), _L("ARP SEND", ONOFF, 1)],
+    # FEEL (update 43): HUMAN, each chord note a little early or late at random (and its force a little off), on the
+    # keys and in the sequencer
+    [_n("HUMAN", 0.0)],
 ]
 
 

@@ -239,14 +239,21 @@ static void sq_step(int i, uint32_t tg, float d)
     r = s->ratchet < 1 ? 1 : s->ratchet > 4 ? 4 : s->ratchet;
     for (j = 0; j < s->cnt && j < SQ_NOTES; j++) {
         int pitch = s->n[j] + oct + (sq.song_on ? sq.trn : 0);
+        /* a chord step (update 43): SEL > STRUM spreads its notes, lowest first, as on the keys; FEEL > HUMAN puts
+         * each a little late at random and moves its force a little */
+        float spread = s->cnt > 1 ? set.sel[C_STRUM] * 0.08f * PL_HZ * (float)j : 0.0f;
+        if (s->cnt > 1 && set.arp[A_HUM] > 0.001f)
+            spread += human_ms() * set.arp[A_HUM] * 0.035f * PL_HZ;
         int lv = SQ_LV(s->lvl[j]), art = SQ_ART(s->lvl[j]);
         float vel, alen = art == 1 ? 0.5f : art == 4 ? 0.75f : 1.0f;
         lv = lv > 4 ? 2 : lv;
         lv += art == 3 ? 1 : art == 4 ? 2 : 0;
         vel = SQ_LVEL[lv > 4 ? 4 : lv] + spv + (art == 2 ? 0.05f : 0.0f) + (lv > 4 ? 0.05f : 0.0f);
         vel = vel < 0.05f ? 0.05f : vel > 1.0f ? 1.0f : vel;
+        if (s->cnt > 1 && set.arp[A_HUM] > 0.001f)
+            vel = human_vel(vel);
         for (k = 0; k < r; k++) {
-            uint32_t tr = t + (uint32_t)((float)k * d / (float)r);
+            uint32_t tr = t + (uint32_t)((float)k * d / (float)r) + (k == 0 ? (uint32_t)spread : 0u);
             float len = r > 1 ? d / (float)r * 0.55f * alen : (float)s->len[j] * 0.25f * d * (1.0f + spg * 0.5f) * alen;
             if (len < 882.0f) len = 882.0f;
             if ((s->flags & 1u) && r == 1 && len < d + 1323.0f)

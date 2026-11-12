@@ -149,7 +149,7 @@ static uint16_t kc(int pi, uint16_t c)        /* parameter pi's knob's colour wh
 static int npages(int pg)
 {
     const ui_mod_t *m = page_mod(pg);
-    if (pg == PG_SEL) return SEL_OWN + 3;
+    if (pg == PG_SEL) return SEL_OWN + 4;
     if (pg == PG_ARP) return 2;
     return m ? m->npages + (pg == PG_LFO ? 3 : 0) + (has_mod_page(pg) ? MOD_ROWS : 0) : 1;
 }
@@ -872,12 +872,12 @@ static void draw_param_page(int pg)
     title[0] = 0;
     if (is_fixed(pg)) {
         static const char *const GT[] = {"SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM", "CLICK"};
-        static const char *const ST[] = {"SCALE + CHORD", "KEYS + STRUM", "STYLE", "LAYER MIDI CH", "CHORD + ARP"},
+        static const char *const ST[] = {"SCALE + CHORD", "KEYS + STRUM", "STYLE", "LAYER MIDI CH", "CHORD + ARP", "FEEL"},
                           *const AT[] = {"ARPEGGIATOR", "HOLD + TURING"};
         m = page_mod(data_pg(pg));
         fv = page_vals(data_pg(pg));
         int ic = pg == PG_GLO ? (mn.sub == 3 ? IC_MIDI : mn.sub == 4 ? IC_OUT : IC_GLOBAL) : pg == PG_SEL ? (mn.sub ? IC_SCALE : IC_CHORD) : IC_ARP;
-        header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 7] : pg == PG_SEL ? ST[mn.sub % 5] : AT[mn.sub & 1],
+        header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 7] : pg == PG_SEL ? ST[mn.sub % 6] : AT[mn.sub & 1],
                ic, npages(pg), mn.sub);
         page_well(pg);
         off = page_first(m, mn.sub);
@@ -1244,7 +1244,7 @@ static void fixed_changed(int pg, int pi, float old, float v)
     } else if (pg == PG_ARP && (pi == A_HOLD || (pi >= A_STYLE && pi <= A_CLEN) || (pi == A_MODE && ((old < 0.5f) != (v < 0.5f))))) {
         rc_push(PLE_ARP_CLEAR, 0, 0.0f, 0.0f);   /* the arp on or off, HOLD or a STYLE setting changed: start again
                                                   * from the keys held now (the layers' notes end first) */
-    } else if (pg == PG_ARP && pi >= A_CHCH) {   /* a layer's channel changed, or a switch turned off: its notes end */
+    } else if (pg == PG_ARP && pi >= A_CHCH && pi <= A_SAR) {   /* a layer's channel changed, or a switch turned off: its notes end */
         if (pi <= A_ARCH)
             rc_push(PLE_LAYER, pi - A_CHCH, 2.0f, 0.0f);
         else if (v < 0.5f)

@@ -1,0 +1,34 @@
+wait 500
+tap GLO
+wait 400
+turn SELECT 3
+wait 200
+turn K2 1
+wait 200
+tap SEL
+wait 400
+turn K3 1
+wait 200
+turn SELECT 1
+wait 200
+turn K3 1
+wait 200
+turn K4 30
+wait 200
+turn SELECT 4
+wait 300
+turn K1 60
+wait 300
+shot f_feel.png
+tap SEQ
+wait 300
+key w11 down 100
+wait 80
+key w11 up
+wait 300
+turn ALGO -1
+wait 200
+tap PLAY
+wait 1200
+tap PLAY
+wait 300

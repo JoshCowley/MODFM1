@@ -18,7 +18,8 @@ enum { A_MODE, A_RATE, A_OCT, A_GATE, A_HOLD, A_MUT, A_LOOP, A_SWING,
        A_STYLE, A_BOCT, A_ACC, A_CLEN,           /* STYLE (style_def.py): the style, the bass's octave, accents, length */
        A_CHCH, A_BSCH, A_ARCH,                    /* each layer's MIDI channel (0 off, 1-16) */
        A_LBS,                                     /* the bass on the FM-1 */
-       A_LCH, A_SCH, A_LAR, A_SAR, NA };          /* CHORD + ARP: each on the FM-1, each sent (update 36) */
+       A_LCH, A_SCH, A_LAR, A_SAR,                /* CHORD + ARP: each on the FM-1, each sent (update 36) */
+       A_HUM, NA };                               /* FEEL: HUMAN (update 43) */
 enum { L_CHORD, L_BASS, L_ARP };                  /* STYLE's three layers */
 #define ST_HELD 1                                 /* STYLE HELD: the layers held as long as the chord, no rhythm */
 enum { CT_OFF, CT_TRIAD, CT_7TH, CT_9TH, CT_11TH, CT_SUS4, CT_6TH, CT_POWER };
@@ -457,6 +458,20 @@ static int style_on(void) { return AI(A_STYLE) > 0; }
 static char zone_bass_tone(void);             /* the bass zone key held latest, or 0 */
 static void style_refresh(int clear);
 
+/* HUMAN (update 43): a chord's notes not quite together. human_ms: 0-1 of the most late; human_vel: the force
+ * moved up to 12 % either way, more with more HUMAN */
+static uint32_t hum_rng = 0x2545F491u;
+static float human_ms(void)
+{
+    hum_rng = hum_rng * 1664525u + 1013904223u;
+    return (float)(hum_rng >> 8) * (1.0f / 16777216.0f);
+}
+static float human_vel(float v)
+{
+    float d = (human_ms() - 0.5f) * 0.24f * set.arp[A_HUM];
+    v *= 1.0f + d;
+    return v < 0.02f ? 0.02f : v > 1.0f ? 1.0f : v;
+}
 static void pl_key_on(int raw, int note, float vel)
 {
     pl_raw_t *r;
@@ -525,13 +540,18 @@ static void pl_key_on(int raw, int note, float vel)
     }
     strum = set.sel[C_STRUM] * 0.08f * PL_HZ;
     for (i = 0; i < n; i++) {
-        if (i && strum > 1.0f) {
-            pend(pl_now + (uint32_t)(strum * (float)i), i, raw, 1, vel);
+        float at = strum > 1.0f ? strum * (float)i : 0.0f, v = vel;
+        if (n > 1 && set.arp[A_HUM] > 0.001f) {   /* HUMAN: up to 35 ms late, a little softer or louder, at random */
+            at += human_ms() * set.arp[A_HUM] * 0.035f * PL_HZ;
+            v = human_vel(vel);
+        }
+        if (at > 1.0f) {
+            pend(pl_now + (uint32_t)at, i, raw, 1, v);
         } else {
             if (r->lay)
-                lay_on(L_CHORD, notes[i], vel);
+                lay_on(L_CHORD, notes[i], v);
             else
-                snd_on(notes[i], vel, raw_local(raw), raw_out(raw));
+                snd_on(notes[i], v, raw_local(raw), raw_out(raw));
             r->on |= (uint16_t)(1u << i);
         }
     }

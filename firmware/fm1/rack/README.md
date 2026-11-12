@@ -214,6 +214,12 @@ range (at once against gliding), each against the same moment with nothing chang
 `build/host/audition OUTDIR` (built by build_host.sh) plays every preset through the firmware's sound path (rc_load,
 rc_render at 44.1 kHz) with a phrase for its category and writes a WAV each, with its peak and loudness.
 
+## Update 43
+
+- STRUM spreads the sequencer's chord steps as it does the keys' (seq.c sq_step, note j at j x STRUM). FEEL > HUMAN
+  (A_HUM, SEL page 6 via data_pg; settings RKL7, ARP 21 values): each chord note up to 35 ms late and +-12 % force at
+  random (play.c human_ms, human_vel), live and in the sequencer. sim_feel.
+
 ## Update 40
 
 - GLOBAL page 7 CLICK (G_CLICK, G_CIN, G_CVOL, G_CSND; settings RKL6, glo[23], older records moved up): seq.c

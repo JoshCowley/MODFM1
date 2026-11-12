@@ -548,9 +548,30 @@ static void vis_system(uint16_t c)
     cv_text(224 - text_w(&FONT_T, t), 0, &FONT_T, t, K_DIM);
 }
 
+/* FEEL: four chord notes as they'd fall, each a row: STRUM's stair, HUMAN's scatter (moving, as it varies) */
+static void vis_feel(uint16_t c)
+{
+    float strum = set.sel[C_STRUM], hum = set.arp[A_HUM], t = vis_t();
+    int i;
+    char s[24], n[8];
+    for (i = 0; i < 4; i++) {
+        float j = fm_sinf(t * 1.7f + (float)i * 2.3f) * 0.5f + 0.5f;   /* a slow wobble standing for the random */
+        int32_t x = 20 + (int32_t)(strum * 28.0f * (float)i + hum * 40.0f * j), y = 30 - i * 8;
+        rrect(x, y, 70, 6, i == 0 ? c : mix565(c, K_WELL, 200 - i * 30), 2);
+    }
+    cv_rect(19, 4, 1, 34, K_FAINT);
+    s[0] = 0;
+    cat(s, "STRUM ");
+    int_text((int32_t)(strum * 100.0f + 0.5f), n); cat(s, n);
+    cat(s, "  HUMAN ");
+    int_text((int32_t)(hum * 100.0f + 0.5f), n); cat(s, n);
+    cv_text(110, 1, &FONT_T, s, K_DIM);
+}
 static void vis_fixed(int pg, int sub, uint16_t c)
 {
-    if (pg == PG_SEL && sub >= 2) {           /* SEL's MIDI controller pages (update 38): STYLE and its layers */
+    if (pg == PG_SEL && sub == 5) {           /* FEEL (update 43): a chord's notes, strummed and humanised */
+        vis_feel(c);
+    } else if (pg == PG_SEL && sub >= 2) {    /* SEL's MIDI controller pages (update 38): STYLE and its layers */
         vis_style(c, sub);
     } else if (pg == PG_SEL) {                /* the keyboards: drawn solid, as before */
         vf_keep = 2;
