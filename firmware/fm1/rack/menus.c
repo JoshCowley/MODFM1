@@ -30,6 +30,7 @@ enum { PG_HOME, PG_RACK, PG_SRC, PG_SHP, PG_MODA, PG_MODB, PG_FX1, PG_FX2, PG_AM
 static int is_seq_page(int pg);               /* the sequencer's pages (seqpages.c) */
 static void seq_encoders(void);
 static void seq_delete(void);
+static int sp_lasso_off(void);
 static int32_t cv_text_acc(int32_t x, int32_t y, const felucca_font_t *f, const char *s, uint16_t c);
 #define OSC_P0 24                             /* OSC's first parameter on AMP (engine/rack.cc OSC_WAVE) */
 #define K_OSC RGB(255, 214, 150)
@@ -1631,12 +1632,16 @@ static int menu_input(uint32_t press, uint32_t btn)
         mn.sel_long = 1;                      /* held: never a tap */
     if (mn.sel_at && !(btn >> B_SEL & 1u)) {
         if (!mn.sel_long) {
-            if (++mn.sel_n == 1) {
-                mn.tap_pg = mn.page;
-                mn.tap_sub = mn.sub;
-                page_button(SEL_CYC, 1);
+            if (mn.page == PG_SEQ && mn.sub == 0 && sp_lasso_off()) {
+                mn.sel_n = 0;                 /* a tap of SEL on a lasso: the lasso goes (update 41), no page */
+            } else {
+                if (++mn.sel_n == 1) {
+                    mn.tap_pg = mn.page;
+                    mn.tap_sub = mn.sub;
+                    page_button(SEL_CYC, 1);
+                }
+                mn.sel_tap = ms_stamp();      /* let go: another tap may still come */
             }
-            mn.sel_tap = ms_stamp();      /* let go: another tap may still come */
         } else {
             mn.sel_n = 0;
         }

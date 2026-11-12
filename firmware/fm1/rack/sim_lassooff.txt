@@ -1,0 +1,25 @@
+wait 500
+tap SEQ
+wait 300
+key w7 down 100
+wait 60
+key w7 up
+key w9 down 100
+wait 60
+key w9 up
+wait 300
+turn ALGO -1
+wait 200
+press SEL
+wait 100
+turn K1 2
+wait 100
+release SEL
+wait 300
+shot o_lasso.png
+tap SEL
+wait 600
+shot o_off.png
+tap SEL
+wait 600
+shot o_selpage.png

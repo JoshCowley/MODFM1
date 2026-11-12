@@ -441,7 +441,7 @@ static void draw_seq_page(void)
             cat(v[0], s->cnt ? "-" : "EMPTY"); cat(v[1], "-"); cat(v[2], "-"); cat(v[3], "-");
         }
         seq_dials(l, v, f, K_SEQC);
-        help(sp.lasso ? "LASSO: K1 STEP K2 PITCH K3 LEN K4 DYN" : artm ? "SEL HELD: K4 ARTICULATION" :
+        help(sp.lasso ? "LASSO: K1-K4 EDIT IT  TAP SEL: DONE" : artm ? "SEL HELD: K4 ARTICULATION" :
              sq.run ? "SELECT: PAGE  K1 NOTE  EDIT: DELETE" : "PLAY A KEY: WRITE  EDIT: DELETE");
         break;
     }
@@ -888,6 +888,16 @@ static void seq_encoders(void)
     }
 }
 
+/* a tap of SEL on NOTES with a lasso: the lasso goes, the notes stay as they are (update 41); 1 when there was one */
+static int sp_lasso_off(void)
+{
+    if (!sp.lasso)
+        return 0;
+    sp.lasso = 0;
+    app_say("LASSO", "OFF");
+    ui.redraw = 1;
+    return 1;
+}
 /* NOTES (update 38): EDIT deletes the note picked, or every note in the lasso */
 static void seq_delete(void)
 {
