@@ -1,0 +1,19 @@
+wait 500
+tap SEQ
+wait 300
+tap REC
+wait 200
+wav click.wav
+tap PLAY
+wait 600
+shot c_countin.png
+wait 2000
+shot c_rec.png
+key w9 down 100
+wait 200
+key w9 up
+wait 1200
+wavstop
+tap PLAY
+wait 300
+shot c_after.png

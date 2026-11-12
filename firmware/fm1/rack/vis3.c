@@ -566,6 +566,7 @@ static void vis_fixed(int pg, int sub, uint16_t c)
         case 2: vis_tuning(c); break;
         case 3: vis_midi(c); break;
         case 4: vis_master(c); break;
+        case 6: vis_metronome(c); break;   /* CLICK (update 40) */
         default: vis_system(c); break;
         }
     }

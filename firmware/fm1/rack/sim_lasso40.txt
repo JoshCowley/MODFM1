@@ -1,0 +1,58 @@
+wait 500
+tap GLO
+wait 400
+turn SELECT 3
+wait 200
+turn K2 1
+wait 200
+tap SEQ
+wait 300
+key w7 down 100
+wait 60
+key w7 up
+key w9 down 100
+wait 60
+key w9 up
+key w11 down 100
+wait 60
+key w11 up
+key w8 down 100
+wait 60
+key w8 up
+wait 300
+turn ALGO -1
+wait 200
+press SEL
+wait 100
+turn K1 3
+wait 100
+release SEL
+wait 300
+shot l_lasso.png
+turn K2 2
+wait 200
+turn K3 4
+wait 200
+turn K4 1
+wait 200
+press SEL
+turn K4 1
+wait 100
+release SEL
+wait 300
+shot l_group.png
+press SAVE
+wait 800
+release SAVE
+wait 300
+turn ALGO 1
+wait 200
+press SAVE
+wait 800
+release SAVE
+wait 300
+shot l_pasted.png
+tap PLAY
+wait 2300
+tap PLAY
+wait 200

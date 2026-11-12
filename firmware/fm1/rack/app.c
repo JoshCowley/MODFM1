@@ -15,7 +15,8 @@
 #define RC_IN_UNITY
 #include "rack_core.c"
 
-#define SET_MAGIC 0x524B4C35u                 /* "RKL5": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC 0x524B4C36u                 /* "RKL6": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC5 0x524B4C35u                /* "RKL5" (updates 38-39): GLOBAL 19 values (no CLICK) */
 #define SET_MAGIC4 0x524B4C34u                /* "RKL4" (updates 36-37): the same; CHD FM-1 turned back on (update 38) */
 #define SET_MAGIC3 0x524B4C33u                /* "RKL3" (updates 34-35): ARP 18 values, the layer switches in their old order */
 #define SET_MAGIC1 0x524B4C31u
@@ -26,7 +27,7 @@ typedef struct {
     int8_t octave;
     uint8_t voices;                           /* 0: the preset's own (GLOBAL > VOICES AUTO) */
     uint8_t rsv;
-    float glo[19], sel[8], arp[20];           /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*); ARP 8-19: STYLE, layers */
+    float glo[23], sel[8], arp[20];           /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*); GLOBAL 19-22: CLICK */
 } settings_t;
 static settings_t set;
 /* a moment as a button's "went down at" (0 means "not down"): now, or 1 at the clock's very start. Until update 38 it
@@ -126,6 +127,7 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
     pl_block(n);                              /* the arp's steps and the strums falling due */
     sq_block(n);                              /* the sequencer's and MSEQ's (seq.c) */
     rc_render(lr, n, 8300000.0f);
+    click_render(lr, n, 8300000.0f);          /* the click track and the count-in (seq.c, update 40) */
     for (i = 0; i < n; i++) {                 /* MASTER, gliding over about 5 ms */
         float g;
         gain_now += (gain - gain_now) * 0.004f;
@@ -812,18 +814,28 @@ static void input(void)
 {
     uint32_t keys, btn = plat_buttons(), press = btn & ~ui.btn, k;
     int32_t e;
-    {                                         /* each press once, from the render's count (update 38) */
-        static uint8_t seen[32];
-        uint32_t i, counted = 0;
+    {   /* each press once (update 40): the frame's own edge, or the render's count of one that fell between two
+         * frames. A press the frame saw first is skipped when the count catches up with it (so a press can't arrive a
+         * frame late and undo what was done while it was held, e.g. SEL + K4) */
+        static uint8_t seen[32], skip[32];
+        uint32_t i, edge = press;
+        int isr = btn_isr_on && (int32_t)(plat_ms() - btn_isr_at) < 60;
+        press = 0;
         for (i = 0; i < 32u; i++) {
             uint8_t c = btn_downs[i];
-            if (c != seen[i]) {
-                seen[i] = c;
-                counted |= 1u << i;
+            int counted = c != seen[i];
+            seen[i] = c;
+            if (!isr) {
+                skip[i] = 0;
+                if (edge >> i & 1u) press |= 1u << i;
+            } else if (edge >> i & 1u) {
+                press |= 1u << i;
+                if (!counted) skip[i] = 1;    /* the count will come: not a second press */
+            } else if (counted) {
+                if (skip[i]) skip[i] = 0;
+                else press |= 1u << i;        /* a tap the frames missed */
             }
         }
-        if (btn_isr_on && (int32_t)(plat_ms() - btn_isr_at) < 60)
-            press = counted;                  /* (a press the frame saw is in the count too: counted once) */
     }
     in_btn = btn;
     touch_poll();
@@ -1005,9 +1017,20 @@ void app_init(void)
     if (plat_cpu2_set(1) == 0)                /* the second core (now: the one time it may start) renders half the voices */
         rk_set_worker(plat_cpu2_run, plat_cpu2_wait);
     n = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
+    if ((set.magic == SET_MAGIC2 || set.magic == SET_MAGIC3 || set.magic == SET_MAGIC4 || set.magic == SET_MAGIC5) &&
+        n > (int)((char *)&set.glo[19] - (char *)&set) && n <= (int)(sizeof set - 4u * sizeof(float))) {
+        /* RKL2-5 had GLOBAL's 19 values (update 40 added CLICK's 4): SEL and ARP move up, CLICK at its defaults */
+        float *f = set.glo;
+        int tail = (n - (int)((char *)&set.glo[19] - (char *)&set)) / (int)sizeof(float);
+        for (i = tail - 1; i >= 0; i--)
+            f[NG + i] = f[19 + i];
+        for (i = 19; i < NG; i++)
+            f[i] = UP_GLO[i].def;
+        n += (int)(4u * sizeof(float));
+    }
     if (n == (int)sizeof set && set.magic == SET_MAGIC4) {   /* RKL4: two taps on SEL may have silenced the keys */
         set.arp[A_LCH] = 1.0f;
-        set.magic = SET_MAGIC;
+        set.magic = SET_MAGIC5;
     }
     if (n == (int)(sizeof set - 2u * sizeof(float)) && set.magic == SET_MAGIC3) {   /* RKL3: ON FM-1 was CHORD, BASS, ARP */
         float lc = set.arp[15], lb = set.arp[16], la = set.arp[17];
@@ -1016,15 +1039,17 @@ void app_init(void)
         set.arp[A_SCH] = UP_ARP[A_SCH].def;
         set.arp[A_LAR] = la;
         set.arp[A_SAR] = UP_ARP[A_SAR].def;
-        set.magic = SET_MAGIC;
+        set.magic = SET_MAGIC5;
         n = (int)sizeof set;
     }
     if (n == (int)(sizeof set - 12u * sizeof(float)) && set.magic == SET_MAGIC2) {   /* RKL2: the same, shorter */
         for (i = A_STYLE; i < NA; i++)
             set.arp[i] = UP_ARP[i].def;
-        set.magic = SET_MAGIC;
+        set.magic = SET_MAGIC5;
         n = (int)sizeof set;
     }
+    if (n == (int)sizeof set && set.magic == SET_MAGIC5)   /* (CLICK at its defaults, above) */
+        set.magic = SET_MAGIC;
     if (n != (int)sizeof set || set.magic != SET_MAGIC) {
         int ok1 = n >= 8 && set.magic == SET_MAGIC1;   /* stage 2's record: its preset, octave and voices stay */
         uint8_t p = set.preset, v = set.voices;

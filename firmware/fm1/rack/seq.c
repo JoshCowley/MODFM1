@@ -257,6 +257,76 @@ static void sq_step(int i, uint32_t tg, float d)
     }
 }
 
+/* ------------------------------------------------------------------ the click track (update 40) --- */
+/* GLOBAL > CLICK: OFF, REC (a click on each beat while recording), REC+PLAY (whenever the sequencer runs); COUNT IN:
+ * PLAY with REC READY first counts in 1 or 2 bars of clicks, then the sequencer starts recording on the next
+ * downbeat; CLICK VOL; SOUND: TICK, BEEP, WOOD. Rendered into the output after the engine, before MASTER. */
+static struct {
+    volatile int cin;                         /* count-in beats left (+1: the start), 0 none */
+    float next;                               /* frames to the next beat */
+    uint32_t beat;
+    int was_run;
+    float env, ph, dph, decay;
+} clk;
+static int sq_count_in(void)                  /* PLAY with REC READY: 1 when the count-in started */
+{
+    int bars = GI(G_CIN);
+    if (bars <= 0)
+        return 0;
+    clk.beat = 0;
+    clk.next = 0.0f;
+    clk.cin = bars * 4 + 1;
+    return 1;
+}
+static void click_tick(int down)
+{
+    static const float HZ[3][2] = {{1500.0f, 2200.0f}, {880.0f, 1320.0f}, {620.0f, 900.0f}};
+    static const float DEC[3] = {0.9930f, 0.9975f, 0.9900f};
+    int snd = GI(G_CSND) % 3;
+    clk.env = set.glo[G_CVOL] * (down ? 0.55f : 0.35f);
+    clk.ph = 0.0f;
+    clk.dph = HZ[snd][down] / PL_HZ;
+    clk.decay = DEC[snd];
+}
+static void click_render(int32_t *lr, uint32_t n, float gain)
+{
+    float bf = GI(G_CLOCK) == 1 && pa.tick_frames > 0.0f ? pa.tick_frames * 24.0f : 60.0f / tempo_bpm() * PL_HZ;
+    int mode = GI(G_CLICK), run = sq.run;
+    uint32_t i;
+    if (run && !clk.was_run) {                /* the sequencer starts: the click from its first step */
+        clk.next = 0.0f;
+        clk.beat = 0;
+    }
+    clk.was_run = run;
+    for (i = 0; i < n; i++) {
+        int on = clk.cin > 0 || (run && ((mode == 1 && sq.rec) || mode == 2));
+        if (on && clk.next <= 0.0f) {
+            if (clk.cin == 1) {               /* the count-in's end: the sequencer starts, recording */
+                clk.cin = 0;
+                sq.req = 1;
+            } else {
+                if (clk.cin > 1)
+                    clk.cin--;
+                if (clk.cin > 0 || mode)      /* (CLICK OFF: the count-in still clicks) */
+                    click_tick(clk.beat % 4u == 0u);
+                clk.beat++;
+            }
+            clk.next += bf;
+        }
+        if (on)
+            clk.next -= 1.0f;
+        if (clk.env > 0.0002f) {
+            float x = fm_sinf(clk.ph * 6.2831853f) * clk.env;
+            int32_t v = (int32_t)(x * gain);
+            clk.ph += clk.dph;
+            if (clk.ph >= 1.0f) clk.ph -= 1.0f;
+            clk.env *= clk.decay;
+            lr[2u * i] += v;
+            lr[2u * i + 1u] += v;
+        }
+    }
+}
+
 /* MSEQ: each lane's value at its step, into the engine's external sources (SEQ 1-4) */
 static uint32_t ms_next_at, ms_step;
 static volatile int ms_cur = -1;
@@ -414,7 +484,7 @@ static void sq_note_in(int raw, const uint8_t *notes, int n)
             sq_last[i] = notes[i];
         sq_nlast = (uint8_t)(n < SQ_NOTES ? n : SQ_NOTES);
     }
-    if (sq.armed && !sq.run && n > 0) {      /* REC READY: the first note starts it */
+    if (sq.armed && !sq.run && n > 0 && !clk.cin) {   /* REC READY: the first note starts it (not while counting in) */
         sq.req = 1;
         sq.run = 0;
         sq_block(0);

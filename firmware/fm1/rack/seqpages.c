@@ -371,7 +371,7 @@ static void draw_seq_page(void)
     const char *l[4];
     char v[4][16], t[40], u[8];
     float f[4] = {0, 0, 0, 0};
-    const char *state = sq.rec && sq.run ? "REC" : sq.armed ? "REC READY" : sq.run ? "PLAY" : "STOP";
+    const char *state = clk.cin ? "COUNT IN" : sq.rec && sq.run ? "REC" : sq.armed ? "REC READY" : sq.run ? "PLAY" : "STOP";
     int i;
     for (i = 0; i < 4; i++) v[i][0] = 0;
     if (mn.page == PG_MSEQ) {
@@ -441,7 +441,7 @@ static void draw_seq_page(void)
             cat(v[0], s->cnt ? "-" : "EMPTY"); cat(v[1], "-"); cat(v[2], "-"); cat(v[3], "-");
         }
         seq_dials(l, v, f, K_SEQC);
-        help(sp.lasso ? "LASSO: K1 STEPS  K2 PITCH  EDIT: DELETE" : artm ? "SEL HELD: K4 ARTICULATION" :
+        help(sp.lasso ? "LASSO: K1 STEP K2 PITCH K3 LEN K4 DYN" : artm ? "SEL HELD: K4 ARTICULATION" :
              sq.run ? "SELECT: PAGE  K1 NOTE  EDIT: DELETE" : "PLAY A KEY: WRITE  EDIT: DELETE");
         break;
     }
@@ -703,6 +703,40 @@ static void seq_lasso_move(int d)
     sq_cursor = sq_cursor < 0 ? 0 : sq_cursor >= b->len ? b->len - 1 : sq_cursor;
     sq_touch();
 }
+/* every note in the lasso: what 1 its length (a quarter step a click), 2 its dynamics, 3 its articulation */
+static void seq_lasso_each(int what, int d)
+{
+    sq_bank_t *b = cur_bank();
+    int a = sp.lasso_a < sp.lasso_b ? sp.lasso_a : sp.lasso_b, z = sp.lasso_a < sp.lasso_b ? sp.lasso_b : sp.lasso_a, i, j, any = 0;
+    char t[24];
+    t[0] = 0;
+    for (i = a; i <= z && i < b->len; i++)
+        for (j = 0; j < b->s[i].cnt; j++) {
+            sq_step_t *s = &b->s[i];
+            if (what == 1) {
+                int v = s->len[j] + d;
+                s->len[j] = (uint8_t)(v < 1 ? 1 : v > 255 ? 255 : v);
+            } else if (what == 2) {
+                int v = SQ_LV(s->lvl[j]) + d;
+                s->lvl[j] = SQ_MKLVL(v < 0 ? 0 : v > 4 ? 4 : v, SQ_ART(s->lvl[j]));
+                if (!any) cat(t, SQ_LEVELS[SQ_LV(s->lvl[j])]);
+            } else {
+                int v = SQ_ART(s->lvl[j]) + d;
+                s->lvl[j] = SQ_MKLVL(SQ_LV(s->lvl[j]), v < 0 ? 0 : v > 4 ? 4 : v);
+                if (!any) cat(t, SQ_ARTS[SQ_ART(s->lvl[j])]);
+            }
+            any = 1;
+        }
+    if (what == 3) {
+        mn.sel_long = 1;                      /* (SEL let go now is no tap) */
+        mn.sel_n = 0;
+    }
+    if (any && what > 1)
+        app_say(what == 2 ? "LASSO DYNAMICS" : "LASSO ARTIC", t);
+    else if (any)
+        app_say("LASSO", d > 0 ? "LONGER" : "SHORTER");
+    sq_touch();
+}
 static void seq_lasso_pitch(int d)                /* every note in the lasso a semitone a click */
 {
     sq_bank_t *b = cur_bank();
@@ -744,9 +778,13 @@ static void seq_encoders(void)
     }
     switch (mn.sub) {
     case SQP_NOTES:
-        if (sp.lasso && !(in_btn >> B_SEL & 1u) && (e[2] || e[3])) {   /* the lasso: K1 moves it by steps, K2 its pitch */
-            if (e[2]) seq_lasso_move((int)e[2]);
+        if (sp.lasso && ((e[2] && !(in_btn >> B_SEL & 1u)) || e[3] || e[4] || e[5])) {
+            /* the lasso, as a group (update 40): K1 moves it by steps, K2 its pitch, K3 its lengths, K4 its dynamics,
+             * SEL held + K4 its articulation */
+            if (e[2] && !(in_btn >> B_SEL & 1u)) seq_lasso_move((int)e[2]);
             if (e[3]) seq_lasso_pitch((int)e[3]);
+            if (e[4]) seq_lasso_each(1, (int)e[4]);
+            if (e[5]) seq_lasso_each((in_btn >> B_SEL & 1u) ? 3 : 2, e[5] > 0 ? 1 : -1);
             break;
         }
         if (e[2] && (in_btn >> B_SEL & 1u)) {   /* SEL held + K1: the lasso, a step a click from where it started */
@@ -955,9 +993,23 @@ static void seq_buttons(uint32_t press, uint32_t btn)
         ui.redraw = 1;
     }
     if (press >> B_PLAY & 1u) {
-        if (sq.run)                           /* STOP also ends what HOLD keeps: the arp's notes and latched chords */
-            rc_push(PLE_ARP_CLEAR, 0, 0.0f, 0.0f);
-        sq.req = sq.run ? 2 : 1;
+        if (clk.cin) {                        /* PLAY while counting in: stop (REC READY stays) */
+            clk.cin = 0;
+            app_say("COUNT IN", "STOPPED");
+        } else if (!sq.run && sq.armed && sq_count_in()) {   /* REC READY + PLAY: the count-in, then recording */
+            app_say("COUNT IN", GI(G_CIN) > 1 ? "2 BARS" : "1 BAR");
+        } else {
+            if (sq.run)                       /* STOP also ends what HOLD keeps: the arp's notes and latched chords */
+                rc_push(PLE_ARP_CLEAR, 0, 0.0f, 0.0f);
+            sq.req = sq.run ? 2 : 1;
+        }
+        ui.redraw = 1;
+    }
+    if ((press >> B_REC & 1u) && clk.cin) {   /* REC while counting in: stop it, and REC READY off */
+        clk.cin = 0;
+        sq.armed = 0;
+        app_say("REC", "OFF");
+        press &= ~(1u << B_REC);
         ui.redraw = 1;
     }
     if (press >> B_REC & 1u) {

@@ -39,20 +39,21 @@ static const char *const UI_OPT[] = {
     "F", "F#", "G", "G#", "A", "A#", "B", "OFF",
     "NOTES", "+CC", "1", "2", "3", "4", "5", "6",
     "7", "8", "9", "10", "11", "12", "13", "14",
-    "15", "16", "ON", "OFF", "MAJOR", "MINOR", "DORIAN", "MIXOLYD",
-    "PENT MAJ", "PENT MIN", "HARM MIN", "WHOLE", "LYDIAN", "OFF", "TRIAD", "7TH",
-    "9TH", "11TH", "SUS4", "6TH", "POWER", "CLOSE", "LEAD", "OPEN",
-    "INV1", "INV2", "+OCT", "OFF", "SNAP", "ALL", "WHITE", "KEY",
-    "FREE", "CHORDS", "OFF", "BASS", "OFF", "UP", "DOWN", "UPDN",
-    "DNUP", "RANDOM", "ORDER", "CHORD", "REPEAT", "UP+8", "CONV", "DIVG",
-    "PINKY", "THUMB", "TURING", "1/4", "1/8", "1/8T", "1/16", "1/16T",
-    "1/32", "OFF", "HELD", "POP 8THS", "POP PUSH", "ROCK", "POWER ROCK", "BALLAD",
-    "6/8 BALLAD", "HOUSE", "DEEP HOUSE", "TECHNO", "DISCO", "TRANCE", "UK GARAGE", "DNB ROLLER",
-    "LIQUID DNB", "JUNGLE", "BOOM BAP", "TRAP", "WEST COAST", "LOFI", "LOFI JAZZ", "FUNK",
-    "R&B", "NEO SOUL", "AMB SWELL", "AMB PULSE", "DRONE", "REGGAE", "BOSSA NOVA", "SAMBA",
-    "AFROBEAT", "SALSA", "JAZZ SWING", "OFF", "1", "2", "3", "4",
-    "5", "6", "7", "8", "9", "10", "11", "12",
-    "13", "14", "15", "16",
+    "15", "16", "ON", "OFF", "OFF", "REC", "REC+PLAY", "OFF",
+    "1 BAR", "2 BARS", "TICK", "BEEP", "WOOD", "MAJOR", "MINOR", "DORIAN",
+    "MIXOLYD", "PENT MAJ", "PENT MIN", "HARM MIN", "WHOLE", "LYDIAN", "OFF", "TRIAD",
+    "7TH", "9TH", "11TH", "SUS4", "6TH", "POWER", "CLOSE", "LEAD",
+    "OPEN", "INV1", "INV2", "+OCT", "OFF", "SNAP", "ALL", "WHITE",
+    "KEY", "FREE", "CHORDS", "OFF", "BASS", "OFF", "UP", "DOWN",
+    "UPDN", "DNUP", "RANDOM", "ORDER", "CHORD", "REPEAT", "UP+8", "CONV",
+    "DIVG", "PINKY", "THUMB", "TURING", "1/4", "1/8", "1/8T", "1/16",
+    "1/16T", "1/32", "OFF", "HELD", "POP 8THS", "POP PUSH", "ROCK", "POWER ROCK",
+    "BALLAD", "6/8 BALLAD", "HOUSE", "DEEP HOUSE", "TECHNO", "DISCO", "TRANCE", "UK GARAGE",
+    "DNB ROLLER", "LIQUID DNB", "JUNGLE", "BOOM BAP", "TRAP", "WEST COAST", "LOFI", "LOFI JAZZ",
+    "FUNK", "R&B", "NEO SOUL", "AMB SWELL", "AMB PULSE", "DRONE", "REGGAE", "BOSSA NOVA",
+    "SAMBA", "AFROBEAT", "SALSA", "JAZZ SWING", "OFF", "1", "2", "3",
+    "4", "5", "6", "7", "8", "9", "10", "11",
+    "12", "13", "14", "15", "16",
 };
 static const ui_param_t UP_PLAITS[] = {
     {"MODEL", 2, 0, 0, 23, 0, 8.0f},
@@ -297,35 +298,39 @@ static const ui_param_t UP_GLO[] = {
     {"MID EQ", 1, 1, -1, 1, 0, 0.0f},
     {"HIGH EQ", 1, 1, -1, 1, 0, 0.0f},
     {"COMP", 0, 1, 0, 1, 0, 0.0f},
+    {"CLICK", 2, 0, 0, 2, 284, 1.0f},
+    {"COUNT IN", 2, 0, 0, 2, 287, 1.0f},
+    {"CLICK VOL", 0, 0, 0, 1, 0, 0.5f},
+    {"SOUND", 2, 0, 0, 2, 290, 0.0f},
 };
-static const uint8_t UG_GLO[] = {4, 3, 4, 4, 4, 0};
+static const uint8_t UG_GLO[] = {4, 3, 4, 4, 4, 0, 4};
 static const ui_param_t UP_SEL[] = {
-    {"SCALE", 2, 0, 0, 8, 284, 0.0f},
+    {"SCALE", 2, 0, 0, 8, 293, 0.0f},
     {"ROOT", 2, 0, 0, 11, 251, 0.0f},
-    {"CHORD", 2, 0, 0, 7, 293, 0.0f},
-    {"VOICING", 2, 0, 0, 5, 301, 0.0f},
-    {"QNT", 2, 0, 0, 3, 307, 0.0f},
-    {"HARMONY", 2, 0, 0, 1, 311, 0.0f},
-    {"ZONE", 2, 0, 0, 2, 313, 0.0f},
+    {"CHORD", 2, 0, 0, 7, 302, 0.0f},
+    {"VOICING", 2, 0, 0, 5, 310, 0.0f},
+    {"QNT", 2, 0, 0, 3, 316, 0.0f},
+    {"HARMONY", 2, 0, 0, 1, 320, 0.0f},
+    {"ZONE", 2, 0, 0, 2, 322, 0.0f},
     {"STRUM", 0, 1, 0, 1, 0, 0.0f},
 };
 static const uint8_t UG_SEL[] = {4, 4};
 static const ui_param_t UP_ARP[] = {
-    {"MODE", 2, 0, 0, 14, 316, 0.0f},
-    {"RATE", 2, 0, 0, 5, 331, 3.0f},
+    {"MODE", 2, 0, 0, 14, 325, 0.0f},
+    {"RATE", 2, 0, 0, 5, 340, 3.0f},
     {"OCTAVE", 3, 0, 1, 4, 0, 1.0f},
     {"GATE", 0, 1, 0, 1, 0, 0.5f},
     {"HOLD", 2, 0, 0, 1, 24, 0.0f},
     {"MUTATE", 0, 1, 0, 1, 0, 0.1f},
     {"LOOP", 3, 0, 1, 16, 0, 8.0f},
     {"SWING", 0, 1, 0, 1, 0, 0.0f},
-    {"STYLE", 2, 0, 0, 33, 337, 0.0f},
+    {"STYLE", 2, 0, 0, 33, 346, 0.0f},
     {"BASS OCT", 3, 0, -2, 1, 0, 0.0f},
     {"ACCENT", 0, 0, 0, 1, 0, 0.6f},
     {"BASS LEN", 0, 0, 0, 1, 0, 0.6f},
-    {"CHORD CH", 2, 0, 0, 16, 371, 1.0f},
-    {"BASS CH", 2, 0, 0, 16, 371, 2.0f},
-    {"ARP CH", 2, 0, 0, 16, 371, 3.0f},
+    {"CHORD CH", 2, 0, 0, 16, 380, 1.0f},
+    {"BASS CH", 2, 0, 0, 16, 380, 2.0f},
+    {"ARP CH", 2, 0, 0, 16, 380, 3.0f},
     {"BASS FM1", 2, 0, 0, 1, 24, 0.0f},
     {"CHD FM-1", 2, 0, 0, 1, 24, 1.0f},
     {"CHD SEND", 2, 0, 0, 1, 24, 1.0f},
@@ -393,6 +398,6 @@ static const ui_mod_t UI_MODS[UI_NMODS] = {
 static const ui_mod_t UI_AMP = {"AMP", "ENVELOPES", 0, 4, 6, 22, UG_AMP, UP_AMP, 0, {0}};
 static const ui_mod_t UI_LFO = {"LFO", "THREE LFOS", 0, 5, 6, 24, UG_LFO, UP_LFO, 0, {0}};
 static const ui_mod_t UI_OSC = {"OSC", "OSC + MIXER", 0, 0, 2, 8, UG_OSC, UP_OSC, 0, {0}};
-static const ui_mod_t UI_GLO = {"GLOBAL", "SETTINGS", 0, 6, 6, 19, UG_GLO, UP_GLO, 0, {0}};
+static const ui_mod_t UI_GLO = {"GLOBAL", "SETTINGS", 0, 6, 7, 23, UG_GLO, UP_GLO, 0, {0}};
 static const ui_mod_t UI_SEL = {"SCALE + CHORD", "KEYS TO SCALE", 0, 7, 2, 8, UG_SEL, UP_SEL, 0, {0}};
 static const ui_mod_t UI_ARP = {"ARP", "ARPEGGIATOR", 0, 8, 5, 20, UG_ARP, UP_ARP, 0, {0}};

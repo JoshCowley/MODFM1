@@ -214,6 +214,15 @@ range (at once against gliding), each against the same moment with nothing chang
 `build/host/audition OUTDIR` (built by build_host.sh) plays every preset through the firmware's sound path (rc_load,
 rc_render at 44.1 kHz) with a phrase for its category and writes a WAV each, with its peak and loudness.
 
+## Update 40
+
+- GLOBAL page 7 CLICK (G_CLICK, G_CIN, G_CVOL, G_CSND; settings RKL6, glo[23], older records moved up): seq.c
+  click_render mixes a decaying sine per beat after the engine, before MASTER. REC READY + PLAY: count-in (clk.cin),
+  then sq.req = 1 on the next downbeat; a first note while counting in doesn't start it.
+- The lasso as a group: K3 lengths, K4 dynamics, SEL + K4 articulations (seq_lasso_each), as well as K1 / K2.
+- Buttons: a press is taken from the frame's edge or the render's count, whichever comes first, once (a late count had
+  undone SEL + K4 and turned SEL's release into a tap). sim_click, sim_lasso40.
+
 ## Update 39
 
 - Sequencer: SELECT turns its pages (PATTERN / SPICE cursor on ALGORITHM, BANKS / SONG on K1). NOTES: K4 DYNAMICS

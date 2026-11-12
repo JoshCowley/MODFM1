@@ -870,13 +870,13 @@ static void draw_param_page(int pg)
         mn.sub = npages(pg) - 1;
     title[0] = 0;
     if (is_fixed(pg)) {
-        static const char *const GT[] = {"SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM"};
+        static const char *const GT[] = {"SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM", "CLICK"};
         static const char *const ST[] = {"SCALE + CHORD", "KEYS + STRUM", "STYLE", "LAYER MIDI CH", "CHORD + ARP"},
                           *const AT[] = {"ARPEGGIATOR", "HOLD + TURING"};
         m = page_mod(data_pg(pg));
         fv = page_vals(data_pg(pg));
         int ic = pg == PG_GLO ? (mn.sub == 3 ? IC_MIDI : mn.sub == 4 ? IC_OUT : IC_GLOBAL) : pg == PG_SEL ? (mn.sub ? IC_SCALE : IC_CHORD) : IC_ARP;
-        header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 6] : pg == PG_SEL ? ST[mn.sub % 5] : AT[mn.sub & 1],
+        header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 7] : pg == PG_SEL ? ST[mn.sub % 5] : AT[mn.sub & 1],
                ic, npages(pg), mn.sub);
         page_well(pg);
         off = page_first(m, mn.sub);

@@ -4,7 +4,7 @@ Nov 11, 2026 · Josh Cowley
 
 FM1 Rack turns the M-VAVE FM-1 into a small modular synthesizer built from Mutable Instruments' open module code. Each sound is a short chain of modules: a source (Plaits or Braids), a shaper (Rings or a filter), two modulators, two effects and an amplifier. You play it from the keys, shape it with the knobs, and link anything to anything through a modulation matrix. This manual covers the firmware on the FM-1; the browser version has its own manual, the [FM1 Rack Manual](index.html).
 
-> **This is a test version (update 39).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, the finer pictures, the BASS zone and the sequencer's editing (lasso, copy and paste, dynamics, articulations) have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
+> **This is a test version (update 40).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, the finer pictures, the BASS zone and the sequencer's editing (lasso, copy and paste, dynamics, articulations) and the click track have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
 
 ## Contents
 
@@ -101,7 +101,7 @@ Each page button opens its first page; tap it again for its next page, and after
 | **SAVE** | the SAVE page | SAVE again stores the preset | On a sequencer page: stores the sequencer |
 | **SEQ** | the sequencer, at the page you last used | the next sequencer page | **Hold: the step layer** (section 11) |
 | **PLAY** | start or stop the sequencer | | |
-| **REC** | stopped: REC READY; playing: recording on or off | | |
+| **REC** | stopped: REC READY (then PLAY: a bar's count-in, then recording); playing: recording on or off | | |
 | **OCT− / OCT+** | octave down or up | | On SAVE: OCT+ opens the library. In the step layer: the previous or next 16 steps |
 
 SEL held on its own does nothing, so LEARN can't start by accident; held together with EDIT it never counts as UNDO or a page turn.
@@ -515,7 +515,7 @@ A switched-off effect shows **OFF** on its HOME tile and costs no processor time
 
 ### GLOBAL
 
-GLO opens six pages:
+GLO opens seven pages:
 
 1. **SETTINGS**: TEMPO (60–180), MIDI CH (OMNI or 1–16), VOICES (AUTO or 1–6), CLOCK (internal or MIDI)
 2. **PLAYING**: VEL CURVE, ANIMATION (full, calm, still), LED BRIGHT
@@ -523,6 +523,11 @@ GLO opens six pages:
 4. **MIDI**: PROG CHG, MIDI OUT, OUT CH, LOCAL
 5. **MASTER**: LOW, MID and HIGH EQ and COMP, over every preset
 6. **SYSTEM**: measured, not set: CPU history, memory, voices, cores
+7. **CLICK**: the click track (section 11):
+    - **CLICK**: OFF, REC (a click on every beat while recording; to start with) or REC+PLAY (whenever the sequencer runs);
+    - **COUNT IN**: OFF, 1 BAR (to start with) or 2 BARS;
+    - **CLICK VOL**: its level (MASTER turns it down too);
+    - **SOUND**: TICK, BEEP or WOOD. The first beat of each bar is higher.
 
 ![GLOBAL](../web/manual/img/fm1-glo.png)
 
@@ -569,7 +574,7 @@ Tap **SEQ** to open it; it remembers the page you were on. Tap SEQ again, or tur
 
 - Only **EDIT** deletes: the note K1 picked (**NOTE DELETED**). Turning K4 down stops at PP.
 - **Lasso**: hold **SEL** and turn **K1**: the steps from where you started to where you turn are picked, lit gold. Then:
-    - turn **K1** to move the whole group a step a click, **K2** to move all its notes up or down a semitone a click;
+    - turn **K1** to move the whole group a step a click, **K2** to move all its notes up or down a semitone a click, **K3** to make all of them longer or shorter, **K4** to change all their dynamics, and hold **SEL** and turn **K4** for all their articulations (a message shows the new value);
     - **EDIT** clears every note in them;
     - **hold SAVE** copies them (**COPIED 3 STEPS**; up to 32).
 - **Paste**: move the cursor (ALGORITHM, or K1 to a note), then **hold SAVE** with nothing lassoed: what you copied is written from the cursor's step on (**PASTED**). A tap of SAVE still saves the sequencer.
@@ -612,7 +617,10 @@ Tap **SEQ** to open it; it remembers the page you were on. Tap SEQ again, or tur
 
 ### Recording
 
-- **Stopped**: tap REC for **REC READY**. The first note you play, or PLAY, starts the sequencer recording.
+- **Stopped**: tap REC for **REC READY**. Then **PLAY** counts you in (GLOBAL › CLICK › COUNT IN: a bar of four clicks to start with; the header reads COUNT IN) and recording starts on the next downbeat, with the click going on while you record. Or just play: the first note starts the sequencer recording straight away, with no count-in. PLAY during the count-in stops it; REC cancels REC READY.
+
+![Counting in](../web/manual/img/fm1-countin.png)
+
 - **Playing**: REC turns recording on and off. What you play is written into the steps as they pass.
 
 ### The step layer
