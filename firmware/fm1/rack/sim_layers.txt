@@ -5,7 +5,7 @@ turn SELECT 3
 wait 300
 turn K2 1
 wait 300
-tap ARP
+tap SEL
 wait 600
 turn SELECT 4
 wait 400
@@ -18,12 +18,14 @@ key w1 down 100
 wait 300
 key w1 up
 wait 300
+tap SEL
+wait 500
+turn SELECT 4
+wait 300
+turn K1 -1
+wait 300
 tap HOME
 wait 500
-tap SEL
-wait 100
-tap SEL
-wait 450
 shot y_chord_fm1_off.png
 wait 1500
 shot y_home_warn.png
@@ -49,9 +51,11 @@ wait 100
 tap SEL
 wait 450
 tap SEL
-wait 100
-tap SEL
-wait 450
+wait 500
+turn SELECT 4
+wait 300
+turn K1 1
+wait 300
 tap ARP
 wait 600
 turn K1 1
@@ -78,7 +82,7 @@ wait 100
 tap ARP
 wait 450
 shot y_arp_fm1_off.png
-tap ARP
+tap SEL
 wait 600
 turn SELECT 4
 wait 400

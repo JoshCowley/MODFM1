@@ -5,7 +5,7 @@ turn SELECT 3
 wait 300
 turn K2 1
 wait 300
-tap ARP
+tap SEL
 wait 800
 turn SELECT 2
 wait 400

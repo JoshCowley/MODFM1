@@ -173,7 +173,7 @@ static void vis_sel_chord(uint16_t c)
 /* SEL page 2: the FM-1's 27 keys and where each lands (QNT), the zone keys, the strum as a stair */
 static void vis_sel_keys(uint16_t c)
 {
-    int k, oct = set.octave, z = zone_on();
+    int k, oct = set.octave, z = zone_on() || zone_bass();
     float strum = set.sel[C_STRUM];
     for (k = 0; k < NKEYS; k++) {
         int note = 53 + k + 12 * oct, pc = pc12(note), black = pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10;
@@ -507,14 +507,15 @@ static void vis_system(uint16_t c)
 
 static void vis_fixed(int pg, int sub, uint16_t c)
 {
-    if (pg == PG_SEL) {                       /* the keyboards: drawn solid, as before */
+    if (pg == PG_SEL && sub >= 2) {           /* SEL's MIDI controller pages (update 38): STYLE and its layers */
+        vis_style(c, sub);
+    } else if (pg == PG_SEL) {                /* the keyboards: drawn solid, as before */
         vf_keep = 2;
         if (sub == 0) vis_sel_chord(c);
         else vis_sel_keys(c);
         vf_keep = 0;
     } else if (pg == PG_ARP) {
-        if (sub >= 2) vis_style(c, sub);
-        else vis_arp(c);
+        vis_arp(c);
     } else {
         switch (sub) {
         case 0: vis_metronome(c); break;

@@ -11,7 +11,7 @@ tap SEL
 wait 100
 tap SEL
 wait 450
-shot t_chord_off.png
+shot t_chord_send.png
 wait 400
 tap SEL
 wait 600

@@ -107,6 +107,11 @@ static const int8_t CHROMA[2][7][6] = {
     {{0}, {0, 4, 7, -1}, {0, 4, 7, 11, -1}, {0, 4, 7, 11, 14, -1}, {0, 4, 7, 11, 14, 17}, {0, 5, 7, -1}, {0, 4, 7, 9, -1}},
     {{0}, {0, 3, 7, -1}, {0, 3, 7, 10, -1}, {0, 3, 7, 10, 14, -1}, {0, 3, 7, 10, 14, 17}, {0, 5, 7, -1}, {0, 3, 7, 9, -1}}};
 static int zone_on(void) { return CI(C_ZONE) == 0 && CI(C_TYPE) != CT_OFF; }
+static int style_on(void);
+/* SEL > ZONE BASS (update 38): with a STYLE on, the 7 lowest keys pick the chord tone the bass plays, in the style's
+ * rhythm: root, 3rd, 5th, 7th, octave up, 5th below, the approach note; none held: the style's own line */
+static const char ZONE_BASS[7] = {'R', '3', '5', '7', '8', 'b', 'a'};
+static int zone_bass(void) { return CI(C_ZONE) == 2 && style_on(); }
 
 static int add_unique(int *a, int n, int v)
 {
@@ -448,6 +453,7 @@ static struct {
 
 static void lay_all_off(void);
 static int style_on(void) { return AI(A_STYLE) > 0; }
+static char zone_bass_tone(void);             /* the bass zone key held latest, or 0 */
 static void style_refresh(int clear);
 
 static void pl_key_on(int raw, int note, float vel)
@@ -562,6 +568,8 @@ static void pl_sustain(int down)
                 pl_key_off(i);
             }
 }
+static void st_held_off(void);
+static void st_held_on(void);
 static void pl_zone_key(int k, int on)
 {
     int i, j;
@@ -579,7 +587,12 @@ static void pl_zone_key(int k, int on)
                 break;
             }
     }
+    if (zone_bass() && AI(A_STYLE) == ST_HELD && st.on) {   /* HELD: the held bass moves to the new tone now */
+        st_held_off();
+        st_held_on();
+    }
 }
+static char zone_bass_tone(void) { return zone_bass() && pl_nzone ? ZONE_BASS[pl_zone_order[pl_nzone - 1] % 7] : 0; }
 static void pl_reset(int all)                 /* the engine was reset (a preset load, all notes off) */
 {
     int i;
@@ -835,9 +848,10 @@ static void st_held_off(void)
         lay_off(L_BASS, st.hbass);
     st.hbass = -1;
 }
-static void st_held_on(void)                  /* HELD: the root held as long as the chord */
+static void st_held_on(void)                  /* HELD: the root (or the bass zone's tone) held as long as the chord */
 {
-    st.hbass = st_bass('R');
+    char z = zone_bass_tone();
+    st.hbass = st_bass(z ? z : 'R');
     lay_on(L_BASS, st.hbass, st.vel);
 }
 static void style_stop(void)
@@ -947,7 +961,8 @@ static void style_step(uint32_t at)
     t = at + (S->div == 16 && (i & 1) ? (uint32_t)(S->swing * 0.5f * d) : 0u);
     c = S->bass[i];
     if (c != '.' && c != '-') {
-        int bn = st_bass(c);
+        char z = zone_bass_tone();            /* the bass zone: its tone, the pattern's rhythm and accents */
+        int bn = st_bass(z ? z : c);
         k = st_tie(S->bass, i, S->len);
         v = st.vel * (c == 'R' ? 1.0f : 1.0f - 0.25f * acc);
         len = (uint32_t)(((float)(k - 1) + 0.3f + 0.65f * set.arp[A_CLEN]) * d);
@@ -1113,7 +1128,7 @@ static void glo_apply(void)
 }
 
 static uint32_t set_dirty_at;                 /* a setting changed: saved when they rest */
-static void settings_touch(void) { set_dirty_at = plat_ms() | 1u; }
+static void settings_touch(void) { set_dirty_at = ms_stamp(); }
 static void settings_tick(void)
 {
     if (set_dirty_at && plat_ms() - set_dirty_at > 3000u) {

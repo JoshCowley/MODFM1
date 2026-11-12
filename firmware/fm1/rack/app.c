@@ -15,7 +15,8 @@
 #define RC_IN_UNITY
 #include "rack_core.c"
 
-#define SET_MAGIC 0x524B4C34u                 /* "RKL4": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC 0x524B4C35u                 /* "RKL5": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC4 0x524B4C34u                /* "RKL4" (updates 36-37): the same; CHD FM-1 turned back on (update 38) */
 #define SET_MAGIC3 0x524B4C33u                /* "RKL3" (updates 34-35): ARP 18 values, the layer switches in their old order */
 #define SET_MAGIC1 0x524B4C31u
 #define SET_MAGIC2 0x524B4C32u                /* "RKL2": ARP's 8 values only (before STYLE): all but the new ones kept */
@@ -28,6 +29,11 @@ typedef struct {
     float glo[19], sel[8], arp[20];           /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*); ARP 8-19: STYLE, layers */
 } settings_t;
 static settings_t set;
+/* a moment as a button's "went down at" (0 means "not down"): now, or 1 at the clock's very start. Until update 38 it
+ * was plat_ms() | 1, a millisecond in the future half the time: a hold test in the same frame then saw ~49 days held,
+ * took the tap for a hold, and the tap did nothing (EDIT, SEL, ARP, SEQ, HOME, FX: "needs several tries") */
+static uint32_t ms_stamp(void) { uint32_t t = plat_ms(); return t ? t : 1u; }
+static uint32_t in_btn;                       /* the buttons held this frame (the sequencer's SEL + K1 lasso) */
 #include "ui_defs.h"
 #include "play.c"
 #include "seq.c"
@@ -93,10 +99,28 @@ static void midi_in(void)                     /* audio interrupt: the packets th
     }
 }
 
+/* the buttons' presses, counted by the render (every 5.8 ms; update 38): the main loop reads the buttons once a
+ * screen frame, and a quick tap could fall between two frames and be lost. input() takes each press from here, once */
+static volatile uint8_t btn_downs[32];
+static volatile uint32_t btn_isr_at;          /* when the render last looked (no audio: the frames' own edges) */
+static volatile int btn_isr_on;               /* the render has looked at least once */
+static uint32_t btn_rprev;
+static void btn_count(void)
+{
+    uint32_t b = plat_buttons(), d = b & ~btn_rprev, i;
+    btn_rprev = b;
+    for (i = 0; d; i++, d >>= 1)
+        if (d & 1u)
+            btn_downs[i]++;
+    btn_isr_at = plat_ms();
+    btn_isr_on = 1;
+}
+
 void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
 {
     float gain = (float)master_q12 / 4096.0f * 8300000.0f;
     uint32_t i;
+    btn_count();
     if (!rc_audio.pause_req)
         midi_in();
     pl_block(n);                              /* the arp's steps and the strums falling due */
@@ -827,7 +851,7 @@ static void leds(uint32_t lit, uint32_t keys)
         mid |= 1u << B_ARP;
     if (mn.page == PG_SEL)
         for (k = 0; k < NKEYS; k++) {
-            if (k < 7u && zone_on())
+            if (k < 7u && (zone_on() || zone_bass()))
                 midk |= 1u << k;
             else if (in_scale(53 + (int)k))
                 dimk |= 1u << k;
@@ -848,6 +872,20 @@ static void input(void)
 {
     uint32_t keys, btn = plat_buttons(), press = btn & ~ui.btn, k;
     int32_t e;
+    {                                         /* each press once, from the render's count (update 38) */
+        static uint8_t seen[32];
+        uint32_t i, counted = 0;
+        for (i = 0; i < 32u; i++) {
+            uint8_t c = btn_downs[i];
+            if (c != seen[i]) {
+                seen[i] = c;
+                counted |= 1u << i;
+            }
+        }
+        if (btn_isr_on && (int32_t)(plat_ms() - btn_isr_at) < 60)
+            press = counted;                  /* (a press the frame saw is in the count too: counted once) */
+    }
+    in_btn = btn;
     touch_poll();
     keys = touch_keys();
     seq_layer_keys(keys, ui.keys);            /* holding SEQ: the white keys are steps (seqpages.c) */
@@ -859,7 +897,7 @@ static void input(void)
             ui.pkeys |= bit;
             int note = 53 + (int)k + 12 * set.octave;
             uint32_t v = touch_vel(k);
-            if (k < 7u && zone_on()) {        /* SEL > ZONE: the lowest keys change the chord */
+            if (k < 7u && (zone_on() || zone_bass())) {        /* SEL > ZONE: the lowest keys change the chord */
                 ui.zkeys |= bit;
                 rc_push(PLE_ZONE, (int)k, 1.0f, 0.0f);
             } else {
@@ -903,8 +941,8 @@ static void input(void)
         octave_step(-1);
     if (press >> B_OCTUP & 1u)
         octave_step(1);
-    if ((press >> B_SAVE & 1u) && is_seq_page(mn.page))   /* SAVE on a sequencer page: the sequencer */
-        seq_save();
+    if (is_seq_page(mn.page) || sp.save_at)  /* SAVE on a sequencer page: the sequencer (held on NOTES: copy / paste) */
+        seq_save_btn(press, btn);
     else if (press >> B_SAVE & 1u)           /* SAVE: the page to name and store what is playing */
         save_open();
     if (menu_input(press, btn)) {                 /* a menu page: its own encoders */
@@ -1027,6 +1065,10 @@ void app_init(void)
     if (plat_cpu2_set(1) == 0)                /* the second core (now: the one time it may start) renders half the voices */
         rk_set_worker(plat_cpu2_run, plat_cpu2_wait);
     n = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
+    if (n == (int)sizeof set && set.magic == SET_MAGIC4) {   /* RKL4: two taps on SEL may have silenced the keys */
+        set.arp[A_LCH] = 1.0f;
+        set.magic = SET_MAGIC;
+    }
     if (n == (int)(sizeof set - 2u * sizeof(float)) && set.magic == SET_MAGIC3) {   /* RKL3: ON FM-1 was CHORD, BASS, ARP */
         float lc = set.arp[15], lb = set.arp[16], la = set.arp[17];
         set.arp[A_LBS] = lb;

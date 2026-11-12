@@ -109,6 +109,10 @@ def main():
            [num("PW", 0.5), num("OSC LVL", 0.0), num("MAIN LVL", 1.0), num("AUX LVL", 0.0)]]
     o_pg, o_n = params("OSC", osc)
     g_pg, g_n = params("GLO", d["GLOBAL"]["pages"][:GLO_PAGES] + [[]])
+    for pg in d["CHORD"]["pages"]:            # the firmware's ZONE (update 38): OFF, CHORDS (the quality keys), BASS
+        for q in pg:                          # (the bass's chord tone, STYLE's rhythm); values kept: 0 CHORDS, 1 OFF
+            if q.get("l") == "ZONE":
+                q["opts"] = ["CHORDS", "OFF", "BASS"]
     s_pg, s_n = params("SEL", d["CHORD"]["pages"])
     r_pg, r_n = params("ARP", d["ARPDEF"]["pages"] + ARP_EXTRA)   # + STYLE, LAYER CH, ON FM-1 (style_def.py)
     tables.append(style_table())

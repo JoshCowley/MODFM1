@@ -5,7 +5,7 @@ turn SELECT 3
 wait 300
 turn K2 1
 wait 300
-tap ARP
+tap SEL
 wait 800
 turn SELECT 2
 wait 400
@@ -21,9 +21,12 @@ key w1 up
 key w3 up
 key w5 up
 wait 300
-turn SELECT -2
-wait 300
+tap ARP
+wait 500
 turn K1 1
+wait 300
+tap SEL
+wait 500
 wait 300
 key w4 down 100
 key w6 down 100

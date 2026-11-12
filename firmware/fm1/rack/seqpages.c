@@ -28,7 +28,13 @@ static struct {
     int layer, layer_page, held, turned;      /* hold SEQ: the layer, its 16 steps' page, the step held, a knob moved */
     uint32_t seq_at;                          /* SEQ went down */
     int undo_ok, seq_sub;
-} sp = {0, 0, 50, 30, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0};
+    int lasso, lasso_a, lasso_b;              /* NOTES (update 38): hold SEL + turn K1, steps lasso_a..lasso_b picked */
+    uint32_t save_at;                         /* SAVE went down on a sequencer page (held on NOTES: copy / paste) */
+    int save_long;
+} sp = {0, 0, 50, 30, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+#define SQ_CLIP 32
+static sq_step_t sq_clip[SQ_CLIP];            /* the steps hold SAVE copied (at most two pages of 16) */
+static int sq_nclip;
 #define sp_undo share.undo                    /* GEN and BANKS: the bank before, ALGO left puts it back (shares save.c's RAM) */
 
 static int is_seq_page(int pg) { return pg == PG_SEQ || pg == PG_MSEQ; }
@@ -77,11 +83,12 @@ static void seq_dials(const char *const *l, char v[4][16], const float *f, uint1
 }
 
 /* ------------------------------------------------------------------ the pictures (228 x AH) --- */
+#define RX 14                                 /* the roll's left edge: the see-through keyboard is left of it */
 static void pic_roll(void)                    /* NOTES: a piano roll of 16 steps */
 {
     sq_bank_t *b = cur_bank();
     int L = b->len, start = (sq_cursor / 16) * 16, i, j, lo = 127, hi = 0, any = 0;
-    float sw = 220.0f / 16.0f, pos = sq_pos();
+    float sw = (float)(224 - RX) / 16.0f, pos = sq_pos();   /* (update 38: from RX, the keyboard left of it) */
     char t[16];
     for (i = 0; i < L; i++)
         for (j = 0; j < b->s[i].cnt; j++) {
@@ -92,9 +99,40 @@ static void pic_roll(void)                    /* NOTES: a piano roll of 16 steps
     if (!any) { lo = 52; hi = 72; }
     lo -= 2; hi += 2;
     if (hi - lo < 20) { int m = (hi + lo) / 2; lo = m - 10; hi = m + 10; }
+    {                                         /* update 38: a lane per semitone, the black keys' darker, and a see-through
+                                               * keyboard down the left as the lanes' reference; C named */
+        int p, lh = (AH - 10) / (hi - lo);
+        for (p = lo; p <= hi; p++) {
+            int pc = p % 12, blk = pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10, r;
+            int32_t yc = AH - 4 - (p - lo) * (AH - 10) / (hi - lo), y0 = yc - lh / 2;
+            for (r = 0; r < lh; r++) {
+                if (!blk) vf_span(RX, y0 + r, 224 - RX, K_FG, 10u);
+                vf_span(1, y0 + r, blk ? 7 : RX - 3, blk ? RGB(10, 10, 10) : K_FG, blk ? 210u : 90u);
+            }
+            if (pc == 0) {
+                vf_span(0, y0 + lh - 1, 224, K_FG, 26u);   /* the octave's line */
+                if (lh >= 6) {
+                    char nm[6];
+                    note_name(p, nm);
+                    cv_text(RX + 1, y0 + lh / 2 - 6, &FONT_T, nm, K_FAINT);
+                }
+            }
+        }
+    }
+    if (sp.lasso) {                           /* the lasso: the steps picked, lit */
+        int a = sp.lasso_a < sp.lasso_b ? sp.lasso_a : sp.lasso_b, z = sp.lasso_a < sp.lasso_b ? sp.lasso_b : sp.lasso_a;
+        for (j = 0; j < 16; j++)
+            if (start + j >= a && start + j <= z) {
+                int32_t x = RX + (int32_t)((float)j * sw), r;
+                for (r = 2; r < AH - 2; r++)
+                    vf_span(x, r, (int32_t)sw, K_GOLD, 40u);
+                vf_span(x, 2, (int32_t)sw, K_GOLD, 220u);
+                vf_span(x, AH - 3, (int32_t)sw, K_GOLD, 220u);
+            }
+    }
     for (j = 0; j <= 16; j++) {
         int si = start + j;
-        int32_t x = 4 + (int32_t)((float)j * sw);
+        int32_t x = RX + (int32_t)((float)j * sw);
         if (si % 4 == 0) cv_rect(x, 3, 1, AH - 6, si % 16 == 0 ? RGB(43, 42, 39) : RGB(24, 24, 22));
         if (si >= L && j < 16) cv_rect(x, 2, (int32_t)sw, AH - 4, RGB(6, 6, 6));
     }
@@ -104,19 +142,23 @@ static void pic_roll(void)                    /* NOTES: a piano roll of 16 steps
         int32_t x0;
         if (si >= L) break;
         s = &b->s[si];
-        x0 = 4 + (int32_t)((float)j * sw + (float)s->nudge / 64.0f * sw);
+        x0 = RX + (int32_t)((float)j * sw + (float)s->nudge / 64.0f * sw);
         if ((s->flags >> 1) & 3u)
             cv_text(x0 + 1, 1, &FONT_T, ((s->flags >> 1) & 3u) == 1u ? "F" : "x", K_GOLD);
         for (i = 0; i < s->cnt; i++) {
             int32_t y = AH - 4 - (s->n[i] - lo) * (AH - 10) / (hi - lo), w = (int32_t)((float)s->len[i] * 0.25f * sw) - 1, sel = si == sq_cursor && i == sp.note_ix;
+            int32_t nh = (AH - 10) / (hi - lo) - 1, t0;   /* (update 38: as tall as its lane, 4 to 9 px) */
             uint16_t col = lvl_col(s->lvl[i], K_SEQC);
-            if (w < 2) w = 2;
+            nh = nh < 4 ? 4 : nh > 9 ? 9 : nh;
+            t0 = y - nh / 2;
+            if (w < (int32_t)(sw * 0.75f)) w = (int32_t)(sw * 0.75f);   /* short notes: at least 3/4 of a step wide */
             if (flash_on(si)) col = mix565(K_FG, col, 90);
             if (s->lvl[i] == 1) {             /* SOFT: an outline */
-                cv_rect(x0, y - 2, w, 1, col); cv_rect(x0, y + 1, w, 1, col);
-                cv_rect(x0, y - 2, 1, 4, col); cv_rect(x0 + w - 1, y - 2, 1, 4, col);
+                cv_rect(x0, t0, w, 1, col); cv_rect(x0, t0 + nh - 1, w, 1, col);
+                cv_rect(x0, t0, 1, nh, col); cv_rect(x0 + w - 1, t0, 1, nh, col);
             } else {
-                cv_rect(x0, y - 2, w, 4, col);
+                cv_rect(x0, t0, w, nh, col);
+                cv_rect(x0, t0, w, 1, mix565(K_FG, col, 70));   /* a light top edge */
             }
             if (s->lvl[i] == 4) cv_rect(x0, y - 3, 3, 2, K_FG);
             if (s->ratchet > 1) { int k; for (k = 1; k < s->ratchet; k++) cv_rect(x0 + k * (int32_t)sw / s->ratchet, y - 2, 1, 4, K_BG); }
@@ -133,7 +175,7 @@ static void pic_roll(void)                    /* NOTES: a piano roll of 16 steps
         }
     }
     if (pos >= (float)start && pos < (float)(start + 16)) {
-        int32_t px = 4 + (int32_t)((pos - (float)start) * sw);
+        int32_t px = RX + (int32_t)((pos - (float)start) * sw);
         cv_rect(px, 2, 1, AH - 4, K_SEQC);
     }
     t[0] = 0;
@@ -656,6 +698,17 @@ static void seq_encoders(void)
     }
     switch (mn.sub) {
     case SQP_NOTES:
+        if (e[2] && (in_btn >> B_SEL & 1u)) {   /* SEL held + K1: the lasso, a step a click from where it started */
+            if (!sp.lasso) { sp.lasso = 1; sp.lasso_a = sq_cursor; }
+            d = sq_cursor + (int)e[2];
+            sq_cursor = d < 0 ? 0 : d >= b->len ? b->len - 1 : d;
+            sp.lasso_b = sq_cursor;
+            sp.note_ix = -1;
+            mn.sel_long = 1;                  /* (SEL let go now is no tap) */
+            mn.sel_n = 0;
+            e[2] = 0;
+        }
+        if (e[0] || e[1] || e[2]) sp.lasso = 0;   /* moving on: the lasso goes */
         if (e[0]) { sq_cursor = (sq_cursor + (e[0] > 0 ? 1 : b->len - 1)) % b->len; sp.note_ix = b->s[sq_cursor].cnt ? 0 : -1; }
         if (e[1]) { sq_cursor = (sq_cursor + (e[1] > 0 ? 4 : b->len * 4 - 4)) % b->len; sp.note_ix = b->s[sq_cursor].cnt ? 0 : -1; }
         s = &b->s[sq_cursor];
@@ -748,11 +801,89 @@ static void seq_encoders(void)
     }
 }
 
+/* NOTES (update 38): EDIT deletes the note picked, or every note in the lasso */
+static void seq_delete(void)
+{
+    sq_bank_t *b = cur_bank();
+    sq_step_t *s = &b->s[sq_cursor];
+    char t[16];
+    if (sp.lasso) {
+        int a = sp.lasso_a < sp.lasso_b ? sp.lasso_a : sp.lasso_b, z = sp.lasso_a < sp.lasso_b ? sp.lasso_b : sp.lasso_a, i;
+        for (i = a; i <= z && i < b->len; i++)
+            b->s[i].cnt = 0;
+        sp.lasso = 0;
+        sp.note_ix = -1;
+        t[0] = 0;
+        int_text(z - a + 1, t);
+        cat(t, z > a ? " STEPS CLEARED" : " STEP CLEARED");
+        app_say("DELETED", t);
+    } else if (sp.note_ix >= 0 && sp.note_ix < s->cnt) {
+        int k, j = sp.note_ix;
+        for (k = j; k < s->cnt - 1; k++) { s->n[k] = s->n[k + 1]; s->len[k] = s->len[k + 1]; s->lvl[k] = s->lvl[k + 1]; }
+        s->cnt--;
+        sp.note_ix = s->cnt ? (j < s->cnt ? j : s->cnt - 1) : -1;
+        app_say("NOTE", "DELETED");
+    } else {
+        app_say("NOTHING PICKED", "K1 PICKS A NOTE");
+        return;
+    }
+    sq_touch();
+}
+/* NOTES: hold SAVE: copy the lasso's steps; with no lasso, paste what was copied from the cursor's step on */
+static void seq_copy_paste(void)
+{
+    sq_bank_t *b = cur_bank();
+    char t[16];
+    int i;
+    if (sp.lasso) {
+        int a = sp.lasso_a < sp.lasso_b ? sp.lasso_a : sp.lasso_b, z = sp.lasso_a < sp.lasso_b ? sp.lasso_b : sp.lasso_a;
+        sq_nclip = 0;
+        for (i = a; i <= z && i < b->len && sq_nclip < SQ_CLIP; i++)
+            sq_clip[sq_nclip++] = b->s[i];
+        sp.lasso = 0;
+        t[0] = 0;
+        int_text(sq_nclip, t);
+        cat(t, sq_nclip > 1 ? " STEPS" : " STEP");
+        app_say("COPIED", t);
+    } else if (sq_nclip) {
+        for (i = 0; i < sq_nclip && sq_cursor + i < b->len; i++)
+            b->s[sq_cursor + i] = sq_clip[i];
+        sp.note_ix = b->s[sq_cursor].cnt ? 0 : -1;
+        t[0] = 0;
+        int_text(i, t);
+        cat(t, i > 1 ? " STEPS" : " STEP");
+        app_say("PASTED", t);
+        sq_touch();
+    } else {
+        app_say("NOTHING COPIED", "HOLD SEL + TURN K1");
+    }
+    ui.redraw = 1;
+}
+static void seq_save(void);
+/* SAVE on a sequencer page: a tap saves the sequencer (when let go); held on NOTES: copy / paste */
+static void seq_save_btn(uint32_t press, uint32_t btn)
+{
+    if (press >> B_SAVE & 1u) {
+        sp.save_at = ms_stamp();
+        sp.save_long = 0;
+    }
+    if (sp.save_at && (btn >> B_SAVE & 1u) && !sp.save_long && plat_ms() - sp.save_at >= HOLD_MS) {
+        sp.save_long = 1;
+        if (mn.page == PG_SEQ && mn.sub == SQP_NOTES)
+            seq_copy_paste();
+    }
+    if (sp.save_at && !(btn >> B_SAVE & 1u)) {
+        if (!sp.save_long)
+            seq_save();
+        sp.save_at = 0;
+    }
+}
+
 /* SEQ, PLAY, REC (on every page); hold SEQ: the layer. The keys while it shows: seq_layer_keys */
 static void seq_buttons(uint32_t press, uint32_t btn)
 {
     if (press >> B_SEQ & 1u) {
-        sp.seq_at = plat_ms() | 1u;
+        sp.seq_at = ms_stamp();
         sp.turned = 0;
     }
     if (sp.seq_at && (btn >> B_SEQ & 1u) && !sp.layer && plat_ms() - sp.seq_at >= HOLD_MS) {

@@ -1,0 +1,57 @@
+wait 500
+tap GLO
+wait 400
+turn SELECT 3
+wait 200
+turn K2 1
+wait 200
+tap HOME
+wait 400
+tap SEL
+wait 400
+turn K3 1
+wait 300
+tap HOME
+wait 400
+peakreset
+key w9 down 100
+wait 300
+key w9 up
+wait 300
+expect peak_db_min -40
+tap SEL
+wait 100
+tap SEL
+wait 500
+shot u_chords_off.png
+peakreset
+key w11 down 100
+wait 300
+key w11 up
+wait 300
+expect peak_db_min -40
+press SEL
+wait 3
+release SEL
+wait 500
+shot u_quick_tap.png
+turn SELECT 2
+wait 400
+shot u_sel_style.png
+turn SELECT 2
+wait 400
+shot u_sel_chordarp.png
+tap ARP
+wait 500
+turn SELECT 4
+wait 400
+shot u_arp_last.png
+tap HOME
+wait 400
+tap SEL
+wait 100
+tap SEL
+wait 100
+tap SEL
+wait 500
+shot u_send_off.png

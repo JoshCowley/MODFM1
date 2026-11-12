@@ -1,0 +1,55 @@
+wait 500
+tap SEQ
+wait 300
+key w7 down 100
+wait 60
+key w7 up
+key w9 down 90
+wait 60
+key w9 up
+key w11 down 100
+key w4 down 100
+wait 60
+key w11 up
+key w4 up
+key w8 down 100
+wait 60
+key w8 up
+wait 300
+shot e_roll.png
+turn SELECT -4
+wait 200
+turn K1 1
+wait 200
+shot e_picked.png
+tap EDIT
+wait 300
+shot e_deleted.png
+press SEL
+wait 100
+turn K1 2
+wait 200
+release SEL
+wait 400
+shot e_lasso.png
+press SAVE
+wait 800
+release SAVE
+wait 300
+shot e_copied.png
+turn SELECT 6
+wait 200
+press SAVE
+wait 800
+release SAVE
+wait 300
+shot e_pasted.png
+press SEL
+wait 100
+turn K1 1
+wait 100
+release SEL
+wait 300
+tap EDIT
+wait 300
+shot e_lasso_deleted.png

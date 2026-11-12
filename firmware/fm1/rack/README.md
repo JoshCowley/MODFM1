@@ -214,6 +214,19 @@ range (at once against gliding), each against the same moment with nothing chang
 `build/host/audition OUTDIR` (built by build_host.sh) plays every preset through the firmware's sound path (rc_load,
 rc_render at 44.1 kHz) with a phrase for its category and writes a WAV each, with its peak and loudness.
 
+## Update 38
+
+- Buttons: presses are counted by the render (btn_count, every 5.8 ms) and input() takes each once; ms_stamp()
+  replaces plat_ms() | 1, which put half the presses a millisecond in the future so a same-frame hold test took the
+  tap for a hold. SEL / ARP / LFO: a single tap acts at once; two or three quick taps go back to the page you were on
+  and toggle.
+- SEL: two taps CHORD type off / back (single notes still play), three taps CHD SEND. SEL pages 3-5 show ARP's
+  settings 8-19 (data_pg): STYLE, LAYER MIDI CH, CHORD + ARP; ARP has 2 pages. RKL5: CHD FM-1 turned on once.
+- ZONE: CHORDS (0), OFF (1), BASS (2, make_ui.py): with a STYLE, the 7 lowest keys pick the bass's chord tone
+  (R 3 5 7 8 b a, play.c zone_bass_tone) in the style's rhythm.
+- Sequencer NOTES: EDIT deletes the picked note or the lasso (hold SEL + K1); hold SAVE copies the lasso / pastes;
+  the roll has semitone lanes, a see-through keyboard (RX) and wider notes. sim_u38, sim_zonebass, sim_seqedit.
+
 ## The look
 
 The pictures (each page's well, HOME's tiles, the STYLE and layer pages) are drawn through vis.c's vm_* wrappers in a

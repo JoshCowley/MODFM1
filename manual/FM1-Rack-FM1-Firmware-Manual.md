@@ -4,7 +4,7 @@ Nov 11, 2026 · Josh Cowley
 
 FM1 Rack turns the M-VAVE FM-1 into a small modular synthesizer built from Mutable Instruments' open module code. Each sound is a short chain of modules: a source (Plaits or Braids), a shaper (Rings or a filter), two modulators, two effects and an amplifier. You play it from the keys, shape it with the knobs, and link anything to anything through a modulation matrix. This manual covers the firmware on the FM-1; the browser version has its own manual, the [FM1 Rack Manual](index.html).
 
-> **This is a test version (update 37).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, and the finer pictures have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
+> **This is a test version (update 38).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, the finer pictures, the BASS zone and the sequencer's lasso, copy and paste have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
 
 ## Contents
 
@@ -91,12 +91,12 @@ Each page button opens its first page; tap it again for its next page, and after
 | Button | Tap | Tap again | Hold, or two or three quick taps |
 | --- | --- | --- | --- |
 | **HOME** | HOME | RACK, an overview of every slot; once more, HOME with all notes off | Also closes the module picker, the SAVE page and LEARN |
-| **EDIT** | the source (Plaits or Braids) | OSC, the second oscillator and mixer | **Hold: UNDO** the last change; hold again to go further back (up to 16). With SEL: LEARN |
+| **EDIT** | the source (Plaits or Braids) | OSC, the second oscillator and mixer | **Hold: UNDO** the last change; hold again to go further back (up to 16). With SEL: LEARN. On the sequencer's NOTES: **delete** (section 11) |
 | **ENV** | AMP (envelopes, voice mode) | the shaper (Rings or the filter) | |
 | **LFO** | MOD A | MOD B, the LFOs, MSEQ, the MATRIX | **Two taps: the MATRIX** |
 | **FX** | FX 1 | FX 2 | **Hold, let go, then one tap: FX 1 off or on; two taps: FX 2** (section 10) |
-| **ARP** | the arpeggiator | HOLD + TURING, STYLE, LAYER MIDI CH, CHORD + ARP | **Two taps: the arpeggio on the FM-1 off or on. Three taps: its send off or on** (section 10) |
-| **SEL** | scale and chord | (SELECT turns to the keys page) | **Two taps: the chords on the FM-1 off or on. Three taps: their send off or on** (section 10). **Hold SEL and EDIT together (half a second): LEARN on or off** (section 8) |
+| **ARP** | the arpeggiator | HOLD + TURING | **Two taps: the arpeggio on the FM-1 off or on. Three taps: its send off or on** (section 10) |
+| **SEL** | scale and chord | (SELECT turns its pages: KEYS + STRUM, then the MIDI controller pages STYLE, LAYER MIDI CH, CHORD + ARP) | **Two taps: chords off (the keys play single notes) or back on. Three taps: the chords' send off or on** (section 10). **Hold SEL and EDIT together (half a second): LEARN on or off** (section 8) |
 | **GLO** | GLOBAL settings | | |
 | **SAVE** | the SAVE page | SAVE again stores the preset | On a sequencer page: stores the sequencer |
 | **SEQ** | the sequencer, at the page you last used | the next sequencer page | **Hold: the step layer** (section 11) |
@@ -106,7 +106,7 @@ Each page button opens its first page; tap it again for its next page, and after
 
 SEL held on its own does nothing, so LEARN can't start by accident; held together with EDIT it never counts as UNDO or a page turn.
 
-Buttons with a hold or a double tap act when you let go, so a single tap of EDIT, LFO, FX, ARP or SEL turns the page a moment after you release it (up to 0.3 s for those with a double or triple tap).
+Buttons with a hold act when you let go; a single tap of SEL, ARP or LFO opens its page straight away, and a second or third quick tap (within 0.3 s) then does the double or triple tap's job and takes you back to the page you were on. (Update 38 fixed a fault that made about every other tap of EDIT, SEL, ARP, SEQ, HOME or FX count as a hold and do nothing.)
 
 **The lights** show where you are. The page's button is lit and the others glow (GLOBAL › LED BRIGHT sets how much). SEL glows half while chords or QNT are on, and ARP while the arpeggiator is on. PLAY is lit while the sequencer runs; REC is lit while recording and blinks during REC READY. HOME blinks while LEARN is on.
 
@@ -193,7 +193,7 @@ HOME shows the preset's category, name and number (or its user slot), the sound'
     - A red tile is a module the preset needs that didn't fit in memory.
 - **The modulators** loaded in MOD A and MOD B sit under the path; small arrows pulse up from them as their outputs move.
 - **The macros**: each with its value (0–100), an arc in its knob's colour, and what it moves (the first destination, "+2" if more), or **UNSET**. K1–K4 turn them; so do MIDI CC 20–23.
-- **The scope** along the bottom draws the output, coloured by the modulation moving right now (violet for an LFO, gold for a macro, pink for MSEQ), and glowing white at its loudest. The effects leave marks: a reverb's fading trail, a delay's echo, a chorus' second line. Tabs over it show what's on besides the preset: the scale and chord, the arpeggiator, a tuning. A red tab on the left, **KEYS: FM-1 OFF** (or **ARP: FM-1 OFF**), means the keys or the arpeggio aren't playing the FM-1's sound (two quick taps on SEL or ARP bring it back; section 10).
+- **The scope** along the bottom draws the output, coloured by the modulation moving right now (violet for an LFO, gold for a macro, pink for MSEQ), and glowing white at its loudest. The effects leave marks: a reverb's fading trail, a delay's echo, a chorus' second line. Tabs over it show what's on besides the preset: the scale and chord, the arpeggiator, a tuning. A red tab on the left, **KEYS: FM-1 OFF** (or **ARP: FM-1 OFF**), means the keys or the arpeggio aren't playing the FM-1's sound (SEL › CHORD + ARP › CHD FM-1, or two quick taps on ARP; section 10).
 
 **PRESET** chooses the preset, **ALGORITHM** jumps a category and **SELECT** sets the voices (1–6). Changing preset, or loading a module into a slot, fades the sound out over a few milliseconds and the new one in, so it doesn't click; nothing of the old sound (its echoes, its last few samples) carries into the new one. Knobs glide to their new values over a few milliseconds too, so a level, a cutoff or a chorus turned quickly doesn't click or zipper; a choice from a list (a model, a type) still changes at once. Tap HOME again for **RACK**, a list of every slot, AMP, the outputs and how many matrix routes are set.
 
@@ -410,7 +410,12 @@ SEL, ARP and GLOBAL are settings of the instrument, not of a preset. They stay w
 
 - **QNT**: snap notes to the scale; WHITE puts the scale on the white keys.
 - **HARMONY**.
-- **ZONE**: with chords on, the seven lowest keys (F3–B3) colour the chord: add 6, m7, M7 or 9, or force DIM, MIN or MAJ. MIN and MAJ together give sus.
+- **ZONE**: what the seven lowest keys (F3–B3) do:
+    - **CHORDS** (to start with): with chords on, they colour the chord: add 6, m7, M7 or 9, or force DIM, MIN or MAJ. MIN and MAJ together give sus.
+    - **OFF**: they play notes like the others.
+    - **BASS** (with a STYLE on): they pick the chord tone the STYLE's bass line plays, from left to right **root, 3rd, 5th, 7th, octave up, 5th below, approach note** (a semitone under the root). The style still gives the rhythm and accents; the key held last wins; with none held the style plays its own bass line. With HELD, the held bass moves to the new tone at once. Switching ZONE back to CHORDS returns the bass to the style's own line.
+
+![SEL › KEYS + STRUM with ZONE on BASS](../web/manual/img/fm1-zone.png)
 - **STRUM**: up to 80 ms between the chord's notes.
 
 The keys in the scale glow on the keybed.
@@ -431,29 +436,29 @@ It follows the tempo (GLOBAL › TEMPO) or MIDI clock, and the picture shows the
 What you play on the keys (a chord, or a single note with chords off) and what the arpeggiator plays each have two stages, switched separately:
 
 - **ON FM-1**: you hear it on the FM-1's own sound;
-- **SEND**: it goes out over MIDI on its own channel, ARP › LAYER MIDI CH › **CHORD CH** (1 to start with) or **ARP CH** (3), so another synth can play it.
+- **SEND**: it goes out over MIDI on its own channel, SEL › LAYER MIDI CH › **CHORD CH** (1 to start with) or **ARP CH** (3), so another synth can play it.
 
-All four are on to start with. Switch them with quick taps, or on ARP's last page, **CHORD + ARP**:
+All four are on to start with. Switch them on SEL's last page, **CHORD + ARP**, or with quick taps:
 
 ![CHORD + ARP: each stage's switch, and where each layer goes](../web/manual/img/fm1-chordarp.png)
 
 | | On the FM-1 | Sent |
 | --- | --- | --- |
-| Chords (SEL) | **two taps on SEL** | **three taps on SEL** |
+| Chords (SEL) | on the page only | **three taps on SEL** |
 | Arpeggio (ARP) | **two taps on ARP** | **three taps on ARP** |
 | On the page | CHD FM-1 | CHD SEND |
 | | ARP FM-1 | ARP SEND |
 
-Each tap gesture shows what it did, for example **CHORDS: ON FM-1 OFF** or **ARP: SEND ON: CH 3**, and while one is off HOME shows a red **KEYS: FM-1 OFF** or **ARP: FM-1 OFF** tab, so a silent FM-1 is never a mystery.
+Each tap gesture shows what it did, for example **CHORDS: SEND OFF** or **ARP: ON FM-1 OFF**, and while one is off HOME shows a red **KEYS: FM-1 OFF** or **ARP: FM-1 OFF** tab, so a silent FM-1 is never a mystery.
 
 ![HOME with the keys' FM-1 stage off](../web/manual/img/fm1-fm1off.png)
  Notes already sounding stop at once when you switch their stage off. With ON FM-1 off and SEND on, the FM-1 is silent and the other synth plays; with both off, nothing plays. SEND needs GLOBAL › MIDI OUT on (the message says so if it's off). The arpeggio's switches only matter while the arpeggiator is running (ARP › MODE).
 
-These work with or without a STYLE. To change the chord type or turn the arpeggiator off, use the SEL and ARP pages.
+These work with or without a STYLE. Two quick taps on SEL don't silence the keys: they turn the chords off, so the keys play single notes (two taps again bring the chord type back). To turn the arpeggiator off, use ARP › MODE.
 
 ### STYLE: chords, bass and arpeggio on three channels
 
-ARP's pages 3–5 turn the FM-1 into an accompaniment for itself and for other synths. While you hold a chord, it goes out in three layers:
+SEL's pages 3–5 (the MIDI controller pages; they were on ARP before update 38) turn the FM-1 into an accompaniment for itself and for other synths. While you hold a chord, it goes out in three layers:
 
 - **CHORD**: the chord, as you play it: it starts when you press the keys (strummed, if SEL › STRUM is set) and holds for as long as you hold them;
 - **BASS**: a bass line built from the chord's root (root, fifth, third, seventh, octave, passing and approach notes), **in the style's rhythm**. The style shapes the bass only;
@@ -497,7 +502,7 @@ Most are one bar of 16ths; 6/8 BALLAD is in 12/8 triplets, and AMB SWELL, BOSSA 
 
 These gestures change things without opening a menu:
 
-- **Two quick taps on SEL**: the chords on the FM-1 off or on; **three taps**: their send off or on.
+- **Two quick taps on SEL**: chords off (single notes) or back on; **three taps**: the chords' send off or on.
 - **Two quick taps on ARP**: the arpeggio on the FM-1 off or on; **three taps**: its send off or on. (See *Chords and arpeggio: on the FM-1, and sent*, above.)
 - **Hold FX, let go, then tap FX**: after the hold the message says **TAP FX 1, TWO TAPS FX 2**. Within 2 seconds:
     - one tap turns FX 1 off or on;
@@ -553,6 +558,16 @@ Tap **SEQ** to open it; it remembers the page you were on. Tap SEQ again to step
 - **Step entry**: with the sequencer stopped, play a note or a chord and let go. It's written into the step under the cursor, and the cursor moves on.
 - **SELECT** moves the cursor one step, **ALGORITHM** four.
 - **K1** chooses a note in the step (and moves to the next step that has notes), **K2** its pitch, **K3** its length, **K4** its force. Turning K4 below GHOST deletes the note.
+- **EDIT** deletes the note K1 picked (**NOTE DELETED**).
+- **Lasso**: hold **SEL** and turn **K1**: the steps from where you started to where you turn are picked, lit gold. Then:
+    - **EDIT** clears every note in them;
+    - **hold SAVE** copies them (**COPIED 3 STEPS**; up to 32).
+- **Paste**: move the cursor with SELECT, then **hold SAVE** with nothing lassoed: what you copied is written from the cursor's step on (**PASTED**). A tap of SAVE still saves the sequencer.
+- Turning SELECT, ALGORITHM or K1 alone lets the lasso go.
+
+![Three steps lassoed](../web/manual/img/fm1-lasso.png)
+
+- The roll has a lane for each semitone, a see-through keyboard down its left edge with the C's named, and notes as tall as their lane and at least three quarters of a step wide.
 
 ### PATTERN
 
@@ -752,8 +767,8 @@ The Voices column gives how many notes each plays at once on the FM-1 (mono, leg
 | **SHED n** on the status strip | Voices were dropped for time. Play fewer notes, lower the voices, switch an effect off, or choose lighter modules |
 | No effect on a preset | It may be switched off: hold FX, let go, then one or two taps; or check the HOME tile for OFF |
 | Chords or the arpeggiator won't stop | PLAY ends latched notes; ARP › MODE OFF stops the arpeggiator |
-| The keys are silent (except while recording), or HOME shows **KEYS: FM-1 OFF** | The chords' FM-1 stage is off: two quick taps on SEL turn it back on (or ARP › CHORD + ARP › CHD FM-1). Also check GLOBAL › MIDI › LOCAL is ON |
-| The arpeggio is silent, or HOME shows **ARP: FM-1 OFF** | Two quick taps on ARP (or ARP FM-1 on CHORD + ARP) |
+| The keys are silent (except while recording), or HOME shows **KEYS: FM-1 OFF** | The chords' FM-1 stage is off: SEL › CHORD + ARP › CHD FM-1 ON (update 38 turns it back on once). Also check GLOBAL › MIDI › LOCAL is ON |
+| The arpeggio is silent, or HOME shows **ARP: FM-1 OFF** | Two quick taps on ARP (or SEL › CHORD + ARP › ARP FM-1) |
 | Another synth gets nothing | GLOBAL › MIDI OUT on; three quick taps on SEL or ARP turn SEND on; check CHORD CH / ARP CH |
 | A moment of silence when loading a module or editing a delay or reverb | Normal: memory is being laid out again (**MEMORY FITTED**) |
 | A short gap when pressing SAVE on a sequencer page | Normal: the flash is being written |
