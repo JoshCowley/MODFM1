@@ -1,0 +1,31 @@
+wait 500
+tap SEQ
+wait 300
+key w7 down 100
+key w9 down 100
+key w11 down 100
+wait 60
+key w7 up
+key w9 up
+key w11 up
+wait 100
+key w8 down 100
+wait 60
+key w8 up
+wait 300
+shot k_0.png
+turn K1 -1
+wait 150
+shot k_1.png
+turn K1 -1
+wait 150
+shot k_2.png
+turn K1 -1
+wait 150
+shot k_3.png
+turn K1 -1
+wait 150
+shot k_4.png
+turn K1 3
+wait 150
+shot k_5.png

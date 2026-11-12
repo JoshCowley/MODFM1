@@ -800,16 +800,20 @@ static void seq_encoders(void)
         if (e[1] || e[2]) sp.lasso = 0;       /* moving on: the lasso goes */
         if (e[1]) { sq_cursor = (sq_cursor + (e[1] > 0 ? 4 : b->len * 4 - 4)) % b->len; sp.note_ix = b->s[sq_cursor].cnt ? 0 : -1; }
         s = &b->s[sq_cursor];
-        if (e[2]) {                           /* K1: the next / previous note, across the steps */
+        if (e[2]) {                           /* K1 (update 42): every step in turn, a click each; on a step with
+                                               * notes each of them is picked in turn (a chord's, all of them) before
+                                               * the next step; an empty step is passed through with nothing picked */
+            int c2 = e[2] > 0 ? (int)e[2] : -(int)e[2];
             d = e[2] > 0 ? 1 : -1;
-            sp.note_ix += d;
-            if (sp.note_ix >= s->cnt || sp.note_ix < 0) {
-                int n;
-                for (n = 1; n <= b->len; n++) {
-                    int c = (sq_cursor + d * n + b->len * 2) % b->len;
-                    if (b->s[c].cnt) { sq_cursor = c; sp.note_ix = d > 0 ? 0 : b->s[c].cnt - 1; break; }
+            while (c2--) {
+                s = &b->s[sq_cursor];
+                if (s->cnt && sp.note_ix + d >= 0 && sp.note_ix + d < s->cnt && sp.note_ix >= 0) {
+                    sp.note_ix += d;          /* the chord's next note */
+                } else {
+                    sq_cursor = (sq_cursor + d + b->len) % b->len;
+                    s = &b->s[sq_cursor];
+                    sp.note_ix = s->cnt ? (d > 0 ? 0 : s->cnt - 1) : -1;
                 }
-                if (n > b->len) sp.note_ix = -1;
             }
             s = &b->s[sq_cursor];
         }

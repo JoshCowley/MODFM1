@@ -4,7 +4,7 @@ Nov 11, 2026 · Josh Cowley
 
 FM1 Rack turns the M-VAVE FM-1 into a small modular synthesizer built from Mutable Instruments' open module code. Each sound is a short chain of modules: a source (Plaits or Braids), a shaper (Rings or a filter), two modulators, two effects and an amplifier. You play it from the keys, shape it with the knobs, and link anything to anything through a modulation matrix. This manual covers the firmware on the FM-1; the browser version has its own manual, the [FM1 Rack Manual](index.html).
 
-> **This is a test version (update 41).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, the finer pictures, the BASS zone and the sequencer's editing (lasso, copy and paste, dynamics, articulations) and the click track have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
+> **This is a test version (update 42).** The sound engine and the first menus have been played on an FM-1. The newer screens, the FUNC module, the 67 factory presets, the button shortcuts, STYLE, the smoother preset and knob changes, LEARN on SEL + EDIT, the chords' and arpeggio's FM-1 / SEND switches, the finer pictures, the BASS zone and the sequencer's editing (lasso, copy and paste, dynamics, articulations) and the click track have so far run only in a computer simulator of the FM-1. Keep the recovery steps in section 2 to hand.
 
 ## Contents
 
@@ -562,7 +562,7 @@ Tap **SEQ** to open it; it remembers the page you were on. Tap SEQ again, or tur
 
 - **Step entry**: with the sequencer stopped, play a note or a chord and let go. It's written into the step under the cursor, and the cursor moves on.
 - **SELECT** turns the sequencer's pages; **ALGORITHM** moves the cursor four steps.
-- **K1** chooses a note, step to step (the steps with notes), **K2** its pitch, **K3** its length, **K4** its **DYNAMICS**: PP, MP, MF, FF, FFF.
+- **K1** walks through every step, a click each: a step with a note picks it (highlighted), a step with a chord picks each of its notes in turn before moving on, an empty step is passed with nothing picked. **K2** the picked note's pitch, **K3** its length, **K4** its **DYNAMICS**: PP, MP, MF, FF, FFF.
 - **Hold SEL and turn K4**: the note's **articulation** instead (the slider reads ARTIC while SEL is held), drawn over the note:
     - none;
     - **staccato** `.`: half as long;
