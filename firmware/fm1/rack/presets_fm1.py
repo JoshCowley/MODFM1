@@ -87,6 +87,94 @@ def changed():
         {"ATTACK": 0.01, "DECAY": 0.3, "SUSTAIN": 1.0, "RELEASE": 0.12, "VEL AMT": 0.2, "SPREAD": 0.4, "LEVEL": 0.5},
         [("SRC.TIMBRE", 0.4), ("SRC.MORPH", 0.4), ("FX 1.RATE", 0.6), ("FX 1.DEPTH", 0.3)], fm1_voices=4)
 
+    # ------------------------------------------------------------------ BASS (update 46, Josh: "more musical": less
+    # static, less thin, for sequenced electronic music). The page's basses sat an octave down (C1 for the phrase's C2):
+    # nearly all their energy under 250 Hz, next to nothing a small speaker or a mix hears. Now: the main voice at
+    # pitch, an OSC sine an octave down, low, for weight (the cutoffs ~0.5: 700-900 Hz on C2, key tracking 0.6); drive and SOFT saturation for warm harmonics, low-passed so they
+    # don't fizz; a filter envelope on every note, velocity opening it; a slow DRIFT on the tone so held notes breathe.
+    # No chorus on the low end (a bass stays in the middle).
+    mono = {"MODE": "LEGATO", "GLIDE": 0.1}
+    breath = {"SHAPE 1": "DRIFT", "RATE 1": 0.18}          # LFO 1: a slow wander for the tone (matrix routes below)
+    C["BS ROUND SUB"] = P("BS ROUND SUB", {"SRC": "PLAITS", "SHP": "FILTER"},
+        {"SRC": {"MODEL": "VA VCF", "HARMO": 0.25, "TIMBRE": 0.5, "MORPH": 0.15},
+         "SHP": {"TYPE": "LP24", "CUTOFF": 0.58, "RESO": 0.18, "DRIVE": 0.6, "ENV AMT": 0.3, "KEY TRK": 0.6,
+                 "VEL AMT": 0.25, "ENV SRC": "OWN", "F ATK": 0.0, "F DEC": 0.32, "F SUS": 0.25, "F REL": 0.2,
+                 "SAT": "SOFT"}},
+        {"ATTACK": 0.0, "DECAY": 0.4, "SUSTAIN": 0.9, "RELEASE": 0.14, "VEL AMT": 0.45, "LEVEL": 0.6, **mono},
+        [("SHP.CUTOFF", 0.35), ("SHP.ENV AMT", 0.4), ("SHP.DRIVE", 0.4), ("AMP.GLIDE", 0.24)],
+        [["LFO 1", "SHP.CUTOFF", 0.04]], lfo=breath,
+        osc={"WAVE": 0, "OCTAVE": -1, "OSC LVL": 0.25, "MAIN LVL": 0.9})
+    C["BS ANALOG"] = P("BS ANALOG", {"SRC": "BRAIDS", "SHP": "FILTER"},
+        {"SRC": {"MODEL": "CSAW", "TIMBRE": 0.3, "COLOR": 0.35, "DRIFT": 0.2},
+         "SHP": {"TYPE": "LP24", "CUTOFF": 0.47, "RESO": 0.32, "DRIVE": 0.45, "ENV AMT": 0.45, "KEY TRK": 0.6,
+                 "VEL AMT": 0.35, "ENV SRC": "OWN", "F ATK": 0.0, "F DEC": 0.3, "F SUS": 0.2, "F REL": 0.2,
+                 "SAT": "SOFT"}},
+        {"ATTACK": 0.0, "DECAY": 0.45, "SUSTAIN": 0.85, "RELEASE": 0.15, "VEL AMT": 0.5, "LEVEL": 0.55, **mono},
+        [("SHP.CUTOFF", 0.4), ("SHP.RESO", 0.4), ("SHP.ENV AMT", 0.4), ("SHP.F DEC", 0.4)],
+        [["LFO 1", "SHP.CUTOFF", 0.05]], lfo=breath,
+        osc={"WAVE": 0, "OCTAVE": -1, "OSC LVL": 0.25, "MAIN LVL": 0.9})
+    C["BS ACID"] = P("BS ACID", {"SRC": "BRAIDS", "SHP": "FILTER", "FX1": "DELAY"},
+        {"SRC": {"MODEL": "//-_", "TIMBRE": 0.05, "COLOR": 0.5, "DRIFT": 0.05},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.3, "RESO": 0.7, "DRIVE": 0.5, "ENV AMT": 0.55, "KEY TRK": 0.5, "VEL AMT": 0.5,
+                 "ENV SRC": "OWN", "F ATK": 0.0, "F DEC": 0.22, "F SUS": 0.0, "F REL": 0.18, "SAT": "ASYM"},
+         "FX1": ECHO("1/8D", 0.28, 0.12)},
+        {"ATTACK": 0.0, "DECAY": 0.35, "SUSTAIN": 0.8, "RELEASE": 0.1, "VEL AMT": 0.55, "LEVEL": 0.45, "MODE": "LEGATO",
+         "GLIDE": 0.22},
+        [("SHP.CUTOFF", 0.4), ("SHP.RESO", 0.3), ("SHP.ENV AMT", 0.4), ("SHP.F DEC", 0.4)],
+        [["VELO", "SHP.RESO", 0.12], ["LFO 1", "SHP.CUTOFF", 0.03]], lfo=breath)   # an accent sings: harder, more resonance
+    C["BS PICKED"] = P("BS PICKED", {"SRC": "PLAITS", "SHP": "FILTER"},
+        {"SRC": {"MODEL": "2OP FM", "HARMO": 0.25, "TIMBRE": 0.32, "MORPH": 0.2, "ENV>TIMB": 0.35},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.55, "RESO": 0.12, "DRIVE": 0.3, "ENV AMT": 0.3, "KEY TRK": 0.6, "VEL AMT": 0.4,
+                 "ENV SRC": "OWN", "F ATK": 0.0, "F DEC": 0.25, "F SUS": 0.15, "F REL": 0.15, "SAT": "SOFT"}},
+        {"ATTACK": 0.0, "DECAY": 0.5, "SUSTAIN": 0.35, "RELEASE": 0.15, "VEL AMT": 0.7, "LEVEL": 0.6, "MODE": "MONO"},
+        [("SHP.CUTOFF", 0.35), ("SRC.TIMBRE", 0.4), ("SRC.MORPH", 0.4), ("AMP.DECAY", 0.4)],
+        [["VELO", "SRC.TIMBRE", 0.25]], osc={"WAVE": 0, "OCTAVE": -1, "OSC LVL": 0.25, "MAIN LVL": 0.9})
+    C["BS FINGER"] = P("BS FINGER", {"SRC": "PLAITS", "SHP": "FILTER"},
+        {"SRC": {"MODEL": "STRING", "HARMO": 0.5, "TIMBRE": 0.3, "MORPH": 0.7, "LEVEL": 1.0},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.58, "RESO": 0.1, "DRIVE": 0.4, "ENV AMT": 0.15, "KEY TRK": 0.6,
+                 "VEL AMT": 0.3, "ENV SRC": "AMP", "SAT": "SOFT", "GAIN": 0.5}},
+        {"ATTACK": 0.0, "DECAY": 0.65, "SUSTAIN": 0.0, "RELEASE": 0.2, "VEL AMT": 0.75, "LEVEL": 0.7, "MODE": "MONO"},
+        [("SHP.CUTOFF", 0.35), ("SRC.TIMBRE", 0.4), ("SRC.MORPH", 0.3), ("SHP.DRIVE", 0.4)],
+        [["VELO", "SRC.TIMBRE", 0.2]], osc={"WAVE": 0, "OCTAVE": -1, "OSC LVL": 0.25, "MAIN LVL": 0.9})
+    C["BS PULSE"] = P("BS PULSE", {"SRC": "PLAITS", "SHP": "FILTER"},
+        {"SRC": {"MODEL": "VA VCF", "HARMO": 0.3, "TIMBRE": 0.58, "MORPH": 0.5},
+         "SHP": {"TYPE": "LP24", "CUTOFF": 0.6, "RESO": 0.3, "DRIVE": 0.55, "ENV AMT": 0.4, "KEY TRK": 0.6,
+                 "VEL AMT": 0.35, "ENV SRC": "OWN", "F ATK": 0.0, "F DEC": 0.22, "F SUS": 0.15, "F REL": 0.15,
+                 "SAT": "SOFT"}},
+        {"ATTACK": 0.0, "DECAY": 0.4, "SUSTAIN": 0.8, "RELEASE": 0.12, "VEL AMT": 0.55, "LEVEL": 0.5, **mono},
+        [("SHP.CUTOFF", 0.4), ("SRC.MORPH", 0.4), ("SHP.ENV AMT", 0.4), ("SHP.RESO", 0.4)],
+        [["LFO 1", "SRC.MORPH", 0.12]], lfo={"SHAPE 1": "TRI", "RATE 1": 0.3},   # the pulse's width moving (PWM)
+        osc={"WAVE": 0, "OCTAVE": -1, "OSC LVL": 0.25, "MAIN LVL": 0.9})
+    C["BS WARM MOOG"] = P("BS WARM MOOG", {"SRC": "PLAITS", "SHP": "FILTER"},
+        {"SRC": {"MODEL": "PAIR VA", "HARMO": 0.48, "TIMBRE": 0.35, "MORPH": 0.3},
+         "SHP": {"TYPE": "LP24", "CUTOFF": 0.46, "RESO": 0.32, "DRIVE": 0.55, "ENV AMT": 0.4, "KEY TRK": 0.6,
+                 "VEL AMT": 0.35, "ENV SRC": "OWN", "F ATK": 0.0, "F DEC": 0.35, "F SUS": 0.3, "F REL": 0.2,
+                 "SAT": "SOFT"}},
+        {"ATTACK": 0.0, "DECAY": 0.45, "SUSTAIN": 0.85, "RELEASE": 0.15, "VEL AMT": 0.5, "LEVEL": 0.5, **mono},
+        [("SHP.CUTOFF", 0.4), ("SHP.RESO", 0.4), ("SHP.DRIVE", 0.4), ("AMP.GLIDE", 0.24)],
+        [["LFO 1", "SHP.CUTOFF", 0.04]], lfo=breath,
+        osc={"WAVE": 0, "OCTAVE": -1, "OSC LVL": 0.25, "MAIN LVL": 0.9})
+    # the dub sine: 2OP FM nearly a sine (ADDITIVE cost 29 points a voice), a little drive so it's heard on small
+    # speakers, the sub under it, the echo kept
+    C["BS DUB SINE"] = P("BS DUB SINE", {"SRC": "PLAITS", "SHP": "FILTER", "FX1": "DELAY"},
+        {"SRC": {"MODEL": "2OP FM", "HARMO": 0.5, "TIMBRE": 0.3, "MORPH": 0.1},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.6, "RESO": 0.05, "DRIVE": 0.6, "ENV AMT": 0.25, "KEY TRK": 0.6,
+                 "VEL AMT": 0.2, "ENV SRC": "OWN", "F ATK": 0.0, "F DEC": 0.4, "F SUS": 0.4, "F REL": 0.25,
+                 "SAT": "SOFT"},
+         "FX1": ECHO("1/4D", 0.3, 0.1)},
+        {"ATTACK": 0.01, "DECAY": 0.5, "SUSTAIN": 0.9, "RELEASE": 0.2, "VEL AMT": 0.45, "LEVEL": 0.7, **mono},
+        [("SRC.TIMBRE", 0.24), ("SHP.DRIVE", 0.4), ("FX 1.MIX", 0.2), ("AMP.GLIDE", 0.24)],
+        [["LFO 1", "SRC.TIMBRE", 0.04]], lfo=breath,
+        osc={"WAVE": 0, "OCTAVE": -1, "OSC LVL": 0.25, "MAIN LVL": 0.9})
+    # soft keys: a little darker (its tone sat at 1.6 kHz), the sub for weight, the chorus out
+    C["BS SOFT KEYS"] = P("BS SOFT KEYS", {"SRC": "PLAITS", "SHP": "FILTER"},
+        {"SRC": {"MODEL": "WAVESHP", "HARMO": 0.2, "TIMBRE": 0.18, "MORPH": 0.3, "ENV>TIMB": 0.25},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.62, "RESO": 0.08, "DRIVE": 0.2, "ENV AMT": 0.2, "KEY TRK": 0.6,
+                 "VEL AMT": 0.3, "ENV SRC": "AMP", "SAT": "SOFT"}},
+        {"ATTACK": 0.0, "DECAY": 0.55, "SUSTAIN": 0.4, "RELEASE": 0.18, "VEL AMT": 0.7, "LEVEL": 0.6, "MODE": "MONO"},
+        [("SRC.TIMBRE", 0.35), ("SRC.MORPH", 0.4), ("SHP.CUTOFF", 0.3), ("SRC.HARMO", 0.3)],
+        [["VELO", "SRC.TIMBRE", 0.25]], osc={"WAVE": 0, "OCTAVE": -1, "OSC LVL": 0.25, "MAIN LVL": 0.9})
+
     # ------------------------------------------------------------------ PADS
     C["PD WARM STRINGS"] = P("PD WARM STRINGS", {"SRC": "PLAITS", "FX1": "REVERB"},
         {"SRC": {"MODEL": "STR MACH", "HARMO": 0.5, "TIMBRE": 0.45, "MORPH": 0.5}, "FX1": HALL(0.3)},
@@ -220,11 +308,13 @@ def added():
         [["VELO", "SRC.TIMBRE", 0.3]], lfo={"SHAPE 2": "SINE", "RATE 2": 0.74, "SYNC 2": "FREE"}))
     L[-1]["lfo_tgt"] = [None, None, ("AMP.LEVEL", 0.18)]   # the amplifier's tremolo
     # bass
-    a(P("BS SUB BOOM", {"SRC": "PLAITS"},
-        {"SRC": {"MODEL": "BASS DR", "HARMO": 0.25, "TIMBRE": 0.3, "MORPH": 0.75, "OCTAVE": -1}},
+    a(P("BS SUB BOOM", {"SRC": "PLAITS", "SHP": "FILTER"},   # (update 46: at pitch, saturated: heard, not only felt)
+        {"SRC": {"MODEL": "BASS DR", "HARMO": 0.3, "TIMBRE": 0.35, "MORPH": 0.75},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.66, "RESO": 0.05, "DRIVE": 0.75, "ENV AMT": 0.1, "KEY TRK": 0.6,
+                 "ENV SRC": "AMP", "SAT": "SOFT"}},
         {"ATTACK": 0.0, "DECAY": 0.8, "SUSTAIN": 1.0, "RELEASE": 0.25, "VEL AMT": 0.6, "LEVEL": 0.6, "MODE": "MONO"},
-        [("SRC.TIMBRE", 0.3), ("SRC.HARMO", 0.4), ("SRC.MORPH", 0.4), ("AMP.RELEASE", 0.3)],
-        [["VELO", "SRC.HARMO", 0.2]]))
+        [("SRC.TIMBRE", 0.3), ("SRC.HARMO", 0.4), ("SHP.DRIVE", 0.4), ("AMP.RELEASE", 0.3)],
+        [["VELO", "SRC.HARMO", 0.2]], osc={"WAVE": 0, "OSC LVL": 0.2, "MAIN LVL": 0.9}))
     # FUNC: a pluck on each note (CH 1) and a wobble on the eighths (CH 4), mixed (SUM) onto the cutoff; M2 is the
     # wobble's level in the mix
     a(P("BS WOBBLE", {"SRC": "BRAIDS", "SHP": "FILTER", "MODA": "FUNC"},

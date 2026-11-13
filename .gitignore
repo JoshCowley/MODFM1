@@ -4,3 +4,4 @@ engine/rack.wasm
 .wrangler/
 node_modules/
 firmware/desktop/build/
+__pycache__/
