@@ -96,7 +96,7 @@ Each page button opens its first page; tap it again for its next page, and after
 | **LFO** | MOD A | MOD B, the LFOs, MSEQ, the MATRIX | **Two taps: the MATRIX** |
 | **FX** | FX 1 | FX 2 | **Hold, let go, then one tap: FX 1 off or on; two taps: FX 2** (section 10) |
 | **ARP** | the arpeggiator | HOLD + TURING | **Two taps: the arpeggio on the FM-1 off or on. Three taps: its send off or on** (section 10) |
-| **SEL** | scale and chord | (SELECT turns its pages: KEYS + STRUM, then the MIDI controller pages STYLE, LAYER MIDI CH, CHORD + ARP, then FEEL) | **Two taps: chords off (the keys play single notes) or back on. Three taps: the chords' send off or on** (section 10). **Hold SEL and EDIT together (half a second): LEARN on or off** (section 8) |
+| **SEL** | scale and chord | (SELECT turns its pages: KEYS + STRUM, then the MIDI controller pages STYLE, LAYER MIDI CH, CHORD + ARP, then FEEL, RHYTHM and RHYTHM CHANCE) | **Two taps: chords off (the keys play single notes) or back on. Three taps: the chords' send off or on** (section 10). **Hold SEL and EDIT together (half a second): LEARN on or off** (section 8) |
 | **GLO** | GLOBAL settings | | |
 | **SAVE** | the SAVE page | SAVE again stores the preset | On a sequencer page: stores the sequencer |
 | **SEQ** | the sequencer, at the page you last used | the next sequencer page | **Hold: the step layer** (section 11) |
@@ -421,6 +421,15 @@ SEL, ARP and GLOBAL are settings of the instrument, not of a preset. They stay w
 **Page 6, FEEL**: **HUMAN** (0–100, 0 to start with): each note of a chord comes a little late at random (up to 35 ms at 100) and a little softer or louder, so chords sound played rather than machine-tight. It works on the keys and on the chords the sequencer plays, together with STRUM, and is different every time.
 
 ![SEL › FEEL: four notes of a chord as they'd fall](../web/manual/img/fm1-feel.png)
+
+**Pages 7–8, RHYTHM and RHYTHM CHANCE** (update 48): a ring generator for each layer. K1 (**GEN**) picks the generator to see and set: **BASS M** (the master), **CHORD** or **ARP**; K2–K4 set its values. The big ring is the one picked; the two small rings show the others. Steps are dots round the ring, the hits are joined into a shape, and a hand sweeps round as it plays.
+
+- **RHYTHM**: **HITS** (how many), **ROTATE** (turns the pattern round), **STEPS** (the ring's length, 2–32).
+- **RHYTHM CHANCE**: **MODE**, **CHANCE** (each hit's chance to play, 100% to start with), **MUTATE** (at the end of each cycle, the chance the ring turns a step or gains or loses a hit; a quarter of the time it goes back to the pattern as set).
+- **MODE**, BASS: **STYLE** (the style's own pattern, as before; ROTATE still turns it) or **RING** (HITS spread as evenly as possible round STEPS). CHORD and ARP: **OFF** (as before), **RING** (their own), **SAME** (the bass's hits) or **ANSWER** (the gaps between the bass's hits: call and response).
+![SEL › RHYTHM: the CHORD ring, the bass and arp rings beside it](../web/manual/img/fm1-rhythm.png)
+
+- With CHORD on, the chord you hold is struck in the ring's rhythm instead of held. With ARP on, the arp rests on the ring's empty steps. BASS and CHORD need a STYLE on; ARP works whenever the arp runs.
 
 The keys in the scale glow on the keybed.
 

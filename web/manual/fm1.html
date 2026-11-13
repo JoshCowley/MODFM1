@@ -144,7 +144,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <tr class="odd">
 <td><strong>SEL</strong></td>
 <td>scale and chord</td>
-<td>(SELECT turns its pages: KEYS + STRUM, then the MIDI controller pages STYLE, LAYER MIDI CH, CHORD + ARP, then FEEL)</td>
+<td>(SELECT turns its pages: KEYS + STRUM, then the MIDI controller pages STYLE, LAYER MIDI CH, CHORD + ARP, then FEEL, RHYTHM and RHYTHM CHANCE)</td>
 <td><strong>Two taps: chords off (the keys play single notes) or back on. Three taps: the chords' send off or on</strong> (section 10). <strong>Hold SEL and EDIT together (half a second): LEARN on or off</strong> (section 8)</td>
 </tr>
 <tr class="even">
@@ -641,6 +641,13 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </ul>
 <p><strong>Page 6, FEEL</strong>: <strong>HUMAN</strong> (0–100, 0 to start with): each note of a chord comes a little late at random (up to 35 ms at 100) and a little softer or louder, so chords sound played rather than machine-tight. It works on the keys and on the chords the sequencer plays, together with STRUM, and is different every time.</p>
 <p><img src="img/fm1-feel.png" alt="SEL › FEEL: four notes of a chord as they&#39;d fall" /></p>
+<p><strong>Pages 7–8, RHYTHM and RHYTHM CHANCE</strong> (update 48): a ring generator for each layer. K1 (<strong>GEN</strong>) picks the generator to see and set: <strong>BASS M</strong> (the master), <strong>CHORD</strong> or <strong>ARP</strong>; K2–K4 set its values. The big ring is the one picked; the two small rings show the others. Steps are dots round the ring, the hits are joined into a shape, and a hand sweeps round as it plays.</p>
+<ul>
+<li><p><strong>RHYTHM</strong>: <strong>HITS</strong> (how many), <strong>ROTATE</strong> (turns the pattern round), <strong>STEPS</strong> (the ring's length, 2–32).</p></li>
+<li><p><strong>RHYTHM CHANCE</strong>: <strong>MODE</strong>, <strong>CHANCE</strong> (each hit's chance to play, 100% to start with), <strong>MUTATE</strong> (at the end of each cycle, the chance the ring turns a step or gains or loses a hit; a quarter of the time it goes back to the pattern as set).</p></li>
+<li><p><strong>MODE</strong>, BASS: <strong>STYLE</strong> (the style's own pattern, as before; ROTATE still turns it) or <strong>RING</strong> (HITS spread as evenly as possible round STEPS). CHORD and ARP: <strong>OFF</strong> (as before), <strong>RING</strong> (their own), <strong>SAME</strong> (the bass's hits) or <strong>ANSWER</strong> (the gaps between the bass's hits: call and response). <img src="img/fm1-rhythm.png" alt="SEL › RHYTHM: the CHORD ring, the bass and arp rings beside it" /></p></li>
+<li><p>With CHORD on, the chord you hold is struck in the ring's rhythm instead of held. With ARP on, the arp rests on the ring's empty steps. BASS and CHORD need a STYLE on; ARP works whenever the arp runs.</p></li>
+</ul>
 <p>The keys in the scale glow on the keybed.</p>
 <h3 id="arp-the-arpeggiator">ARP: the arpeggiator</h3>
 <p><img src="img/fm1-arp.png" alt="ARP" /></p>

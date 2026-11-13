@@ -567,10 +567,104 @@ static void vis_feel(uint16_t c)
     int_text((int32_t)(hum * 100.0f + 0.5f), n); cat(s, n);
     cv_text(110, 1, &FONT_T, s, K_DIM);
 }
+/* -------------------------------------------- RHYTHM (update 48): the generators as rings, their hits as a shape */
+static uint32_t vr_seq[3], vr_at[3];
+/* a ring round (cx, cy) radius r (canvas pixels): its steps as dots, the hits joined into a polygon, the step
+ * playing now lit (fl: its flash) and a hand to it from the middle */
+static void ring_draw(int32_t cx, int32_t cy, int32_t r, uint32_t m, int n, int cur, float fl, float chance,
+                      uint16_t c, int big)
+{
+    int32_t px[32], py[32], k, nh = 0, hx[32], hy[32];
+    uint32_t a = (uint32_t)(80.0f + 150.0f * chance);
+    for (k = 0; k < n; k++) {
+        float ang = -1.5707963f + TAU * (float)k / (float)n;
+        px[k] = cx + (int32_t)((float)r * fm_cosf(ang) + (ang > 0.0f ? 0.5f : -0.5f) * 0.0f);
+        py[k] = cy + (int32_t)((float)r * fm_sinf(ang));
+    }
+    for (k = 0; k < 48; k++) {                /* the ring itself, faint */
+        float a0 = TAU * (float)k / 48.0f, a1 = TAU * (float)(k + 1) / 48.0f;
+        vf_line(cx + (int32_t)((float)r * fm_cosf(a0)), cy + (int32_t)((float)r * fm_sinf(a0)),
+                cx + (int32_t)((float)r * fm_cosf(a1)), cy + (int32_t)((float)r * fm_sinf(a1)), RGB(84, 84, 78), 180u);
+    }
+    for (k = 0; k < n; k++)
+        if (m >> k & 1u) { hx[nh] = px[k]; hy[nh] = py[k]; nh++; }
+    if (nh >= 2)                              /* the shape: each hit to the next, round */
+        for (k = 0; k < nh; k++) {
+            int32_t j = (k + 1) % nh;
+            if (nh == 2 && k) break;
+            vf_line(hx[k], hy[k] - 1, hx[j], hy[j] - 1, c, VF_HALO);
+            vf_line(hx[k], hy[k] + 1, hx[j], hy[j] + 1, c, VF_HALO);
+            vf_line(hx[k], hy[k], hx[j], hy[j], c, a);
+        }
+    if (cur >= 0 && cur < n) {                /* the hand */
+        vf_line(cx, cy, px[cur], py[cur], K_FG, (uint32_t)(60.0f + 120.0f * fl));
+    }
+    for (k = 0; k < n; k++) {
+        int hit = m >> k & 1u, d = hit ? (big ? 2 : 1) : 0, x, y;
+        uint16_t col = k == cur ? mix565(K_FG, c, (uint32_t)(255.0f * fl)) : hit ? c : RGB(92, 92, 86);
+        for (y = -d; y <= d; y++)
+            for (x = -d; x <= d; x++)
+                if (x * x + y * y <= d * d + 1)
+                    vf_px(px[k] + x, py[k] + y, col, hit || k == cur ? VF_FILL : 200u);
+        if (hit && big) vf_ring(px[k] - 2, py[k] - 2, 5, 5, col);
+    }
+}
+static void vis_rhythm(uint16_t c, int sub)
+{
+    static const char *const GN[3] = {"BASS (MASTER)", "CHORD", "ARP"}, *const GS[3] = {"BASS", "CHD", "ARP"};
+    static const char *const MN[5] = {"OFF", "STYLE", "RING", "SAME AS BASS", "ANSWERS BASS"};
+    int v = (int)(set.arp[A_RGEN] + 0.5f), g, o;
+    uint32_t now = plat_ms();
+    char t[32], u[8];
+    (void)sub;
+    for (o = 0; o < 3; o++) {
+        int n, md = rg_mode(o), live, cur;
+        uint32_t m;
+        float fl;
+        uint16_t col = o == 0 ? c : o == 1 ? K_CHD : K_ARP;
+        int32_t cx, cy, r;
+        g = o == 0 ? v : o == 1 ? (v == 0 ? 1 : 0) : (v == 2 ? 1 : 2);   /* the one shown big, then the other two */
+        md = rg_mode(g);
+        col = g == 0 ? c : g == 1 ? K_CHD : K_ARP;
+        m = rg_ring(g, &n);
+        live = md != RM_OFF && (g == 2 ? AI(A_MODE) != AM_OFF : st.on);
+        if (rg.seq[g] != vr_seq[g]) { vr_seq[g] = rg.seq[g]; vr_at[g] = now; }
+        fl = 1.0f - (float)(now - vr_at[g]) * 0.004f;
+        fl = fl < 0.0f ? 0.0f : fl;
+        cur = live ? rg.pos[g] % n : -1;
+        if (md == RM_OFF) col = K_FAINT;
+        if (o == 0) { cx = vmx(52); cy = vmy(21); r = 38; }
+        else { cx = vmx(o == 1 ? 156 : 202); cy = vmy(27); r = 17; }
+        ring_draw(cx, cy, r, md == RM_OFF ? 0u : m, n, cur, fl, RP(g, RF_CH), col, o == 0);
+        if (o) cv_text((o == 1 ? 156 : 202) - text_w(&FONT_T, GS[g]) / 2, 36, &FONT_T, GS[g], md == RM_OFF ? K_DIM : col);
+    }
+    cv_text(104, 1, &FONT_T, GN[v], v == 0 ? c : v == 1 ? K_CHD : K_ARP);
+    t[0] = 0;
+    {
+        int md = rg_mode(v), n;
+        uint32_t m = rg_ring(v, &n), k, h = 0;
+        for (k = 0; k < (uint32_t)n; k++) h += m >> k & 1u;
+        if (v == 0 && AI(A_STYLE) < 2) cat(t, "TURN ON A STYLE");
+        else {
+            cat(t, MN[md]);
+            if (md != RM_OFF) { cat(t, "  "); int_text((int32_t)h, u); cat(t, u); cat(t, "/"); int_text(n, u); cat(t, u); }
+        }
+        cv_text(104, 8, &FONT_T, t, md == RM_OFF ? K_DIM : K_FG);
+        if (md != RM_OFF && (RP(v, RF_CH) < 0.999f || RP(v, RF_MUT) > 0.0f)) {
+            t[0] = 0;
+            int_text((int32_t)(RP(v, RF_CH) * 100.0f + 0.5f), u); cat(t, u); cat(t, "% CHANCE  ");
+            int_text((int32_t)(RP(v, RF_MUT) * 100.0f + 0.5f), u); cat(t, u); cat(t, "% MUTATE");
+            cv_text(104, 15, &FONT_T, t, K_DIM);
+        }
+    }
+}
+
 static void vis_fixed(int pg, int sub, uint16_t c)
 {
     if (pg == PG_SEL && sub == 5) {           /* FEEL (update 43): a chord's notes, strummed and humanised */
         vis_feel(c);
+    } else if (pg == PG_SEL && sub >= 6) {    /* RHYTHM (update 48): the three generators as rings */
+        vis_rhythm(c, sub);
     } else if (pg == PG_SEL && sub >= 2) {    /* SEL's MIDI controller pages (update 38): STYLE and its layers */
         vis_style(c, sub);
     } else if (pg == PG_SEL) {                /* the keyboards: drawn solid, as before */

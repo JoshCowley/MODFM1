@@ -19,7 +19,11 @@ enum { A_MODE, A_RATE, A_OCT, A_GATE, A_HOLD, A_MUT, A_LOOP, A_SWING,
        A_CHCH, A_BSCH, A_ARCH,                    /* each layer's MIDI channel (0 off, 1-16) */
        A_LBS,                                     /* the bass on the FM-1 */
        A_LCH, A_SCH, A_LAR, A_SAR,                /* CHORD + ARP: each on the FM-1, each sent (update 36) */
-       A_HUM, NA };                               /* FEEL: HUMAN (update 43) */
+       A_HUM,                                     /* FEEL: HUMAN (update 43) */
+       A_RGEN, A_R0, NA = A_R0 + 18 };            /* RHYTHM (update 48): the generator shown, then 6 values each */
+enum { RF_HIT, RF_ROT, RF_LEN, RF_MODE, RF_CH, RF_MUT };   /* a generator's values (style_def.py _rg) */
+enum { RM_OFF, RM_STYLE, RM_RING, RM_SAME, RM_ANS };
+#define RP(g, f) set.arp[A_R0 + (g) * 6 + (f)]
 enum { L_CHORD, L_BASS, L_ARP };                  /* STYLE's three layers */
 #define ST_HELD 1                                 /* STYLE HELD: the layers held as long as the chord, no rhythm */
 enum { CT_OFF, CT_TRIAD, CT_7TH, CT_9TH, CT_11TH, CT_SUS4, CT_6TH, CT_POWER };
@@ -110,6 +114,7 @@ static const int8_t CHROMA[2][7][6] = {
     {{0}, {0, 3, 7, -1}, {0, 3, 7, 10, -1}, {0, 3, 7, 10, 14, -1}, {0, 3, 7, 10, 14, 17}, {0, 5, 7, -1}, {0, 3, 7, 9, -1}}};
 static int zone_on(void) { return CI(C_ZONE) == 0 && CI(C_TYPE) != CT_OFF; }
 static int style_on(void);
+static int rg_chord_on(void);
 /* SEL > ZONE BASS (update 38): with a STYLE on, the 7 lowest keys pick the chord tone the bass plays, in the style's
  * rhythm: root, 3rd, 5th, 7th, octave up, 5th below, the approach note; none held: the style's own line */
 static const char ZONE_BASS[7] = {'R', '3', '5', '7', '8', 'b', 'a'};
@@ -545,6 +550,8 @@ static void pl_key_on(int raw, int note, float vel)
             at += human_ms() * set.arp[A_HUM] * 0.035f * PL_HZ;
             v = human_vel(vel);
         }
+        if (r->lay && rg_chord_on())            /* RHYTHM: the CHORD generator strikes the chord, not the keys */
+            continue;
         if (at > 1.0f) {
             pend(pl_now + (uint32_t)at, i, raw, 1, v);
         } else {
@@ -749,11 +756,118 @@ static float step_frames(void)
         return pa.tick_frames * (float)ARP_TICKS[r];
     return ARP_BEATS[r] * 60.0f / tempo_bpm() * PL_HZ;
 }
+/* ------------------------------------------------------------------ RHYTHM: three ring generators --- */
+/* (update 48) Each layer's rhythm from a ring: STEPS round it, HITS spread as evenly as they go (Euclid / Bjorklund),
+ * turned ROTATE steps. BASS is the master: the style's own pattern (STYLE) or a ring; CHORD and ARP play a ring of
+ * their own, the master's hits (SAME) or the gaps between them (ANSWER), or are off as before. CHANCE thins the hits
+ * at random; MUTATE changes the ring a little at the end of a cycle, and now and then puts it back. */
+static struct {
+    uint32_t base[3], live[3];                /* the ring as set, and as mutated */
+    uint8_t len[3], pos[3];                   /* its steps; the step it reached last */
+    uint32_t seq[3], rnd;                     /* counted (the picture's flash); the dice */
+} rg = {{0}, {0}, {16, 16, 16}, {0}, {0}, 0x9E3779B9u};
+static float rg_rand(void)
+{
+    rg.rnd ^= rg.rnd << 13; rg.rnd ^= rg.rnd >> 17; rg.rnd ^= rg.rnd << 5;
+    return (float)(rg.rnd >> 8) * (1.0f / 16777216.0f);
+}
+static int rg_mode(int g)
+{
+    int m = (int)(RP(g, RF_MODE) + 0.5f);
+    if (g == 0) return AI(A_STYLE) >= 2 ? (m == RM_RING ? RM_RING : RM_STYLE) : RM_OFF;
+    return m == RM_STYLE ? RM_OFF : m;
+}
+static int rg_chord_on(void) { return style_on() && AI(A_STYLE) >= 2 && rg_mode(1) != RM_OFF; }
+static uint32_t rg_rot(uint32_t m, int n, int r)   /* turned r steps later round n */
+{
+    uint32_t all = n >= 32 ? 0xFFFFFFFFu : (1u << n) - 1u;
+    r %= n;
+    return r ? ((m << r) | (m >> (n - r))) & all : m & all;
+}
+static const style_t *st_style(void);
+static void rg_build(int g)                   /* the ring as set; a change starts it afresh */
+{
+    uint32_t m = 0;
+    int n, h, i;
+    if (g == 0 && rg_mode(0) == RM_STYLE && st_style()) {
+        const style_t *S = st_style();
+        n = S->len;
+        for (i = 0; i < n; i++)
+            if (S->bass[i] != '.' && S->bass[i] != '-') m |= 1u << i;
+    } else {
+        n = (int)(RP(g, RF_LEN) + 0.5f);
+        h = (int)(RP(g, RF_HIT) + 0.5f);
+        n = n < 2 ? 2 : n > 32 ? 32 : n;
+        h = h > n ? n : h;
+        for (i = 0; i < n; i++)
+            if ((i * h) % n < h) m |= 1u << i;
+    }
+    m = rg_rot(m, n, (int)(RP(g, RF_ROT) + 0.5f));
+    if (m != rg.base[g] || n != rg.len[g]) {
+        rg.base[g] = rg.live[g] = m;
+        rg.len[g] = (uint8_t)n;
+    }
+}
+static void rg_mutate(int g)                  /* the end of a cycle: perhaps a change */
+{
+    int n = rg.len[g], i;
+    if (rg_rand() >= RP(g, RF_MUT))
+        return;
+    i = (int)(rg_rand() * 4.0f);
+    if (i == 0) {
+        rg.live[g] = rg.base[g];              /* back to the pattern as set */
+    } else if (i == 1) {
+        rg.live[g] = rg_rot(rg.live[g], n, rg_rand() < 0.5f ? 1 : n - 1);
+    } else {
+        uint32_t b = 1u << (int)(rg_rand() * (float)n);
+        if (!(rg.live[g] & b) || (rg.live[g] & ~b))   /* (the last hit stays) */
+            rg.live[g] ^= b;
+    }
+}
+/* the ring (and its steps) a generator plays: its own, or the master's, or the master's gaps */
+static uint32_t rg_ring(int g, int *n)
+{
+    int m = rg_mode(g), s = m == RM_SAME || m == RM_ANS ? 0 : g;
+    uint32_t all;
+    rg_build(0);
+    if (s) rg_build(s);
+    *n = rg.len[s];
+    all = *n >= 32 ? 0xFFFFFFFFu : (1u << *n) - 1u;
+    return m == RM_ANS ? ~rg.live[0] & all : rg.live[s];
+}
+/* step k (counted from the start) of generator g: a hit to play? (its place round the ring: rg.pos) */
+static int rg_hit(int g, uint32_t k)
+{
+    int n, i;
+    uint32_t m = rg_ring(g, &n);
+    i = (int)(k % (uint32_t)n);
+    if (i == 0 && k && (g == 0 || rg_mode(g) == RM_RING))
+        rg_mutate(g);
+    m = rg_ring(g, &n);
+    rg.pos[g] = (uint8_t)i;
+    rg.seq[g]++;
+    return (m >> i & 1u) && (RP(g, RF_CH) >= 0.999f || rg_rand() < RP(g, RF_CH));
+}
+static int rg_gap(int g, int i)               /* steps from hit i to the next (the note's length) */
+{
+    int n, k;
+    uint32_t m = rg_ring(g, &n);
+    for (k = 1; k < n; k++)
+        if (m >> ((i + k) % n) & 1u) return k;
+    return n;
+}
+
 static void arp_step(uint32_t at)             /* a step at frame at: its notes on, and off after GATE */
 {
     uint8_t notes[PL_MAXN];
     float d = step_frames();
-    int n = arp_pick(notes), i;
+    int n, i;
+    if (rg_mode(2) != RM_OFF && !rg_hit(2, pa.step)) {   /* RHYTHM: the ARP generator rests here */
+        pv.step = pa.step;
+        pa.step++;
+        return;
+    }
+    n = arp_pick(notes);
     uint32_t t = at + (pa.step & 1u ? (uint32_t)(set.arp[A_SWING] * 0.5f * d) : 0u);
     uint32_t len = (uint32_t)(set.arp[A_GATE] * d * 0.95f);
     if (len < 882u)
@@ -980,11 +1094,35 @@ static void style_step(uint32_t at)
     d = st_frames(S);
     i = (int)(st.step % S->len);
     t = at + (S->div == 16 && (i & 1) ? (uint32_t)(S->swing * 0.5f * d) : 0u);
-    c = S->bass[i];
+    {                                         /* RHYTHM: the master ring decides (STYLE, unturned: as the style) */
+        int h = rg_hit(0, st.step), p = rg.pos[0], rot = (int)(RP(0, RF_ROT) + 0.5f), ring = rg_mode(0) == RM_RING;
+        int si = ring ? p % S->len : ((p - rot) % S->len + S->len) % S->len;
+        c = S->bass[si];
+        if (h && (c == '.' || c == '-'))
+            c = p == 0 ? 'R' : 'r';
+        if (!h)
+            c = '.';
+        k = ring || c == '.' ? 0 : st_tie(S->bass, si, S->len);
+        if (h && ring) k = rg_gap(0, p);
+        if (h && !ring && RP(0, RF_MUT) > 0.0f && rg.live[0] != rg.base[0]) k = rg_gap(0, p);
+    }
+    if (rg_chord_on()) {                      /* RHYTHM: the CHORD generator strikes the chord held */
+        int ch = rg_hit(1, st.step), j, g;
+        if (ch && st.n) {
+            float cv = st.vel * (rg.pos[1] == 0 ? 1.0f : 1.0f - 0.25f * acc);
+            uint32_t cl;
+            g = rg_gap(1, rg.pos[1]);
+            cl = (uint32_t)(((float)g * (0.3f + 0.65f * set.arp[A_CLEN])) * d);
+            if (cl < 882u) cl = 882u;
+            for (j = 0; j < st.n; j++) {
+                pend(t, st.note[j], 250 + L_CHORD, 1, cv < 0.05f ? 0.05f : cv);
+                pend(t + cl, st.note[j], 250 + L_CHORD, 0, 0.0f);
+            }
+        }
+    }
     if (c != '.' && c != '-') {
         char z = zone_bass_tone();            /* the bass zone: its tone, the pattern's rhythm and accents */
         int bn = st_bass(z ? z : c);
-        k = st_tie(S->bass, i, S->len);
         v = st.vel * (c == 'R' ? 1.0f : 1.0f - 0.25f * acc);
         len = (uint32_t)(((float)(k - 1) + 0.3f + 0.65f * set.arp[A_CLEN]) * d);
         if (len < 882u) len = 882u;

@@ -15,7 +15,8 @@
 #define RC_IN_UNITY
 #include "rack_core.c"
 
-#define SET_MAGIC 0x524B4C37u                 /* "RKL7": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC 0x524B4C38u                 /* "RKL8": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC7 0x524B4C37u                /* "RKL7" (updates 43-47): ARP 21 values (no RHYTHM) */
 #define SET_MAGIC6 0x524B4C36u                /* "RKL6" (updates 40-42): ARP 20 values (no HUMAN) */
 #define SET_MAGIC5 0x524B4C35u                /* "RKL5" (updates 38-39): GLOBAL 19 values (no CLICK) */
 #define SET_MAGIC4 0x524B4C34u                /* "RKL4" (updates 36-37): the same; CHD FM-1 turned back on (update 38) */
@@ -28,7 +29,7 @@ typedef struct {
     int8_t octave;
     uint8_t voices;                           /* 0: the preset's own (GLOBAL > VOICES AUTO) */
     uint8_t rsv;
-    float glo[23], sel[8], arp[21];           /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*); GLOBAL 19-22: CLICK */
+    float glo[23], sel[8], arp[40];           /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*); GLOBAL 19-22: CLICK */
 } settings_t;
 static settings_t set;
 /* a moment as a button's "went down at" (0 means "not down"): now, or 1 at the clock's very start. Until update 38 it
@@ -1023,8 +1024,8 @@ void app_init(void)
     if (plat_cpu2_set(1) == 0)                /* the second core (now: the one time it may start) renders half the voices */
         rk_set_worker(plat_cpu2_run, plat_cpu2_wait);
     n = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
-    {   /* (the older records: sizes as RKL6, one ARP value fewer than now) */
-    const int SZ6 = SZ6 - (int)sizeof(float);
+    {   /* (the older records: RKL7 19 ARP values fewer than now (RHYTHM), RKL6 one fewer again) */
+    const int SZ7 = (int)sizeof set - (int)(19u * sizeof(float)), SZ6 = SZ7 - (int)sizeof(float);
     if ((set.magic == SET_MAGIC2 || set.magic == SET_MAGIC3 || set.magic == SET_MAGIC4 || set.magic == SET_MAGIC5) &&
         n > (int)((char *)&set.glo[19] - (char *)&set) && n <= SZ6 - (int)(4u * sizeof(float))) {
         /* RKL2-5 had GLOBAL's 19 values (update 40 added CLICK's 4): SEL and ARP move up, CLICK at its defaults */
@@ -1060,6 +1061,12 @@ void app_init(void)
         set.magic = SET_MAGIC6;
     if (n == SZ6 && set.magic == SET_MAGIC6) {   /* RKL6: HUMAN at its default */
         set.arp[A_HUM] = UP_ARP[A_HUM].def;
+        set.magic = SET_MAGIC7;
+        n = SZ7;
+    }
+    if (n == SZ7 && set.magic == SET_MAGIC7) {   /* RKL7: RHYTHM at its defaults (BASS: the style's own pattern) */
+        for (i = A_RGEN; i < NA; i++)
+            set.arp[i] = UP_ARP[i].def;
         set.magic = SET_MAGIC;
         n = (int)sizeof set;
     }

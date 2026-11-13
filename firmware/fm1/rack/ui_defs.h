@@ -53,7 +53,8 @@ static const char *const UI_OPT[] = {
     "FUNK", "R&B", "NEO SOUL", "AMB SWELL", "AMB PULSE", "DRONE", "REGGAE", "BOSSA NOVA",
     "SAMBA", "AFROBEAT", "SALSA", "JAZZ SWING", "OFF", "1", "2", "3",
     "4", "5", "6", "7", "8", "9", "10", "11",
-    "12", "13", "14", "15", "16",
+    "12", "13", "14", "15", "16", "BASS M", "CHORD", "ARP",
+    "OFF", "STYLE", "RING", "SAME", "ANSWER",
 };
 static const ui_param_t UP_PLAITS[] = {
     {"MODEL", 2, 0, 0, 23, 0, 8.0f},
@@ -337,8 +338,27 @@ static const ui_param_t UP_ARP[] = {
     {"ARP FM-1", 2, 0, 0, 1, 24, 1.0f},
     {"ARP SEND", 2, 0, 0, 1, 24, 1.0f},
     {"HUMAN", 0, 0, 0, 1, 0, 0.0f},
+    {"GEN", 2, 0, 0, 2, 397, 0.0f},
+    {"HITS", 3, 0, 0, 32, 0, 5.0f},
+    {"ROTATE", 3, 0, 0, 31, 0, 0.0f},
+    {"STEPS", 3, 0, 2, 32, 0, 16.0f},
+    {"MODE", 2, 0, 0, 4, 400, 1.0f},
+    {"CHANCE", 0, 0, 0, 1, 0, 1.0f},
+    {"MUTATE", 0, 0, 0, 1, 0, 0.0f},
+    {"HITS", 3, 0, 0, 32, 0, 4.0f},
+    {"ROTATE", 3, 0, 0, 31, 0, 2.0f},
+    {"STEPS", 3, 0, 2, 32, 0, 16.0f},
+    {"MODE", 2, 0, 0, 4, 400, 0.0f},
+    {"CHANCE", 0, 0, 0, 1, 0, 1.0f},
+    {"MUTATE", 0, 0, 0, 1, 0, 0.0f},
+    {"HITS", 3, 0, 0, 32, 0, 11.0f},
+    {"ROTATE", 3, 0, 0, 31, 0, 0.0f},
+    {"STEPS", 3, 0, 2, 32, 0, 16.0f},
+    {"MODE", 2, 0, 0, 4, 400, 0.0f},
+    {"CHANCE", 0, 0, 0, 1, 0, 1.0f},
+    {"MUTATE", 0, 0, 0, 1, 0, 0.0f},
 };
-static const uint8_t UG_ARP[] = {4, 4, 4, 4, 4, 1};
+static const uint8_t UG_ARP[] = {4, 4, 4, 4, 4, 1, 4, 3, 3, 3, 3, 3};
 typedef struct { uint8_t div; float swing; uint8_t len; const char *bass; } style_t;
 #define NSTYLE 32
 static const style_t STYLES[NSTYLE] = {
@@ -401,4 +421,4 @@ static const ui_mod_t UI_LFO = {"LFO", "THREE LFOS", 0, 5, 6, 24, UG_LFO, UP_LFO
 static const ui_mod_t UI_OSC = {"OSC", "OSC + MIXER", 0, 0, 2, 8, UG_OSC, UP_OSC, 0, {0}};
 static const ui_mod_t UI_GLO = {"GLOBAL", "SETTINGS", 0, 6, 7, 23, UG_GLO, UP_GLO, 0, {0}};
 static const ui_mod_t UI_SEL = {"SCALE + CHORD", "KEYS TO SCALE", 0, 7, 2, 8, UG_SEL, UP_SEL, 0, {0}};
-static const ui_mod_t UI_ARP = {"ARP", "ARPEGGIATOR", 0, 8, 6, 21, UG_ARP, UP_ARP, 0, {0}};
+static const ui_mod_t UI_ARP = {"ARP", "ARPEGGIATOR", 0, 8, 12, 40, UG_ARP, UP_ARP, 0, {0}};

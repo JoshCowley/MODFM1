@@ -61,6 +61,14 @@ for name, div, sw, b in STYLES:
     assert len(name) <= 10 and div in (16, 3) and len(b) <= 32 and len(b) == (12 if div == 3 else len(b)), name
     assert set(b) <= set("Rr53781pab-."), name
 
+RMODES = ["OFF", "STYLE", "RING", "SAME", "ANSWER"]
+# a generator's values: HITS, ROTATE, STEPS, MODE, CHANCE, MUTATE (BASS: the style's own pattern; CHORD, ARP: off)
+_RDEF = [(5, 0, 16, 1), (4, 2, 16, 0), (11, 0, 16, 0)]
+def _rg(g):
+    h, r, n, m = _RDEF[g]
+    return [_I("HITS", 0, 32, h), _I("ROTATE", 0, 31, r), _I("STEPS", 2, 32, n), _L("MODE", RMODES, m),
+            _n("CHANCE", 1.0), _n("MUTATE", 0.0)]
+
 # the ARP pages after the arpeggiator's two: STYLE, the layers' MIDI channels (+ the bass on the FM-1), CHORD + ARP
 ARP_EXTRA = [
     [_L("STYLE", ["OFF", "HELD"] + [s[0] for s in STYLES], 0), _I("BASS OCT", -2, 1, 0), _n("ACCENT", 0.6),
@@ -72,6 +80,15 @@ ARP_EXTRA = [
     # FEEL (update 43): HUMAN, each chord note a little early or late at random (and its force a little off), on the
     # keys and in the sequencer
     [_n("HUMAN", 0.0)],
+    # RHYTHM (update 48): a ring generator for each layer, BASS (the master), CHORD, ARP. SEL shows two pages, K1 the
+    # generator to see and set (GEN), K2-K4 its values; its other values sit on pages SEL does not show (menus.c
+    # rhy_pi maps the knobs to the generator chosen). MODE: STYLE the style's own pattern (BASS only), RING the
+    # generator's hits spread evenly (Euclidean) round its STEPS, turned by ROTATE; SAME / ANSWER (CHORD, ARP) the
+    # master's hits, or the gaps between them. CHANCE: each hit's chance to play. MUTATE: each cycle's chance to turn
+    # or gain or lose a hit (a quarter of the time: back to the pattern as set)
+] + [
+    [_L("GEN", ["BASS M", "CHORD", "ARP"], 0)] + _rg(0)[:3], _rg(0)[3:],
+    _rg(1)[:3], _rg(1)[3:], _rg(2)[:3], _rg(2)[3:],
 ]
 
 

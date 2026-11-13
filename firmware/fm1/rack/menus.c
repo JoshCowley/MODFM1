@@ -93,6 +93,20 @@ static int is_fixed(int pg) { return pg >= PG_SEL && pg <= PG_ARP; }
  * ARP's settings 3-5: the page whose values a fixed page shows */
 #define SEL_OWN 2                             /* SEL's own pages; ARP keeps 2 */
 static int data_pg(int pg) { return pg == PG_SEL && mn.sub >= SEL_OWN ? PG_ARP : pg; }
+/* RHYTHM (update 48): SEL's pages 7-8 are ARP's 6-7; K1 the generator shown (GEN), K2-K4 its values (the CHORD's and
+ * the ARP's sit on ARP pages 8-11, never shown): the parameter knob k sets there, or -1 */
+#define RHY_PG 6
+static int rhy_pi(int pg, int sub, int k)
+{
+    int g = (int)(set.arp[A_RGEN] + 0.5f);
+    if (pg != PG_SEL || (sub != RHY_PG && sub != RHY_PG + 1))
+        return -2;                            /* not a RHYTHM page */
+    if (k == 0)
+        return A_RGEN;
+    if (k > 3)
+        return -1;
+    return A_R0 + g * 6 + (sub == RHY_PG ? 0 : 3) + k - 1;
+}
 static float *page_vals(int pg) { return pg == PG_GLO ? set.glo : pg == PG_SEL ? set.sel : pg == PG_ARP ? set.arp : 0; }
 static uint16_t fixed_colour(int pg) { return pg == PG_GLO ? K_GLO : pg == PG_SEL ? K_CHD : K_ARP; }
 static const ui_mod_t *page_mod(int pg)
@@ -149,7 +163,7 @@ static uint16_t kc(int pi, uint16_t c)        /* parameter pi's knob's colour wh
 static int npages(int pg)
 {
     const ui_mod_t *m = page_mod(pg);
-    if (pg == PG_SEL) return SEL_OWN + 4;
+    if (pg == PG_SEL) return SEL_OWN + 6;
     if (pg == PG_ARP) return 2;
     return m ? m->npages + (pg == PG_LFO ? 3 : 0) + (has_mod_page(pg) ? MOD_ROWS : 0) : 1;
 }
@@ -872,12 +886,13 @@ static void draw_param_page(int pg)
     title[0] = 0;
     if (is_fixed(pg)) {
         static const char *const GT[] = {"SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM", "CLICK"};
-        static const char *const ST[] = {"SCALE + CHORD", "KEYS + STRUM", "STYLE", "LAYER MIDI CH", "CHORD + ARP", "FEEL"},
+        static const char *const ST[] = {"SCALE + CHORD", "KEYS + STRUM", "STYLE", "LAYER MIDI CH", "CHORD + ARP", "FEEL",
+                                         "RHYTHM", "RHYTHM CHANCE"},
                           *const AT[] = {"ARPEGGIATOR", "HOLD + TURING"};
         m = page_mod(data_pg(pg));
         fv = page_vals(data_pg(pg));
         int ic = pg == PG_GLO ? (mn.sub == 3 ? IC_MIDI : mn.sub == 4 ? IC_OUT : IC_GLOBAL) : pg == PG_SEL ? (mn.sub ? IC_SCALE : IC_CHORD) : IC_ARP;
-        header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 7] : pg == PG_SEL ? ST[mn.sub % 6] : AT[mn.sub & 1],
+        header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 7] : pg == PG_SEL ? ST[mn.sub % 8] : AT[mn.sub & 1],
                ic, npages(pg), mn.sub);
         page_well(pg);
         off = page_first(m, mn.sub);
@@ -885,13 +900,14 @@ static void draw_param_page(int pg)
             system_cells(c);
         else
             for (i = 0; i < 4; i++) {
-                const ui_param_t *p = i < m->pages[mn.sub] ? &m->p[off + i] : 0;
+                int ri = rhy_pi(pg, mn.sub, i), pi = ri == -2 ? off + i : ri;
+                const ui_param_t *p = ri == -2 ? (i < m->pages[mn.sub] ? &m->p[off + i] : 0) : ri >= 0 ? &m->p[ri] : 0;
                 if (picture_first(pg))
-                    gauge(i, p, p ? fv[off + i] : 0.0f, p ? fv[off + i] : 0.0f, 0);
+                    gauge(i, p, p ? fv[pi] : 0.0f, p ? fv[pi] : 0.0f, 0);
                 else
-                    cell(i, p, p ? fv[off + i] : 0.0f, 0.0f, 0, c);
+                    cell(i, p, p ? fv[pi] : 0.0f, 0.0f, 0, c);
             }
-        help(pg == PG_GLO && mn.sub == 5 ? "SELECT: PAGE   (MEASURED LIVE)" : pg == PG_ARP ? "SELECT: PAGE   K1-K4: VALUES"
+        help(pg == PG_GLO && mn.sub == 5 ? "SELECT: PAGE   (MEASURED LIVE)" : rhy_pi(pg, mn.sub, 0) >= 0 ? "K1: GENERATOR   K2-K4: ITS VALUES" : pg == PG_ARP ? "SELECT: PAGE   K1-K4: VALUES"
              : "SELECT: PAGE   K1-K4: VALUES");
         return;
     }
@@ -1344,12 +1360,23 @@ static void knob(int k, int32_t e)
         int dp = data_pg(mn.page), pi;
         float *fv = page_vals(dp), old;
         m = page_mod(dp);
-        pi = page_first(m, mn.sub) + k;
-        if (k >= m->pages[mn.sub])
+        pi = rhy_pi(mn.page, mn.sub, k);
+        if (pi == -1)
             return;
+        if (pi == -2) {
+            pi = page_first(m, mn.sub) + k;
+            if (k >= m->pages[mn.sub])
+                return;
+        }
         old = fv[pi];
         undo_note(UN_FIXED, dp, pi, old, 0, 0, 0);
         fv[pi] = step(&m->p[pi], old, e);
+        if (pi >= A_R0 && (pi - A_R0) % 6 == RF_MODE) {   /* BASS: STYLE or RING; CHORD, ARP: no STYLE */
+            int g = (pi - A_R0) / 6, v = (int)(fv[pi] + 0.5f);
+            if (g == 0) v = v < RM_STYLE ? RM_STYLE : v > RM_RING ? RM_RING : v;
+            else if (v == RM_STYLE) v = old < 0.5f ? RM_RING : RM_OFF;
+            fv[pi] = (float)v;
+        }
         if (fv[pi] != old)
             fixed_changed(dp, pi, old, fv[pi]);
         ui.redraw = 1;
