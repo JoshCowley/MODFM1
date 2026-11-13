@@ -626,7 +626,7 @@ static void vis_rhythm(uint16_t c, int sub)
         uint16_t col;
         g = o == 2 ? v : o == 0 ? (v == 0 ? 1 : 0) : (v == 2 ? 1 : 2);   /* the picked one last, on top */
         md = rg_mode(g);
-        col = g == 0 ? c : g == 1 ? K_CHD : K_ARP;
+        col = g == 0 ? K_SRC : g == 1 ? K_CHD : K_ARP;
         m = rg_ring(g, &n);
         live = md != RM_OFF && (g == 2 ? AI(A_MODE) != AM_OFF : st.on);
         if (rg.seq[g] != vr_seq[g]) { vr_seq[g] = rg.seq[g]; vr_at[g] = now; }
@@ -635,7 +635,7 @@ static void vis_rhythm(uint16_t c, int sub)
         cur = live ? rg.pos[g] % n : -1;
         if (md != RM_OFF) {
             if (g != v) col = mix565(col, K_WELL, 140);
-            ring_draw(vmx(52), vmy(21), 38 - g * 9, m, n, cur, fl, RP(g, RF_CH), col, g == v);
+            ring_draw(vmx(60), vmy(21), 56 - g * 14, m, n, cur, fl, RP(g, RF_CH), col, g == v);   /* (update 50: the taller picture) */
         }
         for (k = 0; k < n; k++) h += m >> k & 1u;
         t[0] = 0;                                /* the legend */
@@ -644,9 +644,9 @@ static void vis_rhythm(uint16_t c, int sub)
         if (md == RM_OFF) cat(t, "OFF");
         else { cat(t, md == RM_STYLE ? "STYLE " : md == RM_SAME ? "SAME " : md == RM_ANS ? "ANSWER " : "RING ");
                int_text(h, u); cat(t, u); cat(t, "/"); int_text(n, u); cat(t, u); }
-        cv_text(104, 22 + g * 6, &FONT_T, t, md == RM_OFF ? K_FAINT : g == v ? (g == 0 ? c : g == 1 ? K_CHD : K_ARP) : K_DIM);
+        cv_text(126, 22 + g * 6, &FONT_T, t, md == RM_OFF ? K_FAINT : g == v ? (g == 0 ? K_SRC : g == 1 ? K_CHD : K_ARP) : K_DIM);
     }
-    cv_text(104, 1, &FONT_T, GN[v], v == 0 ? c : v == 1 ? K_CHD : K_ARP);
+    cv_text(126, 1, &FONT_T, GN[v], v == 0 ? K_SRC : v == 1 ? K_CHD : K_ARP);
     t[0] = 0;
     {
         int md = rg_mode(v), n;
@@ -657,12 +657,12 @@ static void vis_rhythm(uint16_t c, int sub)
             cat(t, MN[md]);
             if (md != RM_OFF) { cat(t, "  "); int_text((int32_t)h, u); cat(t, u); cat(t, "/"); int_text(n, u); cat(t, u); }
         }
-        cv_text(104, 8, &FONT_T, t, md == RM_OFF ? K_DIM : K_FG);
+        cv_text(126, 8, &FONT_T, t, md == RM_OFF ? K_DIM : K_FG);
         if (md != RM_OFF && (RP(v, RF_CH) < 0.999f || RP(v, RF_MUT) > 0.0f)) {
             t[0] = 0;
-            int_text((int32_t)(RP(v, RF_CH) * 100.0f + 0.5f), u); cat(t, u); cat(t, "% CHANCE  ");
-            int_text((int32_t)(RP(v, RF_MUT) * 100.0f + 0.5f), u); cat(t, u); cat(t, "% MUTATE");
-            cv_text(104, 15, &FONT_T, t, K_DIM);
+            int_text((int32_t)(RP(v, RF_CH) * 100.0f + 0.5f), u); cat(t, u); cat(t, "% HIT  ");
+            int_text((int32_t)(RP(v, RF_MUT) * 100.0f + 0.5f), u); cat(t, u); cat(t, "% MUT");
+            cv_text(126, 15, &FONT_T, t, K_DIM);
         }
     }
 }

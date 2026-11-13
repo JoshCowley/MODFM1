@@ -349,6 +349,60 @@ static void vbar(int32_t x, int32_t y, int32_t w, int32_t h, float v, uint16_t c
 /* a slider (after stage 4): a track, the value's fill and a thumb. With a modulation colour mc, a halo in that colour:
  * the range the value has swept lately (lo-hi) glows round the track, the live value fills it, the set value stays
  * as a tick, and the thumb glows; e (0-1, how fast the modulation moves) brightens the glow, so it pulses with it */
+/* (update 50, after Josh: "make the sliders move with the audio, dynamic, to represent the music") The sliders'
+ * filled part is a strip of the sound itself: the last moments of the output traced along it, running freely,
+ * swinging further and growing thicker as it gets louder, and flashing towards white on each new hit. Each knob reads the sound at its own zoom, so the four move
+ * differently. Silent: a plain bar, as before. The set value (the thumb) never moves. */
+static float wv_lvl, wv_slow, wv_flash;       /* the level (fast up, slow down), a slower one, the hit's flash */
+static uint32_t wv_start;                     /* where the strip starts reading: a rising zero crossing */
+static int wv_idx;                            /* the knob being drawn: its zoom */
+static void wv_tick(void)
+{
+    static uint32_t last;
+    uint32_t end = rc_scope_w, k;
+    float r = 0.0f;
+    if (end == last)
+        return;
+    last = end;
+    for (k = 0; k < 256u; k++) {
+        float x = (float)rc_scope[(end - 256u + k) & (RC_SCOPE_N - 1u)] * (1.0f / 16384.0f);
+        r += x * x;
+    }
+    r = fm_sqrtf(r / 256.0f);
+    wv_lvl += (r - wv_lvl) * (r > wv_lvl ? 0.6f : 0.12f);
+    wv_slow += (r - wv_slow) * 0.05f;
+    if (r > 0.02f && r > wv_slow * 1.5f)
+        wv_flash = 1.0f;
+    wv_flash *= 0.75f;
+    wv_start = end - 400u;                    /* (update 50, after Josh: "not just wiggle, be dynamic") the strip is
+                                                 not held to a zero crossing: it runs with the sound like a free scope,
+                                                 a held note shimmers, a chord beats, a bass line rolls */
+}
+static int wv_on(void) { return wv_lvl > 0.008f; }
+static void wv_fill(int32_t x, int32_t y, int32_t len, uint16_t c)
+{
+    static const uint8_t ZOOM[4] = {8, 5, 3, 2};   /* frames a column, per knob */
+    int32_t k, th, dy;
+    float g, amp;
+    uint16_t col;
+    if (len <= 0)
+        return;
+    if (!wv_on()) {
+        rrect(x, y, len, 4, c, 2);
+        return;
+    }
+    g = wv_lvl * 4.0f;
+    g = g > 1.0f ? 1.0f : g;
+    amp = 1.5f + 3.0f * g;                    /* the swing: 1.5 px quiet, 4.5 px loud */
+    th = 2 + (int32_t)(g * 2.5f + 0.5f);      /* the thickness: 2 quiet, 4-5 loud */
+    col = mix565(K_FG, c, (uint32_t)(wv_flash * 200.0f));
+    for (k = 0; k < len; k++) {
+        float v = (float)rc_scope[(wv_start + (uint32_t)(k * ZOOM[wv_idx & 3])) & (RC_SCOPE_N - 1u)] * (1.0f / 16384.0f);
+        v = v > 1.0f ? 1.0f : v < -1.0f ? -1.0f : v;
+        dy = (int32_t)(v * amp + (v < 0.0f ? -0.5f : 0.5f));
+        cv_rect(x + k, y + 2 - th / 2 + dy, 1, th, col);
+    }
+}
 static void slider(int32_t x, int32_t y, int32_t w, float f, uint16_t c, uint16_t mc, float lo, float hi, float live, float e, uint16_t bg)
 {
     int32_t tx;
@@ -363,7 +417,7 @@ static void slider(int32_t x, int32_t y, int32_t w, float f, uint16_t c, uint16_
         }
         rrect(x, y, w, 4, K_FAINT, 2);
         tx = x + (int32_t)(live * (float)w);
-        if (tx > x) rrect(x, y, tx - x, 4, mc, 2);
+        if (tx > x) wv_fill(x, y, tx - x, mc);
         cv_rect(x + (int32_t)(f * (float)w), y - 3, 1, 10, mix565(c, bg, 170));
         rrect(tx - 7, y - 8, 15, 20, mix565(mc, bg, k / 3u), 4);
         rrect(tx - 4, y - 6, 9, 16, mix565(mc, bg, (k * 3u) / 4u), 3);
@@ -371,7 +425,7 @@ static void slider(int32_t x, int32_t y, int32_t w, float f, uint16_t c, uint16_
     } else {
         rrect(x, y, w, 4, K_FAINT, 2);
         tx = x + (int32_t)(f * (float)w);
-        if (tx > x) rrect(x, y, tx - x, 4, c, 2);
+        if (tx > x) wv_fill(x, y, tx - x, c);
         rrect(tx - 2, y - 4, 5, 12, K_FG, 2);
     }
 }
@@ -598,6 +652,7 @@ static void draw_footer(void)                 /* (the status strip on top; the m
  * macro being linked framed gold */
 #define HM_H 48
 static uint32_t home_macros_sig = 1u;
+static int home_wv_was;
 static void home_macros(int force)            /* (update 39: drawn again only when a value, LEARN or a route changes) */
 {
     char t[24], n[8];
@@ -606,16 +661,18 @@ static void home_macros(int force)            /* (update 39: drawn again only wh
     for (i = 0; i < 4; i++)
         sig = sig * 131u + (uint32_t)(rc_patch.macro[i] * 1000.0f);
     for (i = 0; i < 18; i++) {
-        int src, via;
+        int src = 0, via;
         float amt;
-        sig = sig * 31u + route_dst(i, &src, &via, &amt) + (uint32_t)src * 977u;
+        uint16_t d = route_dst(i, &src, &via, &amt);   /* (its own line: src is set by the call) */
+        sig = sig * 31u + d + (uint32_t)src * 977u;
     }
-    if (!force && sig == home_macros_sig)
+    if (!force && sig == home_macros_sig && !wv_on() && !home_wv_was)
         return;
+    home_wv_was = wv_on();                    /* (moving with the sound: every frame; once more as it stops) */
     home_macros_sig = sig;
     for (i = 0; i < 4; i++) {                 /* (one canvas each: the canvas holds 9600 pixels) */
         float v = rc_patch.macro[i], amt;
-        int r, nt = 0, src, via, sel = mn.learn && !mn.learn_src && mn.learn_m == i;
+        int r, nt = 0, src = 0, via, sel = mn.learn && !mn.learn_src && mn.learn_m == i;
         uint16_t first = 0;
         for (r = 0; r < 18; r++) {
             uint16_t d = route_dst(r, &src, &via, &amt);
@@ -635,15 +692,16 @@ static void home_macros(int force)            /* (update 39: drawn again only wh
         t[1] = (char)('1' + i);
         t[2] = 0;
         cv_text(15, 1, &FONT_T, t, sel ? K_GOLD : K_DIM);
-        arc(36, 21, 12.0f, 0.0f, 1.0f, K_FAINT, 2);
-        if (v > 0.005f)
-            arc(36, 21, 12.0f, 0.0f, v > 1.0f ? 1.0f : v, nt ? KNOB_C[i] : mix565(KNOB_C[i], K_BG, 120), 3);
-        {
-            float an = 2.3561945f + (v > 1.0f ? 1.0f : v < 0.0f ? 0.0f : v) * 4.712389f;
-            rrect(36 + (int32_t)(11.0f * fm_cosf(an)) - 2, 21 + (int32_t)(11.0f * fm_sinf(an)) - 2, 5, 5, K_FG, 2);
+        {                                     /* (update 50) a slider, as the pages: the value large beside its name */
+            float vv = v > 1.0f ? 1.0f : v < 0.0f ? 0.0f : v;
+            int32_t tx = 3 + (int32_t)(vv * 50.0f);
+            int_text((int32_t)(v * 100.0f + 0.5f), n);
+            cv_text(55 - text_w(&FONT_B, n), 0, &FONT_B, n, nt ? K_FG : K_DIM);
+            rrect(3, 22, 50, 4, K_FAINT, 2);
+            wv_idx = i;
+            if (tx > 3) wv_fill(3, 22, tx - 3, nt ? KNOB_C[i] : mix565(KNOB_C[i], K_BG, 120));
+            rrect(tx - 2, 18, 5, 12, K_FG, 2);
         }
-        int_text((int32_t)(v * 100.0f + 0.5f), n);
-        cv_text(36 - text_w(&FONT_T, n) / 2, 15, &FONT_T, n, K_FG);
         if (nt) {
             dst_name(first, t);
             if (nt > 1) {
@@ -726,21 +784,24 @@ static void draw_toast(void)
     if (plat_ms() >= ui.msg_until)
         return;
     w = text_w(&FONT_XS, ui.msg[0]) + (ui.msg[1][0] ? text_w(&FONT_XS, ui.msg[1]) + 6 : 0) + 34;
-    w = w > 228 ? 228 : w;
-    x = 120 - w / 2;
-    cv_begin((uint32_t)w, 24, K_BG);
-    rrect(0, 0, w, 24, K_FG, 5);
-    icon(IC_HOME, 8, 6, RGB(17, 17, 17));
+    /* (update 50) one band the width of the screen over the help line, as LEARN's: nothing ragged under it */
+    (void)x;
+    if (w > 236) w = 236;
+    cv_begin(240, 17, K_BG);
+    rrect(2, 0, 236, 17, K_FG, 5);
+    icon(IC_HOME, 120 - w / 2 + 8, 3, RGB(17, 17, 17));
     {
-        int32_t e = cv_text(26, 4, &FONT_XS, ui.msg[0], RGB(17, 17, 17));
-        cv_text(e + 6, 4, &FONT_XS, ui.msg[1], RGB(120, 90, 30));
+        int32_t e = cv_text(120 - w / 2 + 26, 1, &FONT_XS, ui.msg[0], RGB(17, 17, 17));
+        cv_text(e + 6, 1, &FONT_XS, ui.msg[1], RGB(120, 90, 30));
     }
-    cv_blit((uint32_t)x, 212);
+    cv_blit(0, 223);
 }
 
 /* the well alone, ~30 times a second between the full redraws: the visualisers move smoothly */
+static int fixed_wv_was;
 static void draw_well_only(void)
 {
+    wv_tick();
     if (sv.open || mn.pick || sp.layer || mn.page == PG_RACK || mn.page == PG_MATRIX)
         return;
     if (mn.page == PG_HOME) {                 /* (update 39: only the tiles move; macros and tabs when they change) */
@@ -753,6 +814,9 @@ static void draw_well_only(void)
         page_well(mn.page);
         if (!is_fixed(mn.page) && !(mn.page == PG_LFO && mn.sub >= UI_LFO.npages) && !is_mod_sub(mn.page))
             param_cells(mn.page);             /* the modulated sliders' halos move with the well */
+        else if (is_fixed(mn.page) && picture_first(mn.page) && (wv_on() || fixed_wv_was))
+            fixed_controls(mn.page);          /* (update 50: the sliders move with the sound) */
+        fixed_wv_was = wv_on();
     }
     draw_toast();                             /* a toast stays on top (HOME's macros and scope drew over it, update 36) */
 }

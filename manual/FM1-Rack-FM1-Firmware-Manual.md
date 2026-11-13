@@ -141,10 +141,13 @@ Every page has the same frame, top to bottom.
     - the octave (**O+1** and so on; green while keys are held);
     - the output meter (red near clipping).
 - **The header**: the page's tag in its colour, the page's name, and a dot for each page within it.
-- **The picture**: a moving picture of what the page does to the sound: the source's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats. It fills the top half of every page that has one. GLOBAL › ANIMATION sets it to full, calm or still.
-- **The gauges**: one per knob along the bottom, each an arc with its value.
+- **The picture**: a moving picture of what the page does to the sound: the source's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats. It fills most of every page that has one (update 50: the sliders below gave it more room). GLOBAL › ANIMATION sets it to full, calm or still.
+- **The sliders** (update 50, replacing the round dials): one per knob along the bottom, each with its knob's number and name, the value in large type, and a slider underneath.
+    - An amount (cutoff, level, time) fills the slider in its knob's colour; a bipolar one (+/-) fills from the middle.
+    - A choice is not an amount: a choice of two (ON/OFF, INT/EXT) is a switch; a short list or a small whole-number range shows a tick for each stop and a block at the one chosen; a list also shows which of how many (**6/24**) beside its name.
+    - **The sliders move with the sound.** While the FM-1 is playing, the filled part of each slider becomes a strip of the actual output: it swings further and gets thicker as the sound gets louder, and flashes towards white on each new hit. Each knob shows the sound at its own zoom (K1 the widest view, K4 the closest), so the four move differently: a held note shimmers, a chord beats, a bass line rolls. The white thumb, your setting, never moves. When the sound stops the sliders go back to plain bars.
 - **The help line**: what the controls do on this page.
-- **Messages** appear for a moment in a light box near the bottom ("SAVED TO U01", "PLAITS 6 V", "CHORDS OFF").
+- **Messages** appear for a moment in a light band across the bottom, over the help line, ("SAVED TO U01", "PLAITS 6 V", "CHORDS OFF").
 
 ### Knob colours
 
@@ -158,13 +161,13 @@ Each knob keeps its colour on every page: **K1 blue, K2 green, K3 white, K4 oran
 
 On HOME the macros take the same colours: M1 blue, M2 green, M3 white, M4 orange.
 
-### Modulation on the gauges
+### Modulation on the sliders
 
 A parameter that something is moving shows it, in the colour of what moves it:
 
-- an outer arc round the gauge shows the range it has swept lately, brighter the faster it moves;
-- a dot on that arc is where it is now, and the small number under the gauge (› 62) is its live value;
-- the inner arc and its white thumb stay where you set it.
+- a glow round the slider shows the range it has swept lately, brighter the faster it moves;
+- the slider's fill and its large thumb are where it is now, and the small number beside the value (› 62) is its live value;
+- a thin line marks where you set it.
 
 On the slider pages the same shows as a halo round the track.
 
@@ -192,7 +195,7 @@ HOME shows the preset's category, name and number (or its user slot), the sound'
     - A switched-off effect shows **OFF** (section 10).
     - A red tile is a module the preset needs that didn't fit in memory.
 - **The modulators** loaded in MOD A and MOD B sit under the path; small arrows pulse up from them as their outputs move.
-- **The macros**: each with its value (0–100), an arc in its knob's colour, and what it moves (the first destination, "+2" if more), or **UNSET**. K1–K4 turn them; so do MIDI CC 20–23.
+- **The macros**: each with its value (0–100), a slider in its knob's colour (moving with the sound, as on the pages), and what it moves (the first destination, "+2" if more), or **UNSET**. K1–K4 turn them; so do MIDI CC 20–23.
 - **The tabs** along the bottom show what's on besides the preset: the scale and chord, the arpeggiator, the STYLE, a tuning. A red tab on the left, **KEYS: FM-1 OFF** (or **ARP: FM-1 OFF**), means the keys or the arpeggio aren't playing the FM-1's sound (SEL › CHORD + ARP › CHD FM-1, or two quick taps on ARP; section 10). (Update 39 took away the waveform that ran along the bottom, and HOME now only redraws the macros and tabs when they change, so it takes less of the processor's time.)
 
 **PRESET** chooses the preset, **ALGORITHM** jumps a category and **SELECT** sets the voices (1–6). Changing preset, or loading a module into a slot, fades the sound out over a few milliseconds and the new one in, so it doesn't click; nothing of the old sound (its echoes, its last few samples) carries into the new one. Knobs glide to their new values over a few milliseconds too, so a level, a cutoff or a chorus turned quickly doesn't click or zipper; a choice from a list (a model, a type) still changes at once. Tap HOME again for **RACK**, a list of every slot, AMP, the outputs and how many matrix routes are set.

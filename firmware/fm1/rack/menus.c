@@ -96,6 +96,7 @@ static int data_pg(int pg) { return pg == PG_SEL && mn.sub >= SEL_OWN ? PG_ARP :
 /* RHYTHM (update 48): SEL's pages 7-8 are ARP's 6-7; K1 the generator shown (GEN), K2-K4 its values (the CHORD's and
  * the ARP's sit on ARP pages 8-11, never shown): the parameter knob k sets there, or -1 */
 #define RHY_PG 6
+static void fixed_controls(int pg);
 static int rhy_pi(int pg, int sub, int k)
 {
     int g = (int)(set.arp[A_RGEN] + 0.5f);
@@ -503,10 +504,10 @@ static void cell(int i, const ui_param_t *p, float v, float live, uint16_t mc, u
 
 /* ---------------------------------------------------------- picture-first pages (12 Nov 2026, after Teenage
  * Engineering's screens: the moving picture explains the module, four colour-linked gauges set it) */
-#define BW_Y 34                               /* the big picture: 88 rows from here, drawn in three bands */
-#define BW_H 88
-#define G4_Y 126                              /* the four gauges: a column each */
-#define G4_H 94
+#define BW_Y 34                               /* the big picture: 136 rows from here, drawn in bands of 30 */
+#define BW_H 136                              /* (update 50: the sliders give the picture 48 rows more) */
+#define G4_Y 176                              /* the four controls: a column each, a slider in each */
+#define G4_H 46
 static int picture_first(int pg)              /* (13 Nov 2026: every page with a picture, but GLOBAL's SYSTEM) */
 {
     if (is_mod_sub(pg))
@@ -569,30 +570,17 @@ static void page_well(int pg)
     else
         well(pg, pg == PG_AMP || pg == PG_LFO || pg == PG_OSC ? 0 : m, c);
 }
-/* a gauge: 270 degrees of arc from bottom left round to bottom right, f of it lit */
-static void arc(int32_t cx, int32_t cy, float r, float f0, float f1, uint16_t col, int thick)
-{
-    int n = (int)((f1 - f0) * 28.0f) + 1, k, t;
-    for (t = 0; t < thick; t++) {
-        float rr = r - (float)t, px = 0, py = 0;
-        for (k = 0; k <= n; k++) {
-            float f = f0 + (f1 - f0) * (float)k / (float)n, a = 2.3561945f + f * 4.712389f;
-            float x = (float)cx + rr * fm_cosf(a), y = (float)cy + rr * fm_sinf(a);
-            if (k)
-                cv_line((int32_t)px, (int32_t)py, (int32_t)x, (int32_t)y, col);
-            px = x;
-            py = y;
-        }
-    }
-}
-/* one of the four gauges: its knob's number in its colour, the name, the arc and the value; a modulated parameter
- * draws the range it has swept lately round the outside in its source's colour, and its live value as a dot there */
+/* one of the four controls (update 50: sliders, not dials, after Josh: a dial spends a square on one number). A
+ * column each, in its knob's colour: the number and name, the value large, and under it the slider. An amount
+ * fills the slider; a choice is not an amount (after Polyend's and Elektron's users): a list of two is a switch,
+ * a short list or whole-number range shows its stops, a long one its place in the count. A modulated parameter
+ * shows the range it has swept lately round the slider in its source's colour, its live value as the thumb */
 static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
 {
     char t[24];
-    int32_t cx = 28, cy = 46, w;
+    int32_t w, sx = 3, sy = 38, sw = 50;
     float f, lf;
-    int key = mn.page << 4 | mn.sub;
+    int key = mn.page << 4 | mn.sub, nst;
     uint16_t kcol = KNOB_C[i];
     if (key != cl_page) {
         int k;
@@ -601,12 +589,12 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
             cl_lo[k] = 2.0f, cl_hi[k] = -2.0f, cl_prev[k] = -1.0f, cl_e[k] = 0.0f;
     }
     cv_begin(57, G4_H, K_BG);
-    rrect(1, 3, 11, 11, p ? kcol : K_FAINT, 5);   /* the knob's dot and number */
+    rrect(1, 1, 11, 11, p ? kcol : K_FAINT, 5);   /* the knob's dot and number */
     t[0] = (char)('1' + i);
     t[1] = 0;
-    cv_text(7 - text_w(&FONT_T, t) / 2, 2, &FONT_T, t, K_BG);
+    cv_text(7 - text_w(&FONT_T, t) / 2, 0, &FONT_T, t, K_BG);
     if (!p) {
-        arc(cx, cy, 18.0f, 0.0f, 1.0f, RGB(24, 24, 22), 1);
+        rrect(sx, sy, sw, 4, RGB(24, 24, 22), 2);
         cv_blit(3u + (uint32_t)i * 59u, G4_Y);
         return;
     }
@@ -616,19 +604,29 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
         while (p->l[k] && k < 15) { l[k] = p->l[k]; k++; }
         l[k] = 0;
         while (text_w(&FONT_T, l) > 42 && k > 1) l[--k] = 0;
-        cv_text(15, 2, &FONT_T, l, K_DIM);
+        cv_text(15, 0, &FONT_T, l, K_DIM);
     }
     f = fm_clampf(frac(p, v), 0.0f, 1.0f);
     lf = fm_clampf(frac(p, live), 0.0f, 1.0f);
-    arc(cx, cy, 18.0f, 0.0f, 1.0f, K_FAINT, 2);   /* the track */
-    if (f > 0.005f)
-        arc(cx, cy, 18.0f, 0.0f, f, kcol, 3);     /* the value, in its knob's colour */
-    {
-        float a = 2.3561945f + f * 4.712389f;
-        int32_t tx = cx + (int32_t)(16.5f * fm_cosf(a)), ty = cy + (int32_t)(16.5f * fm_sinf(a));
-        rrect(tx - 2, ty - 2, 5, 5, K_FG, 2);
+    nst = p->t == UT_LIST || p->t == UT_INT ? p->hi - p->lo + 1 : 0;
+    fmt(p, v, t);                             /* the value, large; too wide: the small face, then cut */
+    if ((w = text_w(&FONT_B, t)) <= 54) {
+        cv_text(2, 14, &FONT_B, t, K_FG);
+    } else {
+        while (text_w(&FONT_T, t) > 54 && t[0] && t[1]) { int k = 0; while (t[k]) k++; t[k - 1] = 0; }
+        w = text_w(&FONT_T, t);
+        cv_text(2, 17, &FONT_T, t, K_FG);
     }
-    if (mc) {
+    w += 2;                                   /* (where the value ends: a note beside it must start after) */
+    if (p->t == UT_LIST && nst == 2) {        /* the switch */
+        int on = f > 0.5f;
+        rrect(sx, sy - 4, 22, 12, on ? kcol : K_FAINT, 6);
+        if (!on) rrect(sx + 1, sy - 3, 20, 10, K_BG, 5);
+        rrect(on ? sx + 12 : sx + 2, sy - 2, 8, 8, on ? K_FG : K_DIM, 4);
+        cv_blit(3u + (uint32_t)i * 59u, G4_Y);
+        return;
+    }
+    if (mc) {                                 /* modulated: the range it sweeps, the live value as the thumb */
         float d;
         if (cl_lo[i] > 1.5f) cl_lo[i] = cl_hi[i] = lf;
         if (lf < cl_lo[i]) cl_lo[i] = lf; else cl_lo[i] += (lf - cl_lo[i]) * 0.01f;
@@ -636,26 +634,49 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
         d = cl_prev[i] < 0.0f ? 0.0f : fm_fabsf(lf - cl_prev[i]) * 25.0f;
         cl_prev[i] = lf;
         cl_e[i] += ((d > 1.0f ? 1.0f : d) - cl_e[i]) * 0.3f;
-        arc(cx, cy, 23.0f, cl_lo[i], cl_hi[i] > cl_lo[i] + 0.01f ? cl_hi[i] : cl_lo[i] + 0.01f,
-            mix565(mc, K_BG, 110u + (uint32_t)(cl_e[i] * 140.0f)), 2);
+        wv_idx = i;
+        slider(sx, sy, sw, f, kcol, mc, cl_lo[i], cl_hi[i], lf, cl_e[i], K_BG);
         {
-            float a = 2.3561945f + lf * 4.712389f;
-            rrect(cx + (int32_t)(23.0f * fm_cosf(a)) - 2, cy + (int32_t)(23.0f * fm_sinf(a)) - 2, 5, 5, mc, 2);
+            char u[24] = "> ";
+            fmt(p, live, u + 2);
+            if (text_w(&FONT_T, u) + w + 3 <= 55)   /* the live value beside it, in the source's colour */
+                cv_text(55 - text_w(&FONT_T, u), 17, &FONT_T, u, mc);
         }
+        cv_blit(3u + (uint32_t)i * 59u, G4_Y);
+        return;
     }
-    fmt(p, v, t);                             /* the value under the arc (a short one in its middle) */
-    w = text_w(&FONT_T, t);
-    if (w <= 26)
-        cv_text(cx - w / 2, cy - 6, &FONT_T, t, K_FG);
-    else {
-        while (text_w(&FONT_T, t) > 55 && t[0] && t[1]) { int k = 0; while (t[k]) k++; t[k - 1] = 0; }
-        cv_text(cx - text_w(&FONT_T, t) / 2, 70, &FONT_T, t, K_FG);
+    rrect(sx, sy, sw, 4, K_FAINT, 2);         /* the track */
+    if (nst >= 3 && nst <= 17) {              /* its stops */
+        int k2;
+        for (k2 = 0; k2 < nst; k2++)
+            cv_rect(sx + (int32_t)((float)k2 / (float)(nst - 1) * (float)(sw - 1)), sy + 6, 1, 2, K_DIM);
     }
-    if (mc) {
-        char u[24] = "> ";
-        fmt(p, live, u + 2);
-        while (text_w(&FONT_T, u) > 55 && u[2] && u[3]) { int k = 0; while (u[k]) k++; u[k - 1] = 0; }
-        cv_text(cx - text_w(&FONT_T, u) / 2, 81, &FONT_T, u, mc);
+    {
+        int32_t tx = sx + (int32_t)(f * (float)sw);
+        if (p->t != UT_LIST) {                /* an amount fills; a bipolar one from the middle */
+            if (p->t == UT_BIP) {
+                int32_t m0 = sx + sw / 2;
+                wv_idx = i;
+                if (tx > m0) wv_fill(m0, sy, tx - m0, kcol);
+                else if (tx < m0) wv_fill(tx, sy, m0 - tx, kcol);
+                cv_rect(m0, sy - 2, 1, 8, K_DIM);
+            } else if (tx > sx) {
+                wv_idx = i;
+                wv_fill(sx, sy, tx - sx, kcol);
+            }
+        } else {
+            rrect(tx - 4, sy - 3, 9, 10, kcol, 3);   /* the choice: a block at its place */
+        }
+        rrect(tx - 2, sy - 4, 5, 12, K_FG, 2);
+    }
+    if (p->t == UT_LIST && nst > 2) {         /* which of how many */
+        char u[12], u2[6];
+        int_text((int32_t)(v + 0.5f) - p->lo + 1, u);
+        cat(u, "/");
+        int_text(nst, u2);
+        cat(u, u2);
+        if (text_w(&FONT_T, u) + w + 3 <= 55)
+            cv_text(55 - text_w(&FONT_T, u), 17, &FONT_T, u, K_DIM);
     }
     cv_blit(3u + (uint32_t)i * 59u, G4_Y);
 }
@@ -869,10 +890,9 @@ static void draw_mod_page(int pg)
 static void draw_param_page(int pg)
 {
     const ui_mod_t *m = page_mod(pg);
-    int slot = page_slot(pg), i, off;
+    int slot = page_slot(pg), i;
     uint16_t c = page_colour(pg);
     char title[24];
-    float *fv = page_vals(pg);
     if (!m) {                                 /* an empty slot */
         header(SLOT_TAG[slot], c, "EMPTY", IC_EMPTY, 1, 0);
         well(pg, 0, c);
@@ -889,24 +909,14 @@ static void draw_param_page(int pg)
         static const char *const ST[] = {"SCALE + CHORD", "KEYS + STRUM", "STYLE", "LAYER MIDI CH", "CHORD + ARP", "FEEL",
                                          "RHYTHM", "RHYTHM CHANCE"},
                           *const AT[] = {"ARPEGGIATOR", "HOLD + TURING"};
-        m = page_mod(data_pg(pg));
-        fv = page_vals(data_pg(pg));
         int ic = pg == PG_GLO ? (mn.sub == 3 ? IC_MIDI : mn.sub == 4 ? IC_OUT : IC_GLOBAL) : pg == PG_SEL ? (mn.sub ? IC_SCALE : IC_CHORD) : IC_ARP;
         header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 7] : pg == PG_SEL ? ST[mn.sub % 8] : AT[mn.sub & 1],
                ic, npages(pg), mn.sub);
         page_well(pg);
-        off = page_first(m, mn.sub);
         if (pg == PG_GLO && mn.sub == 5)
             system_cells(c);
         else
-            for (i = 0; i < 4; i++) {
-                int ri = rhy_pi(pg, mn.sub, i), pi = ri == -2 ? off + i : ri;
-                const ui_param_t *p = ri == -2 ? (i < m->pages[mn.sub] ? &m->p[off + i] : 0) : ri >= 0 ? &m->p[ri] : 0;
-                if (picture_first(pg))
-                    gauge(i, p, p ? fv[pi] : 0.0f, p ? fv[pi] : 0.0f, 0);
-                else
-                    cell(i, p, p ? fv[pi] : 0.0f, 0.0f, 0, c);
-            }
+            fixed_controls(pg);
         help(pg == PG_GLO && mn.sub == 5 ? "SELECT: PAGE   (MEASURED LIVE)" : rhy_pi(pg, mn.sub, 0) >= 0 ? "K1: GENERATOR   K2-K4: ITS VALUES" : pg == PG_ARP ? "SELECT: PAGE   K1-K4: VALUES"
              : "SELECT: PAGE   K1-K4: VALUES");
         return;
@@ -943,6 +953,26 @@ static void draw_param_page(int pg)
     param_cells(pg);
     help(pg == PG_OSC ? "SELECT: PAGE   K1-K4: VALUES   EDIT: SOURCE" : pg == PG_AMP || pg == PG_LFO ? "SELECT: PAGE   K1-K4: VALUES"
          : "SELECT: PAGE   K1-K4: VALUES   ALGO: MODULE");
+}
+
+/* a fixed page's four controls (GLOBAL, SEL, ARP: their values in set.*), also each frame while the sound moves */
+static void fixed_controls(int pg)
+{
+    const ui_mod_t *m = page_mod(data_pg(pg));
+    float *fv = page_vals(data_pg(pg));
+    int i, off;
+    uint16_t c = page_colour(pg);
+    if (!m || mn.sub >= npages(pg) || (pg == PG_GLO && mn.sub == 5))
+        return;
+    off = page_first(m, mn.sub);
+    for (i = 0; i < 4; i++) {
+        int ri = rhy_pi(pg, mn.sub, i), pi = ri == -2 ? off + i : ri;
+        const ui_param_t *p = ri == -2 ? (i < m->pages[mn.sub] ? &m->p[off + i] : 0) : ri >= 0 ? &m->p[ri] : 0;
+        if (picture_first(pg))
+            gauge(i, p, p ? fv[pi] : 0.0f, p ? fv[pi] : 0.0f, 0);
+        else
+            cell(i, p, p ? fv[pi] : 0.0f, 0.0f, 0, c);
+    }
 }
 
 static void draw_picker(void)
