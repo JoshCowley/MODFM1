@@ -97,7 +97,7 @@ Each page button opens its first page. **Tap it again to turn through that page'
 | **FX** | FX 1 | FX 2 | **Hold, let go, then one tap: FX 1 off or on; two taps: FX 2** (section 10) |
 | **ARP** | the arpeggiator | HOLD + TURING | **Two taps: the arpeggio on the FM-1 off or on. Three taps: its send off or on** (section 10) |
 | **SEL** | scale and chord | (SELECT turns its pages: KEYS + STRUM, then the MIDI controller pages STYLE, LAYER MIDI CH, CHORD + ARP, then FEEL, RHYTHM and RHYTHM CHANCE) | **Two taps: chords off (the keys play single notes) or back on. Three taps: the chords' send off or on** (section 10). **Hold SEL and EDIT together (half a second): LEARN on or off** (section 8) |
-| **GLO** | GLOBAL settings | | |
+| **GLO** | GLOBAL settings | its next page | **Hold: DISPLAY, NORMAL or DAYLIGHT** (for the sun) |
 | **SAVE** | the SAVE page | SAVE again stores the preset | On a sequencer page: stores the sequencer |
 | **SEQ** | the sequencer, at the page you last used | the next sequencer page | **Hold: the step layer** (section 11) |
 | **PLAY** | start or stop the sequencer | | |
@@ -142,7 +142,7 @@ Every page has the same frame, top to bottom.
     - the output meter (red near clipping).
 - **The header**: the page's icon in its section's colour, the page's name, and a dot for each page within it.
 
-**The look** (update 53, chosen by A/B): near-black with greys of a slight warmth; the pictures sit straight on the page, with no boxes or edges (update 54), and each section draws in a quiet colour of its own (the source ochre, the shaper teal, modulation violet, FX steel blue, AMP terracotta); the four knobs in dusty colours; thin lines with a faint glow. The type is IBM Plex Sans Condensed (SIL Open Font License) at its lighter weights. The header is the page's icon and name, with no tag.
+**The look** (update 53, chosen by A/B): true black (update 55: more contrast between the background and the graphics, brighter labels and colours) with greys of a slight warmth; the pictures sit straight on the page, with no boxes or edges (update 54), and each section draws in a quiet colour of its own (the source ochre, the shaper teal, modulation violet, FX steel blue, AMP terracotta); the four knobs in dusty colours; thin lines with a faint glow. The type is IBM Plex Sans Condensed (SIL Open Font License) at its lighter weights. The header is the page's icon and name, with no tag.
 - **The picture**: a moving picture of what the page does to the sound: the source's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats. It fills most of every page that has one (update 50: the sliders below gave it more room). GLOBAL › ANIMATION sets it to full, calm or still.
 - **The sliders** (update 50, replacing the round dials): one per knob along the bottom, each with its knob's number and name, the value in large type, and a slider underneath.
     - Each value is a dot on a hairline in its knob's colour; an amount (cutoff, level, time) draws the line up to the dot a little brighter, a bipolar one (+/-) from the middle.
@@ -546,6 +546,9 @@ GLO opens seven pages:
     - **COUNT IN**: OFF, 1 BAR (to start with) or 2 BARS;
     - **CLICK VOL**: its level (MASTER turns it down too);
     - **SOUND**: TICK, BEEP or WOOD. The first beat of each bar is higher.
+8. **DISPLAY** (update 55): **NORMAL** (the quiet look) or **DAYLIGHT**, for a screen read in the sun: true black, white words, the knobs' and sections' colours at full strength, nothing see-through, lines two pixels thick, solid slider bars and bold values. **Hold GLO** on any page to switch between them; the choice is kept.
+
+    ![DAYLIGHT on the source page](../web/manual/img/fm1-daylight.png)
 
 ![GLOBAL](../web/manual/img/fm1-glo.png)
 

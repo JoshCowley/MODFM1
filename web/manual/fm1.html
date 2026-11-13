@@ -150,8 +150,8 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <tr class="even">
 <td><strong>GLO</strong></td>
 <td>GLOBAL settings</td>
-<td></td>
-<td></td>
+<td>its next page</td>
+<td><strong>Hold: DISPLAY, NORMAL or DAYLIGHT</strong> (for the sun)</td>
 </tr>
 <tr class="odd">
 <td><strong>SAVE</strong></td>
@@ -256,7 +256,7 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </ul></li>
 <li><strong>The header</strong>: the page's icon in its section's colour, the page's name, and a dot for each page within it.</li>
 </ul>
-<p><strong>The look</strong> (update 53, chosen by A/B): near-black with greys of a slight warmth; the pictures sit straight on the page, with no boxes or edges (update 54), and each section draws in a quiet colour of its own (the source ochre, the shaper teal, modulation violet, FX steel blue, AMP terracotta); the four knobs in dusty colours; thin lines with a faint glow. The type is IBM Plex Sans Condensed (SIL Open Font License) at its lighter weights. The header is the page's icon and name, with no tag.</p>
+<p><strong>The look</strong> (update 53, chosen by A/B): true black (update 55: more contrast between the background and the graphics, brighter labels and colours) with greys of a slight warmth; the pictures sit straight on the page, with no boxes or edges (update 54), and each section draws in a quiet colour of its own (the source ochre, the shaper teal, modulation violet, FX steel blue, AMP terracotta); the four knobs in dusty colours; thin lines with a faint glow. The type is IBM Plex Sans Condensed (SIL Open Font License) at its lighter weights. The header is the page's icon and name, with no tag.</p>
 <ul>
 <li><strong>The picture</strong>: a moving picture of what the page does to the sound: the source's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats. It fills most of every page that has one (update 50: the sliders below gave it more room). GLOBAL › ANIMATION sets it to full, calm or still.</li>
 <li><strong>The sliders</strong> (update 50, replacing the round dials): one per knob along the bottom, each with its knob's number and name, the value in large type, and a slider underneath.
@@ -788,19 +788,21 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <h3 id="global">GLOBAL</h3>
 <p>GLO opens seven pages:</p>
 <ol type="1">
-<li><strong>SETTINGS</strong>: TEMPO (60–180), MIDI CH (OMNI or 1–16), VOICES (AUTO or 1–6), CLOCK (internal or MIDI)</li>
-<li><strong>PLAYING</strong>: VEL CURVE, ANIMATION (full, calm, still), LED BRIGHT</li>
-<li><strong>TUNING</strong>: TUNING (13: equal, just, Pythagorean, meantone, Werckmeister III, Kirnberger III, rast, bayati, slendro, pelog, 19-, 24- and 31-EDO), T ROOT, A4 HZ, BEND (the pitch-bend range)</li>
-<li><strong>MIDI</strong>: PROG CHG, MIDI OUT, OUT CH, LOCAL</li>
-<li><strong>MASTER</strong>: LOW, MID and HIGH EQ and COMP, over every preset</li>
-<li><strong>SYSTEM</strong>: measured, not set: CPU history, memory, voices, cores</li>
-<li><strong>CLICK</strong>: the click track (section 11):
+<li><p><strong>SETTINGS</strong>: TEMPO (60–180), MIDI CH (OMNI or 1–16), VOICES (AUTO or 1–6), CLOCK (internal or MIDI)</p></li>
+<li><p><strong>PLAYING</strong>: VEL CURVE, ANIMATION (full, calm, still), LED BRIGHT</p></li>
+<li><p><strong>TUNING</strong>: TUNING (13: equal, just, Pythagorean, meantone, Werckmeister III, Kirnberger III, rast, bayati, slendro, pelog, 19-, 24- and 31-EDO), T ROOT, A4 HZ, BEND (the pitch-bend range)</p></li>
+<li><p><strong>MIDI</strong>: PROG CHG, MIDI OUT, OUT CH, LOCAL</p></li>
+<li><p><strong>MASTER</strong>: LOW, MID and HIGH EQ and COMP, over every preset</p></li>
+<li><p><strong>SYSTEM</strong>: measured, not set: CPU history, memory, voices, cores</p></li>
+<li><p><strong>CLICK</strong>: the click track (section 11):</p>
 <ul>
 <li><strong>CLICK</strong>: OFF, REC (a click on every beat while recording; to start with) or REC+PLAY (whenever the sequencer runs);</li>
 <li><strong>COUNT IN</strong>: OFF, 1 BAR (to start with) or 2 BARS;</li>
 <li><strong>CLICK VOL</strong>: its level (MASTER turns it down too);</li>
 <li><strong>SOUND</strong>: TICK, BEEP or WOOD. The first beat of each bar is higher.</li>
 </ul></li>
+<li><p><strong>DISPLAY</strong> (update 55): <strong>NORMAL</strong> (the quiet look) or <strong>DAYLIGHT</strong>, for a screen read in the sun: true black, white words, the knobs' and sections' colours at full strength, nothing see-through, lines two pixels thick, solid slider bars and bold values. <strong>Hold GLO</strong> on any page to switch between them; the choice is kept.</p>
+<p><img src="img/fm1-daylight.png" alt="DAYLIGHT on the source page" /></p></li>
 </ol>
 <p><img src="img/fm1-glo.png" alt="GLOBAL" /></p>
 <h3 id="midi">MIDI</h3>

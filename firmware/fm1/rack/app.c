@@ -15,7 +15,8 @@
 #define RC_IN_UNITY
 #include "rack_core.c"
 
-#define SET_MAGIC 0x524B4C38u                 /* "RKL8": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC 0x524B4C39u                 /* "RKL9": the settings record; "RKL1" (stage 2) keeps its first three */
+#define SET_MAGIC8 0x524B4C38u                /* "RKL8" (updates 48-54): GLOBAL 23 values (no DISPLAY) */
 #define SET_MAGIC7 0x524B4C37u                /* "RKL7" (updates 43-47): ARP 21 values (no RHYTHM) */
 #define SET_MAGIC6 0x524B4C36u                /* "RKL6" (updates 40-42): ARP 20 values (no HUMAN) */
 #define SET_MAGIC5 0x524B4C35u                /* "RKL5" (updates 38-39): GLOBAL 19 values (no CLICK) */
@@ -29,9 +30,20 @@ typedef struct {
     int8_t octave;
     uint8_t voices;                           /* 0: the preset's own (GLOBAL > VOICES AUTO) */
     uint8_t rsv;
-    float glo[23], sel[8], arp[40];           /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*); GLOBAL 19-22: CLICK */
+    float glo[24], sel[8], arp[40];           /* the GLOBAL, SEL and ARP pages (play.c G_*, C_*, A_*); GLOBAL 19-22: CLICK,
+                                                 23: DISPLAY (update 55) */
 } settings_t;
 static settings_t set;
+/* RKL8's record (updates 48-54), one GLOBAL value fewer: the older records are brought up to it as before, in it,
+ * then into the new one (app_init) */
+typedef struct {
+    uint32_t magic;
+    uint8_t preset;
+    int8_t octave;
+    uint8_t voices;
+    uint8_t rsv;
+    float glo[23], sel[8], arp[40];
+} settings8_t;
 /* a moment as a button's "went down at" (0 means "not down"): now, or 1 at the clock's very start. Until update 38 it
  * was plat_ms() | 1, a millisecond in the future half the time: a hold test in the same frame then saw ~49 days held,
  * took the tap for a hold, and the tap did nothing (EDIT, SEL, ARP, SEQ, HOME, FX: "needs several tries") */
@@ -402,6 +414,10 @@ static void sl_dot(int32_t tx, int32_t y, uint16_t c)
     static const uint8_t ZOOM[4] = {8, 5, 3, 2};
     int32_t dy = 0;
     uint16_t col = wv_col(c);
+    if (pal_day) {                            /* DAYLIGHT: a bigger, solid dot, still */
+        rrect(tx - 4, y - 3, 9, 9, c, 4);
+        return;
+    }
     if (wv_on()) {
         float g = wv_lvl * 6.0f, v;
         g = g > 1.0f ? 1.0f : g;
@@ -427,6 +443,11 @@ static void sl_line(int32_t x, int32_t y, int32_t w, float f, uint16_t c)
     rrect(x, y, w, 4, K_FAINT, 2);
     if (tx > x + 1) rrect(x, y, tx - x, 4, wv_col(c), 2);
 #elif FM1_SLIDER == 4
+    if (pal_day) {                            /* DAYLIGHT: a solid bar, no thumb to look for */
+        rrect(x, y - 1, w, 5, K_FAINT, 2);
+        if (tx > x + 1) rrect(x, y - 1, tx - x, 5, c, 2);
+        return;
+    }
     cv_rect(x, y + 1, w, 1, K_FAINT);
     if (tx > x) cv_rect(x, y + 1, tx - x, 1, mix565(wv_col(c), K_BG, 140));
     sl_dot(tx, y, c);
@@ -449,8 +470,8 @@ static void slider(int32_t x, int32_t y, int32_t w, float f, uint16_t c, uint16_
             rrect(a - 2, y - 2, b - a + 4, 8, mix565(mc, bg, k / 3u), 3);
         tx = x + (int32_t)(live * (float)w);
 #if FM1_SLIDER == 4                           /* the hairline style: the range, a tick where it's set, the live dot */
-        cv_rect(x, y + 1, w, 1, K_FAINT);
-        cv_rect(x + (int32_t)(f * (float)w), y - 1, 1, 5, mix565(c, bg, 200));
+        cv_rect(x, y + (pal_day ? 0 : 1), w, pal_day ? 3 : 1, K_FAINT);
+        cv_rect(x + (int32_t)(f * (float)w), y - 1, pal_day ? 2 : 1, 5, pal_day ? c : mix565(c, bg, 200));
         sl_dot(tx, y, mc);
 #else
         cv_rect(x, y + 1, w, 2, K_FAINT);
@@ -660,7 +681,7 @@ static void home_tiles(void)
 {
     static const int16_t PX[4] = {6, 88, 170, 170}, PY[4] = {34, 34, 34, 92}, MX[2] = {6, 88};
     static const uint8_t PATH[4] = {RS_SRC, RS_SHP, RS_FX1, RS_FX2}, MODS[2] = {RS_MODA, RS_MODB};
-    static const uint16_t PC[4] = {K_SRC, K_SHP, K_FX, K_FX};
+    const uint16_t PC[4] = {K_SRC, K_SHP, K_FX, K_FX};   /* (the palette is set at run time, update 55) */
     const float *mon = rk_monitor(RS_AMP);
     float lev = home_level(), t = vis_t();
     int np = 0, nm = 0, i;
@@ -736,6 +757,7 @@ static void home_macros(int force)            /* (update 39: drawn again only wh
             int32_t tx = 3 + (int32_t)(vv * 50.0f);
             int_text((int32_t)(v * 100.0f + 0.5f), n);
             cv_text(55 - text_w(&FONT_B, n), 0, &FONT_B, n, nt ? K_FG : K_DIM);
+            if (pal_day) cv_text(56 - text_w(&FONT_B, n), 0, &FONT_B, n, nt ? K_FG : K_DIM);   /* (DAYLIGHT: bold) */
             wv_idx = i;
             sl_line(3, 22, 50, vv, nt ? KNOB_C[i] : mix565(KNOB_C[i], K_BG, 120));
             (void)tx;
@@ -789,6 +811,7 @@ static void draw_home(void)
 #endif
     }
     cv_text(28 + x, 3, &FONT_B, name, pending ? K_DIM : K_FG);
+    if (pal_day) cv_text(29 + x, 3, &FONT_B, name, pending ? K_DIM : K_FG);
     if (pending) {
         cv_text(234 - text_w(&FONT_T, "LOADING"), 5, &FONT_T, "LOADING", K_GOLD);
     } else if (ui.shown < NPRESETS) {
@@ -1139,6 +1162,15 @@ void app_init(void)
     if (plat_cpu2_set(1) == 0)                /* the second core (now: the one time it may start) renders half the voices */
         rk_set_worker(plat_cpu2_run, plat_cpu2_wait);
     n = plat_store_load(OBJ_SETTINGS, &set, sizeof set);
+    if (!(n == (int)sizeof set && set.magic == SET_MAGIC)) {   /* an older record: up to RKL8 in its own layout */
+    static settings8_t old;
+    const int NG8 = 23;
+    memset(&old, 0, sizeof old);
+    memcpy(&old, &set, (uint32_t)(n < (int)sizeof old ? (n > 0 ? n : 0) : (int)sizeof old));
+#pragma push_macro("SET_MAGIC")
+#undef SET_MAGIC
+#define SET_MAGIC SET_MAGIC8
+#define set old                               /* (the steps below were written for RKL8's layout) */
     {   /* (the older records: RKL7 19 ARP values fewer than now (RHYTHM), RKL6 one fewer again) */
     const int SZ7 = (int)sizeof set - (int)(19u * sizeof(float)), SZ6 = SZ7 - (int)sizeof(float);
     if ((set.magic == SET_MAGIC2 || set.magic == SET_MAGIC3 || set.magic == SET_MAGIC4 || set.magic == SET_MAGIC5) &&
@@ -1147,8 +1179,8 @@ void app_init(void)
         float *f = set.glo;
         int tail = (n - (int)((char *)&set.glo[19] - (char *)&set)) / (int)sizeof(float);
         for (i = tail - 1; i >= 0; i--)
-            f[NG + i] = f[19 + i];
-        for (i = 19; i < NG; i++)
+            f[NG8 + i] = f[19 + i];
+        for (i = 19; i < NG8; i++)
             f[i] = UP_GLO[i].def;
         n += (int)(4u * sizeof(float));
     }
@@ -1186,6 +1218,23 @@ void app_init(void)
         n = (int)sizeof set;
     }
     }
+#undef set
+#pragma pop_macro("SET_MAGIC")
+    if (n == (int)sizeof old && old.magic == SET_MAGIC8) {   /* RKL8: DISPLAY at its default (NORMAL) */
+        set.magic = SET_MAGIC;
+        set.preset = old.preset;
+        set.octave = old.octave;
+        set.voices = old.voices;
+        set.rsv = old.rsv;
+        memcpy(set.glo, old.glo, sizeof old.glo);
+        set.glo[G_DISP] = UP_GLO[G_DISP].def;
+        memcpy(set.sel, old.sel, sizeof set.sel);
+        memcpy(set.arp, old.arp, sizeof set.arp);
+        n = (int)sizeof set;
+    } else {
+        set.magic = old.magic;                /* (stage 2's record: its first three kept, below) */
+    }
+    }
     if (n != (int)sizeof set || set.magic != SET_MAGIC) {
         int ok1 = n >= 8 && set.magic == SET_MAGIC1;   /* stage 2's record: its preset, octave and voices stay */
         uint8_t p = set.preset, v = set.voices;
@@ -1213,6 +1262,7 @@ void app_init(void)
     users_load();
     if (set.preset >= NPRESETS && !us.used[set.preset - NPRESETS])
         set.preset = 0;
+    pal_set(GI(G_DISP));                      /* the palette (update 55: NORMAL or DAYLIGHT) */
     load_entry(set.preset);
     vz.t0 = vz.at_ms = plat_ms();
 }

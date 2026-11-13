@@ -46,7 +46,7 @@ static int32_t vmy(int32_t y) { return vm_on ? vm_oy + (int32_t)((float)y * vm_s
 /* The fine look (update 37; update 51, after Josh: "the lines are too bold"): the pictures' bars about half as thick,
  * every shape and line laid over what is under it at about three quarters, with a faint 1 px halo (a tenth) around it. Words, and boxes with words in them
  * (vf_keep: the layer boxes, HOME's tabs, the SEL keyboards), keep their size. */
-#define VF_FILL 196u                          /* a shape over what's under it (of 256) */
+#define VF_FILL (pal_day ? 255u : 196u)                         /* a shape over what's under it (of 256) */
 #ifndef VF_LINE
 #define VF_LINE 218u
 #endif                          /* a line */
@@ -112,6 +112,12 @@ static void vm_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c)
         return;
     }
     int32_t a = vmx(x0), b = vmy(y0), d = vmx(x1), e = vmy(y1), ax = d > a ? d - a : a - d, ay = e > b ? e - b : b - e;
+    if (pal_day) {                            /* DAYLIGHT (update 55): two pixels, solid, no halo */
+        vf_line(a, b, d, e, c, 255u);
+        if (ax >= ay) vf_line(a, b + 1, d, e + 1, c, 255u);
+        else vf_line(a + 1, b, d + 1, e, c, 255u);
+        return;
+    }
     if (ax >= ay) {                           /* mostly across: the halo above and below; else either side */
         vf_line(a, b - 1, d, e - 1, VF_HALO_C(c), VF_HALO);
         vf_line(a, b + 1, d, e + 1, VF_HALO_C(c), VF_HALO);
@@ -264,7 +270,7 @@ static void vis_braids(const float *mon, uint16_t c)
     float tim = P(mon, 1), col = P(mon, 2), drift = P(mon, 3), e = env_max(mon), amp = 0.25f + 0.75f * e, t = vis_t();
     int bits = BITS[bi < 0 ? 0 : bi > 6 ? 6 : bi], step = STEP[ri < 0 ? 0 : ri > 5 ? 5 : ri];
     float levels = (float)(1 << (bits < 6 ? bits : 6));
-    static const uint16_t TINT[3] = {0, KN3, KN4};
+    const uint16_t TINT[3] = {0, KN3, KN4};
     int16_t ys[115];
     char lab[24];
     for (s = 2; s >= 0; s--) {

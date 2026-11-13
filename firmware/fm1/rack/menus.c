@@ -54,6 +54,8 @@ static struct {
     float chord_mem;                          /* the chord type two taps on SEL turned off (what they turn back on) */
     uint32_t fx_at, fx_arm, fx_tap;           /* FX down (held: FX on/off armed), armed since, first tap of two */
     int fx_long;
+    uint32_t glo_at;                          /* GLO down (held: DAYLIGHT on or off, update 55) */
+    int glo_long;
     int mtab, hrow[4];                        /* the matrix hub's table (ALGORITHM): ROUTES ENV EDIT OSC; each one's row */                       /* LEARN on; the macro it links (0-3: M1-M4) */
     uint32_t home_at;                         /* HOME went down (a hold starts LEARN), 0 up */
     int home_long;
@@ -119,7 +121,7 @@ static const ui_mod_t *page_mod(int pg)
 }
 static uint16_t slot_colour(int slot)
 {
-    static const uint16_t C[] = {K_SRC, K_SHP, K_MOD, K_MOD, K_FX, K_FX, K_AMP, K_FG, K_LFO};
+    const uint16_t C[] = {K_SRC, K_SHP, K_MOD, K_MOD, K_FX, K_FX, K_AMP, K_FG, K_LFO};
     return slot >= 0 && slot < 9 ? C[slot] : K_FG;
 }
 static const char *const SLOT_TAG[] = {"SRC", "SHP", "MOD A", "MOD B", "FX 1", "FX 2", "AMP", "GLO", "LFO"};
@@ -145,7 +147,7 @@ static int has_mod_page(int pg) { return pg == PG_AMP || pg == PG_OSC || (pg >= 
 /* the knobs' colours (12 Nov 2026, after Teenage Engineering's colour-linked encoders): K1 blue, K2 green, K3 white,
  * K4 orange, on a page's gauges and on the part of its picture each one moves, so the knob and what it changes on the
  * screen read as one */
-static const uint16_t KNOB_C[4] = {KN1, KN2, KN3, KN4};   /* (update 51: theme.h) */
+#define KNOB_C (fm1_pal + P_KN1)                  /* K1-K4's colours (theme.h; update 55: the palette in use) */
 static int vk_on, vk_first, vk_n;             /* the picture being drawn: its parameters vk_first.. on K1.. */
 static uint16_t kc(int pi, uint16_t c)        /* parameter pi's knob's colour when it is on the page, else c */
 {
@@ -379,6 +381,7 @@ static void header(const char *tag, uint16_t c, const char *title, int ic, int p
     w = -4;                                   /* no tag: the icon, then the name */
 #endif
     cv_text_acc(28 + w, 3, &FONT_B, title, K_FG);
+    if (pal_day) cv_text_acc(29 + w, 3, &FONT_B, title, K_FG);
     for (i = 0; i < pages && pages > 1; i++) {
         int32_t x = 232 - (pages - 1 - i) * 9, r = i == sub ? 3 : 2;
         rrect(x - r, 11 - r, 2 * r + 1, 2 * r + 1, i == sub ? K_FG : K_DIM, r);
@@ -630,6 +633,7 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
     fmt(p, v, t);                             /* the value, large; too wide: the small face, then cut */
     if ((w = text_w(&FONT_B, t)) <= 54) {
         cv_text(2, 14, &FONT_B, t, K_FG);
+        if (pal_day) cv_text(3, 14, &FONT_B, t, K_FG);   /* (DAYLIGHT: bold) */
     } else {
         while (text_w(&FONT_T, t) > 54 && t[0] && t[1]) { int k = 0; while (t[k]) k++; t[k - 1] = 0; }
         w = text_w(&FONT_T, t);
@@ -670,7 +674,7 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
         return;
     }
 #if FM1_SLIDER == 4
-    cv_rect(sx, sy + 1, sw, 1, K_FAINT);      /* the hairline style (update 53): a hairline, its stops, a dot */
+    cv_rect(sx, sy + (pal_day ? 0 : 1), sw, pal_day ? 3 : 1, K_FAINT);   /* the hairline style (update 53): a hairline, its stops, a dot (DAYLIGHT: 3 px) */
 #else
     rrect(sx, sy + 1, sw, 2, K_FAINT, 1);     /* the track (update 51: 2 px, not 4) */
 #endif
@@ -686,11 +690,12 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
         if (p->t == UT_BIP) {                 /* bipolar: a hairline from the middle, its centre marked */
             int32_t m0 = sx + sw / 2;
             uint16_t hc = mix565(kcol, K_BG, 150);
-            if (tx > m0) cv_rect(m0, sy + 1, tx - m0, 1, hc);
-            else if (tx < m0) cv_rect(tx, sy + 1, m0 - tx, 1, hc);
+            if (pal_day) hc = kcol;
+            if (tx > m0) cv_rect(m0, sy + (pal_day ? 0 : 1), tx - m0, pal_day ? 3 : 1, hc);
+            else if (tx < m0) cv_rect(tx, sy + (pal_day ? 0 : 1), m0 - tx, pal_day ? 3 : 1, hc);
             cv_rect(m0, sy - 1, 1, 5, K_DIM);
         } else if (p->t != UT_LIST && tx > sx) {
-            cv_rect(sx, sy + 1, tx - sx, 1, mix565(kcol, K_BG, 150));
+            cv_rect(sx, sy + (pal_day ? 0 : 1), tx - sx, pal_day ? 3 : 1, pal_day ? kcol : mix565(kcol, K_BG, 150));
         }
         sl_dot(tx, sy, kcol);
     }
@@ -950,12 +955,12 @@ static void draw_param_page(int pg)
         mn.sub = npages(pg) - 1;
     title[0] = 0;
     if (is_fixed(pg)) {
-        static const char *const GT[] = {"SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM", "CLICK"};
+        static const char *const GT[] = {"SETTINGS", "PLAYING", "TUNING", "MIDI", "MASTER", "SYSTEM", "CLICK", "DISPLAY"};
         static const char *const ST[] = {"SCALE + CHORD", "KEYS + STRUM", "STYLE", "LAYER MIDI CH", "CHORD + ARP", "FEEL",
                                          "RHYTHM", "RHYTHM CHANCE"},
                           *const AT[] = {"ARPEGGIATOR", "HOLD + TURING"};
         int ic = pg == PG_GLO ? (mn.sub == 3 ? IC_MIDI : mn.sub == 4 ? IC_OUT : IC_GLOBAL) : pg == PG_SEL ? (mn.sub ? IC_SCALE : IC_CHORD) : IC_ARP;
-        header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 7] : pg == PG_SEL ? ST[mn.sub % 8] : AT[mn.sub & 1],
+        header(pg == PG_GLO ? "GLO" : pg == PG_SEL ? "SEL" : "ARP", c, pg == PG_GLO ? GT[mn.sub % 8] : pg == PG_SEL ? ST[mn.sub % 8] : AT[mn.sub & 1],
                ic, npages(pg), mn.sub);
         page_well(pg);
         if (pg == PG_GLO && mn.sub == 5)
@@ -1334,10 +1339,21 @@ static void edited(void)
 }
 
 /* a setting on SEL, GLO or ARP changed: what follows from it, then saved when the knobs rest */
+/* DAYLIGHT on or off (update 55): the palette, then the whole screen drawn again */
+static void display_set(int day)
+{
+    set.glo[G_DISP] = day ? 1.0f : 0.0f;
+    pal_set(day);
+    ui.clear = 1;
+    ui.redraw = 1;
+    settings_touch();
+}
 static void fixed_changed(int pg, int pi, float old, float v)
 {
     if (pg == PG_GLO) {
-        if (pi == G_TEMPO) {
+        if (pi == G_DISP) {
+            display_set(v > 0.5f);
+        } else if (pi == G_TEMPO) {
             rk_set_param(RS_GLO, 0, v);
             edited();                         /* a delay synced to the tempo may need a longer buffer */
         } else if (pi == G_VOICES) {
@@ -1778,7 +1794,21 @@ static int menu_input(uint32_t press, uint32_t btn)
             else fixed_toggle(PG_SEL, C_TYPE, &mn.chord_mem, "CHORDS");
         }
     }
-    if (press >> B_GLO & 1u) page_button(GLO_CYC, 1);
+    /* GLO (update 55): a tap turns the page when let go; held, DAYLIGHT on or off */
+    if (press >> B_GLO & 1u) {
+        mn.glo_at = ms_stamp();
+        mn.glo_long = 0;
+    }
+    if (mn.glo_at && (btn >> B_GLO & 1u) && !mn.glo_long && plat_ms() - mn.glo_at >= HOLD_MS) {
+        mn.glo_long = 1;
+        display_set(!pal_day);
+        app_say("DISPLAY", pal_day ? "DAYLIGHT" : "NORMAL");
+    }
+    if (mn.glo_at && !(btn >> B_GLO & 1u)) {
+        if (!mn.glo_long)
+            page_button(GLO_CYC, 1);
+        mn.glo_at = 0;
+    }
     if (press >> B_HOME & 1u) {               /* HOME: a tap on letting go (LEARN is EDIT's double tap now) */
         mn.home_at = ms_stamp();
         mn.home_long = 0;

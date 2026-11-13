@@ -113,7 +113,9 @@ def main():
                   {"l": "COUNT IN", "t": "list", "opts": ["OFF", "1 BAR", "2 BARS"], "def": 1, "mod": False},
                   {"l": "CLICK VOL", "t": "num", "def": 0.5, "mod": False},
                   {"l": "SOUND", "t": "list", "opts": ["TICK", "BEEP", "WOOD"], "def": 0, "mod": False}]
-    g_pg, g_n = params("GLO", d["GLOBAL"]["pages"][:GLO_PAGES] + [[]] + [CLICK_PAGE])
+    # GLOBAL's 8th page, DISPLAY (update 55): NORMAL, or DAYLIGHT for a screen read in the sun (hold GLO: the same)
+    DISPLAY_PAGE = [{"l": "DISPLAY", "t": "list", "opts": ["NORMAL", "DAYLIGHT"], "def": 0, "mod": False}]
+    g_pg, g_n = params("GLO", d["GLOBAL"]["pages"][:GLO_PAGES] + [[]] + [CLICK_PAGE] + [DISPLAY_PAGE])
     for pg in d["CHORD"]["pages"]:            # the firmware's ZONE (update 38): OFF, CHORDS (the quality keys), BASS
         for q in pg:                          # (the bass's chord tone, STYLE's rhythm); values kept: 0 CHORDS, 1 OFF
             if q.get("l") == "ZONE":

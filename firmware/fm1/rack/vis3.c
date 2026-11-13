@@ -667,6 +667,19 @@ static void vis_rhythm(uint16_t c, int sub)
     }
 }
 
+/* DISPLAY (update 55): what the choice does, in the colours it gives */
+static void vis_display(uint16_t c)
+{
+    int k;
+    (void)c;
+    cv_text(4, 1, &FONT_T, pal_day ? "DAYLIGHT: FULL CONTRAST" : "NORMAL: THE QUIET LOOK", K_FG);
+    cv_text(4, 9, &FONT_T, "HOLD GLO TO SWITCH, ANY PAGE", K_DIM);
+    for (k = 0; k < 4; k++) {                 /* the four knobs' colours, as they show now */
+        int32_t x = 8 + k * 54;
+        rrect(x, 22, 44, 12, KNOB_C[k], 3);
+    }
+}
+
 static void vis_fixed(int pg, int sub, uint16_t c)
 {
     if (pg == PG_SEL && sub == 5) {           /* FEEL (update 43): a chord's notes, strummed and humanised */
@@ -690,6 +703,7 @@ static void vis_fixed(int pg, int sub, uint16_t c)
         case 3: vis_midi(c); break;
         case 4: vis_master(c); break;
         case 6: vis_metronome(c); break;   /* CLICK (update 40) */
+        case 7: vis_display(c); break;     /* DISPLAY (update 55) */
         default: vis_system(c); break;
         }
     }

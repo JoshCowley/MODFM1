@@ -17,8 +17,13 @@
 #define UP_PER_OBJ 8
 #define NCAT 6
 static const char *const CAT_NAME[NCAT] = {"NONE", "BASS", "PADS", "LEAD", "CHORD", "FX"};
-static const uint16_t CAT_COL[NCAT] = {GREY(122), KN4, KN1, K_SEQC,
-                                       KN2, KN3}   /* (update 51: theme.h) */;
+static const uint16_t *cat_col_tab(void)     /* each category's colour, from the palette in use (update 55) */
+{
+    static uint16_t t[NCAT];
+    t[0] = GREY(122); t[1] = KN4; t[2] = KN1; t[3] = K_SEQC; t[4] = KN2; t[5] = KN3;
+    return t;
+}
+#define CAT_COL (cat_col_tab())
 static const char CHARS[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 #define NCHARS ((int)sizeof CHARS - 1)
 

@@ -12,7 +12,8 @@
 
 enum { G_TEMPO, G_MIDICH, G_VOICES, G_CLOCK, G_VEL, G_ANIM, G_LED, G_TUNE, G_TROOT, G_A4, G_BEND, G_PROG, G_MOUT,
        G_OUTCH, G_LOCAL, G_LOW, G_MID, G_HIGH, G_COMP,
-       G_CLICK, G_CIN, G_CVOL, G_CSND, NG };     /* CLICK (update 40): when, count-in bars, volume, sound */
+       G_CLICK, G_CIN, G_CVOL, G_CSND,           /* CLICK (update 40): when, count-in bars, volume, sound */
+       G_DISP, NG };                              /* DISPLAY (update 55): NORMAL or DAYLIGHT */
 enum { C_SCALE, C_KEY, C_TYPE, C_VOICE, C_QNT, C_HARM, C_ZONE, C_STRUM, NC };
 enum { A_MODE, A_RATE, A_OCT, A_GATE, A_HOLD, A_MUT, A_LOOP, A_SWING,
        A_STYLE, A_BOCT, A_ACC, A_CLEN,           /* STYLE (style_def.py): the style, the bass's octave, accents, length */
