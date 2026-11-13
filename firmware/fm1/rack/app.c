@@ -391,7 +391,7 @@ static void wv_fill(int32_t x, int32_t y, int32_t len, uint16_t c)
         rrect(x, y, len, 4, c, 2);
         return;
     }
-    g = wv_lvl * 4.0f;
+    g = wv_lvl * 7.0f;                        /* (a preset at its usual level, about -19 dB, swings well) */
     g = g > 1.0f ? 1.0f : g;
     amp = 1.5f + 3.0f * g;                    /* the swing: 1.5 px quiet, 4.5 px loud */
     th = 2 + (int32_t)(g * 2.5f + 0.5f);      /* the thickness: 2 quiet, 4-5 loud */
