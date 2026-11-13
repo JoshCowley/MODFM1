@@ -1,4 +1,6 @@
-/* FM1 Rack's look (update 51; update 53: split into the choices Josh is narrowing down by A/B, one macro each).
+/* FM1 Rack's look (update 51; update 53: split into choices, one macro each, and set from Josh's A/B picks:
+ * near-black, dusty knob colours, a quiet colour per section, hairlines with a faint glow, no header tag, hairline
+ * sliders with a dot, bevelled cards with no grid, the lighter type).
  *
  * Josh: the old look (bright pastels on black, a pill of colour on every page, neon halos) read as a "common AI
  * colour scheme". Update 51 settled the direction: neutral chrome, colour kept for what it means (mostly the four
@@ -17,22 +19,22 @@
 #define FM1_BG 1
 #endif
 #ifndef FM1_KNOBS
-#define FM1_KNOBS 1
+#define FM1_KNOBS 3
 #endif
 #ifndef FM1_PIC
-#define FM1_PIC 1
+#define FM1_PIC 2
 #endif
 #ifndef FM1_LINE
 #define FM1_LINE 2
 #endif
 #ifndef FM1_HEAD
-#define FM1_HEAD 1
+#define FM1_HEAD 2
 #endif
 #ifndef FM1_SLIDER
-#define FM1_SLIDER 1
+#define FM1_SLIDER 4
 #endif
 #ifndef FM1_WELL
-#define FM1_WELL 1
+#define FM1_WELL 6
 #endif
 
 /* the greys: GREY(n), n the brightness 0-255, with the background's temperature; L(n) lifts the dark steps */

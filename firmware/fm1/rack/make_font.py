@@ -21,7 +21,7 @@ PLEX = "ibm-plex-sans-condensed-latin-{}-normal.woff"
 # M and L (the splash: not linked on the device). The pixel sizes keep each role's line height near the layout's.
 # FM1_FONTW (update 53, for the A/B rounds): the weights, labels / values. 1 Medium / SemiBold (update 51),
 # 2 Regular / Medium (lighter), 3 SemiBold / Bold (heavier)
-W = {"1": (500, 400, 600), "2": (400, 400, 500), "3": (600, 500, 700)}[os.environ.get("FM1_FONTW", "1")]
+W = {"1": (500, 400, 600), "2": (400, 400, 500), "3": (600, 500, 700)}[os.environ.get("FM1_FONTW", "2")]   # (2: Josh's A/B pick, update 53)
 SETS = {
     "plex": {"T": (PLEX.format(W[0]), 10, 32, 95), "XS": (PLEX.format(W[0]), 12, 32, 126),
              "S": (PLEX.format(W[1]), 14, 32, 126), "B": (PLEX.format(W[2]), 15, 32, 126),

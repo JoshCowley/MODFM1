@@ -395,6 +395,22 @@ static uint16_t wv_col(uint16_t c)
     g = g > 1.0f ? 1.0f : g;
     return mix565(K_FG, c, (uint32_t)(g * 60.0f + wv_flash * 70.0f));
 }
+/* the hairline style's dot (FM1_SLIDER 4, update 53: Josh's pick): the knob's colour, warming with the sound; a faint
+ * halo that breathes with the level and brightens on a hit; now and then a pixel's bob where the sound swings */
+static void sl_dot(int32_t tx, int32_t y, uint16_t c)
+{
+    static const uint8_t ZOOM[4] = {8, 5, 3, 2};
+    int32_t dy = 0;
+    uint16_t col = wv_col(c);
+    if (wv_on()) {
+        float g = wv_lvl * 6.0f, v;
+        g = g > 1.0f ? 1.0f : g;
+        rrect(tx - 5, y - 4, 11, 11, mix565(col, K_BG, (uint32_t)(16.0f + g * 30.0f + wv_flash * 50.0f)), 5);
+        v = (float)rc_scope[(wv_start + (uint32_t)(tx * ZOOM[wv_idx & 3])) & (RC_SCOPE_N - 1u)] * (1.0f / 16384.0f) * g;
+        dy = v > 0.6f ? -1 : v < -0.6f ? 1 : 0;
+    }
+    rrect(tx - 3, y - 2 + dy, 7, 7, col, 3);
+}
 static void sl_line(int32_t x, int32_t y, int32_t w, float f, uint16_t c)
 {
     int32_t tx;
@@ -413,7 +429,7 @@ static void sl_line(int32_t x, int32_t y, int32_t w, float f, uint16_t c)
 #elif FM1_SLIDER == 4
     cv_rect(x, y + 1, w, 1, K_FAINT);
     if (tx > x) cv_rect(x, y + 1, tx - x, 1, mix565(wv_col(c), K_BG, 140));
-    rrect(tx - 3, y - 2, 7, 7, wv_col(c), 3);
+    sl_dot(tx, y, c);
 #else
     cv_rect(x, y + 1, w, 2, K_FAINT);
     if (tx > x) wv_fill(x, y, tx - x, c);
@@ -431,11 +447,17 @@ static void slider(int32_t x, int32_t y, int32_t w, float f, uint16_t c, uint16_
         int32_t a = x + (int32_t)((lo < 0.0f ? 0.0f : lo) * (float)w), b = x + (int32_t)((hi > 1.0f ? 1.0f : hi) * (float)w);
         if (b > a)
             rrect(a - 2, y - 2, b - a + 4, 8, mix565(mc, bg, k / 3u), 3);
-        cv_rect(x, y + 1, w, 2, K_FAINT);
         tx = x + (int32_t)(live * (float)w);
+#if FM1_SLIDER == 4                           /* the hairline style: the range, a tick where it's set, the live dot */
+        cv_rect(x, y + 1, w, 1, K_FAINT);
+        cv_rect(x + (int32_t)(f * (float)w), y - 1, 1, 5, mix565(c, bg, 200));
+        sl_dot(tx, y, mc);
+#else
+        cv_rect(x, y + 1, w, 2, K_FAINT);
         if (tx > x) wv_fill(x, y, tx - x, mc);
         cv_rect(x + (int32_t)(f * (float)w), y - 2, 1, 8, mix565(c, bg, 170));   /* where it's set */
         rrect(tx - 1, y - 3, 3, 10, K_FG, 1);
+#endif
     } else {
         sl_line(x, y, w, f, c);
         (void)tx;

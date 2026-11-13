@@ -140,20 +140,20 @@ Every page has the same frame, top to bottom.
     - **RAM**: how much of the sound memory the preset uses;
     - the octave (**O+1** and so on; green while keys are held);
     - the output meter (red near clipping).
-- **The header**: the page's tag, outlined, the page's name, and a dot for each page within it.
+- **The header**: the page's icon in its section's colour, the page's name, and a dot for each page within it.
 
-**The look** (update 51): neutral greys, the pictures drawn in ivory, and colour kept for what it means: the four knobs, the playing pages' faint tints (SEL sage, ARP sky, SEQ rose), and warnings. The type is IBM Plex Sans Condensed (SIL Open Font License), lighter than before; lines are thin, with a faint halo.
+**The look** (update 53, chosen by A/B): near-black with greys of a slight warmth; the pictures sit on raised cards (a lit top edge, a shadowed bottom edge, no grid) and each section draws in a quiet colour of its own (the source ochre, the shaper teal, modulation violet, FX steel blue, AMP terracotta); the four knobs in dusty colours; thin lines with a faint glow. The type is IBM Plex Sans Condensed (SIL Open Font License) at its lighter weights. The header is the page's icon and name, with no tag.
 - **The picture**: a moving picture of what the page does to the sound: the source's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats. It fills most of every page that has one (update 50: the sliders below gave it more room). GLOBAL › ANIMATION sets it to full, calm or still.
 - **The sliders** (update 50, replacing the round dials): one per knob along the bottom, each with its knob's number and name, the value in large type, and a slider underneath.
-    - An amount (cutoff, level, time) fills the slider in its knob's colour; a bipolar one (+/-) fills from the middle.
+    - Each value is a dot on a hairline in its knob's colour; an amount (cutoff, level, time) draws the line up to the dot a little brighter, a bipolar one (+/-) from the middle.
     - A choice is not an amount: a choice of two (ON/OFF, INT/EXT) is a switch; a short list or a small whole-number range shows a tick for each stop and a block at the one chosen; a list also shows which of how many (**6/24**) beside its name.
-    - **The sliders move with the sound, gently** (update 51). While the FM-1 plays, a slider's filled part warms a little towards ivory as the sound gets louder, a faint halo breathes round it and brightens for a moment on each new hit, and here and there a pixel of it lifts or drops where the sound swings hardest. Each knob reads the sound at its own zoom, so the four ripple differently. Your setting (the white thumb) never moves; when the sound stops they are plain lines again.
+    - **The sliders move with the sound, gently.** While the FM-1 plays, each dot warms a little towards ivory as the sound gets louder, a faint halo breathes round it and brightens for a moment on each new hit, and now and then it bobs a pixel where the sound swings hardest. Each knob reads the sound at its own zoom, so the four move differently. When the sound stops they are still.
 - **The help line**: what the controls do on this page.
 - **Messages** appear for a moment in a grey band across the bottom, over the help line ("SAVED TO U01", "PLAITS 6 V", "CHORDS OFF").
 
 ### Knob colours
 
-Each knob keeps its colour on every page, its number drawn in it beside the name: **K1 blue, K2 green, K3 yellow, K4 red**. The part of the picture a knob moves is drawn in that colour, so turning the green knob moves the green part. The sequencer's four sliders take the same colours. For example:
+Each knob keeps its colour on every page, its number drawn in it beside the name: **K1 grey-blue, K2 sage, K3 sand, K4 clay**. The part of the picture a knob moves is drawn in that colour, so turning the sage knob moves the sage part. The sequencer's four sliders take the same colours. For example:
 
 - **AMP**: attack, decay, sustain and release are four coloured segments of the envelope.
 - **The filter**: a dashed line at the cutoff and a dot on the resonance peak.
@@ -161,15 +161,15 @@ Each knob keeps its colour on every page, its number drawn in it beside the name
 - **Rings**: the guide rings in STRUCTURE's colour, the ripples in BRIGHTNESS's.
 - **Delay, reverb, chorus**: the repeats in FEEDBACK's colour, the reverb's cloud in SIZE's, the chorus' two lines in RATE's and DEPTH's.
 
-On HOME the macros take the same colours: M1 blue, M2 green, M3 yellow, M4 red.
+On HOME the macros take the same colours: M1 grey-blue, M2 sage, M3 sand, M4 clay.
 
 ### Modulation on the sliders
 
 A parameter that something is moving shows it, in the colour of what moves it:
 
 - a glow round the slider shows the range it has swept lately, brighter the faster it moves;
-- the slider's fill and its large thumb are where it is now, and the small number beside the value (› 62) is its live value;
-- a thin line marks where you set it.
+- the dot is where it is now, and the small number beside the value (› 62) is its live value;
+- a small tick on the hairline marks where you set it.
 
 On the slider pages the same shows as a halo round the track.
 

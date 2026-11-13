@@ -542,13 +542,15 @@ static void big_well_h(int pg, const ui_mod_t *m, uint16_t c, int32_t wh)
 #elif FM1_WELL >= 4                           /* a card or an inset: its edge, a quiet grid inside */
         rrect(0, 0, 228, wh, K_EDGE, 4);
         rrect(1, 1, 226, wh - 2, K_WELL, 3);
-#if FM1_WELL == 6
+#if FM1_WELL == 6                             /* (update 53: Josh picked the bevelled card, and no panel grid) */
         cv_rect(3, 0, 222, 1, K_EDGE_HI);
         cv_rect(3, wh - 1, 222, 1, K_EDGE_LO);
-#endif
+        (void)x; (void)i;
+#else
         for (x = 16; x < 228; x += 16)
             for (i = 12; i < wh - 4; i += 12)
                 cv_pset(x, i, mix565(K_FG, K_WELL, 22));
+#endif
 #else                                         /* the picture straight on the page */
         (void)x; (void)i;
 #endif
@@ -667,12 +669,33 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
         cv_blit(3u + (uint32_t)i * 59u, G4_Y);
         return;
     }
+#if FM1_SLIDER == 4
+    cv_rect(sx, sy + 1, sw, 1, K_FAINT);      /* the hairline style (update 53): a hairline, its stops, a dot */
+#else
     rrect(sx, sy + 1, sw, 2, K_FAINT, 1);     /* the track (update 51: 2 px, not 4) */
+#endif
     if (nst >= 3 && nst <= 17) {              /* its stops */
         int k2;
         for (k2 = 0; k2 < nst; k2++)
             cv_rect(sx + (int32_t)((float)k2 / (float)(nst - 1) * (float)(sw - 1)), sy + 6, 1, 2, K_DIM);
     }
+#if FM1_SLIDER == 4
+    {
+        int32_t tx = sx + (int32_t)(f * (float)sw);
+        wv_idx = i;
+        if (p->t == UT_BIP) {                 /* bipolar: a hairline from the middle, its centre marked */
+            int32_t m0 = sx + sw / 2;
+            uint16_t hc = mix565(kcol, K_BG, 150);
+            if (tx > m0) cv_rect(m0, sy + 1, tx - m0, 1, hc);
+            else if (tx < m0) cv_rect(tx, sy + 1, m0 - tx, 1, hc);
+            cv_rect(m0, sy - 1, 1, 5, K_DIM);
+        } else if (p->t != UT_LIST && tx > sx) {
+            cv_rect(sx, sy + 1, tx - sx, 1, mix565(kcol, K_BG, 150));
+        }
+        sl_dot(tx, sy, kcol);
+    }
+    if (0)                                    /* (the other styles' track, fill and thumb) */
+#endif
     {
         int32_t tx = sx + (int32_t)(f * (float)sw);
         if (p->t != UT_LIST) {                /* an amount fills; a bipolar one from the middle */
