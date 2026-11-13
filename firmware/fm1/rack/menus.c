@@ -368,9 +368,16 @@ static void header(const char *tag, uint16_t c, const char *title, int ic, int p
     cv_begin(240, 22, K_BAR);                 /* (stage 4: under the status strip, 22 rows) */
     icon(ic, 6, 5, c);
     w = text_w(&FONT_T, tag) + 8;
+#if FM1_HEAD == 1
     rrect(22, 4, w, 14, mix565(c, K_BAR, 90), 3);   /* (update 51) the tag outlined, not a pill of colour */
     rrect(23, 5, w - 2, 12, K_BAR, 2);
     cv_text(26, 4, &FONT_T, tag, c);
+#elif FM1_HEAD == 3
+    cv_text(24, 4, &FONT_T, tag, c);          /* the tag as coloured words */
+    w -= 2;
+#else
+    w = -4;                                   /* no tag: the icon, then the name */
+#endif
     cv_text_acc(28 + w, 3, &FONT_B, title, K_FG);
     for (i = 0; i < pages && pages > 1; i++) {
         int32_t x = 232 - (pages - 1 - i) * 9, r = i == sub ? 3 : 2;
@@ -523,10 +530,18 @@ static void big_well_h(int pg, const ui_mod_t *m, uint16_t c, int32_t wh)
         cv_band(-y0, hb);
         cv_y0 = 0;
         cv_y1 = hb;
+#if FM1_WELL == 1                             /* (theme.h FM1_WELL) a dark well and its dot grid */
         rrect(0, 0, 228, wh, K_WELL, 4);
         for (x = 12; x < 228; x += 12)
             for (i = 8; i < wh; i += 8)
                 cv_pset(x, i, K_GRID);
+#elif FM1_WELL == 3                           /* a hairline edge, no grid */
+        rrect(0, 0, 228, wh, K_GRID, 4);
+        rrect(1, 1, 226, wh - 2, K_WELL, 3);
+        (void)x; (void)i;
+#else                                         /* the picture straight on the page */
+        (void)x; (void)i;
+#endif
         if (slot == RS_AMP && pg != PG_OSC) {
             adsr(228, wh, c);
         } else {
@@ -633,6 +648,12 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
             if (text_w(&FONT_T, u) + w + 3 <= 55)   /* the live value beside it, in the source's colour */
                 cv_text(55 - text_w(&FONT_T, u), 17, &FONT_T, u, mc);
         }
+        cv_blit(3u + (uint32_t)i * 59u, G4_Y);
+        return;
+    }
+    if (FM1_SLIDER != 1 && p->t != UT_LIST && p->t != UT_BIP && !(nst >= 3 && nst <= 17)) {
+        wv_idx = i;                           /* (theme.h FM1_SLIDER: an amount drawn in the style chosen) */
+        sl_line(sx, sy, sw, f, kcol);
         cv_blit(3u + (uint32_t)i * 59u, G4_Y);
         return;
     }

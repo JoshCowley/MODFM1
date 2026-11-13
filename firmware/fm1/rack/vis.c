@@ -47,8 +47,12 @@ static int32_t vmy(int32_t y) { return vm_on ? vm_oy + (int32_t)((float)y * vm_s
  * every shape and line laid over what is under it at about three quarters, with a faint 1 px halo (a tenth) around it. Words, and boxes with words in them
  * (vf_keep: the layer boxes, HOME's tabs, the SEL keyboards), keep their size. */
 #define VF_FILL 196u                          /* a shape over what's under it (of 256) */
-#define VF_LINE 218u                          /* a line */
-#define VF_HALO 26u                           /* its halo */
+#ifndef VF_LINE
+#define VF_LINE 218u
+#endif                          /* a line */
+#ifndef VF_HALO
+#define VF_HALO 26u
+#endif
 static int vf_keep;                           /* 1: boxes with words (size kept); 2: drawn as before (the keyboards) */
 static void vf_px(int32_t x, int32_t y, uint16_t c, uint32_t a)   /* canvas coordinates: c over the pixel, a of 256 */
 {

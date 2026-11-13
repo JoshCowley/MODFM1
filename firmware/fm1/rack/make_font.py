@@ -19,10 +19,13 @@ PAD = 2
 PLEX = "ibm-plex-sans-condensed-latin-{}-normal.woff"
 # role: (file, px, first, last). T footers and labels (capitals and digits), XS hints, S body, B names and values,
 # M and L (the splash: not linked on the device). The pixel sizes keep each role's line height near the layout's.
+# FM1_FONTW (update 53, for the A/B rounds): the weights, labels / values. 1 Medium / SemiBold (update 51),
+# 2 Regular / Medium (lighter), 3 SemiBold / Bold (heavier)
+W = {"1": (500, 400, 600), "2": (400, 400, 500), "3": (600, 500, 700)}[os.environ.get("FM1_FONTW", "1")]
 SETS = {
-    "plex": {"T": (PLEX.format(500), 10, 32, 95), "XS": (PLEX.format(500), 12, 32, 126),
-             "S": (PLEX.format(400), 14, 32, 126), "B": (PLEX.format(600), 15, 32, 126),
-             "M": (PLEX.format(600), 23, 32, 95), "L": (PLEX.format(600), 31, 32, 126)},
+    "plex": {"T": (PLEX.format(W[0]), 10, 32, 95), "XS": (PLEX.format(W[0]), 12, 32, 126),
+             "S": (PLEX.format(W[1]), 14, 32, 126), "B": (PLEX.format(W[2]), 15, 32, 126),
+             "M": (PLEX.format(W[2]), 23, 32, 95), "L": (PLEX.format(W[2]), 31, 32, 126)},
 }
 SET = os.environ.get("FM1_FONTSET", "plex")
 

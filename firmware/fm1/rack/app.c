@@ -386,6 +386,40 @@ static void wv_fill(int32_t x, int32_t y, int32_t len, uint16_t c)
         cv_rect(x + k, y + 1 + dy, 1, 2, col);
     }
 }
+/* an amount's slider in the style chosen (theme.h FM1_SLIDER): 1 a 2 px line, its fill, a thumb; 2 ten segments;
+ * 3 a 4 px bar and no thumb; 4 a hairline and a dot. The fill takes the sound's tint as wv_fill does */
+static uint16_t wv_col(uint16_t c)
+{
+    float g = wv_lvl * 6.0f;
+    if (!wv_on()) return c;
+    g = g > 1.0f ? 1.0f : g;
+    return mix565(K_FG, c, (uint32_t)(g * 60.0f + wv_flash * 70.0f));
+}
+static void sl_line(int32_t x, int32_t y, int32_t w, float f, uint16_t c)
+{
+    int32_t tx;
+    f = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f;
+    tx = x + (int32_t)(f * (float)w);
+#if FM1_SLIDER == 2
+    {
+        int32_t k, sw = (w - 9) / 10, lit = (int32_t)(f * 10.0f + 0.5f);
+        uint16_t col = wv_col(c);
+        for (k = 0; k < 10; k++)
+            cv_rect(x + k * (sw + 1), y, sw, 4, k < lit ? col : K_FAINT);
+    }
+#elif FM1_SLIDER == 3
+    rrect(x, y, w, 4, K_FAINT, 2);
+    if (tx > x + 1) rrect(x, y, tx - x, 4, wv_col(c), 2);
+#elif FM1_SLIDER == 4
+    cv_rect(x, y + 1, w, 1, K_FAINT);
+    if (tx > x) cv_rect(x, y + 1, tx - x, 1, mix565(wv_col(c), K_BG, 140));
+    rrect(tx - 3, y - 2, 7, 7, wv_col(c), 3);
+#else
+    cv_rect(x, y + 1, w, 2, K_FAINT);
+    if (tx > x) wv_fill(x, y, tx - x, c);
+    rrect(tx - 1, y - 3, 3, 10, K_FG, 1);
+#endif
+}
 static void slider(int32_t x, int32_t y, int32_t w, float f, uint16_t c, uint16_t mc, float lo, float hi, float live, float e, uint16_t bg)
 {
     int32_t tx;
@@ -403,10 +437,8 @@ static void slider(int32_t x, int32_t y, int32_t w, float f, uint16_t c, uint16_
         cv_rect(x + (int32_t)(f * (float)w), y - 2, 1, 8, mix565(c, bg, 170));   /* where it's set */
         rrect(tx - 1, y - 3, 3, 10, K_FG, 1);
     } else {
-        cv_rect(x, y + 1, w, 2, K_FAINT);
-        tx = x + (int32_t)(f * (float)w);
-        if (tx > x) wv_fill(x, y, tx - x, c);
-        rrect(tx - 1, y - 3, 3, 10, K_FG, 1);
+        sl_line(x, y, w, f, c);
+        (void)tx;
     }
 }
 
@@ -512,9 +544,14 @@ static void home_tile(int32_t x, int32_t y, int slot, uint16_t kind)
     uint16_t c = lost ? K_WARN : off ? K_FAINT : n ? kind : K_FAINT;
     int32_t w;
     cv_begin(HT_W, HT_H, K_BG);
-    if (n)
+    if (n) {
+#if FM1_WELL == 3
+        rrect(0, 0, HT_W, HT_H, K_GRID, 4);
+        rrect(1, 1, HT_W - 2, HT_H - 2, K_WELL, 3);
+#elif FM1_WELL == 1
         rrect(0, 0, HT_W, HT_H, K_WELL, 4);
-    else {
+#endif
+    } else {
         rrect(0, 0, HT_W, HT_H, K_CELL, 4);
         rrect(1, 1, HT_W - 2, HT_H - 2, K_BG, 3);
     }
@@ -673,10 +710,9 @@ static void home_macros(int force)            /* (update 39: drawn again only wh
             int32_t tx = 3 + (int32_t)(vv * 50.0f);
             int_text((int32_t)(v * 100.0f + 0.5f), n);
             cv_text(55 - text_w(&FONT_B, n), 0, &FONT_B, n, nt ? K_FG : K_DIM);
-            cv_rect(3, 23, 50, 2, K_FAINT);
             wv_idx = i;
-            if (tx > 3) wv_fill(3, 22, tx - 3, nt ? KNOB_C[i] : mix565(KNOB_C[i], K_BG, 120));
-            rrect(tx - 1, 19, 3, 10, K_FG, 1);
+            sl_line(3, 22, 50, vv, nt ? KNOB_C[i] : mix565(KNOB_C[i], K_BG, 120));
+            (void)tx;
         }
         if (nt) {
             dst_name(first, t);
@@ -714,9 +750,17 @@ static void draw_home(void)
     x = text_w(&FONT_T, tag) + 8;
     {                                         /* (update 51) the category outlined in its colour, as the pages' tags */
         uint16_t cc = c ? CAT_COL[c] : K_SRC;
+#if FM1_HEAD == 1
         rrect(22, 4, x, 14, mix565(cc, K_BAR, 90), 3);
         rrect(23, 5, x - 2, 12, K_BAR, 2);
         cv_text(26, 4, &FONT_T, tag, cc);
+#elif FM1_HEAD == 3
+        cv_text(24, 4, &FONT_T, tag, cc);
+        x -= 2;
+#else
+        x = -4;
+        (void)cc;
+#endif
     }
     cv_text(28 + x, 3, &FONT_B, name, pending ? K_DIM : K_FG);
     if (pending) {
