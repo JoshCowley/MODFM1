@@ -545,9 +545,13 @@ static void home_tile(int32_t x, int32_t y, int slot, uint16_t kind)
     int32_t w;
     cv_begin(HT_W, HT_H, K_BG);
     if (n) {
-#if FM1_WELL == 3
-        rrect(0, 0, HT_W, HT_H, K_GRID, 4);
+#if FM1_WELL >= 3
+        rrect(0, 0, HT_W, HT_H, FM1_WELL == 3 ? K_GRID : K_EDGE, 4);
         rrect(1, 1, HT_W - 2, HT_H - 2, K_WELL, 3);
+#if FM1_WELL == 6
+        cv_rect(3, 0, HT_W - 6, 1, K_EDGE_HI);
+        cv_rect(3, HT_H - 1, HT_W - 6, 1, K_EDGE_LO);
+#endif
 #elif FM1_WELL == 1
         rrect(0, 0, HT_W, HT_H, K_WELL, 4);
 #endif

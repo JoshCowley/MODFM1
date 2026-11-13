@@ -113,11 +113,11 @@ static void vm_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c)
     }
     int32_t a = vmx(x0), b = vmy(y0), d = vmx(x1), e = vmy(y1), ax = d > a ? d - a : a - d, ay = e > b ? e - b : b - e;
     if (ax >= ay) {                           /* mostly across: the halo above and below; else either side */
-        vf_line(a, b - 1, d, e - 1, c, VF_HALO);
-        vf_line(a, b + 1, d, e + 1, c, VF_HALO);
+        vf_line(a, b - 1, d, e - 1, VF_HALO_C(c), VF_HALO);
+        vf_line(a, b + 1, d, e + 1, VF_HALO_C(c), VF_HALO);
     } else {
-        vf_line(a - 1, b, d - 1, e, c, VF_HALO);
-        vf_line(a + 1, b, d + 1, e, c, VF_HALO);
+        vf_line(a - 1, b, d - 1, e, VF_HALO_C(c), VF_HALO);
+        vf_line(a + 1, b, d + 1, e, VF_HALO_C(c), VF_HALO);
     }
     vf_line(a, b, d, e, c, VF_LINE);
 }

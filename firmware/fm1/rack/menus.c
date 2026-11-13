@@ -539,6 +539,16 @@ static void big_well_h(int pg, const ui_mod_t *m, uint16_t c, int32_t wh)
         rrect(0, 0, 228, wh, K_GRID, 4);
         rrect(1, 1, 226, wh - 2, K_WELL, 3);
         (void)x; (void)i;
+#elif FM1_WELL >= 4                           /* a card or an inset: its edge, a quiet grid inside */
+        rrect(0, 0, 228, wh, K_EDGE, 4);
+        rrect(1, 1, 226, wh - 2, K_WELL, 3);
+#if FM1_WELL == 6
+        cv_rect(3, 0, 222, 1, K_EDGE_HI);
+        cv_rect(3, wh - 1, 222, 1, K_EDGE_LO);
+#endif
+        for (x = 16; x < 228; x += 16)
+            for (i = 12; i < wh - 4; i += 12)
+                cv_pset(x, i, mix565(K_FG, K_WELL, 22));
 #else                                         /* the picture straight on the page */
         (void)x; (void)i;
 #endif

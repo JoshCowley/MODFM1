@@ -46,8 +46,29 @@
 #define GREY(n) RGB((n), (n) * 98 / 100, (n) * 94 / 100)
 #define L(n) (n)
 #endif
+/* (update 53, after Josh: "graphics need to be separated from the background without losing clarity") FM1_WELL
+ * 4-6 set the page and the picture panels apart by brightness and an edge, not by blur:
+ *   4 a lifted card (the panel lighter than the page, a hairline edge)   5 an inset (a lifted page, the panel deeper
+ *   than it, a lighter edge)   6 a bevelled card (lit top edge, dark bottom edge, like a raised panel) */
+#if FM1_WELL == 4
+#define K_BG GREY(5)
+#define K_WELL GREY(22)
+#define K_EDGE GREY(46)
+#elif FM1_WELL == 5
+#define K_BG GREY(24)
+#define K_WELL GREY(5)
+#define K_EDGE GREY(54)
+#elif FM1_WELL == 6
+#define K_BG GREY(7)
+#define K_WELL GREY(20)
+#define K_EDGE GREY(34)
+#define K_EDGE_HI GREY(64)
+#define K_EDGE_LO GREY(2)
+#else
 #define K_BG GREY(L(7))
 #define K_WELL GREY(L(10))
+#define K_EDGE GREY(L(30))
+#endif
 #define K_BAR GREY(L(17))
 #define K_CELL GREY(L(21))
 #define K_OFF GREY(L(25))
@@ -139,7 +160,14 @@
 #elif FM1_LINE == 3
 #define VF_LINE 232u
 #define VF_HALO 120u
+#elif FM1_LINE == 4                           /* a crisp line with a dark keyline either side: it stands off the grid */
+#define VF_LINE 236u
+#define VF_HALO 200u
+#define VF_HALO_C(c) K_WELL
 #else
 #define VF_LINE 218u
 #define VF_HALO 26u
+#endif
+#ifndef VF_HALO_C
+#define VF_HALO_C(c) (c)                      /* the halo's colour: the line's own (FM1_LINE 4: a dark keyline) */
 #endif
