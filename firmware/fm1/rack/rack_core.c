@@ -305,7 +305,8 @@ static struct {
     uint32_t fin;                             /* frames since the sound came back: the fade in (RC_FIN) */
 } rc_audio;
 #define RC_FIN 441u                           /* 10 ms */
-static float rc_buf_l[1025], rc_buf_r[1025];  /* position 0: the last frame; then this block's */
+#define RC_BUFN 512u                          /* engine frames a block at most (256 codec frames need ~280; update 44: was 1024) */
+static float rc_buf_l[RC_BUFN + 1u], rc_buf_r[RC_BUFN + 1u];  /* position 0: the last frame; then this block's */
 /* the screen's scope: the last 1024 output frames (mono, 16-bit), written by the audio interrupt, read by the main
  * loop (a frame torn between the two only draws one wrong pixel) */
 #define RC_SCOPE_N 1024u
@@ -346,8 +347,8 @@ static void rc_render(int32_t *lr, uint32_t n, float gain)
     }
     pos_end = rc_audio.t + (float)n * RC_STEP;
     m = (uint32_t)pos_end;                    /* engine frames this block: positions 1..m */
-    if (m > 1024u)
-        m = 1024u;
+    if (m > RC_BUFN)
+        m = RC_BUFN;
     rk_render((int)m);
     rc_buf_l[0] = rc_audio.hist_l;
     rc_buf_r[0] = rc_audio.hist_r;

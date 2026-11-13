@@ -285,7 +285,12 @@ static bool any_gate_ = false;
 static float master_ = 0.7f;
 
 // io
-static float out_l_[1024], out_r_[1024];
+#ifdef RACK_FM1
+static const int OUTN = 512;   // the FM-1: ~280 frames a block, the bench 480 (update 44: 4 KB less RAM)
+#else
+static const int OUTN = 1024;
+#endif
+static float out_l_[OUTN], out_r_[OUTN];
 static float peak_l_ = 0.0f, peak_r_ = 0.0f;
 static float scope_[256];
 static float blk_l_[BLOCK], blk_r_[BLOCK];
@@ -1829,6 +1834,7 @@ static void process_block() {
 }
 
 EXPORT void render(int n) {
+  if (n > OUTN) n = OUTN;
   for (int i = 0; i < n; ++i) {
     if (blk_pos_ >= BLOCK) { process_block(); blk_pos_ = 0; }
     out_l_[i] = blk_l_[blk_pos_]; out_r_[i] = blk_r_[blk_pos_]; ++blk_pos_;
