@@ -617,13 +617,14 @@ static void vis_rhythm(uint16_t c, int sub)
     uint32_t now = plat_ms();
     char t[32], u[8];
     (void)sub;
+    /* (update 49) all three overlaid round one centre: BASS outside, CHORD, ARP inside; the one picked drawn last,
+     * full strength, the others behind it at half. The legend on the right: each one's colour, mode and hits */
     for (o = 0; o < 3; o++) {
-        int n, md = rg_mode(o), live, cur;
+        int n, md, live, cur, k, h = 0;
         uint32_t m;
         float fl;
-        uint16_t col = o == 0 ? c : o == 1 ? K_CHD : K_ARP;
-        int32_t cx, cy, r;
-        g = o == 0 ? v : o == 1 ? (v == 0 ? 1 : 0) : (v == 2 ? 1 : 2);   /* the one shown big, then the other two */
+        uint16_t col;
+        g = o == 2 ? v : o == 0 ? (v == 0 ? 1 : 0) : (v == 2 ? 1 : 2);   /* the picked one last, on top */
         md = rg_mode(g);
         col = g == 0 ? c : g == 1 ? K_CHD : K_ARP;
         m = rg_ring(g, &n);
@@ -632,11 +633,18 @@ static void vis_rhythm(uint16_t c, int sub)
         fl = 1.0f - (float)(now - vr_at[g]) * 0.004f;
         fl = fl < 0.0f ? 0.0f : fl;
         cur = live ? rg.pos[g] % n : -1;
-        if (md == RM_OFF) col = K_FAINT;
-        if (o == 0) { cx = vmx(52); cy = vmy(21); r = 38; }
-        else { cx = vmx(o == 1 ? 156 : 202); cy = vmy(27); r = 17; }
-        ring_draw(cx, cy, r, md == RM_OFF ? 0u : m, n, cur, fl, RP(g, RF_CH), col, o == 0);
-        if (o) cv_text((o == 1 ? 156 : 202) - text_w(&FONT_T, GS[g]) / 2, 36, &FONT_T, GS[g], md == RM_OFF ? K_DIM : col);
+        if (md != RM_OFF) {
+            if (g != v) col = mix565(col, K_WELL, 140);
+            ring_draw(vmx(52), vmy(21), 38 - g * 9, m, n, cur, fl, RP(g, RF_CH), col, g == v);
+        }
+        for (k = 0; k < n; k++) h += m >> k & 1u;
+        t[0] = 0;                                /* the legend */
+        cat(t, GS[g]);
+        cat(t, " ");
+        if (md == RM_OFF) cat(t, "OFF");
+        else { cat(t, md == RM_STYLE ? "STYLE " : md == RM_SAME ? "SAME " : md == RM_ANS ? "ANSWER " : "RING ");
+               int_text(h, u); cat(t, u); cat(t, "/"); int_text(n, u); cat(t, u); }
+        cv_text(104, 22 + g * 6, &FONT_T, t, md == RM_OFF ? K_FAINT : g == v ? (g == 0 ? c : g == 1 ? K_CHD : K_ARP) : K_DIM);
     }
     cv_text(104, 1, &FONT_T, GN[v], v == 0 ? c : v == 1 ? K_CHD : K_ARP);
     t[0] = 0;

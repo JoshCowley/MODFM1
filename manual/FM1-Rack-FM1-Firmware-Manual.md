@@ -422,7 +422,7 @@ SEL, ARP and GLOBAL are settings of the instrument, not of a preset. They stay w
 
 ![SEL › FEEL: four notes of a chord as they'd fall](../web/manual/img/fm1-feel.png)
 
-**Pages 7–8, RHYTHM and RHYTHM CHANCE** (update 48): a ring generator for each layer. K1 (**GEN**) picks the generator to see and set: **BASS M** (the master), **CHORD** or **ARP**; K2–K4 set its values. The big ring is the one picked; the two small rings show the others. Steps are dots round the ring, the hits are joined into a shape, and a hand sweeps round as it plays.
+**Pages 7–8, RHYTHM and RHYTHM CHANCE** (update 48): a ring generator for each layer. K1 (**GEN**) picks the generator to see and set: **BASS M** (the master), **CHORD** or **ARP**; K2–K4 set its values. All three are drawn over each other round one centre (BASS outside, CHORD, ARP inside), the one picked bright and on top, the others dimmed behind; a legend beside them gives each one's mode and hits. Steps are dots round the ring, the hits are joined into a shape, and a hand sweeps round as it plays.
 
 - **RHYTHM**: **HITS** (how many), **ROTATE** (turns the pattern round), **STEPS** (the ring's length, 2–32).
 - **RHYTHM CHANCE**: **MODE**, **CHANCE** (each hit's chance to play, 100% to start with), **MUTATE** (at the end of each cycle, the chance the ring turns a step or gains or loses a hit; a quarter of the time it goes back to the pattern as set).
