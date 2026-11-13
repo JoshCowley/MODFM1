@@ -280,7 +280,8 @@ static void rc_overload(void)
     rc_shed_count++;
 }
 
-static void rc_note_on(int note, float vel) { rc_push(RCE_ON, 0, (float)note, vel); }
+/* update 47: gentler touch: the softest note now plays at 30%, so velocity moves level and tone less */
+static void rc_note_on(int note, float vel) { rc_push(RCE_ON, 0, (float)note, 0.3f + 0.7f * vel); }
 static void rc_note_off(int note) { rc_push(RCE_OFF, 0, (float)note, 0.0f); }
 static void rc_all_off(void) { rc_push(RCE_ALL_OFF, 0, 0.0f, 0.0f); }
 static void rc_macro(int i, float v)

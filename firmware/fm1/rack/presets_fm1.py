@@ -337,7 +337,7 @@ def added():
         {"ATTACK": 0.01, "DECAY": 0.5, "SUSTAIN": 0.85, "RELEASE": 0.3, "VEL AMT": 0.5, "LEVEL": 0.5, "MODE": "LEGATO",
          "GLIDE": 0.1},
         [("SRC.TIMBRE", 0.3), ("MOD A.FALL 1", 0.3), ("FX 1.MIX", 0.3), ("AMP.GLIDE", 0.24)],
-        [["A OUT 1", "SRC.TIMBRE", 0.35], ["LFO 1", "PITCH", 0.014, "A OUT 2"], ["VELO", "SRC.TIMBRE", 0.15]],
+        [["A OUT 1", "SRC.TIMBRE", 0.25], ["LFO 1", "PITCH", 0.014, "A OUT 2"], ["VELO", "SRC.TIMBRE", 0.15]],
         lfo={"SHAPE 1": "SINE", "RATE 1": 0.74}))
     # pads
     a(P("PD SAW SWARM", {"SRC": "PLAITS", "FX1": "REVERB"},
@@ -388,6 +388,43 @@ def added():
     return L
 
 
+
+# ---------------------------------------------------------------------------------------- LEADS (update 47)
+# a sequenced-electronic lead wants the same few things: a short filter "bite" on each note, a dotted-eighth echo you
+# can hear, velocity on tone as well as level, and a slow DRIFT on LFO 2 so a held note keeps living. Edits on top of
+# the page's design, so everything else (vibrato, macros) stays as it was.
+def _lead(q, cut=None, env=None, dec=None, sus=None, echo=None, verb=None, velcut=0.1, drift=("SHP.CUTOFF", 0.04), **src):
+    sh = q["p"].get("SHP")
+    if sh is not None and "CUTOFF" in sh:
+        if cut is not None: sh["CUTOFF"] = cut
+        if env is not None:
+            sh.update({"ENV AMT": env, "ENV SRC": "OWN", "F ATK": sh.get("F ATK", 0.0), "F DEC": dec or 0.3,
+                       "F SUS": sus if sus is not None else 0.4, "F REL": sh.get("F REL", 0.3)})
+    q["p"]["SRC"].update(src)
+    for k, v in (("echo", echo), ("verb", verb)):
+        if v is None: continue
+        for slot in ("FX1", "FX2"):
+            fx = q["p"].get(slot)
+            if fx and (("TIME" in fx) == (k == "echo")): fx["MIX"] = v
+    if velcut and ((sh is not None and "CUTOFF" in sh) or drift): q["matrix"].append(["VELO", "SHP.CUTOFF" if sh is not None and "CUTOFF" in sh else drift[0], velcut])
+    if drift:
+        q["matrix"].append(["LFO 2", drift[0], drift[1]])
+        q.setdefault("lfo", {}).update({"SHAPE 2": "DRIFT", "RATE 2": 0.2, "SYNC 2": "FREE"})
+
+
+TWEAK = {
+    "LD SOFT SAW":    lambda q: _lead(q, cut=0.3, env=0.35, dec=0.28, sus=0.35, echo=0.12, verb=0.16),
+    "LD SQUARE":      lambda q: _lead(q, cut=0.42, env=0.25, dec=0.25, sus=0.45, echo=0.12, velcut=0.08, drift=None),
+    "LD SYNC":        lambda q: _lead(q, echo=0.12, **{"AD>TIMB": 0.3, "AD DEC": 0.3}),
+    "LD FLUTE":       lambda q: _lead(q, verb=0.12, velcut=0.12, drift=("SRC.TIMBRE", 0.04), COLOR=0.1),
+    "LD WHISTLE":     lambda q: _lead(q, echo=0.14, verb=0.1, velcut=0.08, drift=("SRC.TIMBRE", 0.03)),
+    "LD BRASS":       lambda q: _lead(q, env=0.35, dec=0.45, sus=0.5, verb=0.1),
+    "LD REED":        lambda q: _lead(q, env=0.2, dec=0.35, sus=0.6, verb=0.1, drift=("SRC.MORPH", 0.06)),
+    "LD BOWED":       lambda q: _lead(q, verb=0.14, velcut=0.1, drift=("SHP.BRIGHT", 0.05)),
+    "LD UNISON":      lambda q: _lead(q, cut=0.27, env=0.32, dec=0.3, sus=0.4, echo=0.1),
+    "LD PHASE SWEEP": lambda q: _lead(q, echo=0.12, velcut=0, drift=("SRC.MORPH", 0.04), MORPH=0.2, HARMO=0.3),
+}
+
 def fm1_presets(page):
     """the FM-1's set: the page's (presets.json, in its order) as changed above, then the new ones"""
     designed = {p["name"]: p for p in S.presets()}
@@ -401,9 +438,13 @@ def fm1_presets(page):
         elif c:
             for k, v in c.items():
                 q[k] = {**q.get(k, {}), **v} if k == "lfo" else v
+        if p["name"] in TWEAK:
+            TWEAK[p["name"]](q)
         q["amp"]["LEVEL"] = p["amp"]["LEVEL"]          # the page's measured level, until measured on the FM-1
         out.append(q)
-    out += added()
+    for q in added():
+        if q["name"] in TWEAK: TWEAK[q["name"]](q)
+        out.append(q)
     names = [p["name"] for p in out]
     unknown = set(C) - set(names)
     if unknown or len(names) != len(set(names)) or any(len(n) > 16 for n in names):
