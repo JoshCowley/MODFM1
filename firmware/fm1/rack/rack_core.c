@@ -78,22 +78,23 @@ static float rd_f(const uint8_t *p)
 /* the packed calls of make_presets.py: an op, its small numbers (signed bytes), its values (floats) */
 static void rc_run(const uint8_t *p, uint32_t n)
 {
+#define PF(k) PRESET_F[p[k]]                  /* (update 44: a float is a byte, its place in PRESET_F) */
     const uint8_t *end = p + n;
     while (p < end) {
         int op = *p++;
         int8_t a = (int8_t)p[0], b = (int8_t)p[1], c = (int8_t)p[2], d = (int8_t)p[3];
         switch (op) {
         case 1: rk_set_module(a, b); if (a >= 0 && a < RS_N) rc_patch.mod[a] = b; p += 2; break;
-        case 2: rk_set_param(a, b, rd_f(p + 2)); if (a == RS_AMP && b == 12) rc_patch.detune = rd_f(p + 2); p += 6; break;
-        case 3: rk_set_meta(a, b, rd_f(p + 2), rd_f(p + 6), rd_f(p + 10)); p += 14; break;
-        case 4: rk_set_route(a, b, c, d, rd_f(p + 4), (int)rd_f(p + 8)); p += 12; break;
-        case 5: rk_set_macro(a, rd_f(p + 1)); if (a >= 0 && a < 4) rc_patch.macro[a] = rd_f(p + 1); p += 5; break;
-        case 6: rk_set_master(rd_f(p)); p += 4; break;
-        case 7: rk_set_master_fx(rd_f(p), rd_f(p + 4), rd_f(p + 8), rd_f(p + 12)); p += 16; break;
-        case 8: rk_set_legato((int)rd_f(p)); p += 4; break;
-        case 9: rk_set_vintage(rd_f(p)); p += 4; break;
-        case 10: rk_set_ext_slew(a, rd_f(p + 1)); p += 5; break;
-        case 11: rk_set_tune(a, rd_f(p + 1)); p += 5; break;
+        case 2: rk_set_param(a, b, PF(2)); if (a == RS_AMP && b == 12) rc_patch.detune = PF(2); p += 3; break;
+        case 3: rk_set_meta(a, b, PF(2), PF(3), PF(4)); p += 5; break;
+        case 4: rk_set_route(a, b, c, d, PF(4), (int)PF(5)); p += 6; break;
+        case 5: rk_set_macro(a, PF(1)); if (a >= 0 && a < 4) rc_patch.macro[a] = PF(1); p += 2; break;
+        case 6: rk_set_master(PF(0)); p += 1; break;
+        case 7: rk_set_master_fx(PF(0), PF(1), PF(2), PF(3)); p += 4; break;
+        case 8: rk_set_legato((int)PF(0)); p += 1; break;
+        case 9: rk_set_vintage(PF(0)); p += 1; break;
+        case 10: rk_set_ext_slew(a, PF(1)); p += 2; break;
+        case 11: rk_set_tune(a, PF(1)); p += 2; break;
         default: return;    /* (never: make_presets.py writes only these) */
         }
     }
@@ -275,7 +276,7 @@ static void rc_overload(void)
     if (rc_shed_wait)
         return;
     rc_do(RCE_VOICES, rc_patch.voices_now - 1, 0.0f, 0.0f);
-    rc_shed_wait = 20u;
+    rc_shed_wait = 8u;                        /* (update 44: 46 ms, was 116: an overload heard as crackle ends sooner) */
     rc_shed_count++;
 }
 

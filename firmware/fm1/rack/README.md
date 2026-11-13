@@ -214,6 +214,14 @@ range (at once against gliding), each against the same moment with nothing chang
 `build/host/audition OUTDIR` (built by build_host.sh) plays every preset through the firmware's sound path (rc_load,
 rc_render at 44.1 kHz) with a phrase for its category and writes a WAV each, with its peak and loudness.
 
+## Updates 44-45 (space at no cost to the sound)
+
+- rc_buf and the engine's out_l_ / out_r_ 512 frames (were 1024; a block needs ~280, the bench 480): 8 KB RAM.
+- PRESET_OPS: each float is a byte, its place in PRESET_F (164 numbers, bit for bit; make_presets.py): 23,159 ->
+  13,586 B + 656. FONT_S not linked (APP_SYS_TEXT: the platform's screens in FONT_XS / FONT_B): 8.6 KB.
+  Image 577,660 -> 559,708 B. rack_host: every preset sample for sample as before.
+- Overload: the next voice shed after 8 blocks (46 ms; was 20, 116 ms).
+
 ## Update 43
 
 - STRUM spreads the sequencer's chord steps as it does the keys' (seq.c sq_step, note j at j x STRUM). FEEL > HUMAN

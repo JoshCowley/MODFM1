@@ -35,6 +35,11 @@ static settings_t set;
  * was plat_ms() | 1, a millisecond in the future half the time: a hold test in the same frame then saw ~49 days held,
  * took the tap for a hold, and the tap did nothing (EDIT, SEL, ARP, SEQ, HOME, FX: "needs several tries") */
 static uint32_t ms_stamp(void) { uint32_t t = plat_ms(); return t ? t : 1u; }
+/* the platform's own screens (boot, crash, update...) with the app's faces: SYS_S in FONT_XS, the rest in FONT_B */
+static const felucca_font_t *app_sys_face(int face) { return face ? &FONT_B : &FONT_XS; }
+static int32_t app_sys_h(int face) { return app_sys_face(face)->h; }
+static int32_t app_sys_w(int face, const char *s) { return text_w(app_sys_face(face), s); }
+static void app_sys_text(int32_t x, int32_t y, int face, const char *s, uint16_t c) { cv_text(x, y, app_sys_face(face), s, c); }
 static uint32_t in_btn;                       /* the buttons held this frame (the sequencer's SEL + K1 lasso) */
 #include "ui_defs.h"
 #include "play.c"

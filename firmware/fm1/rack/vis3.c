@@ -426,7 +426,7 @@ static void vis_tuning(uint16_t c)            /* TUNING: each degree against equ
     const float *cents = TUNE_CENTS + TUNE_AT[t];
     float w = 120.0f / (float)n, tm = vis_t();
     char s[32];
-    cv_text(6, 2, &FONT_S, UI_OPT[UP_GLO[G_TUNE].opt + t], K_FG);
+    cv_text(6, 2, &FONT_B, UI_OPT[UP_GLO[G_TUNE].opt + t], K_FG);
     s[0] = 0;
     int_text(n, s);
     cat(s, " NOTES  ROOT ");
@@ -507,7 +507,7 @@ static void vis_master(uint16_t c)            /* MASTER: the EQ's curve and the 
     {
         char t[8];
         int_text((int32_t)(comp * 100.0f + 0.5f), t);
-        cv_text(194, 18, &FONT_S, t, K_FG);
+        cv_text(194, 18, &FONT_B, t, K_FG);
     }
 }
 static uint8_t vy_cpu[114];                   /* SYSTEM: the CPU's last 114 readings */

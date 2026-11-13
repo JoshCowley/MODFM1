@@ -40,6 +40,18 @@ def final_state(calls):
     return st
 
 
+FLOATS = []                                     # (update 44) every float the presets use, once: the ops hold a byte
+FIDX = {}                                       # each (bit for bit the same number: lossless; 164 of them, 3,191 uses)
+
+
+def fidx(v):
+    k = struct.pack("<f", float(v))
+    if k not in FIDX:
+        FIDX[k] = len(FLOATS)
+        FLOATS.append(k)
+    return FIDX[k]
+
+
 def pack(c):
     code, ni, nf = OPS[c[0]]
     a = c[1:]
@@ -52,7 +64,7 @@ def pack(c):
     for v in ints:
         if not -128 <= int(v) <= 127:
             raise SystemExit(f"make_presets: {c} has a small number out of range")
-    return bytes([code, *(int(v) & 0xFF for v in ints)]) + b"".join(struct.pack("<f", float(v)) for v in fl)
+    return bytes([code, *(int(v) & 0xFF for v in ints), *(fidx(v) for v in fl)])
 
 
 def category(name):
@@ -158,6 +170,12 @@ def main():
            f"static const uint8_t PRESET_OPS[{len(blob)}] = {{"]
     for i in range(0, len(blob), 24):
         out.append("    " + ", ".join(f"0x{b:02X}" for b in blob[i:i + 24]) + ",")
+    if len(FLOATS) > 256:
+        raise SystemExit("make_presets: more than 256 different numbers: the ops' float index needs two bytes")
+    out += ["};", "", f"/* PRESET_F: the {len(FLOATS)} numbers the ops point at (a byte each, update 44) */",
+            f"static const float PRESET_F[{len(FLOATS)}] = {{"]
+    for i in range(0, len(FLOATS), 6):
+        out.append("    " + ", ".join(f"{struct.unpack('<f', k)[0]!r}f" for k in FLOATS[i:i + 6]) + ",")
     out += ["};", "", "static const rk_preset_t PRESETS[] = {"]
     for n, cat, at, ln, v, m in table:
         out.append(f'    {{"{n}", "{cat}", {at}, {ln}, {v}, {m}}},')

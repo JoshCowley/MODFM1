@@ -947,7 +947,7 @@ static void draw_picker(void)
                 cv_rect(0, 0, 2, 28, c);
             }
             icon(m ? module_icon(m->id) : IC_EMPTY, 8, 8, sel ? c : K_DIM);
-            cv_text(26, 6, &FONT_S, m ? m->name : "EMPTY", K_FG);
+            cv_text(26, 6, &FONT_B, m ? m->name : "EMPTY", K_FG);
             if (here)
                 cv_text(222 - text_w(&FONT_T, "LOADED"), 9, &FONT_T, "LOADED", K_OK);
         }
