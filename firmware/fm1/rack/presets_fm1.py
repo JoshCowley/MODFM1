@@ -68,7 +68,6 @@ def changed():
     # ------------------------------------------------------------------ KEYS
     C["CH ROUND EP"] = {"fm1_voices": 5}
     C["CH BRIGHT EP"] = {"lfo": {"SHAPE 3": "SINE", "SYNC 3": "1/4"}, "lfo_tgt": [None, None, None, None, ("PAN", 0.3)]}
-    C["CH SOFT PIANO"] = {"fm1_voices": 5}
     C["CH NYLON"] = {"fm1_voices": 5}
     C["CH MUSIC BOX"] = {"fm1_voices": 4}
     # vibes: the motor's tremolo (level, an LFO target) added; 5 voices
@@ -270,15 +269,54 @@ def changed():
     C["FX ECHO KEYS"] = {"fm1_voices": 4}
     C["FX CHORD DRIFT"] = {"fm1_voices": 3}
     # the bowl's beating (an LFO target on level) for the chorus
-    C["FX SINGING BOWL"] = P("FX SINGING BOWL", {"SRC": "PLAITS", "FX1": "REVERB"},
-        {"SRC": {"MODEL": "MODAL", "HARMO": 0.62, "TIMBRE": 0.3, "MORPH": 0.88}, "FX1": HALL(0.32, 0.9)},
-        {"ATTACK": 0.0, "DECAY": 0.9, "SUSTAIN": 0.0, "RELEASE": 0.85, "VEL AMT": 0.6, "SPREAD": 0.7, "LEVEL": 0.6},
-        [("SRC.HARMO", 0.3), ("SRC.TIMBRE", 0.4), ("FX 1.MIX", 0.3), ("SRC.MORPH", 0.2)],
-        [["LFO 1", "SRC.TIMBRE", 0.06]],
-        lfo={"SHAPE 1": "SINE", "RATE 1": 0.1, "SHAPE 2": "SINE", "RATE 2": 0.3, "SYNC 2": "FREE"}, fm1_voices=4)
-    C["FX SINGING BOWL"]["lfo_tgt"] = [None, None, ("AMP.LEVEL", 0.12)]
     C["FX GLASS RAIN"] = {"fm1_voices": 4}
 
+
+    # ------------------------------------------------------------------ update 52: four Josh found harsh and thin
+    # The three were Plaits' MODAL and Braids' PLUK straight to the output: every partial at full strength, nothing
+    # rounding the top, little room. Now each has a body that rings (Rings' string, or a filter that follows the
+    # keys and the velocity), the top rolled off, and space.
+    # SOFT PIANO: a felt hammer (a short, soft 2OP FM burst, LPG closed fast) into Rings' string, its position near
+    # the end (a piano's hammer), long damping: the string sings the note, the body is Rings'
+    C["CH SOFT PIANO"] = P("CH SOFT PIANO", {"SRC": "PLAITS", "SHP": "RINGS", "FX1": "REVERB"},
+        {"SRC": {"MODEL": "2OP FM", "HARMO": 0.234, "TIMBRE": 0.22, "MORPH": 0.5, "LPG": "ON", "DECAY": 0.22},
+         "SHP": {"MODEL": "STRING", "STRUCT": 0.12, "BRIGHT": 0.3, "DAMPING": 0.66, "POSITION": 0.16, "EXCITE": 0.7,
+                 "MIX": 0.72, "SPREAD": 0.55},
+         "FX1": HALL(0.14, 0.6)},
+        {"ATTACK": 0.0, "DECAY": 0.8, "SUSTAIN": 0.0, "RELEASE": 0.45, "VEL AMT": 0.6, "LEVEL": 0.8},
+        [("SHP.BRIGHT", 0.35), ("SHP.DAMPING", 0.3), ("FX 1.MIX", 0.3), ("SHP.POSITION", 0.3)],
+        [["VELO", "SHP.BRIGHT", 0.18], ["VELO", "SRC.TIMBRE", 0.15]], fm1_voices=4)
+    # MARIMBA: a soft mallet (MODAL's strike much darker, its partials fewer), a filter that opens with the keys and
+    # the velocity and closes as the bar dies, and a plate
+    C["CH MARIMBA"] = P("CH MARIMBA", {"SRC": "PLAITS", "SHP": "FILTER", "FX1": "REVERB"},
+        {"SRC": {"MODEL": "MODAL", "HARMO": 0.2, "TIMBRE": 0.13, "MORPH": 0.3},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.42, "RESO": 0.05, "DRIVE": 0.2, "ENV AMT": 0.2, "KEY TRK": 0.8,
+                 "VEL AMT": 0.3, "ENV SRC": "AMP", "SAT": "SOFT"},
+         "FX1": PLATE(0.14, 0.45)},
+        {"ATTACK": 0.0, "DECAY": 0.55, "SUSTAIN": 0.0, "RELEASE": 0.35, "VEL AMT": 0.65, "LEVEL": 0.9},
+        [("SRC.TIMBRE", 0.3), ("SHP.CUTOFF", 0.35), ("FX 1.MIX", 0.3), ("SRC.MORPH", 0.3)],
+        [["VELO", "SRC.TIMBRE", 0.12]], fm1_voices=5)
+    # HARP: Braids' pluck as the finger only, into Rings' string (long, a little spread): the string does the tone
+    C["CH HARP"] = P("CH HARP", {"SRC": "BRAIDS", "SHP": "RINGS", "FX1": "REVERB"},
+        {"SRC": {"MODEL": "PLUK", "TIMBRE": 0.2, "COLOR": 0.3},
+         "SHP": {"MODEL": "STRING", "STRUCT": 0.14, "BRIGHT": 0.3, "DAMPING": 0.72, "POSITION": 0.26, "EXCITE": 0.7,
+                 "MIX": 0.75, "SPREAD": 0.65},
+         "FX1": HALL(0.18, 0.72)},
+        {"ATTACK": 0.0, "DECAY": 0.8, "SUSTAIN": 0.0, "RELEASE": 0.6, "VEL AMT": 0.65, "LEVEL": 0.85},
+        [("SHP.BRIGHT", 0.35), ("SHP.DAMPING", 0.3), ("FX 1.MIX", 0.3), ("SHP.POSITION", 0.3)],
+        [["VELO", "SHP.BRIGHT", 0.18]], fm1_voices=4)
+    # SINGING BOWL: Rings' FM voice (bell-like, inharmonic) struck softly and left to ring, a slow chorus beating
+    # against itself as a bowl does, a big hall, and the tremolo it had
+    C["FX SINGING BOWL"] = P("FX SINGING BOWL", {"SRC": "PLAITS", "SHP": "RINGS", "FX1": "CHORUS", "FX2": "REVERB"},
+        {"SRC": {"MODEL": "2OP FM", "HARMO": 0.234, "TIMBRE": 0.15, "MORPH": 0.5, "LPG": "ON", "DECAY": 0.3},
+         "SHP": {"MODEL": "FM VOICE", "STRUCT": 0.3, "BRIGHT": 0.34, "DAMPING": 0.82, "POSITION": 0.45,
+                 "EXCITE": 0.6, "MIX": 0.85, "SPREAD": 0.7},
+         "FX1": CHOR(0.35, 0.3, 0.12), "FX2": HALL(0.3, 0.9)},
+        {"ATTACK": 0.0, "DECAY": 0.9, "SUSTAIN": 0.0, "RELEASE": 0.85, "VEL AMT": 0.55, "SPREAD": 0.7, "LEVEL": 0.75},
+        [("SHP.STRUCT", 0.3), ("SHP.BRIGHT", 0.35), ("FX 2.MIX", 0.3), ("SHP.DAMPING", 0.2)],
+        [["LFO 1", "SHP.POSITION", 0.08]],
+        lfo={"SHAPE 1": "SINE", "RATE 1": 0.1, "SHAPE 2": "SINE", "RATE 2": 0.3, "SYNC 2": "FREE"}, fm1_voices=3)
+    C["FX SINGING BOWL"]["lfo_tgt"] = [None, None, ("AMP.LEVEL", 0.1)]
     # ------------------------------------------------------------------ LEADS
     # the vibrato: the page's RATE 0.48-0.55 is 1.0-1.3 Hz (run_lfos: 0.03 Hz x 2^(10 x RATE)), a slow wobble; a
     # player's vibrato is 4.5-6 Hz: 0.72-0.75 (its depth and fade-in as they were)
@@ -339,6 +377,93 @@ def added():
         [("SRC.TIMBRE", 0.3), ("MOD A.FALL 1", 0.3), ("FX 1.MIX", 0.3), ("AMP.GLIDE", 0.24)],
         [["A OUT 1", "SRC.TIMBRE", 0.25], ["LFO 1", "PITCH", 0.014, "A OUT 2"], ["VELO", "SRC.TIMBRE", 0.15]],
         lfo={"SHAPE 1": "SINE", "RATE 1": 0.74}))
+    # ------------------------------------------------------------------ update 52: genre classics
+    # HOUSE: the organ of 90s house (a percussive 2:1 FM organ with a click, through chorus), the deep house minor
+    # chord stab (a saw through a resonant low-pass that snaps shut, a dotted-eighth echo), and its round bass
+    a(P("CH HOUSE ORGAN", {"SRC": "PLAITS", "SHP": "FILTER", "FX1": "CHORUS", "FX2": "REVERB"},
+        {"SRC": {"MODEL": "2OP FM", "HARMO": 0.477, "TIMBRE": 0.28, "MORPH": 0.58, "ENV>TIMB": 0.3, "DECAY": 0.22},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.68, "RESO": 0.1, "DRIVE": 0.3, "ENV AMT": 0.1, "KEY TRK": 0.5,
+                 "VEL AMT": 0.2, "ENV SRC": "AMP", "SAT": "SOFT"},
+         "FX1": CHOR(0.22, 0.3, 0.35), "FX2": PLATE(0.1)},
+        {"ATTACK": 0.0, "DECAY": 0.35, "SUSTAIN": 0.7, "RELEASE": 0.12, "VEL AMT": 0.5, "LEVEL": 0.6},
+        [("SRC.TIMBRE", 0.35), ("SHP.CUTOFF", 0.35), ("FX 1.MIX", 0.3), ("SRC.MORPH", 0.3)],
+        [["VELO", "SRC.TIMBRE", 0.15]], fm1_voices=5))
+    a(P("CH DEEP STAB", {"SRC": "PLAITS", "SHP": "FILTER", "FX1": "DELAY", "FX2": "REVERB"},
+        {"SRC": {"MODEL": "VA VCF", "HARMO": 0.25, "TIMBRE": 0.45, "MORPH": 0.35},
+         "SHP": {"TYPE": "LP24", "CUTOFF": 0.36, "RESO": 0.28, "DRIVE": 0.35, "ENV AMT": 0.38, "KEY TRK": 0.5,
+                 "VEL AMT": 0.3, "ENV SRC": "OWN", "F ATK": 0.0, "F DEC": 0.3, "F SUS": 0.12, "F REL": 0.25,
+                 "SAT": "SOFT"},
+         "FX1": ECHO("1/8D", 0.32, 0.2), "FX2": PLATE(0.14, 0.5)},
+        {"ATTACK": 0.0, "DECAY": 0.5, "SUSTAIN": 0.15, "RELEASE": 0.3, "VEL AMT": 0.5, "SPREAD": 0.5, "LEVEL": 0.6},
+        [("SHP.CUTOFF", 0.35), ("SHP.ENV AMT", 0.35), ("FX 1.MIX", 0.3), ("SHP.RESO", 0.35)],
+        [["LFO 2", "SHP.CUTOFF", 0.03]], lfo={"SHAPE 2": "DRIFT", "RATE 2": 0.2, "SYNC 2": "FREE"}, fm1_voices=5))
+    a(P("BS DEEP HOUSE", {"SRC": "PLAITS", "SHP": "FILTER"},
+        {"SRC": {"MODEL": "VA VCF", "HARMO": 0.3, "TIMBRE": 0.58, "MORPH": 0.55},   # (VA VCF: TIMBRE is its own filter)
+         "SHP": {"TYPE": "LP24", "CUTOFF": 0.56, "RESO": 0.2, "DRIVE": 0.5, "ENV AMT": 0.35, "KEY TRK": 0.6,
+                 "VEL AMT": 0.3, "ENV SRC": "OWN", "F ATK": 0.0, "F DEC": 0.25, "F SUS": 0.2, "F REL": 0.15,
+                 "SAT": "SOFT"}},
+        {"ATTACK": 0.0, "DECAY": 0.4, "SUSTAIN": 0.7, "RELEASE": 0.12, "VEL AMT": 0.45, "LEVEL": 0.6, "MODE": "LEGATO",
+         "GLIDE": 0.05},
+        [("SHP.CUTOFF", 0.35), ("SHP.ENV AMT", 0.35), ("SHP.DRIVE", 0.35), ("AMP.GLIDE", 0.24)],
+        [["VELO", "SHP.CUTOFF", 0.1]], osc={"WAVE": 0, "OSC LVL": 0.18, "MAIN LVL": 0.9}))
+    # DRUM AND BASS: the Reese (two saws a little apart, beating, through a driven low-pass that breathes), the
+    # rave hoover (four saws spread wide, a pitch that scoops up into the note, chorus), the sub (a sine, driven
+    # just enough to be heard, gliding), and the liquid pad
+    a(P("BS REESE", {"SRC": "BRAIDS", "SHP": "FILTER", "FX1": "CHORUS"},
+        {"SRC": {"MODEL": "CSAW", "TIMBRE": 0.3, "COLOR": 0.45, "DRIFT": 0.2},
+         "SHP": {"TYPE": "LP24", "CUTOFF": 0.6, "RESO": 0.18, "DRIVE": 0.62, "ENV AMT": 0.1, "KEY TRK": 0.5,
+                 "ENV SRC": "AMP", "SAT": "SOFT"},
+         "FX1": CHOR(0.15, 0.25, 0.2)},
+        {"ATTACK": 0.01, "DECAY": 0.5, "SUSTAIN": 0.9, "RELEASE": 0.15, "VEL AMT": 0.3, "LEVEL": 0.5, "MODE": "UNI 2",
+         "DETUNE": 0.22, "GLIDE": 0.06},
+        [("SHP.CUTOFF", 0.35), ("AMP.DETUNE", 0.3), ("SHP.DRIVE", 0.3), ("SHP.RESO", 0.3)],
+        [["LFO 1", "SHP.CUTOFF", 0.06]], lfo={"SHAPE 1": "TRI", "RATE 1": 0.3}, fm1_voices=2))
+    a(P("LD HOOVER", {"SRC": "BRAIDS", "SHP": "FILTER", "FX1": "CHORUS", "FX2": "REVERB"},
+        {"SRC": {"MODEL": "CSAW", "TIMBRE": 0.6, "COLOR": 0.7, "DRIFT": 0.3},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.62, "RESO": 0.1, "DRIVE": 0.4, "ENV AMT": 0.1, "KEY TRK": 0.5,
+                 "ENV SRC": "AMP", "SAT": "SOFT"},
+         "FX1": CHOR(0.45, 0.5, 0.3), "FX2": PLATE(0.12)},
+        {"ATTACK": 0.02, "DECAY": 0.4, "SUSTAIN": 0.9, "RELEASE": 0.3, "VEL AMT": 0.3, "LEVEL": 0.45, "MODE": "UNI 4",
+         "DETUNE": 0.4, "GLIDE": 0.15, "PITCH ENV": -0.2, "M ATTACK": 0.0, "M DECAY": 0.2, "M SUST": 0.0},
+        [("SHP.CUTOFF", 0.35), ("AMP.DETUNE", 0.3), ("FX 1.MIX", 0.3), ("AMP.GLIDE", 0.3)],
+        [], fm1_voices=2))
+    a(P("BS DNB SUB", {"SRC": "PLAITS", "SHP": "FILTER"},
+        {"SRC": {"MODEL": "2OP FM", "HARMO": 0.234, "TIMBRE": 0.08, "MORPH": 0.5},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.5, "RESO": 0.0, "DRIVE": 0.55, "ENV AMT": 0.0, "KEY TRK": 0.6,
+                 "ENV SRC": "AMP", "SAT": "SOFT"}},
+        {"ATTACK": 0.0, "DECAY": 0.5, "SUSTAIN": 0.95, "RELEASE": 0.12, "VEL AMT": 0.25, "LEVEL": 0.7,
+         "MODE": "LEGATO", "GLIDE": 0.12},
+        [("SHP.DRIVE", 0.35), ("SRC.TIMBRE", 0.3), ("AMP.GLIDE", 0.3), ("SHP.CUTOFF", 0.3)], []))
+    a(P("PD LIQUID", {"SRC": "PLAITS", "SHP": "FILTER", "FX1": "CHORUS", "FX2": "REVERB"},
+        {"SRC": {"MODEL": "VA VCF", "HARMO": 0.3, "TIMBRE": 0.5, "MORPH": 0.4},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.45, "RESO": 0.12, "DRIVE": 0.2, "KEY TRK": 0.5, "ENV SRC": "AMP",
+                 "SAT": "SOFT"},
+         "FX1": CHOR(0.4), "FX2": HALL(0.3, 0.8)},
+        {**slow, "ATTACK": 0.35, "RELEASE": 0.7, "SPREAD": 0.7, "LEVEL": 0.5},
+        [("SHP.CUTOFF", 0.35), ("AMP.ATTACK", 0.4), ("FX 2.MIX", 0.3), ("SRC.TIMBRE", 0.3)],
+        [["LFO 2", "SHP.CUTOFF", 0.04]], lfo={"SHAPE 2": "DRIFT", "RATE 2": 0.15, "SYNC 2": "FREE"}, fm1_voices=5))
+    # AMBIENT: a wash (Plaits' swarm into a shimmer hall), a frozen string-machine pad that barely moves, and a
+    # glass bell (FM at pi, so its partials don't line up: glass, not a chime) with echoes
+    a(P("PD AMBIENT WASH", {"SRC": "PLAITS", "FX1": "CHORUS", "FX2": "REVERB"},
+        {"SRC": {"MODEL": "SWARM", "HARMO": 0.35, "TIMBRE": 0.35, "MORPH": 0.3},
+         "FX1": CHOR(0.3), "FX2": SHIM(0.38, 0.3)},
+        {**tex, "LEVEL": 0.5},
+        [("SRC.TIMBRE", 0.35), ("SRC.MORPH", 0.3), ("FX 2.MIX", 0.3), ("FX 2.SHIMMER", 0.4)],
+        [["LFO 1", "SRC.TIMBRE", 0.08]], lfo={"SHAPE 1": "DRIFT", "RATE 1": 0.1}, fm1_voices=4))
+    a(P("PD FROZEN", {"SRC": "PLAITS", "SHP": "FILTER", "FX1": "CHORUS", "FX2": "REVERB"},
+        {"SRC": {"MODEL": "STR MACH", "HARMO": 0.4, "TIMBRE": 0.3, "MORPH": 0.5},
+         "SHP": {"TYPE": "LP", "CUTOFF": 0.5, "RESO": 0.08, "DRIVE": 0.15, "KEY TRK": 0.5, "ENV SRC": "AMP",
+                 "SAT": "SOFT"},
+         "FX1": CHOR(0.3, 0.3, 0.15), "FX2": HALL(0.4, 0.92)},
+        {**tex, "ATTACK": 0.7, "RELEASE": 0.85, "LEVEL": 0.5},
+        [("SHP.CUTOFF", 0.35), ("SRC.TIMBRE", 0.3), ("FX 2.MIX", 0.3), ("AMP.ATTACK", 0.3)],
+        [["LFO 1", "SHP.CUTOFF", 0.04]], lfo={"SHAPE 1": "DRIFT", "RATE 1": 0.08}, fm1_voices=4))
+    a(P("CH GLASS BELL", {"SRC": "PLAITS", "FX1": "DELAY", "FX2": "REVERB"},
+        {"SRC": {"MODEL": "2OP FM", "HARMO": 0.672, "TIMBRE": 0.18, "MORPH": 0.5, "ENV>TIMB": 0.3, "DECAY": 0.4},
+         "FX1": ECHO("1/4D", 0.35, 0.18), "FX2": HALL(0.3, 0.85)},
+        {"ATTACK": 0.0, "DECAY": 0.85, "SUSTAIN": 0.0, "RELEASE": 0.7, "VEL AMT": 0.6, "SPREAD": 0.6, "LEVEL": 0.6},
+        [("SRC.TIMBRE", 0.35), ("SRC.HARMO", 0.1), ("FX 1.MIX", 0.3), ("FX 2.MIX", 0.3)],
+        [["VELO", "SRC.TIMBRE", 0.15]], fm1_voices=5))
     # pads
     a(P("PD SAW SWARM", {"SRC": "PLAITS", "FX1": "REVERB"},
         {"SRC": {"MODEL": "SWARM", "HARMO": 0.4, "TIMBRE": 0.4, "MORPH": 0.35}, "FX1": HALL(0.3, 0.8)},

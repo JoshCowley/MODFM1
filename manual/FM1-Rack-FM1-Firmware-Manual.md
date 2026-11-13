@@ -695,7 +695,15 @@ The FM-1 has two processor cores. FM1 Rack shares the voices between them: the f
 
 ## 14. Factory presets
 
-There are 67: 14 keys (CH), 11 basses (BS), 10 leads (LD), 16 pads (PD), 15 textures (FX) and INIT. PRESET steps through INIT, then the basses, leads, pads, keys and textures, and on to your own; ALGORITHM jumps between categories.
+There are 77: 17 keys (CH), 14 basses (BS), 11 leads (LD), 19 pads (PD), 15 textures (FX) and INIT. PRESET steps through INIT, then the basses, leads, pads, keys and textures, and on to your own; ALGORITHM jumps between categories.
+
+**Genre classics** (update 52, marked "new, update 52"):
+
+- **House**: CH HOUSE ORGAN (the percussive organ of 90s house, a 2:1 FM organ with a key click through chorus), CH DEEP STAB (the deep house minor-chord stab: a saw through a resonant low-pass that snaps shut, with a dotted-eighth echo; play a minor 7th or 9th), BS DEEP HOUSE (a round, plucky bass with a short filter envelope).
+- **Drum and bass**: BS REESE (two saws slightly apart, beating, through a driven low-pass that slowly breathes; M2 widens the detune), LD HOOVER (the rave hoover: four detuned saws, a pitch that scoops up into each note, chorus), BS DNB SUB (a gliding sine sub, driven just enough to be heard on small speakers), PD LIQUID (a soft, chorused pad for liquid rollers).
+- **Ambient**: PD AMBIENT WASH (Plaits' swarm into a shimmer hall, drifting), PD FROZEN (a string-machine pad that barely moves, a long hall), CH GLASS BELL (FM at a ratio of pi, so it rings like glass rather than a chime, with echoes).
+
+Reworked in update 52 because they were harsh and thin: CH SOFT PIANO (now a soft hammer into Rings' string), CH MARIMBA (a softer mallet and a filter that follows the keys and velocity), CH HARP (Braids' pluck into Rings' string), FX SINGING BOWL (Rings' FM voice struck softly, with a slow chorus beating against it).
 
 Every preset:
 
@@ -703,44 +711,50 @@ Every preset:
 - responds to velocity in level and tone;
 - is matched in loudness to the others, so you can switch without touching MASTER. The struck ones (CH MARIMBA, CH MUSIC BOX, FX CHIMES, FX GLASS RAIN) are a little quieter: their peaks reach the limiter first.
 
-The Voices column gives how many notes each plays at once on the FM-1 (mono, legato and unison presets play one key at a time). Ten presets, marked new, are the FM-1's own; the other 57 are shared with the browser version, though the FM-1 plays some with fewer voices or lighter modules so that every one fits the processor.
+The Voices column gives how many notes each plays at once on the FM-1 (mono, legato and unison presets play one key at a time). Twenty presets, marked new, are the FM-1's own; the other 57 are shared with the browser version, though the FM-1 plays some with fewer voices or lighter modules so that every one fits the processor.
 
-### Keys (CH, 14)
+### Keys (CH, 17)
 
 | Preset | Built from | Voices | M1 · M2 · M3 · M4 |
 | --- | --- | --- | --- |
 | CH ROUND EP | Plaits 2OP FM · chorus, plate reverb | 5 | SRC.TIMBRE · SRC.MORPH · FX 1.MIX · FX 2.MIX |
-| CH BRIGHT EP | Plaits 2OP FM · chorus, delay | 5 | SRC.TIMBRE · SRC.MORPH · FX 1.MIX · FX 2.MIX |
-| CH SOFT PIANO | Plaits MODAL · hall reverb | 5 | SRC.TIMBRE · SRC.HARMO · FX 1.MIX · SRC.MORPH |
-| CH MARIMBA | Plaits MODAL · plate reverb | 4 | SRC.TIMBRE · SRC.HARMO · FX 1.MIX · SRC.MORPH |
+| CH BRIGHT EP | Plaits 2OP FM · chorus, delay | 6 | SRC.TIMBRE · SRC.MORPH · FX 1.MIX · FX 2.MIX |
+| CH SOFT PIANO | Plaits 2OP FM, Rings STRING · hall reverb | 4 | SHP.BRIGHT · SHP.DAMPING · FX 1.MIX · SHP.POSITION |
+| CH MARIMBA | Plaits MODAL, filter LP · plate reverb | 5 | SRC.TIMBRE · SHP.CUTOFF · FX 1.MIX · SRC.MORPH |
 | CH VIBES | Plaits 2OP FM · chorus, hall reverb | 5 | SRC.TIMBRE · FX 1.DEPTH · FX 2.MIX · AMP.DECAY |
 | CH DRAWBAR | Plaits ADDITIVE · chorus | 4 | SRC.TIMBRE · SRC.MORPH · FX 1.RATE · FX 1.DEPTH |
 | CH POLY SYNTH | Braids CSAW, filter LP · chorus, plate reverb | 6 | SHP.CUTOFF · SHP.RESO · FX 1.MIX · SHP.F DEC |
 | CH NYLON | Plaits STRING · hall reverb | 5 | SRC.TIMBRE · SRC.MORPH · FX 1.MIX · SRC.HARMO |
-| CH HARP | Braids PLUK · delay, hall reverb | 6 | SRC.TIMBRE · SRC.COLOR · FX 1.MIX · FX 2.MIX |
+| CH HARP | Braids PLUK, Rings STRING · hall reverb | 4 | SHP.BRIGHT · SHP.DAMPING · FX 1.MIX · SHP.POSITION |
 | CH CLAV | Plaits WAVESHP, filter LP · chorus | 6 | SHP.CUTOFF · SRC.TIMBRE · FX 1.MIX · SHP.RESO |
 | CH MUSIC BOX | Plaits MODAL · delay, hall reverb | 4 | SRC.TIMBRE · SRC.HARMO · FX 1.MIX · FX 2.MIX |
 | CH KOTO | Braids PLUK, Rings STRING · plate reverb | 6 | SHP.BRIGHT · SHP.POSITION · FX 1.MIX · SHP.DAMPING |
 | CH SYNTH PLUCK (new) | Braids //-_, filter LP · delay, plate reverb | 6 | SHP.CUTOFF · SHP.F DEC · FX 1.MIX · SHP.RESO |
 | CH REED KEYS (new) | Plaits WAVESHP · chorus, plate reverb | 6 | SRC.TIMBRE · LFO.RATE 2 · FX 2.MIX · SRC.ENV>TIMB |
+| CH HOUSE ORGAN (new, update 52) | Plaits 2OP FM, filter LP · chorus, plate reverb | 5 | SRC.TIMBRE · SHP.CUTOFF · FX 1.MIX · SRC.MORPH |
+| CH DEEP STAB (new, update 52) | Plaits VA VCF, filter LP24 · delay, plate reverb | 5 | SHP.CUTOFF · SHP.ENV AMT · FX 1.MIX · SHP.RESO |
+| CH GLASS BELL (new, update 52) | Plaits 2OP FM · delay, hall reverb | 5 | SRC.TIMBRE · SRC.HARMO · FX 1.MIX · FX 2.MIX |
 
-### Bass (BS, 11)
+### Bass (BS, 14)
 
 | Preset | Built from | Voices | M1 · M2 · M3 · M4 |
 | --- | --- | --- | --- |
-| BS ROUND SUB | Plaits VA VCF, filter LP24 · OSC sub | legato | SHP.CUTOFF · SHP.RESO · SHP.ENV AMT · AMP.GLIDE |
-| BS ANALOG | Braids CSAW, filter LP24 · chorus · OSC sub | legato | SHP.CUTOFF · SHP.RESO · SHP.ENV AMT · SHP.F DEC |
+| BS ROUND SUB | Plaits VA VCF, filter LP24 · OSC sub | legato | SHP.CUTOFF · SHP.ENV AMT · SHP.DRIVE · AMP.GLIDE |
+| BS ANALOG | Braids CSAW, filter LP24 · OSC sub | legato | SHP.CUTOFF · SHP.RESO · SHP.ENV AMT · SHP.F DEC |
 | BS ACID | Braids //-_, filter LP · delay | legato | SHP.CUTOFF · SHP.RESO · SHP.ENV AMT · SHP.F DEC |
-| BS PICKED | Plaits 2OP FM, filter LP | mono | SHP.CUTOFF · SRC.TIMBRE · SRC.MORPH · AMP.DECAY |
-| BS FINGER | Plaits STRING, filter LP · chorus · OSC sub | mono | SHP.CUTOFF · SRC.TIMBRE · SRC.MORPH · SHP.DRIVE |
+| BS PICKED | Plaits 2OP FM, filter LP · OSC sub | mono | SHP.CUTOFF · SRC.TIMBRE · SRC.MORPH · AMP.DECAY |
+| BS FINGER | Plaits STRING, filter LP · OSC sub | mono | SHP.CUTOFF · SRC.TIMBRE · SRC.MORPH · SHP.DRIVE |
 | BS PULSE | Plaits VA VCF, filter LP24 · OSC sub | legato | SHP.CUTOFF · SRC.MORPH · SHP.ENV AMT · SHP.RESO |
-| BS WARM MOOG | Plaits PAIR VA, filter LP24 | legato | SHP.CUTOFF · SHP.RESO · SHP.DRIVE · AMP.GLIDE |
-| BS DUB SINE | Plaits ADDITIVE · delay · OSC sub | legato | SRC.TIMBRE · SRC.HARMO · FX 1.MIX · AMP.GLIDE |
-| BS SOFT KEYS | Plaits WAVESHP · chorus | mono | SRC.TIMBRE · SRC.MORPH · FX 1.MIX · SRC.HARMO |
-| BS SUB BOOM (new) | Plaits BASS DR | mono | SRC.TIMBRE · SRC.HARMO · SRC.MORPH · AMP.RELEASE |
+| BS WARM MOOG | Plaits PAIR VA, filter LP24 · OSC sub | legato | SHP.CUTOFF · SHP.RESO · SHP.DRIVE · AMP.GLIDE |
+| BS DUB SINE | Plaits 2OP FM, filter LP · delay · OSC sub | legato | SRC.TIMBRE · SHP.DRIVE · FX 1.MIX · AMP.GLIDE |
+| BS SOFT KEYS | Plaits WAVESHP, filter LP · OSC sub | mono | SRC.TIMBRE · SRC.MORPH · SHP.CUTOFF · SRC.HARMO |
+| BS SUB BOOM (new) | Plaits BASS DR, filter LP · OSC sub | mono | SRC.TIMBRE · SRC.HARMO · SHP.DRIVE · AMP.RELEASE |
 | BS WOBBLE (new) | Braids //-_, filter LP24, FUNC · OSC sub | legato | SHP.CUTOFF · MOD A.LVL 4 · SHP.RESO · MOD A.FALL 4 |
+| BS DEEP HOUSE (new, update 52) | Plaits VA VCF, filter LP24 · OSC sub | legato | SHP.CUTOFF · SHP.ENV AMT · SHP.DRIVE · AMP.GLIDE |
+| BS REESE (new, update 52) | Braids CSAW, filter LP24 · chorus | unison 2 | SHP.CUTOFF · AMP.DETUNE · SHP.DRIVE · SHP.RESO |
+| BS DNB SUB (new, update 52) | Plaits 2OP FM, filter LP | legato | SHP.DRIVE · SRC.TIMBRE · AMP.GLIDE · SHP.CUTOFF |
 
-### Lead (LD, 10)
+### Lead (LD, 11)
 
 | Preset | Built from | Voices | M1 · M2 · M3 · M4 |
 | --- | --- | --- | --- |
@@ -754,8 +768,9 @@ The Voices column gives how many notes each plays at once on the FM-1 (mono, leg
 | LD BOWED | Braids BOWD, Rings STRING · hall reverb | legato | SHP.BRIGHT · SRC.TIMBRE · FX 1.MIX · SHP.MIX |
 | LD UNISON | Braids CSAW, filter LP · delay, plate reverb | unison 4 | SHP.CUTOFF · SHP.RESO · FX 1.MIX · AMP.GLIDE |
 | LD PHASE SWEEP (new) | Plaits PHASE D, FUNC · delay, plate reverb | legato | SRC.TIMBRE · MOD A.FALL 1 · FX 1.MIX · AMP.GLIDE |
+| LD HOOVER (new, update 52) | Braids CSAW, filter LP · chorus, plate reverb | unison 4 | SHP.CUTOFF · AMP.DETUNE · FX 1.MIX · AMP.GLIDE |
 
-### Pads (PD, 16)
+### Pads (PD, 19)
 
 | Preset | Built from | Voices | M1 · M2 · M3 · M4 |
 | --- | --- | --- | --- |
@@ -772,6 +787,9 @@ The Voices column gives how many notes each plays at once on the FM-1 (mono, leg
 | PD DARK | Braids CSAW, filter LP24 · hall reverb | 6 | SHP.CUTOFF · SHP.RESO · FX 1.MIX · AMP.ATTACK |
 | PD ORGAN AIR | Plaits ADDITIVE · chorus, delay · OSC sub | 4 | SRC.TIMBRE · SRC.MORPH · FX 2.MIX · AMP.ATTACK |
 | PD BELL PAD | Plaits 2OP FM · chorus, hall reverb | 5 | SRC.TIMBRE · SRC.HARMO · FX 2.MIX · AMP.ATTACK |
+| PD LIQUID (new, update 52) | Plaits VA VCF, filter LP · chorus, hall reverb | 5 | SHP.CUTOFF · AMP.ATTACK · FX 2.MIX · SRC.TIMBRE |
+| PD AMBIENT WASH (new, update 52) | Plaits SWARM · chorus, shimmer reverb | 4 | SRC.TIMBRE · SRC.MORPH · FX 2.MIX · FX 2.SHIMMER |
+| PD FROZEN (new, update 52) | Plaits STR MACH, filter LP · chorus, hall reverb | 4 | SHP.CUTOFF · SRC.TIMBRE · FX 2.MIX · AMP.ATTACK |
 | PD SAW SWARM (new) | Plaits SWARM · hall reverb | 5 | SRC.TIMBRE · SRC.MORPH · FX 1.MIX · AMP.ATTACK |
 | PD TEMPO GATE (new) | Braids CSAW, filter LP, FUNC · chorus, hall reverb | 6 | SHP.CUTOFF · MOD A.FALL 1 · FX 2.MIX · SHP.RESO |
 | PD SLOW BLOOM (new) | Braids //x3, filter LP, FUNC · chorus, hall reverb | 5 | SHP.CUTOFF · MOD A.RISE 1 · FX 2.MIX · SHP.RESO |
@@ -790,11 +808,12 @@ The Voices column gives how many notes each plays at once on the FM-1 (mono, leg
 | FX ECHO KEYS | Plaits 2OP FM · delay, hall reverb | 4 | SRC.TIMBRE · FX 1.FEEDBACK · FX 1.MIX · FX 1.WOW |
 | FX CHORD DRIFT | Plaits CHORDS · chorus, hall reverb | 3 | SRC.HARMO · SRC.TIMBRE · FX 2.MIX · SRC.MORPH |
 | FX TIDAL WASH | Braids CSAW, filter LP, Tides · chorus, hall reverb | 6 | SHP.CUTOFF · SHP.RESO · FX 2.MIX · MOD A.FREQ |
-| FX SINGING BOWL | Plaits MODAL · hall reverb | 4 | SRC.HARMO · SRC.TIMBRE · FX 1.MIX · SRC.MORPH |
+| FX SINGING BOWL | Plaits 2OP FM, Rings FM VOICE · chorus, hall reverb | 3 | SHP.STRUCT · SHP.BRIGHT · FX 2.MIX · SHP.DAMPING |
 | FX DEEP DRONE | Braids SUB-, filter LP24 · chorus, hall reverb | 6 | SHP.CUTOFF · SHP.RESO · FX 2.MIX · SRC.TIMBRE |
 | FX GLASS RAIN | Plaits WAVETBL, Peaks · delay, shimmer reverb | 4 | SRC.MORPH · SRC.TIMBRE · FX 1.FEEDBACK · FX 2.MIX |
 | FX BOUNCE (new) | Plaits WAVESHP, FUNC · delay, hall reverb | 5 | SRC.TIMBRE · MOD A.FALL 1 · FX 2.MIX · MOD A.FALL 4 |
 | FX SPEAK (new) | Plaits SPEECH, FUNC · delay | 4 | SRC.TIMBRE · SRC.HARMO · FX 1.MIX · MOD A.RISE 1 |
+
 
 ## 15. Troubleshooting
 

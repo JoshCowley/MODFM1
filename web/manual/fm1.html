@@ -944,15 +944,22 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <li><strong>What costs most</strong>: Plaits voices cost more than Braids voices, and the reverb and Rings are the heaviest modules. The reverb and the delay also use the most memory, so presets with both may get fewer voices. Switching an effect off (section 10) frees its time.</li>
 </ul>
 <h2 id="14-factory-presets">14. Factory presets</h2>
-<p>There are 67: 14 keys (CH), 11 basses (BS), 10 leads (LD), 16 pads (PD), 15 textures (FX) and INIT. PRESET steps through INIT, then the basses, leads, pads, keys and textures, and on to your own; ALGORITHM jumps between categories.</p>
+<p>There are 77: 17 keys (CH), 14 basses (BS), 11 leads (LD), 19 pads (PD), 15 textures (FX) and INIT. PRESET steps through INIT, then the basses, leads, pads, keys and textures, and on to your own; ALGORITHM jumps between categories.</p>
+<p><strong>Genre classics</strong> (update 52, marked "new, update 52"):</p>
+<ul>
+<li><strong>House</strong>: CH HOUSE ORGAN (the percussive organ of 90s house, a 2:1 FM organ with a key click through chorus), CH DEEP STAB (the deep house minor-chord stab: a saw through a resonant low-pass that snaps shut, with a dotted-eighth echo; play a minor 7th or 9th), BS DEEP HOUSE (a round, plucky bass with a short filter envelope).</li>
+<li><strong>Drum and bass</strong>: BS REESE (two saws slightly apart, beating, through a driven low-pass that slowly breathes; M2 widens the detune), LD HOOVER (the rave hoover: four detuned saws, a pitch that scoops up into each note, chorus), BS DNB SUB (a gliding sine sub, driven just enough to be heard on small speakers), PD LIQUID (a soft, chorused pad for liquid rollers).</li>
+<li><strong>Ambient</strong>: PD AMBIENT WASH (Plaits' swarm into a shimmer hall, drifting), PD FROZEN (a string-machine pad that barely moves, a long hall), CH GLASS BELL (FM at a ratio of pi, so it rings like glass rather than a chime, with echoes).</li>
+</ul>
+<p>Reworked in update 52 because they were harsh and thin: CH SOFT PIANO (now a soft hammer into Rings' string), CH MARIMBA (a softer mallet and a filter that follows the keys and velocity), CH HARP (Braids' pluck into Rings' string), FX SINGING BOWL (Rings' FM voice struck softly, with a slow chorus beating against it).</p>
 <p>Every preset:</p>
 <ul>
 <li>has four macros that start in the middle (the M1–M4 column below says what each moves);</li>
 <li>responds to velocity in level and tone;</li>
 <li>is matched in loudness to the others, so you can switch without touching MASTER. The struck ones (CH MARIMBA, CH MUSIC BOX, FX CHIMES, FX GLASS RAIN) are a little quieter: their peaks reach the limiter first.</li>
 </ul>
-<p>The Voices column gives how many notes each plays at once on the FM-1 (mono, legato and unison presets play one key at a time). Ten presets, marked new, are the FM-1's own; the other 57 are shared with the browser version, though the FM-1 plays some with fewer voices or lighter modules so that every one fits the processor.</p>
-<h3 id="keys-ch-14">Keys (CH, 14)</h3>
+<p>The Voices column gives how many notes each plays at once on the FM-1 (mono, legato and unison presets play one key at a time). Twenty presets, marked new, are the FM-1's own; the other 57 are shared with the browser version, though the FM-1 plays some with fewer voices or lighter modules so that every one fits the processor.</p>
+<h3 id="keys-ch-17">Keys (CH, 17)</h3>
 <table>
 <thead>
 <tr class="header">
@@ -972,20 +979,20 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <tr class="even">
 <td>CH BRIGHT EP</td>
 <td>Plaits 2OP FM · chorus, delay</td>
-<td>5</td>
+<td>6</td>
 <td>SRC.TIMBRE · SRC.MORPH · FX 1.MIX · FX 2.MIX</td>
 </tr>
 <tr class="odd">
 <td>CH SOFT PIANO</td>
-<td>Plaits MODAL · hall reverb</td>
-<td>5</td>
-<td>SRC.TIMBRE · SRC.HARMO · FX 1.MIX · SRC.MORPH</td>
+<td>Plaits 2OP FM, Rings STRING · hall reverb</td>
+<td>4</td>
+<td>SHP.BRIGHT · SHP.DAMPING · FX 1.MIX · SHP.POSITION</td>
 </tr>
 <tr class="even">
 <td>CH MARIMBA</td>
-<td>Plaits MODAL · plate reverb</td>
-<td>4</td>
-<td>SRC.TIMBRE · SRC.HARMO · FX 1.MIX · SRC.MORPH</td>
+<td>Plaits MODAL, filter LP · plate reverb</td>
+<td>5</td>
+<td>SRC.TIMBRE · SHP.CUTOFF · FX 1.MIX · SRC.MORPH</td>
 </tr>
 <tr class="odd">
 <td>CH VIBES</td>
@@ -1013,9 +1020,9 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </tr>
 <tr class="odd">
 <td>CH HARP</td>
-<td>Braids PLUK · delay, hall reverb</td>
-<td>6</td>
-<td>SRC.TIMBRE · SRC.COLOR · FX 1.MIX · FX 2.MIX</td>
+<td>Braids PLUK, Rings STRING · hall reverb</td>
+<td>4</td>
+<td>SHP.BRIGHT · SHP.DAMPING · FX 1.MIX · SHP.POSITION</td>
 </tr>
 <tr class="even">
 <td>CH CLAV</td>
@@ -1047,9 +1054,27 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <td>6</td>
 <td>SRC.TIMBRE · LFO.RATE 2 · FX 2.MIX · SRC.ENV&gt;TIMB</td>
 </tr>
+<tr class="odd">
+<td>CH HOUSE ORGAN (new, update 52)</td>
+<td>Plaits 2OP FM, filter LP · chorus, plate reverb</td>
+<td>5</td>
+<td>SRC.TIMBRE · SHP.CUTOFF · FX 1.MIX · SRC.MORPH</td>
+</tr>
+<tr class="even">
+<td>CH DEEP STAB (new, update 52)</td>
+<td>Plaits VA VCF, filter LP24 · delay, plate reverb</td>
+<td>5</td>
+<td>SHP.CUTOFF · SHP.ENV AMT · FX 1.MIX · SHP.RESO</td>
+</tr>
+<tr class="odd">
+<td>CH GLASS BELL (new, update 52)</td>
+<td>Plaits 2OP FM · delay, hall reverb</td>
+<td>5</td>
+<td>SRC.TIMBRE · SRC.HARMO · FX 1.MIX · FX 2.MIX</td>
+</tr>
 </tbody>
 </table>
-<h3 id="bass-bs-11">Bass (BS, 11)</h3>
+<h3 id="bass-bs-14">Bass (BS, 14)</h3>
 <table>
 <thead>
 <tr class="header">
@@ -1064,11 +1089,11 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <td>BS ROUND SUB</td>
 <td>Plaits VA VCF, filter LP24 · OSC sub</td>
 <td>legato</td>
-<td>SHP.CUTOFF · SHP.RESO · SHP.ENV AMT · AMP.GLIDE</td>
+<td>SHP.CUTOFF · SHP.ENV AMT · SHP.DRIVE · AMP.GLIDE</td>
 </tr>
 <tr class="even">
 <td>BS ANALOG</td>
-<td>Braids CSAW, filter LP24 · chorus · OSC sub</td>
+<td>Braids CSAW, filter LP24 · OSC sub</td>
 <td>legato</td>
 <td>SHP.CUTOFF · SHP.RESO · SHP.ENV AMT · SHP.F DEC</td>
 </tr>
@@ -1080,13 +1105,13 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </tr>
 <tr class="even">
 <td>BS PICKED</td>
-<td>Plaits 2OP FM, filter LP</td>
+<td>Plaits 2OP FM, filter LP · OSC sub</td>
 <td>mono</td>
 <td>SHP.CUTOFF · SRC.TIMBRE · SRC.MORPH · AMP.DECAY</td>
 </tr>
 <tr class="odd">
 <td>BS FINGER</td>
-<td>Plaits STRING, filter LP · chorus · OSC sub</td>
+<td>Plaits STRING, filter LP · OSC sub</td>
 <td>mono</td>
 <td>SHP.CUTOFF · SRC.TIMBRE · SRC.MORPH · SHP.DRIVE</td>
 </tr>
@@ -1098,27 +1123,27 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </tr>
 <tr class="odd">
 <td>BS WARM MOOG</td>
-<td>Plaits PAIR VA, filter LP24</td>
+<td>Plaits PAIR VA, filter LP24 · OSC sub</td>
 <td>legato</td>
 <td>SHP.CUTOFF · SHP.RESO · SHP.DRIVE · AMP.GLIDE</td>
 </tr>
 <tr class="even">
 <td>BS DUB SINE</td>
-<td>Plaits ADDITIVE · delay · OSC sub</td>
+<td>Plaits 2OP FM, filter LP · delay · OSC sub</td>
 <td>legato</td>
-<td>SRC.TIMBRE · SRC.HARMO · FX 1.MIX · AMP.GLIDE</td>
+<td>SRC.TIMBRE · SHP.DRIVE · FX 1.MIX · AMP.GLIDE</td>
 </tr>
 <tr class="odd">
 <td>BS SOFT KEYS</td>
-<td>Plaits WAVESHP · chorus</td>
+<td>Plaits WAVESHP, filter LP · OSC sub</td>
 <td>mono</td>
-<td>SRC.TIMBRE · SRC.MORPH · FX 1.MIX · SRC.HARMO</td>
+<td>SRC.TIMBRE · SRC.MORPH · SHP.CUTOFF · SRC.HARMO</td>
 </tr>
 <tr class="even">
 <td>BS SUB BOOM (new)</td>
-<td>Plaits BASS DR</td>
+<td>Plaits BASS DR, filter LP · OSC sub</td>
 <td>mono</td>
-<td>SRC.TIMBRE · SRC.HARMO · SRC.MORPH · AMP.RELEASE</td>
+<td>SRC.TIMBRE · SRC.HARMO · SHP.DRIVE · AMP.RELEASE</td>
 </tr>
 <tr class="odd">
 <td>BS WOBBLE (new)</td>
@@ -1126,9 +1151,27 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <td>legato</td>
 <td>SHP.CUTOFF · MOD A.LVL 4 · SHP.RESO · MOD A.FALL 4</td>
 </tr>
+<tr class="even">
+<td>BS DEEP HOUSE (new, update 52)</td>
+<td>Plaits VA VCF, filter LP24 · OSC sub</td>
+<td>legato</td>
+<td>SHP.CUTOFF · SHP.ENV AMT · SHP.DRIVE · AMP.GLIDE</td>
+</tr>
+<tr class="odd">
+<td>BS REESE (new, update 52)</td>
+<td>Braids CSAW, filter LP24 · chorus</td>
+<td>unison 2</td>
+<td>SHP.CUTOFF · AMP.DETUNE · SHP.DRIVE · SHP.RESO</td>
+</tr>
+<tr class="even">
+<td>BS DNB SUB (new, update 52)</td>
+<td>Plaits 2OP FM, filter LP</td>
+<td>legato</td>
+<td>SHP.DRIVE · SRC.TIMBRE · AMP.GLIDE · SHP.CUTOFF</td>
+</tr>
 </tbody>
 </table>
-<h3 id="lead-ld-10">Lead (LD, 10)</h3>
+<h3 id="lead-ld-11">Lead (LD, 11)</h3>
 <table>
 <thead>
 <tr class="header">
@@ -1199,9 +1242,15 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <td>legato</td>
 <td>SRC.TIMBRE · MOD A.FALL 1 · FX 1.MIX · AMP.GLIDE</td>
 </tr>
+<tr class="odd">
+<td>LD HOOVER (new, update 52)</td>
+<td>Braids CSAW, filter LP · chorus, plate reverb</td>
+<td>unison 4</td>
+<td>SHP.CUTOFF · AMP.DETUNE · FX 1.MIX · AMP.GLIDE</td>
+</tr>
 </tbody>
 </table>
-<h3 id="pads-pd-16">Pads (PD, 16)</h3>
+<h3 id="pads-pd-19">Pads (PD, 19)</h3>
 <table>
 <thead>
 <tr class="header">
@@ -1291,18 +1340,36 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 <td>SRC.TIMBRE · SRC.HARMO · FX 2.MIX · AMP.ATTACK</td>
 </tr>
 <tr class="even">
+<td>PD LIQUID (new, update 52)</td>
+<td>Plaits VA VCF, filter LP · chorus, hall reverb</td>
+<td>5</td>
+<td>SHP.CUTOFF · AMP.ATTACK · FX 2.MIX · SRC.TIMBRE</td>
+</tr>
+<tr class="odd">
+<td>PD AMBIENT WASH (new, update 52)</td>
+<td>Plaits SWARM · chorus, shimmer reverb</td>
+<td>4</td>
+<td>SRC.TIMBRE · SRC.MORPH · FX 2.MIX · FX 2.SHIMMER</td>
+</tr>
+<tr class="even">
+<td>PD FROZEN (new, update 52)</td>
+<td>Plaits STR MACH, filter LP · chorus, hall reverb</td>
+<td>4</td>
+<td>SHP.CUTOFF · SRC.TIMBRE · FX 2.MIX · AMP.ATTACK</td>
+</tr>
+<tr class="odd">
 <td>PD SAW SWARM (new)</td>
 <td>Plaits SWARM · hall reverb</td>
 <td>5</td>
 <td>SRC.TIMBRE · SRC.MORPH · FX 1.MIX · AMP.ATTACK</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>PD TEMPO GATE (new)</td>
 <td>Braids CSAW, filter LP, FUNC · chorus, hall reverb</td>
 <td>6</td>
 <td>SHP.CUTOFF · MOD A.FALL 1 · FX 2.MIX · SHP.RESO</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>PD SLOW BLOOM (new)</td>
 <td>Braids //x3, filter LP, FUNC · chorus, hall reverb</td>
 <td>5</td>
@@ -1383,9 +1450,9 @@ python3 ~/fm1-base/tools/fm1_install.py fm1rack.fwsc</code></pre>
 </tr>
 <tr class="odd">
 <td>FX SINGING BOWL</td>
-<td>Plaits MODAL · hall reverb</td>
-<td>4</td>
-<td>SRC.HARMO · SRC.TIMBRE · FX 1.MIX · SRC.MORPH</td>
+<td>Plaits 2OP FM, Rings FM VOICE · chorus, hall reverb</td>
+<td>3</td>
+<td>SHP.STRUCT · SHP.BRIGHT · FX 2.MIX · SHP.DAMPING</td>
 </tr>
 <tr class="even">
 <td>FX DEEP DRONE</td>
