@@ -86,7 +86,7 @@ These steps come from fm1-base and Felucca. None has been needed with FM1 Rack s
 
 ### Buttons
 
-Each page button opens its first page; tap it again for its next page, and after the last it comes back to the first. A button counts as held only after 0.6 s, so a quick press is never taken for a hold.
+Each page button opens its first page. **Tap it again to turn through that page's pages** (the dots in the header), one tap a dot; after the last dot (a module's MOD page counts as one) the next tap goes on to the button's next page, and after the last it comes back to the first (update 51). SELECT still turns the dots either way. A button counts as held only after 0.6 s, so a quick press is never taken for a hold.
 
 | Button | Tap | Tap again | Hold, or two or three quick taps |
 | --- | --- | --- | --- |
@@ -140,18 +140,20 @@ Every page has the same frame, top to bottom.
     - **RAM**: how much of the sound memory the preset uses;
     - the octave (**O+1** and so on; green while keys are held);
     - the output meter (red near clipping).
-- **The header**: the page's tag in its colour, the page's name, and a dot for each page within it.
+- **The header**: the page's tag, outlined, the page's name, and a dot for each page within it.
+
+**The look** (update 51): neutral greys, the pictures drawn in ivory, and colour kept for what it means: the four knobs, the playing pages' faint tints (SEL sage, ARP sky, SEQ rose), and warnings. The type is IBM Plex Sans Condensed (SIL Open Font License), lighter than before; lines are thin, with a faint halo.
 - **The picture**: a moving picture of what the page does to the sound: the source's wave, the filter's curve, the envelope, the LFO shapes, Rings' ripples, the delay's repeats. It fills most of every page that has one (update 50: the sliders below gave it more room). GLOBAL › ANIMATION sets it to full, calm or still.
 - **The sliders** (update 50, replacing the round dials): one per knob along the bottom, each with its knob's number and name, the value in large type, and a slider underneath.
     - An amount (cutoff, level, time) fills the slider in its knob's colour; a bipolar one (+/-) fills from the middle.
     - A choice is not an amount: a choice of two (ON/OFF, INT/EXT) is a switch; a short list or a small whole-number range shows a tick for each stop and a block at the one chosen; a list also shows which of how many (**6/24**) beside its name.
-    - **The sliders move with the sound.** While the FM-1 is playing, the filled part of each slider becomes a strip of the actual output: it swings further and gets thicker as the sound gets louder, and flashes towards white on each new hit. Each knob shows the sound at its own zoom (K1 the widest view, K4 the closest), so the four move differently: a held note shimmers, a chord beats, a bass line rolls. The white thumb, your setting, never moves. When the sound stops the sliders go back to plain bars.
+    - **The sliders move with the sound, gently** (update 51). While the FM-1 plays, a slider's filled part warms a little towards ivory as the sound gets louder, a faint halo breathes round it and brightens for a moment on each new hit, and here and there a pixel of it lifts or drops where the sound swings hardest. Each knob reads the sound at its own zoom, so the four ripple differently. Your setting (the white thumb) never moves; when the sound stops they are plain lines again.
 - **The help line**: what the controls do on this page.
-- **Messages** appear for a moment in a light band across the bottom, over the help line, ("SAVED TO U01", "PLAITS 6 V", "CHORDS OFF").
+- **Messages** appear for a moment in a grey band across the bottom, over the help line ("SAVED TO U01", "PLAITS 6 V", "CHORDS OFF").
 
 ### Knob colours
 
-Each knob keeps its colour on every page: **K1 blue, K2 green, K3 white, K4 orange**. The part of the picture a knob moves is drawn in that colour, so turning the green knob moves the green part. For example:
+Each knob keeps its colour on every page, its number drawn in it beside the name: **K1 blue, K2 green, K3 yellow, K4 red**. The part of the picture a knob moves is drawn in that colour, so turning the green knob moves the green part. The sequencer's four sliders take the same colours. For example:
 
 - **AMP**: attack, decay, sustain and release are four coloured segments of the envelope.
 - **The filter**: a dashed line at the cutoff and a dot on the resonance peak.
@@ -159,7 +161,7 @@ Each knob keeps its colour on every page: **K1 blue, K2 green, K3 white, K4 oran
 - **Rings**: the guide rings in STRUCTURE's colour, the ripples in BRIGHTNESS's.
 - **Delay, reverb, chorus**: the repeats in FEEDBACK's colour, the reverb's cloud in SIZE's, the chorus' two lines in RATE's and DEPTH's.
 
-On HOME the macros take the same colours: M1 blue, M2 green, M3 white, M4 orange.
+On HOME the macros take the same colours: M1 blue, M2 green, M3 yellow, M4 red.
 
 ### Modulation on the sliders
 
@@ -821,4 +823,4 @@ The Voices column gives how many notes each plays at once on the FM-1 (mono, leg
 
 ## Credits and licences
 
-FM1 Rack's sound comes from Mutable Instruments' open module code (Émilie Gillet, MIT; Grids GPL-3.0), built for the FM-1 with fm1-base (charlesvestal) on the Felucca platform (GPL-3.0). FUNC is modelled on the behaviour of Make Noise's Maths; it shares no code with it. The rack as a whole is distributed under GPL-3.0, with its source in the MODFM1 repository. This project isn't affiliated with or endorsed by Mutable Instruments, Make Noise or M-VAVE; "Mutable Instruments" is a registered trademark. See the [FM1 Rack Manual](index.html) for the full credits.
+FM1 Rack's sound comes from Mutable Instruments' open module code (Émilie Gillet, MIT; Grids GPL-3.0), built for the FM-1 with fm1-base (charlesvestal) on the Felucca platform (GPL-3.0). FUNC is modelled on the behaviour of Make Noise's Maths; it shares no code with it. The screen's typeface is IBM Plex Sans Condensed (© IBM Corp., SIL Open Font License 1.1; firmware/fm1/rack/fonts/). The rack as a whole is distributed under GPL-3.0, with its source in the MODFM1 repository. This project isn't affiliated with or endorsed by Mutable Instruments, Make Noise or M-VAVE; "Mutable Instruments" is a registered trademark. See the [FM1 Rack Manual](index.html) for the full credits.

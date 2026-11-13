@@ -33,15 +33,6 @@ static void seq_delete(void);
 static int sp_lasso_off(void);
 static int32_t cv_text_acc(int32_t x, int32_t y, const felucca_font_t *f, const char *s, uint16_t c);
 #define OSC_P0 24                             /* OSC's first parameter on AMP (engine/rack.cc OSC_WAVE) */
-#define K_OSC RGB(255, 214, 150)
-#define K_AMP RGB(255, 122, 107)
-#define K_LFO RGB(201, 167, 255)
-#define K_MX RGB(255, 210, 122)
-#define K_SEL RGB(36, 35, 30)
-#define K_GLO RGB(216, 215, 211)
-#define K_CHD RGB(155, 227, 122)
-#define K_ARP RGB(127, 214, 255)
-#define K_SEQC RGB(255, 143, 200)
 
 static struct {
     int page, sub, row;                       /* the page, its page within (SELECT), the matrix row */
@@ -154,7 +145,7 @@ static int has_mod_page(int pg) { return pg == PG_AMP || pg == PG_OSC || (pg >= 
 /* the knobs' colours (12 Nov 2026, after Teenage Engineering's colour-linked encoders): K1 blue, K2 green, K3 white,
  * K4 orange, on a page's gauges and on the part of its picture each one moves, so the knob and what it changes on the
  * screen read as one */
-static const uint16_t KNOB_C[4] = {RGB(72, 152, 255), RGB(72, 214, 122), RGB(236, 234, 226), RGB(255, 136, 46)};
+static const uint16_t KNOB_C[4] = {KN1, KN2, KN3, KN4};   /* (update 51: theme.h) */
 static int vk_on, vk_first, vk_n;             /* the picture being drawn: its parameters vk_first.. on K1.. */
 static uint16_t kc(int pi, uint16_t c)        /* parameter pi's knob's colour when it is on the page, else c */
 {
@@ -326,14 +317,14 @@ static const char *src_name(int s)
 static uint16_t src_colour(int s)             /* the colour a modulation source is drawn in, everywhere */
 {
     /* each kind of modulation its own colour, the same on every page (the sliders' halos, the matrix) */
-    if (s >= 1 && s <= 4) return RGB(255, 210, 122);      /* the macros: gold */
-    if (s == 5) return RGB(95, 224, 138);                 /* velocity: green */
-    if (s == 6) return RGB(80, 205, 255);                 /* key tracking: sky blue */
-    if (s == 7) return RGB(242, 239, 230);                /* random: white */
-    if (s == 8 || s == 16) return RGB(255, 122, 107);     /* the envelopes: coral */
-    if (s >= 9 && s <= 12) return RGB(255, 160, 40);      /* MOD A and B's outputs: orange */
-    if (s >= 13 && s <= 15) return RGB(170, 120, 255);    /* the LFOs: violet */
-    if (s >= 17 && s <= 20) return RGB(255, 110, 190);    /* MSEQ's lanes: pink */
+    if (s >= 1 && s <= 4) return MC_MACRO;      /* the macros: gold */
+    if (s == 5) return MC_VEL;                 /* velocity: green */
+    if (s == 6) return MC_KEY;                 /* key tracking: sky blue */
+    if (s == 7) return MC_RAND;                /* random: white */
+    if (s == 8 || s == 16) return MC_ENV;     /* the envelopes: coral */
+    if (s >= 9 && s <= 12) return MC_MOD;      /* MOD A and B's outputs: orange */
+    if (s >= 13 && s <= 15) return MC_LFO;    /* the LFOs: violet */
+    if (s >= 17 && s <= 20) return MC_MSEQ;    /* MSEQ's lanes: pink */
     return K_DIM;
 }
 /* the colour of the first route into (slot, param), 0 none: a dial shows its modulation in it */
@@ -377,8 +368,9 @@ static void header(const char *tag, uint16_t c, const char *title, int ic, int p
     cv_begin(240, 22, K_BAR);                 /* (stage 4: under the status strip, 22 rows) */
     icon(ic, 6, 5, c);
     w = text_w(&FONT_T, tag) + 8;
-    rrect(22, 4, w, 14, c, 3);
-    cv_text(26, 4, &FONT_T, tag, K_BG);
+    rrect(22, 4, w, 14, mix565(c, K_BAR, 90), 3);   /* (update 51) the tag outlined, not a pill of colour */
+    rrect(23, 5, w - 2, 12, K_BAR, 2);
+    cv_text(26, 4, &FONT_T, tag, c);
     cv_text_acc(28 + w, 3, &FONT_B, title, K_FG);
     for (i = 0; i < pages && pages > 1; i++) {
         int32_t x = 232 - (pages - 1 - i) * 9, r = i == sub ? 3 : 2;
@@ -462,12 +454,12 @@ static void cell(int i, const ui_param_t *p, float v, float live, uint16_t mc, u
             cl_lo[k] = 2.0f, cl_hi[k] = -2.0f, cl_prev[k] = -1.0f, cl_e[k] = 0.0f;
     }
     cv_begin(112, CELL_H, K_BG);
-    rrect(0, 0, 112, CELL_H, p ? K_CELL : RGB(10, 10, 9), 4);
+    rrect(0, 0, 112, CELL_H, p ? K_CELL : GREY(9), 4);
     t[0] = (char)('1' + i);
     t[1] = 0;
-    cv_text(6, 2, &FONT_T, t, K_FAINT);
+    cv_text(6, 2, &FONT_T, t, p ? KNOB_C[i] : K_FAINT);
     if (!p) {
-        rrect(8, 52, 96, 4, RGB(20, 20, 19), 2);
+        rrect(8, 52, 96, 4, GREY(19), 2);
         cv_blit((uint32_t)x, (uint32_t)y);
         return;
     }
@@ -589,12 +581,11 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
             cl_lo[k] = 2.0f, cl_hi[k] = -2.0f, cl_prev[k] = -1.0f, cl_e[k] = 0.0f;
     }
     cv_begin(57, G4_H, K_BG);
-    rrect(1, 1, 11, 11, p ? kcol : K_FAINT, 5);   /* the knob's dot and number */
-    t[0] = (char)('1' + i);
+    t[0] = (char)('1' + i);                   /* the knob's number in its colour (update 51: no disc), then its name */
     t[1] = 0;
-    cv_text(7 - text_w(&FONT_T, t) / 2, 0, &FONT_T, t, K_BG);
+    cv_text(2, 0, &FONT_T, t, p ? kcol : K_FAINT);
     if (!p) {
-        rrect(sx, sy, sw, 4, RGB(24, 24, 22), 2);
+        rrect(sx, sy + 1, sw, 2, GREY(23), 1);
         cv_blit(3u + (uint32_t)i * 59u, G4_Y);
         return;
     }
@@ -603,8 +594,8 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
         int k = 0;
         while (p->l[k] && k < 15) { l[k] = p->l[k]; k++; }
         l[k] = 0;
-        while (text_w(&FONT_T, l) > 42 && k > 1) l[--k] = 0;
-        cv_text(15, 0, &FONT_T, l, K_DIM);
+        while (text_w(&FONT_T, l) > 45 && k > 1) l[--k] = 0;
+        cv_text(10, 0, &FONT_T, l, K_DIM);
     }
     f = fm_clampf(frac(p, v), 0.0f, 1.0f);
     lf = fm_clampf(frac(p, live), 0.0f, 1.0f);
@@ -620,9 +611,9 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
     w += 2;                                   /* (where the value ends: a note beside it must start after) */
     if (p->t == UT_LIST && nst == 2) {        /* the switch */
         int on = f > 0.5f;
-        rrect(sx, sy - 4, 22, 12, on ? kcol : K_FAINT, 6);
-        if (!on) rrect(sx + 1, sy - 3, 20, 10, K_BG, 5);
-        rrect(on ? sx + 12 : sx + 2, sy - 2, 8, 8, on ? K_FG : K_DIM, 4);
+        rrect(sx, sy - 3, 20, 10, on ? kcol : K_FAINT, 5);
+        if (!on) rrect(sx + 1, sy - 2, 18, 8, K_BG, 4);
+        rrect(on ? sx + 11 : sx + 2, sy - 1, 7, 6, on ? K_FG : K_DIM, 3);
         cv_blit(3u + (uint32_t)i * 59u, G4_Y);
         return;
     }
@@ -645,7 +636,7 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
         cv_blit(3u + (uint32_t)i * 59u, G4_Y);
         return;
     }
-    rrect(sx, sy, sw, 4, K_FAINT, 2);         /* the track */
+    rrect(sx, sy + 1, sw, 2, K_FAINT, 1);     /* the track (update 51: 2 px, not 4) */
     if (nst >= 3 && nst <= 17) {              /* its stops */
         int k2;
         for (k2 = 0; k2 < nst; k2++)
@@ -659,15 +650,15 @@ static void gauge(int i, const ui_param_t *p, float v, float live, uint16_t mc)
                 wv_idx = i;
                 if (tx > m0) wv_fill(m0, sy, tx - m0, kcol);
                 else if (tx < m0) wv_fill(tx, sy, m0 - tx, kcol);
-                cv_rect(m0, sy - 2, 1, 8, K_DIM);
+                cv_rect(m0, sy - 1, 1, 6, K_DIM);
             } else if (tx > sx) {
                 wv_idx = i;
                 wv_fill(sx, sy, tx - sx, kcol);
             }
         } else {
-            rrect(tx - 4, sy - 3, 9, 10, kcol, 3);   /* the choice: a block at its place */
+            rrect(tx - 3, sy - 1, 7, 6, kcol, 2);   /* the choice: a block at its place */
         }
-        rrect(tx - 2, sy - 4, 5, 12, K_FG, 2);
+        rrect(tx - 1, sy - 3, 3, 10, K_FG, 1);
     }
     if (p->t == UT_LIST && nst > 2) {         /* which of how many */
         char u[12], u2[6];
@@ -1154,7 +1145,7 @@ static void rack_tile(int32_t x, const char *tag, int slot, uint16_t c, const ch
     const ui_mod_t *m = slot >= 0 ? ui_mod(rc_patch.mod[slot]) : 0;
     const char *name = slot >= 0 ? (m ? m->name : 0) : fixed;
     int lost = slot >= 0 && (rk_fm1_status(4) >> slot & 1);
-    rrect(x, 0, 72, 36, name ? RGB(19, 19, 18) : K_WELL, 4);
+    rrect(x, 0, 72, 36, name ? GREY(18) : K_WELL, 4);
     icon(slot >= 0 ? (m ? module_icon(m->id) : IC_EMPTY) : ic, x + 5, 5, lost ? K_WARN : name ? c : K_FAINT);
     cv_text(x + 21, 4, &FONT_T, tag, c);
     cv_text(x + 5, 20, &FONT_T, name ? name : "--", lost ? K_WARN : name ? K_FG : K_DIM);
@@ -1261,6 +1252,23 @@ static void page_button(const uint8_t *cyc, int n)
     for (i = 0; i < n; i++)
         if (cyc[i] == mn.page)
             at = i;
+    if (at >= 0) {                            /* (update 51, after Josh: a menu button pressed again turns its pages)
+                                                 on one of its pages: the next page dot, then the next of its pages */
+        const ui_mod_t *m = page_mod(mn.page);
+        int last = npages(mn.page) - 1;
+        if (has_mod_page(mn.page) && m)
+            last = m->npages;                 /* (the MOD page: one stop, not its four rows) */
+        if (mn.sub < last) {
+            mn.sub = is_mod_sub(mn.page) ? last : mn.sub + 1;
+            ui.redraw = 1;
+            return;
+        }
+        if (n == 1) {                         /* its one page: round to the first dot */
+            mn.sub = 0;
+            ui.redraw = 1;
+            return;
+        }
+    }
     go(cyc[at < 0 ? 0 : (at + 1) % n]);
 }
 

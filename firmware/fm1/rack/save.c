@@ -17,8 +17,8 @@
 #define UP_PER_OBJ 8
 #define NCAT 6
 static const char *const CAT_NAME[NCAT] = {"NONE", "BASS", "PADS", "LEAD", "CHORD", "FX"};
-static const uint16_t CAT_COL[NCAT] = {RGB(125, 122, 114), RGB(255, 179, 71), RGB(106, 169, 255), RGB(255, 143, 200),
-                                       RGB(155, 227, 122), RGB(180, 140, 255)};
+static const uint16_t CAT_COL[NCAT] = {GREY(122), KN4, KN1, K_SEQC,
+                                       KN2, KN3}   /* (update 51: theme.h) */;
 static const char CHARS[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-#.";
 #define NCHARS ((int)sizeof CHARS - 1)
 
@@ -524,12 +524,12 @@ static void draw_save_name(void)
     for (i = 0; i < 10; i++) {
         int32_t x = 11 + i * 22, on = i == sv.cursor;
         char ch[2];
-        rrect(x, 0, 19, 30, on ? RGB(42, 41, 36) : RGB(20, 20, 18), 3);
+        rrect(x, 0, 19, 30, on ? GREY(39) : GREY(19), 3);
         ch[0] = sv.name[i] == ' ' ? '.' : sv.name[i];
         ch[1] = 0;
         cv_text(x + 10 - text_w(&FONT_B, ch) / 2, 4, &FONT_B, ch, sv.name[i] == ' ' ? K_FAINT : on ? K_GOLD : K_FG);
         if (on)
-            cv_rect(x, 32, 19, 2, blink ? K_GOLD : RGB(122, 106, 58));
+            cv_rect(x, 32, 19, 2, blink ? K_GOLD : mix565(K_GOLD, K_BG, 130));
     }
     cv_blit(0, 74);
     for (k = 0; k < 4; k++) {                 /* this page's 16 slots, with names and categories */
@@ -537,7 +537,7 @@ static void draw_save_name(void)
         for (i = 0; i < 4; i++) {
             int u = pg * 16 + k * 4 + i, sel = u == sv.slot;
             int32_t x = 4 + i * 58;
-            rrect(x, 1, 56, 19, us.used[u] ? RGB(34, 33, 29) : RGB(17, 17, 16), 3);
+            rrect(x, 1, 56, 19, us.used[u] ? GREY(32) : GREY(16), 3);
             if (us.used[u])
                 cv_rect(x, 4, 2, 14, CAT_COL[us.cat[u]]);
             if (sel) {
@@ -568,7 +568,7 @@ static void draw_library(void)
     cv_begin(240, 16, K_BG);
     for (i = 0; i < NTABS; i++) {
         int32_t x = 3 + i * 29, on = i == sv.tab;
-        uint16_t c = on ? (i >= LT_BASS && i <= LT_FX ? CAT_COL[i - 1] : K_FG) : RGB(22, 22, 20);
+        uint16_t c = on ? (i >= LT_BASS && i <= LT_FX ? CAT_COL[i - 1] : K_FG) : GREY(21);
         rrect(x, 1, 27, 14, c, 3);
         cv_text(x + 14 - text_w(&FONT_T, TAB_SHORT[i]) / 2, 2, &FONT_T, TAB_SHORT[i], on ? K_BG : K_DIM);
     }
@@ -582,13 +582,13 @@ static void draw_library(void)
         if (e >= 0) {
             int loaded = e == cur_entry;
             if (sel) {
-                rrect(3, 0, 234, 18, RGB(37, 36, 31), 4);
+                rrect(3, 0, 234, 18, GREY(34), 4);
                 cv_rect(3, 0, 2, 18, K_GOLD);
             }
             cv_rect(9, 4, 3, 10, CAT_COL[entry_cat(e)]);
             entry_name(e, t);
             t[19] = 0;
-            cv_text(16, 3, &FONT_T, t, sel ? K_FG : loaded ? K_GOLD : RGB(189, 186, 177));
+            cv_text(16, 3, &FONT_T, t, sel ? K_FG : loaded ? K_GOLD : GREY(184));
             cv_text(232 - text_w(&FONT_T, e >= NPRESETS ? "USER" : "FACT"), 3, &FONT_T, e >= NPRESETS ? "USER" : "FACT",
                     e >= NPRESETS ? K_GOLD : K_DIM);
         } else if (k == 0 && !n) {
@@ -601,7 +601,7 @@ static void draw_library(void)
     {
         int armed = sv.act == 3 && e0 >= NPRESETS && sv.arm == e0 - NPRESETS, used = 0;
         can = e0 >= 0 && (sv.act <= 1 || e0 >= NPRESETS);
-        rrect(4, 2, 76, 18, armed ? K_WARN : can ? RGB(42, 41, 36) : RGB(21, 21, 19), 4);
+        rrect(4, 2, 76, 18, armed ? K_WARN : can ? GREY(39) : GREY(20), 4);
         cv_text(42 - text_w(&FONT_XS, armed ? "CONFIRM" : ACT[sv.act]) / 2, 3, &FONT_XS, armed ? "CONFIRM" : ACT[sv.act],
                 armed ? K_BG : can ? K_GOLD : K_FAINT);
         for (i = 0; i < NUSER; i++)

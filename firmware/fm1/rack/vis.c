@@ -43,12 +43,12 @@ static float vm_sx = 1.0f, vm_sy = 1.0f;
 static int32_t vm_ox, vm_oy;
 static int32_t vmx(int32_t x) { return vm_on ? vm_ox + (int32_t)((float)x * vm_sx + 0.5f) : x; }
 static int32_t vmy(int32_t y) { return vm_on ? vm_oy + (int32_t)((float)y * vm_sy + 0.5f) : y; }
-/* The fine look (update 37): the pictures' bars about half as thick, every shape and line laid over what is under it
- * at about three quarters, with a 1 px halo of its own colour around it. Words, and boxes with words in them
+/* The fine look (update 37; update 51, after Josh: "the lines are too bold"): the pictures' bars about half as thick,
+ * every shape and line laid over what is under it at about three quarters, with a faint 1 px halo (a tenth) around it. Words, and boxes with words in them
  * (vf_keep: the layer boxes, HOME's tabs, the SEL keyboards), keep their size. */
-#define VF_FILL 212u                          /* a shape over what's under it (of 256) */
-#define VF_LINE 232u                          /* a line */
-#define VF_HALO 70u                           /* its halo */
+#define VF_FILL 196u                          /* a shape over what's under it (of 256) */
+#define VF_LINE 218u                          /* a line */
+#define VF_HALO 26u                           /* its halo */
 static int vf_keep;                           /* 1: boxes with words (size kept); 2: drawn as before (the keyboards) */
 static void vf_px(int32_t x, int32_t y, uint16_t c, uint32_t a)   /* canvas coordinates: c over the pixel, a of 256 */
 {
@@ -260,7 +260,7 @@ static void vis_braids(const float *mon, uint16_t c)
     float tim = P(mon, 1), col = P(mon, 2), drift = P(mon, 3), e = env_max(mon), amp = 0.25f + 0.75f * e, t = vis_t();
     int bits = BITS[bi < 0 ? 0 : bi > 6 ? 6 : bi], step = STEP[ri < 0 ? 0 : ri > 5 ? 5 : ri];
     float levels = (float)(1 << (bits < 6 ? bits : 6));
-    static const uint16_t TINT[3] = {0, RGB(255, 217, 160), RGB(255, 143, 90)};
+    static const uint16_t TINT[3] = {0, KN3, KN4};
     int16_t ys[115];
     char lab[24];
     for (s = 2; s >= 0; s--) {
@@ -307,7 +307,7 @@ static void vis_rings(const float *mon, uint16_t c)
             float rad = age * (24.0f + bright * 40.0f) - (float)k * sp;
             if (rad <= 0.0f)
                 continue;
-            ellipse(rx, 21.0f, rad, rad * 0.42f, mix565(k ? RGB(191, 245, 238) : kc(2, c), K_WELL, (uint32_t)(256.0f * a * (1.0f - (float)k / (float)(rings + 1)))));
+            ellipse(rx, 21.0f, rad, rad * 0.42f, mix565(k ? mix565(K_SHP, K_FG, 120) : kc(2, c), K_WELL, (uint32_t)(256.0f * a * (1.0f - (float)k / (float)(rings + 1)))));
         }
     }
     if (model >= 0 && model < 6)

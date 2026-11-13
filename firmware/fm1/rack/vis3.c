@@ -176,17 +176,17 @@ static void vis_sel_chord(uint16_t c)
         for (i = 0; i < 7; i++) {
             int pc = WH[i], x = 4 + (o * 7 + i) * 10, on = pcs >> pc & 1u, sc = in_scale(pc + 60);
             uint32_t g = on ? (uint32_t)(150.0f + 106.0f * fm_expf(-age * 2.5f)) : 0u;
-            uint16_t col = on ? mix565(c, K_WELL, g) : sc ? (pc == key ? RGB(59, 53, 36) : RGB(30, 34, 28)) : RGB(16, 16, 16);
+            uint16_t col = on ? mix565(c, K_WELL, g) : sc ? (pc == key ? mix565(K_GOLD, K_BG, 50) : mix565(K_CHD, K_BG, 30)) : GREY(16);
             rrect(x, 3, 9, 36, col, 2);
             if (!on && sc)
-                cv_rect(x + 3, 33, 3, 3, pc == key ? K_GOLD : RGB(74, 90, 68));
+                cv_rect(x + 3, 33, 3, 3, pc == key ? K_GOLD : mix565(K_CHD, K_BG, 90));
             if (on)
                 dot(x + 4, 33, 1, K_FG);
         }
     for (o = 0; o < 2; o++)
         for (i = 0; i < 5; i++) {
             int pc = BK[i][0], x = 4 + (o * 7 + BK[i][1] + 1) * 10 - 3, on = pcs >> pc & 1u, sc = in_scale(pc + 60);
-            uint16_t col = on ? mix565(c, K_WELL, 220) : sc ? (pc == key ? RGB(90, 74, 38) : RGB(47, 58, 43)) : RGB(5, 5, 5);
+            uint16_t col = on ? mix565(c, K_WELL, 220) : sc ? (pc == key ? mix565(K_GOLD, K_BG, 90) : mix565(K_CHD, K_BG, 60)) : GREY(5);
             rrect(x, 3, 6, 20, col, 2);
         }
     /* the name, a ring as each new chord comes */
@@ -221,7 +221,7 @@ static void vis_sel_keys(uint16_t c)
     for (k = 0; k < NKEYS; k++) {
         int note = 53 + k + 12 * oct, pc = pc12(note), black = pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10;
         int x = 4 + k * 8, q = quantize(note), zk = z && k < 7, held = ui.keys >> k & 1u;
-        uint16_t top = zk ? K_GOLD : black ? RGB(40, 40, 38) : RGB(150, 148, 140);
+        uint16_t top = zk ? K_GOLD : black ? GREY(39) : GREY(146);
         if (held) top = c;
         cv_rect(x, black ? 3 : 2, 7, black ? 8 : 10, zk ? mix565(K_GOLD, K_WELL, 150) : top);
         if (zk)
@@ -296,7 +296,7 @@ static void vis_style(uint16_t c, int sub)
                 char ch = p[i];
                 int hit = ch != '.' && ch != '-';
                 int32_t h = ch == 'R' ? 22 : hit ? 16 : ch == '-' ? 5 : 1;
-                uint16_t col = i == cur ? mix565(K_FG, base, (uint32_t)(255.0f * fl)) : hit || ch == '-' ? mix565(base, K_WELL, ch == '-' ? 110 : 240) : RGB(29, 29, 27);
+                uint16_t col = i == cur ? mix565(K_FG, base, (uint32_t)(255.0f * fl)) : hit || ch == '-' ? mix565(base, K_WELL, ch == '-' ? 110 : 240) : GREY(28);
                 rrect(x0 + i * bw, y + 22 - h, bw > 3 ? bw - 2 : 1, h, col, 1);
             }
         }
@@ -338,7 +338,7 @@ static void vis_arp(uint16_t c)
         int L = AI(A_LOOP) < 1 ? 1 : AI(A_LOOP);
         for (i = 0; i < 16; i++) {
             int on = i < L && ((uint32_t)pa.reg >> (L - 1 - i) & 1u);
-            rrect(4 + i * 14, 2, 11, 8, i >= L ? RGB(14, 14, 13) : on ? mix565(c, K_WELL, (uint32_t)(130.0f + 126.0f * fl)) : RGB(29, 29, 27), 2);
+            rrect(4 + i * 14, 2, 11, 8, i >= L ? GREY(13) : on ? mix565(c, K_WELL, (uint32_t)(130.0f + 126.0f * fl)) : GREY(28), 2);
         }
     }
     if (!n) {
@@ -500,7 +500,7 @@ static void vis_master(uint16_t c)            /* MASTER: the EQ's curve and the 
     cv_text(4, 1, &FONT_T, "LOW", K_DIM);
     cv_text(72, 1, &FONT_T, "MID", K_DIM);
     cv_text(136, 1, &FONT_T, "HIGH", K_DIM);
-    rrect(176, 4, 12, 30, RGB(20, 20, 19), 2);
+    rrect(176, 4, 12, 30, GREY(19), 2);
     if (comp > 0.0f)
         rrect(176, 34 - (int32_t)(comp * 30.0f), 12, (int32_t)(comp * 30.0f) + 1, K_GOLD, 2);
     cv_text(194, 4, &FONT_T, "COMP", K_DIM);
@@ -584,7 +584,7 @@ static void ring_draw(int32_t cx, int32_t cy, int32_t r, uint32_t m, int n, int 
     for (k = 0; k < 48; k++) {                /* the ring itself, faint */
         float a0 = TAU * (float)k / 48.0f, a1 = TAU * (float)(k + 1) / 48.0f;
         vf_line(cx + (int32_t)((float)r * fm_cosf(a0)), cy + (int32_t)((float)r * fm_sinf(a0)),
-                cx + (int32_t)((float)r * fm_cosf(a1)), cy + (int32_t)((float)r * fm_sinf(a1)), RGB(84, 84, 78), 180u);
+                cx + (int32_t)((float)r * fm_cosf(a1)), cy + (int32_t)((float)r * fm_sinf(a1)), GREY(82), 180u);
     }
     for (k = 0; k < n; k++)
         if (m >> k & 1u) { hx[nh] = px[k]; hy[nh] = py[k]; nh++; }
@@ -601,7 +601,7 @@ static void ring_draw(int32_t cx, int32_t cy, int32_t r, uint32_t m, int n, int 
     }
     for (k = 0; k < n; k++) {
         int hit = m >> k & 1u, d = hit ? (big ? 2 : 1) : 0, x, y;
-        uint16_t col = k == cur ? mix565(K_FG, c, (uint32_t)(255.0f * fl)) : hit ? c : RGB(92, 92, 86);
+        uint16_t col = k == cur ? mix565(K_FG, c, (uint32_t)(255.0f * fl)) : hit ? c : GREY(90);
         for (y = -d; y <= d; y++)
             for (x = -d; x <= d; x++)
                 if (x * x + y * y <= d * d + 1)
@@ -626,7 +626,7 @@ static void vis_rhythm(uint16_t c, int sub)
         uint16_t col;
         g = o == 2 ? v : o == 0 ? (v == 0 ? 1 : 0) : (v == 2 ? 1 : 2);   /* the picked one last, on top */
         md = rg_mode(g);
-        col = g == 0 ? K_SRC : g == 1 ? K_CHD : K_ARP;
+        col = g == 0 ? L_BASS : g == 1 ? K_CHD : K_ARP;
         m = rg_ring(g, &n);
         live = md != RM_OFF && (g == 2 ? AI(A_MODE) != AM_OFF : st.on);
         if (rg.seq[g] != vr_seq[g]) { vr_seq[g] = rg.seq[g]; vr_at[g] = now; }
@@ -644,9 +644,9 @@ static void vis_rhythm(uint16_t c, int sub)
         if (md == RM_OFF) cat(t, "OFF");
         else { cat(t, md == RM_STYLE ? "STYLE " : md == RM_SAME ? "SAME " : md == RM_ANS ? "ANSWER " : "RING ");
                int_text(h, u); cat(t, u); cat(t, "/"); int_text(n, u); cat(t, u); }
-        cv_text(126, 22 + g * 6, &FONT_T, t, md == RM_OFF ? K_FAINT : g == v ? (g == 0 ? K_SRC : g == 1 ? K_CHD : K_ARP) : K_DIM);
+        cv_text(126, 22 + g * 6, &FONT_T, t, md == RM_OFF ? K_FAINT : g == v ? (g == 0 ? L_BASS : g == 1 ? K_CHD : K_ARP) : K_DIM);
     }
-    cv_text(126, 1, &FONT_T, GN[v], v == 0 ? K_SRC : v == 1 ? K_CHD : K_ARP);
+    cv_text(126, 1, &FONT_T, GN[v], v == 0 ? L_BASS : v == 1 ? K_CHD : K_ARP);
     t[0] = 0;
     {
         int md = rg_mode(v), n;
@@ -824,7 +824,7 @@ static void vis_osc(uint16_t c)
         for (k = 0; k < 2; k++) {
             float f = k ? lvl : mainl;
             int32_t fx = 176 + k * 26, h = (int32_t)(f * 28.0f);
-            rrect(fx, 4, 10, 30, RGB(20, 20, 19), 2);
+            rrect(fx, 4, 10, 30, GREY(19), 2);
             if (h > 0)
                 rrect(fx, 34 - h, 10, h, k ? c : K_SRC, 2);
             cv_rect(fx - 2, 33 - h, 14, 2, K_FG);

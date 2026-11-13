@@ -27,6 +27,8 @@ wait 900
 shot m_amp.png
 tap EDIT
 wait 400
+turn SELECT -1
+wait 300
 tap EDIT
 wait 900
 shot m_osc.png
@@ -36,14 +38,20 @@ shot m_oscmix.png
 tap LFO
 wait 1200
 shot m_func.png
+turn SELECT -1
+wait 300
 tap LFO
 wait 500
+turn SELECT -1
+wait 300
 tap LFO
 wait 900
 shot m_lfo.png
 turn SELECT 6
 wait 600
 shot m_lfotgt.png
+turn SELECT 2
+wait 300
 tap LFO
 wait 900
 shot m_mseq.png

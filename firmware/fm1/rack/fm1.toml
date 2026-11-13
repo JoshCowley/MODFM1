@@ -14,7 +14,7 @@ cpu2 = true
 cpu2_fallback = true
 # the engine and the Mutable modules as C++ units, at -O2 (for speed: -Os was 36 KB smaller but about 15 % slower, measured 4 Nov 2026; back to -O2 on 8 Nov) with -fdata-sections (unused tables dropped: 46 KB, same code); the rest (unity_opt below) at -Oz, with the FM-1's float flags (build.py adds -mcpu=r3
 # -mfprev1 -ffp-contract=off): units/ is written by make_units.py before each build (gen below)
-gen = ["make_units.py"]
+gen = ["make_units.py", "make_font.py {gen}"]   # (update 51: make_font.py, FM1 Rack's own typeface, over fm1-base's)
 o2 = ["units/*.cc"]
 o2_cflags = ["-std=gnu++11", "-w", "-fbuiltin", "-fno-exceptions", "-fno-rtti", "-DTEST", "-DRACK_FM1", "-DRACK_LITE",
              "-DRACK_ARENA_KB=308", "-DRACK_ARENA_POOL", "-DRACK_RINGS16", "-O2", "-fdata-sections"]

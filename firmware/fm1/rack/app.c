@@ -290,23 +290,7 @@ static void octave_step(int d)
 #define HOLD_MS 600u                          /* a button held this long is a hold: its second function (never a tap) */
 #define EDIT_DOUBLE_MS 300u                   /* two LFO taps this close: the MATRIX */
 #define LEARN_MS 500u                         /* SEL + EDIT held together this long: LEARN on or off */
-#define K_BG RGB(0, 0, 0)
-#define K_FG RGB(242, 239, 230)
-#define K_DIM RGB(172, 168, 158)
-#define K_FAINT RGB(62, 60, 56)
-#define K_WELL RGB(5, 5, 5)
-#define K_GRID RGB(34, 34, 31)
-#define K_MID RGB(48, 48, 45)
-#define K_BAR RGB(17, 17, 16)
-#define K_CELL RGB(22, 22, 21)
-#define K_OFF RGB(26, 26, 24)
-#define K_WARN RGB(255, 107, 94)
-#define K_OK RGB(95, 224, 138)
-#define K_GOLD RGB(255, 210, 122)
-#define K_SRC RGB(255, 179, 71)
-#define K_SHP RGB(79, 209, 197)
-#define K_MOD RGB(180, 140, 255)
-#define K_FX RGB(106, 169, 255)
+#include "theme.h"                           /* the colours (update 51) */
 
 /* a over b, t of the way (0-256), in RGB565 */
 static uint16_t mix565(uint16_t a, uint16_t b, uint32_t t)
@@ -349,12 +333,13 @@ static void vbar(int32_t x, int32_t y, int32_t w, int32_t h, float v, uint16_t c
 /* a slider (after stage 4): a track, the value's fill and a thumb. With a modulation colour mc, a halo in that colour:
  * the range the value has swept lately (lo-hi) glows round the track, the live value fills it, the set value stays
  * as a tick, and the thumb glows; e (0-1, how fast the modulation moves) brightens the glow, so it pulses with it */
-/* (update 50, after Josh: "make the sliders move with the audio, dynamic, to represent the music") The sliders'
- * filled part is a strip of the sound itself: the last moments of the output traced along it, running freely,
- * swinging further and growing thicker as it gets louder, and flashing towards white on each new hit. Each knob reads the sound at its own zoom, so the four move
- * differently. Silent: a plain bar, as before. The set value (the thumb) never moves. */
+/* The sliders and the sound (update 50; update 51, after Josh: "a little over the top: subtle colour hues, halos and
+ * small movements"). While the FM-1 plays, a slider's filled part warms towards ivory as the sound gets louder, a
+ * faint halo breathes round it with the level and brightens for a moment on each new hit, and here and there along
+ * it, where the sound itself swings hardest, a pixel lifts or drops: a ripple, not a trace. Each knob reads the
+ * sound at its own zoom, so the four ripple differently. Silent: a plain line. The thumb (the setting) never moves. */
 static float wv_lvl, wv_slow, wv_flash;       /* the level (fast up, slow down), a slower one, the hit's flash */
-static uint32_t wv_start;                     /* where the strip starts reading: a rising zero crossing */
+static uint32_t wv_start;                     /* where the ripple starts reading */
 static int wv_idx;                            /* the knob being drawn: its zoom */
 static void wv_tick(void)
 {
@@ -369,38 +354,36 @@ static void wv_tick(void)
         r += x * x;
     }
     r = fm_sqrtf(r / 256.0f);
-    wv_lvl += (r - wv_lvl) * (r > wv_lvl ? 0.6f : 0.12f);
-    wv_slow += (r - wv_slow) * 0.05f;
-    if (r > 0.02f && r > wv_slow * 1.5f)
+    wv_lvl += (r - wv_lvl) * (r > wv_lvl ? 0.35f : 0.06f);   /* (slower than update 50's: it breathes, it doesn't jump) */
+    wv_slow += (r - wv_slow) * 0.04f;
+    if (r > 0.02f && r > wv_slow * 1.6f)
         wv_flash = 1.0f;
-    wv_flash *= 0.75f;
-    wv_start = end - 400u;                    /* (update 50, after Josh: "not just wiggle, be dynamic") the strip is
-                                                 not held to a zero crossing: it runs with the sound like a free scope,
-                                                 a held note shimmers, a chord beats, a bass line rolls */
+    wv_flash *= 0.82f;
+    wv_start = end - 400u;
 }
 static int wv_on(void) { return wv_lvl > 0.008f; }
 static void wv_fill(int32_t x, int32_t y, int32_t len, uint16_t c)
 {
     static const uint8_t ZOOM[4] = {8, 5, 3, 2};   /* frames a column, per knob */
-    int32_t k, th, dy;
-    float g, amp;
-    uint16_t col;
+    int32_t k;
+    float g;
+    uint16_t col, halo;
     if (len <= 0)
         return;
     if (!wv_on()) {
-        rrect(x, y, len, 4, c, 2);
+        cv_rect(x, y + 1, len, 2, c);
         return;
     }
-    g = wv_lvl * 7.0f;                        /* (a preset at its usual level, about -19 dB, swings well) */
+    g = wv_lvl * 6.0f;
     g = g > 1.0f ? 1.0f : g;
-    amp = 1.5f + 3.0f * g;                    /* the swing: 1.5 px quiet, 4.5 px loud */
-    th = 2 + (int32_t)(g * 2.5f + 0.5f);      /* the thickness: 2 quiet, 4-5 loud */
-    col = mix565(K_FG, c, (uint32_t)(wv_flash * 200.0f));
+    col = mix565(K_FG, c, (uint32_t)(g * 60.0f + wv_flash * 70.0f));                /* warmer, lighter: at most a third */
+    halo = mix565(col, K_BG, (uint32_t)(18.0f + g * 34.0f + wv_flash * 50.0f));     /* a faint glow: a fifth at most */
+    cv_rect(x, y, len, 1, halo);
+    cv_rect(x, y + 3, len, 1, halo);
     for (k = 0; k < len; k++) {
-        float v = (float)rc_scope[(wv_start + (uint32_t)(k * ZOOM[wv_idx & 3])) & (RC_SCOPE_N - 1u)] * (1.0f / 16384.0f);
-        v = v > 1.0f ? 1.0f : v < -1.0f ? -1.0f : v;
-        dy = (int32_t)(v * amp + (v < 0.0f ? -0.5f : 0.5f));
-        cv_rect(x + k, y + 2 - th / 2 + dy, 1, th, col);
+        float v = (float)rc_scope[(wv_start + (uint32_t)(k * ZOOM[wv_idx & 3])) & (RC_SCOPE_N - 1u)] * (1.0f / 16384.0f) * g;
+        int32_t dy = v > 0.55f ? -1 : v < -0.55f ? 1 : 0;   /* a pixel up or down, only where it swings hardest */
+        cv_rect(x + k, y + 1 + dy, 1, 2, col);
     }
 }
 static void slider(int32_t x, int32_t y, int32_t w, float f, uint16_t c, uint16_t mc, float lo, float hi, float live, float e, uint16_t bg)
@@ -408,25 +391,22 @@ static void slider(int32_t x, int32_t y, int32_t w, float f, uint16_t c, uint16_
     int32_t tx;
     f = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f;
     live = live < 0.0f ? 0.0f : live > 1.0f ? 1.0f : live;
-    if (mc) {
-        uint32_t k = 100u + (uint32_t)((e < 0.0f ? 0.0f : e > 1.0f ? 1.0f : e) * 150.0f);   /* 100-250: bright on black */
+    if (mc) {                                 /* moved by the matrix: the range it sweeps as a soft band (update 51:
+                                                 one band, a quarter as bright), its live value the thumb */
+        uint32_t k = 60u + (uint32_t)((e < 0.0f ? 0.0f : e > 1.0f ? 1.0f : e) * 90.0f);
         int32_t a = x + (int32_t)((lo < 0.0f ? 0.0f : lo) * (float)w), b = x + (int32_t)((hi > 1.0f ? 1.0f : hi) * (float)w);
-        if (b > a) {
-            rrect(a - 5, y - 6, b - a + 10, 16, mix565(mc, bg, k / 4u), 4);
-            rrect(a - 2, y - 3, b - a + 4, 10, mix565(mc, bg, k / 2u), 3);
-        }
-        rrect(x, y, w, 4, K_FAINT, 2);
+        if (b > a)
+            rrect(a - 2, y - 2, b - a + 4, 8, mix565(mc, bg, k / 3u), 3);
+        cv_rect(x, y + 1, w, 2, K_FAINT);
         tx = x + (int32_t)(live * (float)w);
         if (tx > x) wv_fill(x, y, tx - x, mc);
-        cv_rect(x + (int32_t)(f * (float)w), y - 3, 1, 10, mix565(c, bg, 170));
-        rrect(tx - 7, y - 8, 15, 20, mix565(mc, bg, k / 3u), 4);
-        rrect(tx - 4, y - 6, 9, 16, mix565(mc, bg, (k * 3u) / 4u), 3);
-        rrect(tx - 2, y - 4, 5, 12, K_FG, 2);
+        cv_rect(x + (int32_t)(f * (float)w), y - 2, 1, 8, mix565(c, bg, 170));   /* where it's set */
+        rrect(tx - 1, y - 3, 3, 10, K_FG, 1);
     } else {
-        rrect(x, y, w, 4, K_FAINT, 2);
+        cv_rect(x, y + 1, w, 2, K_FAINT);
         tx = x + (int32_t)(f * (float)w);
         if (tx > x) wv_fill(x, y, tx - x, c);
-        rrect(tx - 2, y - 4, 5, 12, K_FG, 2);
+        rrect(tx - 1, y - 3, 3, 10, K_FG, 1);
     }
 }
 
@@ -683,24 +663,20 @@ static void home_macros(int force)            /* (update 39: drawn again only wh
         }
         cv_begin(57, HM_H, K_BG);             /* flat (12 Nov 2026): an arc in its knob's colour, no box */
         if (sel && (now / 250u) & 1u)
-            rrect(0, 0, 57, HM_H, RGB(40, 34, 18), 4);
-        rrect(1, 2, 11, 11, sel ? K_GOLD : KNOB_C[i], 5);
-        t[0] = (char)('1' + i);
-        t[1] = 0;
-        cv_text(7 - text_w(&FONT_T, t) / 2, 1, &FONT_T, t, K_BG);
-        t[0] = 'M';
+            rrect(0, 0, 57, HM_H, mix565(K_GOLD, K_BG, 40), 4);
+        t[0] = 'M';                           /* (update 51) the macro's name in its knob's colour, no disc */
         t[1] = (char)('1' + i);
         t[2] = 0;
-        cv_text(15, 1, &FONT_T, t, sel ? K_GOLD : K_DIM);
+        cv_text(3, 1, &FONT_T, t, sel ? K_GOLD : KNOB_C[i]);
         {                                     /* (update 50) a slider, as the pages: the value large beside its name */
             float vv = v > 1.0f ? 1.0f : v < 0.0f ? 0.0f : v;
             int32_t tx = 3 + (int32_t)(vv * 50.0f);
             int_text((int32_t)(v * 100.0f + 0.5f), n);
             cv_text(55 - text_w(&FONT_B, n), 0, &FONT_B, n, nt ? K_FG : K_DIM);
-            rrect(3, 22, 50, 4, K_FAINT, 2);
+            cv_rect(3, 23, 50, 2, K_FAINT);
             wv_idx = i;
             if (tx > 3) wv_fill(3, 22, tx - 3, nt ? KNOB_C[i] : mix565(KNOB_C[i], K_BG, 120));
-            rrect(tx - 2, 18, 5, 12, K_FG, 2);
+            rrect(tx - 1, 19, 3, 10, K_FG, 1);
         }
         if (nt) {
             dst_name(first, t);
@@ -736,8 +712,12 @@ static void draw_home(void)
     cv_begin(240, 22, K_BAR);
     icon(module_icon(rc_patch.mod[RS_SRC]), 6, 5, K_SRC);
     x = text_w(&FONT_T, tag) + 8;
-    rrect(22, 4, x, 14, c ? CAT_COL[c] : K_SRC, 3);
-    cv_text(26, 4, &FONT_T, tag, K_BG);
+    {                                         /* (update 51) the category outlined in its colour, as the pages' tags */
+        uint16_t cc = c ? CAT_COL[c] : K_SRC;
+        rrect(22, 4, x, 14, mix565(cc, K_BAR, 90), 3);
+        rrect(23, 5, x - 2, 12, K_BAR, 2);
+        cv_text(26, 4, &FONT_T, tag, cc);
+    }
     cv_text(28 + x, 3, &FONT_B, name, pending ? K_DIM : K_FG);
     if (pending) {
         cv_text(234 - text_w(&FONT_T, "LOADING"), 5, &FONT_T, "LOADING", K_GOLD);
@@ -787,12 +767,13 @@ static void draw_toast(void)
     /* (update 50) one band the width of the screen over the help line, as LEARN's: nothing ragged under it */
     (void)x;
     if (w > 236) w = 236;
-    cv_begin(240, 17, K_BG);
-    rrect(2, 0, 236, 17, K_FG, 5);
-    icon(IC_HOME, 120 - w / 2 + 8, 3, RGB(17, 17, 17));
+    cv_begin(240, 17, K_BG);                  /* (update 51: a quiet grey band, not a white one) */
+    rrect(2, 0, 236, 17, GREY(44), 4);
+    cv_rect(2, 0, 236, 1, GREY(70));
+    icon(IC_HOME, 120 - w / 2 + 8, 3, K_DIM);
     {
-        int32_t e = cv_text(120 - w / 2 + 26, 1, &FONT_XS, ui.msg[0], RGB(17, 17, 17));
-        cv_text(e + 6, 1, &FONT_XS, ui.msg[1], RGB(120, 90, 30));
+        int32_t e = cv_text(120 - w / 2 + 26, 1, &FONT_XS, ui.msg[0], K_FG);
+        cv_text(e + 6, 1, &FONT_XS, ui.msg[1], K_GOLD);
     }
     cv_blit(0, 223);
 }

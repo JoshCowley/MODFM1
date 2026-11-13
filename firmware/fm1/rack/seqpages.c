@@ -66,17 +66,19 @@ static int flash_on(int i) { return sq.run && pl_now - sq_flash[i] < 6000u; }
 /* four sliders in a row at the top, over the area: number, label, value, how far (0-1) */
 static void seq_dials(const char *const *l, char v[4][16], const float *f, uint16_t c)
 {
+    (void)c;
     int i;
     for (i = 0; i < 4; i++) {                 /* (one canvas each) */
         char n[4] = "1";
         cv_begin(57, 32, K_BG);
-        rrect(0, 0, 57, 32, l[i] ? K_CELL : RGB(10, 10, 9), 4);
+        rrect(0, 0, 57, 32, l[i] ? K_CELL : GREY(9), 4);
         if (l[i]) {
             n[0] = (char)('1' + i);
-            cv_text(3, -1, &FONT_T, n, K_FAINT);
-            cv_text(11, -1, &FONT_T, l[i], K_DIM);
-            cv_text_acc(4, 9, &FONT_T, v[i], K_FG);
-            slider(5, 23, 47, f[i], c, 0, 0.0f, 0.0f, f[i], 0.0f, K_CELL);
+            cv_text(3, 0, &FONT_T, n, KNOB_C[i]);   /* (update 51: each knob in its own colour, as on every page) */
+            cv_text(11, 0, &FONT_T, l[i], K_DIM);
+            cv_text_acc(4, 10, &FONT_T, v[i], K_FG);
+            wv_idx = i;
+            slider(5, 23, 47, f[i], KNOB_C[i], 0, 0.0f, 0.0f, f[i], 0.0f, K_CELL);
         }
         cv_blit(2u + (uint32_t)i * 59u, 34);
     }
@@ -107,7 +109,7 @@ static void pic_roll(void)                    /* NOTES: a piano roll of 16 steps
             int32_t yc = AH - 4 - (p - lo) * (AH - 10) / (hi - lo), y0 = yc - lh / 2;
             for (r = 0; r < lh; r++) {
                 if (!blk) vf_span(RX, y0 + r, 224 - RX, K_FG, 10u);
-                vf_span(1, y0 + r, blk ? 7 : RX - 3, blk ? RGB(10, 10, 10) : K_FG, blk ? 210u : 90u);
+                vf_span(1, y0 + r, blk ? 7 : RX - 3, blk ? GREY(10) : K_FG, blk ? 210u : 90u);
             }
             if (pc == 0) {
                 vf_span(0, y0 + lh - 1, 224, K_FG, 26u);   /* the octave's line */
@@ -133,8 +135,8 @@ static void pic_roll(void)                    /* NOTES: a piano roll of 16 steps
     for (j = 0; j <= 16; j++) {
         int si = start + j;
         int32_t x = RX + (int32_t)((float)j * sw);
-        if (si % 4 == 0) cv_rect(x, 3, 1, AH - 6, si % 16 == 0 ? RGB(43, 42, 39) : RGB(24, 24, 22));
-        if (si >= L && j < 16) cv_rect(x, 2, (int32_t)sw, AH - 4, RGB(6, 6, 6));
+        if (si % 4 == 0) cv_rect(x, 3, 1, AH - 6, si % 16 == 0 ? GREY(41) : GREY(23));
+        if (si >= L && j < 16) cv_rect(x, 2, (int32_t)sw, AH - 4, GREY(6));
     }
     for (j = 0; j < 16; j++) {
         int si = start + j;
@@ -207,11 +209,11 @@ static void pic_steps(int spice)              /* PATTERN, SPICE, GEN: the 64 ste
         const sq_step_t *s = &b->s[i];
         int32_t x = 4 + (i % 16) * 14 - (i % 16) / 4 * 0, y = 3 + (i / 16) * 37;
         int used = i < b->len, beat = i % 4 == 0;
-        uint16_t col = !used ? RGB(6, 6, 6) : s->cnt ? (beat ? K_SEQC : mix565(K_SEQC, K_WELL, 150)) : (beat ? RGB(31, 30, 28) : RGB(20, 20, 19));
+        uint16_t col = !used ? GREY(6) : s->cnt ? (beat ? K_SEQC : mix565(K_SEQC, K_WELL, 150)) : (beat ? GREY(29) : GREY(19));
         if (used && s->cnt && flash_on(i)) col = mix565(K_FG, col, 120);
         rrect(x, y, 12, 34, col, 2);
         if (used && s->cnt && s->chance < 100)
-            cv_rect(x, y + 34 - (100 - s->chance) * 34 / 100, 12, (100 - s->chance) * 34 / 100, RGB(40, 20, 30));
+            cv_rect(x, y + 34 - (100 - s->chance) * 34 / 100, 12, (100 - s->chance) * 34 / 100, mix565(K_SEQC, K_BG, 50));
         if (used && ((s->flags >> 1) & 3u))
             cv_text(x + 2, y - 1, &FONT_T, ((s->flags >> 1) & 3u) == 1u ? "F" : "x", K_GOLD);
         if (spice && used && s->cnt && b->spice) {
@@ -230,7 +232,7 @@ static void pic_gen(void)
     if (t0 > NGEN - 8) t0 = NGEN - 8;
     for (i = 0; i < 8; i++) {
         int k = t0 + i, on = k == sp.gen_tool;
-        if (on) { rrect(4, 4 + i * 18, 84, 16, RGB(37, 36, 31), 3); cv_rect(4, 4 + i * 18, 2, 16, K_SEQC); }
+        if (on) { rrect(4, 4 + i * 18, 84, 16, GREY(34), 3); cv_rect(4, 4 + i * 18, 2, 16, K_SEQC); }
         cv_text(10, 4 + i * 18, &FONT_XS, GEN_TOOLS[k], on ? K_FG : K_DIM);
     }
     if (sp.gen_tool == 0) {                   /* EUCLID: the ring of the pattern it will make */
@@ -263,7 +265,7 @@ static void pic_banks(void)
         int cur = b == sq.bank, q = b == sq.queue && (plat_ms() / 250u) & 1u, lo = 127, hi = 0;
         char t[4] = "A";
         sq_bank_t *bk = &sqb[b];
-        rrect(x, 4, 25, AH - 8, cur ? RGB(42, 32, 38) : RGB(20, 20, 19), 4);
+        rrect(x, 4, 25, AH - 8, cur ? mix565(K_SEQC, K_BG, 40) : GREY(19), 4);
         if (cur || q) { uint16_t e = cur ? K_SEQC : K_FG; cv_rect(x, 4, 25, 1, e); cv_rect(x, AH - 5, 25, 1, e); cv_rect(x, 4, 1, AH - 8, e); cv_rect(x + 24, 4, 1, AH - 8, e); }
         for (i = 0; i < bk->len; i++)
             for (j = 0; j < bk->s[i].cnt; j++) { if (bk->s[i].n[j] < lo) lo = bk->s[i].n[j]; if (bk->s[i].n[j] > hi) hi = bk->s[i].n[j]; }
@@ -293,7 +295,7 @@ static void pic_song(void)
     for (r = 0; r < 16; r++) {
         int32_t w = (int32_t)((float)(sqs.bank[r] >= 0 ? sqs.rep[r] : 1) * 220.0f / (float)tot);
         int on = sq.song_on && r == sq.song_row;
-        uint16_t c = sqs.bank[r] < 0 ? RGB(12, 12, 11) : on ? mix565(K_SEQC, K_BG, 190) : mix565(K_SEQC, K_BG, 60);
+        uint16_t c = sqs.bank[r] < 0 ? GREY(11) : on ? mix565(K_SEQC, K_BG, 190) : mix565(K_SEQC, K_BG, 60);
         if (w < 2) w = 2;
         rrect(x, 16, w - 1, AH - 40, c, 2);
         if (sqs.bank[r] >= 0 && w > 9) {
@@ -522,7 +524,7 @@ static void draw_seq_layer(void)
             int i = sp.layer_page * 16 + r * 4 + w;
             int32_t x = 6 + w * 37;
             const sq_step_t *s = &b->s[i];
-            uint16_t col = i >= b->len ? RGB(9, 9, 9) : s->cnt ? (i % 4 == 0 ? K_SEQC : mix565(K_SEQC, K_BG, 150)) : RGB(20, 20, 19);
+            uint16_t col = i >= b->len ? GREY(9) : s->cnt ? (i % 4 == 0 ? K_SEQC : mix565(K_SEQC, K_BG, 150)) : GREY(19);
             if (i < b->len && s->cnt && flash_on(i)) col = mix565(K_FG, col, 110);
             rrect(x, 1, 34, 33, col, 4);
             if (i == sp.held) { cv_rect(x, 1, 34, 1, K_FG); cv_rect(x, 33, 34, 1, K_FG); cv_rect(x, 1, 1, 33, K_FG); cv_rect(x + 33, 1, 1, 33, K_FG); }
