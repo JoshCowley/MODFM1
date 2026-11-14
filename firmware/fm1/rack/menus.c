@@ -54,8 +54,8 @@ static struct {
     float chord_mem;                          /* the chord type two taps on SEL turned off (what they turn back on) */
     uint32_t fx_at, fx_arm, fx_tap;           /* FX down (held: FX on/off armed), armed since, first tap of two */
     int fx_long;
-    uint32_t glo_at;                          /* GLO down (held: DAYLIGHT on or off, update 55) */
-    int glo_long;
+    uint32_t glo_at, glo_tap;                 /* GLO down (held: DAYLIGHT on or off, update 55); let go, a 2nd tap may come */
+    int glo_long, glo_n, glo_pg, glo_sub;     /* (update 56) its taps; the page before the first (two taps: back to it) */
     int mtab, hrow[4];                        /* the matrix hub's table (ALGORITHM): ROUTES ENV EDIT OSC; each one's row */                       /* LEARN on; the macro it links (0-3: M1-M4) */
     uint32_t home_at;                         /* HOME went down (a hold starts LEARN), 0 up */
     int home_long;
@@ -1794,20 +1794,42 @@ static int menu_input(uint32_t press, uint32_t btn)
             else fixed_toggle(PG_SEL, C_TYPE, &mn.chord_mem, "CHORDS");
         }
     }
-    /* GLO (update 55): a tap turns the page when let go; held, DAYLIGHT on or off */
+    /* GLO (update 55; update 56, after Josh: two taps): a tap opens GLOBAL (or its next page) as soon as it's let go;
+     * two taps within 0.3 s: back to the page you were on and DAYLIGHT on or off. Held: the same switch */
     if (press >> B_GLO & 1u) {
+        if (!(mn.glo_tap && plat_ms() - mn.glo_tap < EDIT_DOUBLE_MS))
+            mn.glo_n = 0;
+        mn.glo_tap = 0;
         mn.glo_at = ms_stamp();
         mn.glo_long = 0;
     }
     if (mn.glo_at && (btn >> B_GLO & 1u) && !mn.glo_long && plat_ms() - mn.glo_at >= HOLD_MS) {
         mn.glo_long = 1;
+        mn.glo_n = 0;
         display_set(!pal_day);
         app_say("DISPLAY", pal_day ? "DAYLIGHT" : "NORMAL");
     }
     if (mn.glo_at && !(btn >> B_GLO & 1u)) {
-        if (!mn.glo_long)
-            page_button(GLO_CYC, 1);
+        if (!mn.glo_long) {
+            if (++mn.glo_n == 1) {
+                mn.glo_pg = mn.page;
+                mn.glo_sub = mn.sub;
+                page_button(GLO_CYC, 1);
+                mn.glo_tap = ms_stamp();
+            } else {                          /* the second tap: back, and DAYLIGHT on or off */
+                mn.glo_n = 0;
+                mn.glo_tap = 0;
+                go(mn.glo_pg);
+                mn.sub = mn.glo_sub;
+                display_set(!pal_day);
+                app_say("DISPLAY", pal_day ? "DAYLIGHT" : "NORMAL");
+            }
+        }
         mn.glo_at = 0;
+    }
+    if (mn.glo_tap && plat_ms() - mn.glo_tap >= EDIT_DOUBLE_MS) {
+        mn.glo_tap = 0;
+        mn.glo_n = 0;
     }
     if (press >> B_HOME & 1u) {               /* HOME: a tap on letting go (LEARN is EDIT's double tap now) */
         mn.home_at = ms_stamp();

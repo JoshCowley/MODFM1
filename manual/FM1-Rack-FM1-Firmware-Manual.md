@@ -97,7 +97,7 @@ Each page button opens its first page. **Tap it again to turn through that page'
 | **FX** | FX 1 | FX 2 | **Hold, let go, then one tap: FX 1 off or on; two taps: FX 2** (section 10) |
 | **ARP** | the arpeggiator | HOLD + TURING | **Two taps: the arpeggio on the FM-1 off or on. Three taps: its send off or on** (section 10) |
 | **SEL** | scale and chord | (SELECT turns its pages: KEYS + STRUM, then the MIDI controller pages STYLE, LAYER MIDI CH, CHORD + ARP, then FEEL, RHYTHM and RHYTHM CHANCE) | **Two taps: chords off (the keys play single notes) or back on. Three taps: the chords' send off or on** (section 10). **Hold SEL and EDIT together (half a second): LEARN on or off** (section 8) |
-| **GLO** | GLOBAL settings | its next page | **Hold: DISPLAY, NORMAL or DAYLIGHT** (for the sun) |
+| **GLO** | GLOBAL settings | its next page | **Two taps (or hold): DAYLIGHT on or off** (for the sun) |
 | **SAVE** | the SAVE page | SAVE again stores the preset | On a sequencer page: stores the sequencer |
 | **SEQ** | the sequencer, at the page you last used | the next sequencer page | **Hold: the step layer** (section 11) |
 | **PLAY** | start or stop the sequencer | | |
@@ -546,7 +546,7 @@ GLO opens seven pages:
     - **COUNT IN**: OFF, 1 BAR (to start with) or 2 BARS;
     - **CLICK VOL**: its level (MASTER turns it down too);
     - **SOUND**: TICK, BEEP or WOOD. The first beat of each bar is higher.
-8. **DISPLAY** (update 55): **NORMAL** (the quiet look) or **DAYLIGHT**, for a screen read in the sun: true black, white words, the knobs' and sections' colours at full strength, nothing see-through, lines two pixels thick, solid slider bars and bold values. **Hold GLO** on any page to switch between them; the choice is kept.
+8. **DISPLAY** (update 55): **NORMAL** (the quiet look) or **DAYLIGHT**, for a screen read in the sun: true black, white words, the knobs' and sections' colours at full strength, nothing see-through, lines two pixels thick, solid slider bars and bold values. **Tap GLO twice** (within 0.3 s) on any page to switch between them, staying on the page you were on (update 56); holding GLO does the same. The choice is kept.
 
     ![DAYLIGHT on the source page](../web/manual/img/fm1-daylight.png)
 
