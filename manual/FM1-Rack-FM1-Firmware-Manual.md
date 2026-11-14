@@ -552,6 +552,15 @@ GLO opens seven pages:
 
 ![GLOBAL](../web/manual/img/fm1-glo.png)
 
+### USB audio (update 57)
+
+Connected to a computer by USB, the FM-1 shows up as an audio device ("FM1 RACK") beside its MIDI port:
+
+- **Recording**: choose the FM-1 as the input in your DAW or audio app; it sends exactly what comes out of its headphone and line output, after MASTER.
+- **Playback**: choose the FM-1 as the output, and the computer's sound plays through the FM-1's output, mixed with its own.
+
+On a Mac it may take unplugging and plugging back in the first time, for the computer to see the new audio device. If the sound crackles while you record a heavy preset, the processor is the limit, not the USB: try a lighter preset or fewer voices.
+
 ### MIDI
 
 **In**, over USB or TRS, on GLOBAL › MIDI CH:

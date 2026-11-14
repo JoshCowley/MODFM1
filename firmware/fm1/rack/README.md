@@ -143,7 +143,7 @@ Flash: 539,548 of 581,632 bytes (about 41 KB free), RAM (.data + .bss) 77,468 of
 - the engine and the Mutable modules back at -O2 for speed (-Os was 36 KB smaller but about 15 % slower on the FM-1,
   measured 4 Nov); the menus and the platform stay at -Oz. Building rarely played units small inside the -O2 build
   (clang's minsize attribute) was tried and saved nothing measurable, so all units are -O2;
-- no USB audio (fm1.toml usb_audio_in / usb_audio_out false: the FM-1 isn't used as a sound card); USB-MIDI stays;
+- USB audio in and out (fm1.toml usb_audio_in / usb_audio_out, update 57): the FM-1 recordable on the computer, and the computer playing through it, beside USB-MIDI;
 - the splash and panel screens in the bold font (APP_BIG_FONT FONT_B), so the large and medium fonts are left out;
 - Rings' chord table const (in flash, 1.4 KB of RAM); the user presets' read buffer shares its RAM with the
   sequencer's undo copy (1.5 KB; reading presets drops the undo).
